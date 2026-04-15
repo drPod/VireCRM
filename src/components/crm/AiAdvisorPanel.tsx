@@ -13,8 +13,12 @@ import {
   Briefcase,
   Loader2,
   AlertTriangle,
+  Copy,
+  Check,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { analyzeBusinessFn } from "@/functions/ai-advisor.functions";
+import { toast } from "sonner";
 
 interface ICP {
   title: string;
@@ -43,11 +47,13 @@ interface AnalysisResult {
 }
 
 export function AiAdvisorPanel() {
-  const { organization, session, role } = useAuth();
+  const { organization, session } = useAuth();
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const analyzeBusiness = useServerFn(analyzeBusinessFn);
 
   const tokensRemaining = organization
     ? organization.ai_tokens_limit - organization.ai_tokens_used
@@ -61,61 +67,28 @@ export function AiAdvisorPanel() {
     setResult(null);
 
     try {
-      // Call AI advisor via server function
-      const response = await fetch("/_server", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+      const data = await analyzeBusiness({
+        data: {
+          businessDescription: description,
+          organizationId: organization.id,
         },
-        body: JSON.stringify({
-          fn: "analyzeBusinessFn",
-          data: {
-            businessDescription: description,
-            organizationId: organization.id,
-          },
-        }),
       });
-
-      // Fallback: call directly via supabase edge function if server fn isn't available
-      // For now, simulate the AI response for demo purposes
-      await new Promise((resolve) => setTimeout(resolve, 2500));
-      
-      setResult({
-        icp: {
-          title: "Mid-Market SaaS Decision Makers",
-          industry: "B2B Software / Technology",
-          company_size: "50-500 employees",
-          revenue_range: "$5M-$100M ARR",
-          decision_maker: "VP of Sales / Head of Revenue",
-          pain_points: [
-            "Manual lead qualification wastes 40% of rep time",
-            "Inconsistent follow-up leads to 60% pipeline leakage",
-            "No visibility into AI-driven sales optimization",
-          ],
-          buying_signals: [
-            "Recently hired sales leadership",
-            "Expanding into new markets",
-            "Posted about CRM migration on LinkedIn",
-          ],
-        },
-        searchFilters: {
-          industries: ["SaaS", "Technology", "Software Development"],
-          job_titles: ["VP of Sales", "Head of Revenue", "CRO", "Sales Director"],
-          company_size_min: 50,
-          company_size_max: 500,
-          revenue_min: "$5M",
-          revenue_max: "$100M",
-          keywords: ["sales automation", "CRM", "pipeline management", "revenue operations"],
-        },
-        strategicHook:
-          "Your sales team is leaving money on the table. Our AI CRM identifies your hottest leads, writes personalized outreach, and books meetings — while your reps focus on closing. Companies like yours see 3.2x more conversions in 90 days.",
-      });
-    } catch (err: any) {
-      setError(err.message || "Analysis failed. Please try again.");
+      setResult(data);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Analysis failed. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const copyHook = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result.strategicHook);
+    setCopied(true);
+    toast.success("Hook copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -311,8 +284,9 @@ export function AiAdvisorPanel() {
             <p className="mt-3 text-sm leading-relaxed text-foreground italic">
               "{result.strategicHook}"
             </p>
-            <Button variant="outline" size="sm" className="mt-3">
-              Copy to Clipboard
+            <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={copyHook}>
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? "Copied!" : "Copy to Clipboard"}
             </Button>
           </div>
         </div>
