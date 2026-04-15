@@ -1,0 +1,70 @@
+import { useState } from "react";
+import { Send, Sparkles, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface CommandBarProps {
+  onCommand?: (command: string) => void;
+  isProcessing?: boolean;
+}
+
+export function CommandBar({ onCommand, isProcessing = false }: CommandBarProps) {
+  const [input, setInput] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isProcessing) return;
+    onCommand?.(input.trim());
+    setInput("");
+  };
+
+  const suggestions = [
+    "Run outreach on 200 leads",
+    "Follow up with cold leads",
+    "Book calls with hot leads",
+    "Score all new leads",
+  ];
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <Sparkles className="h-4 w-4 text-primary" />
+        </div>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a command... e.g. 'Run outreach on 200 leads'"
+          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+          disabled={isProcessing}
+        />
+        <Button
+          type="submit"
+          size="sm"
+          variant="command"
+          disabled={!input.trim() || isProcessing}
+        >
+          {isProcessing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </Button>
+      </form>
+
+      {!input && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              onClick={() => setInput(s)}
+              className="rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
