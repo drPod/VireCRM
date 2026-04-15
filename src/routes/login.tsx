@@ -79,7 +79,29 @@ function LoginPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">Password</label>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!email) {
+                      toast.error("Enter your email first");
+                      return;
+                    }
+                    try {
+                      await supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/reset-password`,
+                      });
+                      toast.success("Password reset link sent! Check your email.");
+                    } catch {
+                      toast.error("Failed to send reset email");
+                    }
+                  }}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input
                 type="password"
                 placeholder="••••••••"
