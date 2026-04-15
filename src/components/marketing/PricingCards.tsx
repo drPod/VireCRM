@@ -165,21 +165,12 @@ export function PricingCards() {
               <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
             </div>
 
-            {tier.ctaLink.startsWith("mailto:") ? (
-              <a href={tier.ctaLink}>
-                <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
-                  {tier.cta}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </a>
-            ) : (
-              <Link to={tier.ctaLink}>
-                <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
-                  {tier.cta}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
+            <Link to={tier.ctaLink}>
+              <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
+                {tier.cta}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
 
             <div className="mt-6 space-y-2.5 border-t border-border pt-6">
               {tier.features.map((feature) => (
