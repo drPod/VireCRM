@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Crown } from "lucide-react";
 
 export function CtaSection() {
   return (
@@ -11,17 +11,27 @@ export function CtaSection() {
             <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl" />
           </div>
           <div className="relative">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
+              <Crown className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-primary">Full Ownership</span>
+            </div>
             <h2 className="text-3xl font-bold text-foreground">
-              Ready to Automate Your Sales?
+              Own Your AI CRM for $10,000
             </h2>
-            <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              Start your 14-day free trial. No credit card required. Set up in under 5 minutes.
+            <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+              One payment. Full source code. Your brand, your servers, your business — forever.
+              No monthly fees, no revenue sharing, no limits.
             </p>
-            <div className="mt-8">
-              <Link to="/signup">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link to="/pricing">
                 <Button variant="command" size="lg" className="gap-2 px-8">
-                  Get Started Free
+                  See Ownership Details
                   <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to="/contact">
+                <Button variant="outline" size="lg">
+                  Need Custom Features? Contact Us
                 </Button>
               </Link>
             </div>
