@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LeadCard, type Lead } from "@/components/crm/LeadCard";
 import { Button } from "@/components/ui/button";
-import { Search, Plus } from "lucide-react";
-import { useState } from "react";
+import { Search, Plus, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
@@ -14,40 +16,67 @@ export const Route = createFileRoute("/_app/leads")({
   }),
 });
 
-const allLeads: Lead[] = [
-  { id: "1", name: "Sarah Chen", email: "sarah@techflow.io", company: "TechFlow", status: "new", score: 85, nextAction: "Send intro email" },
-  { id: "2", name: "Marcus Rivera", email: "marcus@acme.co", company: "Acme Corp", status: "new", score: 72, phone: "+1 555-0123" },
-  { id: "3", name: "Emily Watson", email: "emily@startupx.com", company: "StartupX", status: "contacted", score: 68, nextAction: "Follow up in 2 days" },
-  { id: "4", name: "James Park", email: "james@bigco.net", company: "BigCo", status: "contacted", score: 55 },
-  { id: "5", name: "Alex Thompson", email: "alex@innovate.ai", company: "Innovate AI", status: "qualified", score: 91, nextAction: "Book demo call" },
-  { id: "6", name: "Priya Patel", email: "priya@nexgen.io", company: "NexGen", status: "qualified", score: 78, phone: "+1 555-0456" },
-  { id: "7", name: "David Kim", email: "david@cloudscale.com", company: "CloudScale", status: "negotiation", score: 88, nextAction: "Send proposal" },
-  { id: "8", name: "Lisa Zhang", email: "lisa@dataworks.co", company: "DataWorks", status: "won", score: 95 },
-  { id: "9", name: "Tom Harris", email: "tom@webdev.co", company: "WebDev Co", status: "new", score: 42 },
-  { id: "10", name: "Anika Gupta", email: "anika@finflow.io", company: "FinFlow", status: "contacted", score: 77, nextAction: "Send case study" },
-];
-
 const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
 
 function LeadsPage() {
+  const { organization } = useAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const filtered = allLeads.filter((lead) => {
-    const matchesSearch =
-      lead.name.toLowerCase().includes(search.toLowerCase()) ||
-      lead.email.toLowerCase().includes(search.toLowerCase()) ||
-      (lead.company?.toLowerCase().includes(search.toLowerCase()) ?? false);
-    const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    if (!organization?.id) return;
+
+    const fetchLeads = async () => {
+      setLoading(true);
+      let query = supabase
+        .from("leads")
+        .select("*", { count: "exact" })
+        .eq("organization_id", organization.id)
+        .order("created_at", { ascending: false });
+
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      if (search.trim()) {
+        query = query.or(
+          `name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%`
+        );
+      }
+
+      const { data, count, error } = await query;
+
+      if (!error && data) {
+        setLeads(
+          data.map((l) => ({
+            id: l.id,
+            name: l.name,
+            email: l.email ?? "",
+            phone: l.phone ?? undefined,
+            company: l.company ?? undefined,
+            status: l.status as Lead["status"],
+            score: l.score ?? 0,
+            nextAction: l.next_action ?? undefined,
+            lastContact: l.last_contact ?? undefined,
+          }))
+        );
+        setTotalCount(count ?? data.length);
+      }
+      setLoading(false);
+    };
+
+    fetchLeads();
+  }, [organization?.id, statusFilter, search]);
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Leads</h1>
-          <p className="text-sm text-muted-foreground">{allLeads.length} total leads in pipeline</p>
+          <p className="text-sm text-muted-foreground">{totalCount} total leads in pipeline</p>
         </div>
         <Button variant="command" size="sm">
           <Plus className="h-4 w-4" />
@@ -81,16 +110,23 @@ function LeadsPage() {
           ))}
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((lead) => (
-          <LeadCard key={lead.id} lead={lead} />
-        ))}
-        {filtered.length === 0 && (
-          <div className="col-span-full rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
-            No leads found matching your criteria
-          </div>
-        )}
-      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {leads.map((lead) => (
+            <LeadCard key={lead.id} lead={lead} />
+          ))}
+          {leads.length === 0 && (
+            <div className="col-span-full rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
+              No leads found matching your criteria
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
