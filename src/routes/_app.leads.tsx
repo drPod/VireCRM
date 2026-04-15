@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LeadCard, type Lead } from "@/components/crm/LeadCard";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Plus, SortAsc } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { useState } from "react";
 
-export const Route = createFileRoute("/leads")({
+export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
   head: () => ({
     meta: [
@@ -55,8 +54,6 @@ function LeadsPage() {
           Add Lead
         </Button>
       </div>
-
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -84,8 +81,6 @@ function LeadsPage() {
           ))}
         </div>
       </div>
-
-      {/* Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((lead) => (
           <LeadCard key={lead.id} lead={lead} />

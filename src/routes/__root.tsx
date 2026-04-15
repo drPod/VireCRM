@@ -1,5 +1,4 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
-import { CrmSidebar } from "@/components/crm/CrmSidebar";
 
 import appCss from "../styles.css?url";
 
@@ -79,12 +78,5 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return (
-    <div className="flex h-screen overflow-hidden">
-      <CrmSidebar />
-      <main className="flex-1 overflow-y-auto">
-        <Outlet />
-      </main>
-    </div>
-  );
+  return <Outlet />;
 }

@@ -1,75 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Users, Send, MessageSquare, TrendingUp, Target, Zap } from "lucide-react";
-import { CommandBar } from "@/components/crm/CommandBar";
-import { MetricCard } from "@/components/crm/MetricCard";
-import { ActivityFeed } from "@/components/crm/ActivityFeed";
-import { PipelineView } from "@/components/crm/PipelineView";
+import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { HeroSection } from "@/components/marketing/HeroSection";
+import { FeaturesSection } from "@/components/marketing/FeaturesSection";
+import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
+import { SocialProofSection } from "@/components/marketing/SocialProofSection";
+import { CtaSection } from "@/components/marketing/CtaSection";
 
 export const Route = createFileRoute("/")({
-  component: Dashboard,
+  component: LandingPage,
   head: () => ({
     meta: [
-      { title: "AI CRM — Dashboard" },
-      { name: "description", content: "Autonomous AI-powered CRM dashboard" },
+      { title: "AI CRM — The Autonomous Sales Engine" },
+      { name: "description", content: "Type one command. AI scores leads, writes outreach, sends messages, classifies replies, and books meetings — automatically. White-label ready." },
+      { property: "og:title", content: "AI CRM — Your AI Sales Team That Never Sleeps" },
+      { property: "og:description", content: "Fully autonomous CRM that handles lead scoring, outreach, follow-ups, and meeting booking with AI." },
     ],
   }),
 });
 
-function Dashboard() {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [lastCommand, setLastCommand] = useState<string | null>(null);
-
-  const handleCommand = (command: string) => {
-    setIsProcessing(true);
-    setLastCommand(command);
-    // Simulate processing
-    setTimeout(() => setIsProcessing(false), 2000);
-  };
-
+function LandingPage() {
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Command Center</h1>
-        <p className="text-sm text-muted-foreground">
-          Type a command to orchestrate your sales pipeline
-        </p>
-      </div>
-
-      {/* Command Bar */}
-      <CommandBar onCommand={handleCommand} isProcessing={isProcessing} />
-
-      {lastCommand && isProcessing && (
-        <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-          <Zap className="h-4 w-4 animate-pulse text-primary" />
-          <span className="text-sm text-foreground">
-            Processing: <span className="font-medium text-primary">{lastCommand}</span>
-          </span>
-        </div>
-      )}
-
-      {/* Metrics */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard icon={Users} label="Total Leads" value="1,284" change="+12%" changeType="positive" />
-        <MetricCard icon={Send} label="Outreach Sent" value="3,891" change="+8%" changeType="positive" />
-        <MetricCard icon={MessageSquare} label="Replies" value="412" change="+23%" changeType="positive" />
-        <MetricCard icon={TrendingUp} label="Conversion" value="14.2%" change="+2.1%" changeType="positive" />
-      </div>
-
-      {/* Pipeline */}
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Pipeline</h2>
-          </div>
-        </div>
-        <PipelineView />
-      </div>
-
-      {/* Activity Feed */}
-      <ActivityFeed />
+    <div className="min-h-screen">
+      <MarketingHeader />
+      <HeroSection />
+      <FeaturesSection />
+      <HowItWorksSection />
+      <SocialProofSection />
+      <CtaSection />
+      <MarketingFooter />
     </div>
   );
 }
