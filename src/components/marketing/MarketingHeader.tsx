@@ -7,6 +7,7 @@ const navLinks = [
   { to: "/", label: "Home" },
   { to: "/pricing", label: "Pricing" },
   { to: "/features", label: "Features" },
+  { to: "/contact", label: "Contact" },
 ];
 
 export function MarketingHeader() {
