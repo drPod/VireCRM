@@ -26,7 +26,8 @@ const navItems = [
 
 export function CrmSidebar() {
   const location = useLocation();
-  const { organization, profile, role } = useAuth();
+  const navigate = useNavigate();
+  const { organization, profile, role, signOut } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
 
   const brandName = organization?.brand_name || "AI CRM";
