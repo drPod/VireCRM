@@ -8,10 +8,10 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing — AI CRM" },
-      { name: "description", content: "Choose the perfect AI CRM plan for your team. Starter, Professional, or Enterprise with white-labeling." },
-      { property: "og:title", content: "AI CRM Pricing — Plans for Every Team" },
-      { property: "og:description", content: "From $49/mo for small teams to unlimited Enterprise with white-label. Start your free trial today." },
+      { title: "Pricing — White-Label AI CRM" },
+      { name: "description", content: "Lease or own a white-label AI CRM. From $249/mo leasing to $10,000 full ownership." },
+      { property: "og:title", content: "White-Label AI CRM Pricing — Lease or Own" },
+      { property: "og:description", content: "Lease from $249/mo or own outright for $10,000. Full white-label branding, AI agents, and source code." },
     ],
   }),
 });
@@ -25,10 +25,10 @@ function PricingPage() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h1 className="text-4xl font-bold text-foreground">
-              Simple, Transparent Pricing
+              Lease It or Own It
             </h1>
             <p className="mt-3 text-lg text-muted-foreground">
-              Start free for 14 days. No credit card required. Upgrade as you grow.
+              White-label AI CRM — run it as your own business. Choose monthly leasing or full ownership.
             </p>
           </div>
 
@@ -42,20 +42,20 @@ function PricingPage() {
             <div className="space-y-4">
               {[
                 {
-                  q: "What's included in the free trial?",
-                  a: "Full access to your chosen plan's features for 14 days. No credit card required. You can upgrade, downgrade, or cancel anytime.",
+                  q: "What's the difference between leasing and ownership?",
+                  a: "Leasing gives you a fully branded white-label CRM on our infrastructure for a monthly fee. Ownership gives you the complete source code, database, and infrastructure — it's yours forever with no recurring costs.",
                 },
                 {
                   q: "What does white-label mean?",
-                  a: "Enterprise plans let you rebrand the entire CRM with your own logo, colors, domain, and company name. Sell it as your own product to your clients.",
+                  a: "Every plan includes full white-labeling. Your logo, your colors, your domain, your brand. Your clients will never know it's built by us.",
                 },
                 {
-                  q: "How does AI lead scoring work?",
-                  a: "Our AI analyzes lead behavior, engagement, company data, and historical patterns to assign a conversion probability score from 0-100.",
+                  q: "What's included in the $14K custom option?",
+                  a: "Everything in Full Ownership plus custom features tailored to your business — bespoke AI workflows, custom integrations, dedicated onboarding, and architecture consulting.",
                 },
                 {
-                  q: "Can I switch plans later?",
-                  a: "Absolutely. Upgrade or downgrade anytime. Changes take effect on your next billing cycle with prorated adjustments.",
+                  q: "Can I upgrade from lease to ownership?",
+                  a: "Yes! Contact us and we'll credit a portion of your lease payments toward the ownership price.",
                 },
               ].map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-border bg-card p-5">
