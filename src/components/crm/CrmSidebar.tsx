@@ -8,8 +8,11 @@ import {
   Settings,
   Terminal,
   Sparkles,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useTheme } from "@/hooks/use-theme";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
