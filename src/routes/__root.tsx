@@ -1,4 +1,5 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { CrmSidebar } from "@/components/crm/CrmSidebar";
 
 import appCss from "../styles.css?url";
 
@@ -29,7 +30,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
+      { title: "AI CRM — Autonomous Sales System" },
       { name: "description", content: "Lovable Generated Project" },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Lovable App" },
@@ -65,5 +66,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <CrmSidebar />
+      <main className="flex-1 overflow-y-auto">
+        <Outlet />
+      </main>
+    </div>
+  );
 }
