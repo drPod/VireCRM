@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Users,
@@ -10,6 +10,7 @@ import {
   Sparkles,
   Moon,
   Sun,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
@@ -25,7 +26,8 @@ const navItems = [
 
 export function CrmSidebar() {
   const location = useLocation();
-  const { organization, profile, role } = useAuth();
+  const navigate = useNavigate();
+  const { organization, profile, role, signOut } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
 
   const brandName = organization?.brand_name || "AI CRM";
@@ -97,6 +99,16 @@ export function CrmSidebar() {
           <Settings className="h-4 w-4" />
           Settings
         </Link>
+        <button
+          onClick={async () => {
+            await signOut();
+            navigate({ to: "/login" });
+          }}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </button>
       </div>
     </aside>
   );
