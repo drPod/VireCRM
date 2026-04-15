@@ -110,7 +110,7 @@ export const pricingTiers: PricingTier[] = [
     ],
     cta: "Contact Us",
     ctaVariant: "outline",
-    ctaLink: "mailto:sales@example.com",
+    ctaLink: "/contact",
   },
 ];
 
