@@ -99,6 +99,16 @@ export function CrmSidebar() {
           <Settings className="h-4 w-4" />
           Settings
         </Link>
+        <button
+          onClick={async () => {
+            await signOut();
+            navigate({ to: "/login" });
+          }}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </button>
       </div>
     </aside>
   );
