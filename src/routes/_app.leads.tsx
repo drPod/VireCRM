@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LeadCard, type Lead } from "@/components/crm/LeadCard";
-import { Button } from "@/components/ui/button";
-import { Search, Plus, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { AddLeadDialog } from "@/components/crm/AddLeadDialog";
+import { Search, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -25,6 +25,9 @@ function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
     if (!organization?.id) return;
@@ -69,7 +72,7 @@ function LeadsPage() {
     };
 
     fetchLeads();
-  }, [organization?.id, statusFilter, search]);
+  }, [organization?.id, statusFilter, search, refreshKey]);
 
   return (
     <div className="p-6 space-y-6">
@@ -78,10 +81,7 @@ function LeadsPage() {
           <h1 className="text-2xl font-bold text-foreground">Leads</h1>
           <p className="text-sm text-muted-foreground">{totalCount} total leads in pipeline</p>
         </div>
-        <Button variant="command" size="sm">
-          <Plus className="h-4 w-4" />
-          Add Lead
-        </Button>
+        <AddLeadDialog onLeadAdded={handleLeadAdded} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 max-w-sm">
