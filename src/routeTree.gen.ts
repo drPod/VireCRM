@@ -11,13 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as FeaturesRouteImport } from './routes/features'
-import { Route as CampaignsRouteImport } from './routes/campaigns'
-import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppMessagesRouteImport } from './routes/_app.messages'
+import { Route as AppLeadsRouteImport } from './routes/_app.leads'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
+import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -29,19 +31,9 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MessagesRoute = MessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeadsRoute = LeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeaturesRoute = FeaturesRouteImport.update({
@@ -49,14 +41,8 @@ const FeaturesRoute = FeaturesRouteImport.update({
   path: '/features',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CampaignsRoute = CampaignsRouteImport.update({
-  id: '/campaigns',
-  path: '/campaigns',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalyticsRoute = AnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -64,85 +50,115 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppMessagesRoute = AppMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLeadsRoute = AppLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCampaignsRoute = AppCampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/analytics': typeof AnalyticsRoute
-  '/campaigns': typeof CampaignsRoute
   '/features': typeof FeaturesRoute
-  '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
-  '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/analytics': typeof AppAnalyticsRoute
+  '/campaigns': typeof AppCampaignsRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/leads': typeof AppLeadsRoute
+  '/messages': typeof AppMessagesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/analytics': typeof AnalyticsRoute
-  '/campaigns': typeof CampaignsRoute
   '/features': typeof FeaturesRoute
-  '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
-  '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/analytics': typeof AppAnalyticsRoute
+  '/campaigns': typeof AppCampaignsRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/leads': typeof AppLeadsRoute
+  '/messages': typeof AppMessagesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/analytics': typeof AnalyticsRoute
-  '/campaigns': typeof CampaignsRoute
+  '/_app': typeof AppRouteWithChildren
   '/features': typeof FeaturesRoute
-  '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
-  '/messages': typeof MessagesRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/_app/analytics': typeof AppAnalyticsRoute
+  '/_app/campaigns': typeof AppCampaignsRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/leads': typeof AppLeadsRoute
+  '/_app/messages': typeof AppMessagesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/analytics'
-    | '/campaigns'
     | '/features'
-    | '/leads'
     | '/login'
-    | '/messages'
     | '/pricing'
     | '/signup'
+    | '/analytics'
+    | '/campaigns'
+    | '/dashboard'
+    | '/leads'
+    | '/messages'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/analytics'
-    | '/campaigns'
     | '/features'
-    | '/leads'
     | '/login'
-    | '/messages'
     | '/pricing'
     | '/signup'
+    | '/analytics'
+    | '/campaigns'
+    | '/dashboard'
+    | '/leads'
+    | '/messages'
   id:
     | '__root__'
     | '/'
-    | '/analytics'
-    | '/campaigns'
+    | '/_app'
     | '/features'
-    | '/leads'
     | '/login'
-    | '/messages'
     | '/pricing'
     | '/signup'
+    | '/_app/analytics'
+    | '/_app/campaigns'
+    | '/_app/dashboard'
+    | '/_app/leads'
+    | '/_app/messages'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AnalyticsRoute: typeof AnalyticsRoute
-  CampaignsRoute: typeof CampaignsRoute
+  AppRoute: typeof AppRouteWithChildren
   FeaturesRoute: typeof FeaturesRoute
-  LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
-  MessagesRoute: typeof MessagesRoute
   PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
 }
@@ -163,25 +179,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/messages': {
-      id: '/messages'
-      path: '/messages'
-      fullPath: '/messages'
-      preLoaderRoute: typeof MessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leads': {
-      id: '/leads'
-      path: '/leads'
-      fullPath: '/leads'
-      preLoaderRoute: typeof LeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/features': {
@@ -191,18 +193,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeaturesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/campaigns': {
-      id: '/campaigns'
-      path: '/campaigns'
-      fullPath: '/campaigns'
-      preLoaderRoute: typeof CampaignsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analytics': {
-      id: '/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AnalyticsRouteImport
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -212,17 +207,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/messages': {
+      id: '/_app/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof AppMessagesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/leads': {
+      id: '/_app/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof AppLeadsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/campaigns': {
+      id: '/_app/campaigns'
+      path: '/campaigns'
+      fullPath: '/campaigns'
+      preLoaderRoute: typeof AppCampaignsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/analytics': {
+      id: '/_app/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppCampaignsRoute: typeof AppCampaignsRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppLeadsRoute: typeof AppLeadsRoute
+  AppMessagesRoute: typeof AppMessagesRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAnalyticsRoute: AppAnalyticsRoute,
+  AppCampaignsRoute: AppCampaignsRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppLeadsRoute: AppLeadsRoute,
+  AppMessagesRoute: AppMessagesRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AnalyticsRoute: AnalyticsRoute,
-  CampaignsRoute: CampaignsRoute,
+  AppRoute: AppRouteWithChildren,
   FeaturesRoute: FeaturesRoute,
-  LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
-  MessagesRoute: MessagesRoute,
   PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
 }
