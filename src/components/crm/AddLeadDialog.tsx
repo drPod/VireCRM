@@ -1,0 +1,181 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Plus, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { toast } from "sonner";
+
+const statusOptions = ["new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
+
+interface AddLeadDialogProps {
+  onLeadAdded?: () => void;
+}
+
+export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
+  const { organization } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    status: "new" as string,
+    score: 50,
+    next_action: "",
+    notes: "",
+  });
+
+  const update = (field: string, value: string | number) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      toast.error("Lead name is required");
+      return;
+    }
+    if (!organization?.id) {
+      toast.error("No organization found");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("leads").insert({
+        organization_id: organization.id,
+        name: form.name.trim(),
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        company: form.company.trim() || null,
+        status: form.status,
+        score: form.score,
+        next_action: form.next_action.trim() || null,
+        notes: form.notes.trim() || null,
+      });
+      if (error) throw error;
+      toast.success(`Lead "${form.name}" added!`);
+      setForm({ name: "", email: "", phone: "", company: "", status: "new", score: 50, next_action: "", notes: "" });
+      setOpen(false);
+      onLeadAdded?.();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to add lead");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClass =
+    "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="command" size="sm">
+          <Plus className="h-4 w-4" />
+          Add Lead
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add New Lead</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">Name *</label>
+              <input
+                className={inputClass}
+                placeholder="Jane Smith"
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">Company</label>
+              <input
+                className={inputClass}
+                placeholder="Acme Corp"
+                value={form.company}
+                onChange={(e) => update("company", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">Email</label>
+              <input
+                type="email"
+                className={inputClass}
+                placeholder="jane@acme.com"
+                value={form.email}
+                onChange={(e) => update("email", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">Phone</label>
+              <input
+                className={inputClass}
+                placeholder="+1 555-0123"
+                value={form.phone}
+                onChange={(e) => update("phone", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">Status</label>
+              <select
+                className={inputClass}
+                value={form.status}
+                onChange={(e) => update("status", e.target.value)}
+              >
+                {statusOptions.map((s) => (
+                  <option key={s} value={s} className="capitalize">
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">Score (0–100)</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                className={inputClass}
+                value={form.score}
+                onChange={(e) => update("score", Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-foreground">Next Action</label>
+            <input
+              className={inputClass}
+              placeholder="Send intro email"
+              value={form.next_action}
+              onChange={(e) => update("next_action", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-foreground">Notes</label>
+            <textarea
+              className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
+              rows={2}
+              placeholder="Any notes about this lead..."
+              value={form.notes}
+              onChange={(e) => update("notes", e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="command" size="sm" disabled={loading}>
+              {loading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Add Lead
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
