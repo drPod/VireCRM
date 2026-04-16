@@ -257,7 +257,7 @@ export function WhiteLabelSettings() {
             </div>
             {savedDomain && (
               isDomainVerified ? (
-                <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                <Badge variant="secondary" className="gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Verified
                 </Badge>
