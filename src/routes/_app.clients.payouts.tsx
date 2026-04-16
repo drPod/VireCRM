@@ -5,6 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   ArrowLeft,
   Building2,
   DollarSign,
@@ -14,6 +24,8 @@ import {
   CheckCircle2,
   Clock,
   Sparkles,
+  Download,
+  CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -39,6 +51,7 @@ interface PayoutRow {
   active_client_count: number;
   status: "pending" | "paid" | "void";
   paid_at: string | null;
+  payment_reference: string | null;
 }
 
 interface LineItem {
@@ -55,6 +68,29 @@ function formatCents(cents: number, currency = "USD") {
   }).format(cents / 100);
 }
 
+function escapeCsv(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  const s = String(value);
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function downloadCsv(filename: string, rows: string[][]) {
+  const csv = rows.map((r) => r.map(escapeCsv).join(",")).join("\n");
+  // BOM so Excel reads UTF-8 correctly
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function PayoutsPage() {
   const { organization, role } = useAuth();
   const navigate = useNavigate();
@@ -62,6 +98,10 @@ function PayoutsPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [lineItems, setLineItems] = useState<Record<string, LineItem[]>>({});
+  const [payDialogPayout, setPayDialogPayout] = useState<PayoutRow | null>(null);
+  const [paymentReference, setPaymentReference] = useState("");
+  const [marking, setMarking] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const isOwner = role?.role === "owner";
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
@@ -71,20 +111,25 @@ function PayoutsPage() {
       setLoading(false);
       return;
     }
-    void (async () => {
-      const { data, error } = await supabase
-        .from("reseller_payouts")
-        .select("*")
-        .eq("reseller_id", organization.id)
-        .order("period_start", { ascending: false });
-      if (error) {
-        toast.error("Failed to load payouts: " + error.message);
-      } else {
-        setPayouts((data || []) as PayoutRow[]);
-      }
-      setLoading(false);
-    })();
+    void loadPayouts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization?.id, isOwner, isReseller]);
+
+  const loadPayouts = async () => {
+    if (!organization?.id) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("reseller_payouts")
+      .select("*")
+      .eq("reseller_id", organization.id)
+      .order("period_start", { ascending: false });
+    if (error) {
+      toast.error("Failed to load payouts: " + error.message);
+    } else {
+      setPayouts((data || []) as PayoutRow[]);
+    }
+    setLoading(false);
+  };
 
   const toggleExpand = async (payoutId: string) => {
     if (expandedId === payoutId) {
@@ -102,6 +147,115 @@ function PayoutsPage() {
         return;
       }
       setLineItems((prev) => ({ ...prev, [payoutId]: (data || []) as LineItem[] }));
+    }
+  };
+
+  const openPayDialog = (e: React.MouseEvent, payout: PayoutRow) => {
+    e.stopPropagation();
+    setPayDialogPayout(payout);
+    setPaymentReference("");
+  };
+
+  const confirmMarkPaid = async () => {
+    if (!payDialogPayout) return;
+    setMarking(true);
+    const { data, error } = await supabase.rpc("mark_payout_paid", {
+      p_payout_id: payDialogPayout.id,
+      p_payment_reference: paymentReference || undefined,
+    });
+    setMarking(false);
+    if (error) {
+      toast.error("Failed: " + error.message);
+      return;
+    }
+    const result = data as { success: boolean; error?: string } | null;
+    if (!result?.success) {
+      toast.error(result?.error || "Failed to mark paid");
+      return;
+    }
+    toast.success("Payout marked as paid");
+    setPayDialogPayout(null);
+    setPaymentReference("");
+    await loadPayouts();
+  };
+
+  const handleExportCsv = async () => {
+    if (payouts.length === 0) {
+      toast.error("Nothing to export");
+      return;
+    }
+    setExporting(true);
+    try {
+      // Fetch all line items for all payouts in one query
+      const payoutIds = payouts.map((p) => p.id);
+      const { data: allLines, error } = await supabase
+        .from("payout_line_items")
+        .select("payout_id, client_name, amount_cents, commission_cents")
+        .in("payout_id", payoutIds);
+      if (error) throw error;
+
+      const rows: string[][] = [
+        [
+          "Period",
+          "Status",
+          "Active Clients",
+          "Gross Revenue",
+          "Commission Rate",
+          "Commission",
+          "Currency",
+          "Paid At",
+          "Payment Reference",
+          "Client",
+          "Client Amount",
+          "Client Commission",
+        ],
+      ];
+
+      for (const p of payouts) {
+        const period = format(new Date(p.period_start), "yyyy-MM");
+        const lines = (allLines || []).filter((l) => l.payout_id === p.id);
+        if (lines.length === 0) {
+          rows.push([
+            period,
+            p.status,
+            String(p.active_client_count),
+            (Number(p.gross_revenue_cents) / 100).toFixed(2),
+            (Number(p.commission_rate) * 100).toFixed(2) + "%",
+            (Number(p.commission_cents) / 100).toFixed(2),
+            p.currency,
+            p.paid_at ? format(new Date(p.paid_at), "yyyy-MM-dd HH:mm") : "",
+            p.payment_reference || "",
+            "",
+            "",
+            "",
+          ]);
+        } else {
+          for (const li of lines) {
+            rows.push([
+              period,
+              p.status,
+              String(p.active_client_count),
+              (Number(p.gross_revenue_cents) / 100).toFixed(2),
+              (Number(p.commission_rate) * 100).toFixed(2) + "%",
+              (Number(p.commission_cents) / 100).toFixed(2),
+              p.currency,
+              p.paid_at ? format(new Date(p.paid_at), "yyyy-MM-dd HH:mm") : "",
+              p.payment_reference || "",
+              li.client_name || "Unknown",
+              (Number(li.amount_cents) / 100).toFixed(2),
+              (Number(li.commission_cents) / 100).toFixed(2),
+            ]);
+          }
+        }
+      }
+
+      const filename = `payouts-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      downloadCsv(filename, rows);
+      toast.success("Export downloaded");
+    } catch (err) {
+      toast.error("Export failed: " + (err instanceof Error ? err.message : "Unknown error"));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -132,21 +286,37 @@ function PayoutsPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <Link
-          to="/clients"
-          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3"
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <Link
+            to="/clients"
+            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3"
+          >
+            <ArrowLeft className="h-3 w-3" />
+            Back to Clients
+          </Link>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <DollarSign className="h-6 w-6 text-primary" />
+            Payouts
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Your monthly commission earnings from attributed client subscriptions
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportCsv}
+          disabled={exporting || payouts.length === 0}
+          className="gap-2"
         >
-          <ArrowLeft className="h-3 w-3" />
-          Back to Clients
-        </Link>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <DollarSign className="h-6 w-6 text-primary" />
-          Payouts
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Your monthly commission earnings from attributed client subscriptions
-        </p>
+          {exporting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}
+          Export CSV
+        </Button>
       </div>
 
       {/* Summary stats */}
@@ -189,6 +359,7 @@ function PayoutsPage() {
                 <th className="px-4 py-3">Rate</th>
                 <th className="px-4 py-3">Commission</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -204,6 +375,12 @@ function PayoutsPage() {
                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         {format(new Date(p.period_start), "MMM yyyy")}
                       </div>
+                      {p.paid_at && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          Paid {format(new Date(p.paid_at), "MMM d, yyyy")}
+                          {p.payment_reference && ` · ${p.payment_reference}`}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-foreground">{p.active_client_count}</td>
                     <td className="px-4 py-3 text-sm text-foreground">
@@ -218,10 +395,25 @@ function PayoutsPage() {
                     <td className="px-4 py-3">
                       <PayoutStatusBadge status={p.status} />
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      {p.status === "pending" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 h-7 text-xs"
+                          onClick={(e) => openPayDialog(e, p)}
+                        >
+                          <CheckCheck className="h-3 w-3" />
+                          Mark paid
+                        </Button>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">—</span>
+                      )}
+                    </td>
                   </tr>
                   {expandedId === p.id && (
                     <tr key={p.id + "-expanded"} className="bg-muted/10 border-b border-border">
-                      <td colSpan={6} className="px-6 py-4">
+                      <td colSpan={7} className="px-6 py-4">
                         <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                           Line Items
                         </div>
@@ -261,6 +453,51 @@ function PayoutsPage() {
           </table>
         </div>
       )}
+
+      {/* Mark as paid dialog */}
+      <Dialog open={!!payDialogPayout} onOpenChange={(o) => !o && setPayDialogPayout(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark payout as paid</DialogTitle>
+            <DialogDescription>
+              {payDialogPayout && (
+                <>
+                  Confirm you've received{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatCents(Number(payDialogPayout.commission_cents), payDialogPayout.currency)}
+                  </span>{" "}
+                  for {format(new Date(payDialogPayout.period_start), "MMMM yyyy")}.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="payment-reference" className="text-xs">
+              Payment reference <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="payment-reference"
+              placeholder="e.g. Wire #ABC-12345 or Stripe payout ID"
+              value={paymentReference}
+              onChange={(e) => setPaymentReference(e.target.value)}
+              maxLength={255}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Useful for reconciling with your bank statement or accountant.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayDialogPayout(null)} disabled={marking}>
+              Cancel
+            </Button>
+            <Button onClick={confirmMarkPaid} disabled={marking} className="gap-1.5">
+              {marking && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <CheckCheck className="h-3.5 w-3.5" />
+              Confirm paid
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

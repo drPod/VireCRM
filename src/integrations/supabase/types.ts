@@ -486,6 +486,7 @@ export type Database = {
           id: string
           notes: string | null
           paid_at: string | null
+          payment_reference: string | null
           period_end: string
           period_start: string
           reseller_id: string
@@ -502,6 +503,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          payment_reference?: string | null
           period_end: string
           period_start: string
           reseller_id: string
@@ -518,6 +520,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          payment_reference?: string | null
           period_end?: string
           period_start?: string
           reseller_id?: string
@@ -728,6 +731,10 @@ export type Database = {
           }
       increment_ai_tokens: { Args: { p_org_id: string }; Returns: undefined }
       mark_domain_verified: { Args: { p_org_id: string }; Returns: Json }
+      mark_payout_paid: {
+        Args: { p_payment_reference?: string; p_payout_id: string }
+        Returns: Json
+      }
       remove_org_member: { Args: { p_user_id: string }; Returns: Json }
       signup_under_reseller: {
         Args: { p_company_name: string; p_reseller_slug: string }
