@@ -44,20 +44,24 @@ function PricingPage() {
             <div className="space-y-4">
               {[
                 {
-                  q: "What's the difference between leasing and ownership?",
-                  a: "Leasing gives you a fully branded white-label CRM on our infrastructure for a monthly fee. Ownership gives you the complete source code, database, and infrastructure — it's yours forever with no recurring costs.",
+                  q: "What's the difference between CRM plans and white-label plans?",
+                  a: "CRM plans are for businesses that just want a CRM to manage their own sales. White-label plans let you resell the CRM under your own brand to your clients.",
+                },
+                {
+                  q: "What are the setup fees?",
+                  a: "Setup fees cover custom configuration, onboarding, and initial data migration. They're invoiced separately after a discovery call — not charged at checkout.",
                 },
                 {
                   q: "What does white-label mean?",
-                  a: "Every plan includes full white-labeling. Your logo, your colors, your domain, your brand. Your clients will never know it's built by us.",
+                  a: "Your logo, your colors, your domain, your brand. Your clients will never know it's built by us. White-label plans include full rebranding.",
                 },
                 {
-                  q: "What's included in the $14K custom option?",
-                  a: "Everything in Full Ownership plus custom features tailored to your business — bespoke AI workflows, custom integrations, dedicated onboarding, and architecture consulting.",
+                  q: "Can I upgrade from a CRM plan to white-label?",
+                  a: "Yes! Contact us and we'll help you transition. We'll credit a portion of your existing payments toward the upgrade.",
                 },
                 {
-                  q: "Can I upgrade from lease to ownership?",
-                  a: "Yes! Contact us and we'll credit a portion of your lease payments toward the ownership price.",
+                  q: "What's the Custom CRM build?",
+                  a: "A fully bespoke system starting at $10K — tailored workflows, unique dashboards, and integrations built specifically for your business. Contact us to discuss your needs.",
                 },
               ].map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-border bg-card p-5">
