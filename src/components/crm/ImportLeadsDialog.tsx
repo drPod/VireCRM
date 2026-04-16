@@ -139,6 +139,7 @@ function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
 }
 
 
+interface ImportLeadsDialogProps {
   onLeadsImported?: () => void;
 }
 
