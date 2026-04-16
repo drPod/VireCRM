@@ -9,9 +9,6 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    invite: typeof search.invite === "string" ? search.invite : undefined,
-  }),
   head: () => ({
     meta: [
       { title: "Start Free Trial — Vireon" },
