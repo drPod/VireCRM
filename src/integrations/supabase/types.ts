@@ -656,6 +656,69 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          amount_cents: number
+          attributed_reseller_id: string | null
+          billed_at: string
+          created_at: string
+          currency: string
+          environment: string
+          id: string
+          paddle_subscription_id: string | null
+          paddle_transaction_id: string
+          raw_payload: Json | null
+          status: string
+          subscription_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          attributed_reseller_id?: string | null
+          billed_at?: string
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          paddle_subscription_id?: string | null
+          paddle_transaction_id: string
+          raw_payload?: Json | null
+          status?: string
+          subscription_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          attributed_reseller_id?: string | null
+          billed_at?: string
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          paddle_subscription_id?: string | null
+          paddle_transaction_id?: string
+          raw_payload?: Json | null
+          status?: string
+          subscription_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_attributed_reseller_id_fkey"
+            columns: ["attributed_reseller_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
