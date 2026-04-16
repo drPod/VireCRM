@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Star,
   Send,
+  Plus,
   TrendingUp,
   MessageCircle,
   ThumbsUp,
