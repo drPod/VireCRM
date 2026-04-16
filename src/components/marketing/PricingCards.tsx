@@ -111,7 +111,6 @@ export const crmTiers: PricingTier[] = [
     ],
     cta: "Contact Us",
     ctaVariant: "outline",
-    ctaLink: "/contact",
   },
 ];
 
