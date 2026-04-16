@@ -3,6 +3,7 @@ import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { PricingCards } from "@/components/marketing/PricingCards";
 import { CtaSection } from "@/components/marketing/CtaSection";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
