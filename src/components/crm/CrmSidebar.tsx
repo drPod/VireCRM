@@ -11,6 +11,11 @@ import {
   Moon,
   Sun,
   LogOut,
+  GitBranch,
+  CalendarDays,
+  Star,
+  Mail,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
@@ -20,6 +25,11 @@ const navItems = [
   { to: "/leads", icon: Users, label: "Leads" },
   { to: "/messages", icon: MessageSquare, label: "Messages" },
   { to: "/campaigns", icon: Zap, label: "Campaigns" },
+  { to: "/workflows", icon: GitBranch, label: "Workflows" },
+  { to: "/calendar", icon: CalendarDays, label: "Calendar" },
+  { to: "/email-marketing", icon: Mail, label: "Email Marketing" },
+  { to: "/invoices", icon: Receipt, label: "Invoices" },
+  { to: "/reputation", icon: Star, label: "Reputation" },
   { to: "/advisor", icon: Sparkles, label: "AI Advisor" },
   { to: "/analytics", icon: BarChart3, label: "Analytics" },
 ];
