@@ -155,7 +155,7 @@ Return ONLY valid JSON, no markdown.`,
           status: "sent" as const,
         };
       })
-      .filter(Boolean);
+      .filter((m): m is NonNullable<typeof m> => m !== null);
 
     if (messagesToInsert.length > 0) {
       const { error } = await supabase.from("messages").insert(messagesToInsert);
