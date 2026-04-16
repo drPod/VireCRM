@@ -4,6 +4,7 @@ import { AddLeadDialog } from "@/components/crm/AddLeadDialog";
 import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
 import { AutoFindLeadsDialog } from "@/components/crm/AutoFindLeadsDialog";
 import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
+import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
 import { Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,6 +88,7 @@ function LeadsPage() {
           <p className="text-sm text-muted-foreground">{totalCount} total leads in pipeline</p>
         </div>
         <div className="flex gap-2">
+          <ExportLeadsButton leads={leads} />
           <AutoFindLeadsDialog onLeadsImported={handleLeadAdded} />
           <ImportLeadsDialog onLeadsImported={handleLeadAdded} />
           <AddLeadDialog onLeadAdded={handleLeadAdded} />
