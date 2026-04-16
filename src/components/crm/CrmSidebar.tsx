@@ -15,12 +15,13 @@ import {
   Star,
   Mail,
   Receipt,
+  Building2,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
 
-const navItems = [
+const baseNavItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/leads", icon: Users, label: "Leads" },
   { to: "/messages", icon: MessageSquare, label: "Messages" },
