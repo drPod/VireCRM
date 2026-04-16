@@ -139,6 +139,7 @@ function ResellerSignupPage() {
       return;
     }
     sessionStorage.setItem("reseller_pending_company", companyName);
+    if (branding?.id) sessionStorage.setItem("attributed_reseller_id", branding.id);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: redirectTarget,
     });
