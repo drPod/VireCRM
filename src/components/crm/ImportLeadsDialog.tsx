@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import * as XLSX from "xlsx";
 import {
   Dialog,
   DialogContent,
@@ -97,6 +98,47 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
+function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], { defval: "" });
+  if (rows.length === 0) return [];
+
+  const normalize = (key: string) => key.trim().toLowerCase().replace(/['"]/g, "");
+
+  const leads: ParsedLead[] = [];
+  for (const row of rows) {
+    const mapped: Record<string, string> = {};
+    for (const [key, val] of Object.entries(row)) {
+      mapped[normalize(key)] = String(val ?? "");
+    }
+
+    const name =
+      mapped["name"] || mapped["full name"] || mapped["fullname"] || mapped["contact"] || mapped["lead"];
+    if (!name?.trim()) continue;
+
+    const email = mapped["email"] || mapped["e-mail"] || mapped["email address"] || undefined;
+    const phone = mapped["phone"] || mapped["telephone"] || mapped["tel"] || mapped["mobile"] || undefined;
+    const company = mapped["company"] || mapped["organization"] || mapped["org"] || mapped["business"] || undefined;
+    const statusRaw = (mapped["status"] || mapped["stage"] || "").toLowerCase();
+    const scoreRaw = parseInt(mapped["score"] || mapped["lead score"] || mapped["rating"] || "", 10);
+
+    leads.push({
+      name: name.trim(),
+      email: email?.trim() || undefined,
+      phone: phone?.trim() || undefined,
+      company: company?.trim() || undefined,
+      status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
+      score: !isNaN(scoreRaw) ? Math.min(100, Math.max(0, scoreRaw)) : 50,
+      notes: (mapped["notes"] || mapped["note"] || mapped["comments"] || "").trim() || undefined,
+      source: (mapped["source"] || mapped["lead source"] || mapped["origin"] || "").trim() || "xlsx_import",
+    });
+  }
+  return leads;
+}
+
+
 interface ImportLeadsDialogProps {
   onLeadsImported?: () => void;
 }
@@ -123,8 +165,17 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
     setFile(f);
 
     try {
-      const text = await f.text();
-      const leads = parseCSV(text);
+      const isExcel = /\.xlsx?$/i.test(f.name);
+      let leads: ParsedLead[];
+
+      if (isExcel) {
+        const buffer = await f.arrayBuffer();
+        leads = parseXLSX(buffer);
+      } else {
+        const text = await f.text();
+        leads = parseCSV(text);
+      }
+
       if (leads.length === 0) {
         setParseError(
           'No leads found. Make sure your file has a header row with a "Name" column.'
@@ -218,7 +269,7 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
         <DialogHeader>
           <DialogTitle>Import Leads</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with lead information to bulk-import contacts.
+            Upload a CSV or Excel (.xlsx) file with lead information to bulk-import contacts.
           </DialogDescription>
         </DialogHeader>
 
@@ -245,7 +296,7 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
               onClick={() => {
                 const input = document.createElement("input");
                 input.type = "file";
-                input.accept = ".csv,.txt";
+                input.accept = ".csv,.txt,.xlsx,.xls";
                 input.onchange = (e) => {
                   const f = (e.target as HTMLInputElement).files?.[0];
                   if (f) handleFile(f);
@@ -256,10 +307,10 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
               <FileSpreadsheet className="h-8 w-8 text-muted-foreground" />
               <div className="text-center">
                 <p className="text-sm font-medium text-foreground">
-                  {file ? file.name : "Drop a CSV file here or click to browse"}
+                  {file ? file.name : "Drop a CSV or Excel file here or click to browse"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  CSV with columns: Name (required), Email, Phone, Company, Status, Score
+                  CSV or XLSX with columns: Name (required), Email, Phone, Company, Status, Score
                 </p>
               </div>
             </div>
