@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Button } from "@/components/ui/button";
-import { Terminal, Loader2 } from "lucide-react";
+import { Terminal, Loader2, Mail } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -9,6 +9,9 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    invite: typeof search.invite === "string" ? search.invite : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Start Free Trial — Vireon" },
@@ -17,12 +20,32 @@ export const Route = createFileRoute("/signup")({
   }),
 });
 
+async function tryAcceptInvite(token: string | undefined) {
+  if (!token) return;
+  try {
+    const { data } = await supabase.rpc("accept_invitation", { p_token: token });
+    const result = data as { success: boolean; error?: string } | null;
+    if (result?.success) {
+      toast.success("Joined the team!");
+    } else if (result?.error) {
+      toast.error(result.error);
+    }
+  } catch {
+    // non-fatal
+  }
+}
+
 function SignupPage() {
+  const { invite } = Route.useSearch();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const redirectAfterSignup = invite
+    ? `${window.location.origin}/accept-invite?token=${invite}`
+    : window.location.origin;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,12 +64,13 @@ function SignupPage() {
         password,
         options: {
           data: { full_name: fullName },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: redirectAfterSignup,
         },
       });
       if (error) throw error;
-      // If email confirmation is required, session will be null
       if (signUpData.session) {
+        // Auto-confirmed: try to accept the invite right away
+        await tryAcceptInvite(invite);
         toast.success("Account created! Redirecting...");
         navigate({ to: "/dashboard" });
       } else {
@@ -61,14 +85,15 @@ function SignupPage() {
 
   const handleGoogleSignup = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: redirectAfterSignup,
     });
     if (result.error) {
       toast.error(result.error instanceof Error ? result.error.message : "Google sign-in failed");
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    await tryAcceptInvite(invite);
+    navigate({ to: invite ? "/accept-invite" : "/dashboard", search: invite ? { token: invite } as never : undefined });
   };
 
   return (
@@ -80,9 +105,24 @@ function SignupPage() {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
               <Terminal className="h-6 w-6 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Start your free trial</h1>
-            <p className="mt-1 text-sm text-muted-foreground">14 days free. No credit card required.</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              {invite ? "Join your team" : "Start your free trial"}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {invite
+                ? "Create your account to accept the invitation"
+                : "14 days free. No credit card required."}
+            </p>
           </div>
+
+          {invite && (
+            <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3 flex gap-2">
+              <Mail className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground">
+                You&apos;re joining via invitation. Use the email address the invitation was sent to.
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSignup} className="space-y-4">
             <Button type="button" variant="outline" className="w-full gap-2" onClick={handleGoogleSignup}>
