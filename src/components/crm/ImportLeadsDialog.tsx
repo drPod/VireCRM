@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileSpreadsheet, Loader2, AlertCircle, CheckCircle2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { toast } from "sonner";
 
 interface ParsedLead {
@@ -145,6 +146,7 @@ interface ImportLeadsDialogProps {
 
 export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
   const { organization } = useAuth();
+  const { triggerOutreach } = useAutoOutreach();
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<ParsedLead[]>([]);
@@ -206,6 +208,7 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
     const BATCH_SIZE = 50;
     let success = 0;
     let failed = 0;
+    const allInserted: Array<{ id: string; name: string; email: string | null; company: string | null }> = [];
 
     for (let i = 0; i < parsed.length; i += BATCH_SIZE) {
       const batch = parsed.slice(i, i + BATCH_SIZE).map((l) => ({
@@ -220,11 +223,12 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
         source: l.source || "csv_import",
       }));
 
-      const { error, data } = await supabase.from("leads").insert(batch).select("id");
+      const { error, data } = await supabase.from("leads").insert(batch).select("id, name, email, company");
       if (error) {
         failed += batch.length;
       } else {
         success += data?.length ?? batch.length;
+        if (data) allInserted.push(...data);
       }
     }
 
@@ -234,6 +238,11 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
     if (success > 0) {
       toast.success(`Imported ${success} lead${success > 1 ? "s" : ""} successfully!`);
       onLeadsImported?.();
+
+      // Trigger auto-outreach in background
+      if (allInserted.length > 0) {
+        triggerOutreach(allInserted);
+      }
     }
     if (failed > 0) {
       toast.error(`Failed to import ${failed} lead${failed > 1 ? "s" : ""}.`);
