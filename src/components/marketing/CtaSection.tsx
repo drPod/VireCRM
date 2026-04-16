@@ -16,7 +16,7 @@ export function CtaSection() {
               <span className="text-xs font-medium text-primary">Full Ownership</span>
             </div>
             <h2 className="text-3xl font-bold text-foreground">
-              Own Your AI CRM for $10,000
+              Own Your Vireon CRM for $10,000
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
               One payment. Full source code. Your brand, your servers, your business — forever.

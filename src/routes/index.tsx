@@ -11,9 +11,9 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
   head: () => ({
     meta: [
-      { title: "AI CRM — The Autonomous Sales Engine" },
-      { name: "description", content: "Type one command. AI scores leads, writes outreach, sends messages, classifies replies, and books meetings — automatically. White-label ready." },
-      { property: "og:title", content: "AI CRM — Your AI Sales Team That Never Sleeps" },
+      { title: "Vireon — The Autonomous Sales Engine" },
+      { name: "description", content: "Type one command. AI scores leads, writes outreach, sends messages, classifies replies, and books meetings — automatically." },
+      { property: "og:title", content: "Vireon — Your AI Sales Team That Never Sleeps" },
       { property: "og:description", content: "Fully autonomous CRM that handles lead scoring, outreach, follow-ups, and meeting booking with AI." },
     ],
   }),

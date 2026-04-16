@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
   head: () => ({
     meta: [
-      { title: "AI CRM — Settings" },
+      { title: "Vireon — Settings" },
       { name: "description", content: "Organization and white-label settings" },
     ],
   }),

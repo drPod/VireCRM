@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_app/messages")({
   component: MessagesPage,
   head: () => ({
     meta: [
-      { title: "AI CRM — Messages" },
+      { title: "Vireon — Messages" },
       { name: "description", content: "View all outreach messages and replies" },
     ],
   }),

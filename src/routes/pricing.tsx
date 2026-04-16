@@ -9,9 +9,9 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing — AI CRM Plans & White-Label" },
-      { name: "description", content: "Done-for-you CRM plans from $97/mo or white-label plans to resell under your brand. Setup, hosting, and maintenance included." },
-      { property: "og:title", content: "AI CRM Pricing — Plans That Fit Your Business" },
+      { title: "Pricing — Vireon CRM" },
+      { name: "description", content: "Done-for-you CRM plans from $97/mo or white-label plans to resell under your brand." },
+      { property: "og:title", content: "Vireon Pricing — Plans That Fit Your Business" },
       { property: "og:description", content: "CRM plans from $97/mo. White-label from $249/mo. Custom builds from $10K." },
     ],
   }),

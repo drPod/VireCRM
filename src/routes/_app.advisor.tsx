@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_app/advisor")({
   component: AdvisorPage,
   head: () => ({
     meta: [
-      { title: "AI CRM — Strategic Advisor" },
+      { title: "Vireon — Strategic Advisor" },
       { name: "description", content: "AI-powered business analysis and lead generation strategy" },
     ],
   }),

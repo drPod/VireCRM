@@ -7,10 +7,10 @@ export const Route = createFileRoute("/contact")({
   component: ContactPage,
   head: () => ({
     meta: [
-      { title: "Contact Us — Custom Enterprise AI CRM" },
-      { name: "description", content: "Get a custom-built AI CRM tailored to your business. Contact us for enterprise pricing starting at $14,000." },
-      { property: "og:title", content: "Contact Us — Custom Enterprise AI CRM" },
-      { property: "og:description", content: "Get a custom-built AI CRM tailored to your business. Enterprise pricing from $14K." },
+      { title: "Contact Us — Vireon Custom CRM" },
+      { name: "description", content: "Get a custom-built CRM tailored to your business. Contact us for enterprise pricing starting at $14,000." },
+      { property: "og:title", content: "Contact Us — Vireon Custom CRM" },
+      { property: "og:description", content: "Get a custom-built CRM tailored to your business. Enterprise pricing from $14K." },
     ],
   }),
 });
