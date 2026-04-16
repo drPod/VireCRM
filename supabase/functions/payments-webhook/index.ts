@@ -34,6 +34,11 @@ Deno.serve(async (req) => {
       case EventName.TransactionPaymentFailed:
         console.log('Payment failed:', event.data.id, 'env:', env);
         break;
+      // @ts-ignore — EventName.TransactionRefunded may not be exported in all SDK versions
+      case (EventName as any).TransactionRefunded ?? 'transaction.refunded':
+      case 'transaction.refunded' as any:
+        await handleTransactionRefunded(event.data, env);
+        break;
       default:
         console.log('Unhandled event:', event.eventType);
     }
