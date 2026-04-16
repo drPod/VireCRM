@@ -50,7 +50,7 @@ export function CrmSidebar() {
         {logoUrl ? (
           <img src={logoUrl} alt={brandName} className="h-8 w-8 rounded-lg object-contain" />
         ) : (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white">V</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]">V</span>
         )}
         <span className="text-lg font-bold text-gradient-primary">{brandName}</span>
       </div>
