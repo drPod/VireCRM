@@ -269,7 +269,7 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
         <DialogHeader>
           <DialogTitle>Import Leads</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with lead information to bulk-import contacts.
+            Upload a CSV or Excel (.xlsx) file with lead information to bulk-import contacts.
           </DialogDescription>
         </DialogHeader>
 
