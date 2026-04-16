@@ -36,8 +36,9 @@ export function MarketingFooter() {
           <div>
             <h4 className="text-sm font-semibold text-foreground">Legal</h4>
             <div className="mt-3 flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">Privacy</span>
-              <span className="text-sm text-muted-foreground">Terms</span>
+              <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">Privacy Policy</Link>
+              <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground">Terms of Service</Link>
+              <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-foreground">Refund Policy</Link>
             </div>
           </div>
         </div>
