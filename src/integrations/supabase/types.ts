@@ -266,6 +266,8 @@ export type Database = {
           brand_name: string | null
           created_at: string
           custom_domain: string | null
+          domain_verification_token: string
+          domain_verified_at: string | null
           id: string
           is_reseller: boolean
           logo_url: string | null
@@ -282,6 +284,8 @@ export type Database = {
           brand_name?: string | null
           created_at?: string
           custom_domain?: string | null
+          domain_verification_token?: string
+          domain_verified_at?: string | null
           id?: string
           is_reseller?: boolean
           logo_url?: string | null
@@ -298,6 +302,8 @@ export type Database = {
           brand_name?: string | null
           created_at?: string
           custom_domain?: string | null
+          domain_verification_token?: string
+          domain_verified_at?: string | null
           id?: string
           is_reseller?: boolean
           logo_url?: string | null
@@ -551,6 +557,7 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
+      get_org_by_domain: { Args: { p_hostname: string }; Returns: Json }
       get_reseller_branding: { Args: { p_slug: string }; Returns: Json }
       get_reseller_clients: {
         Args: { p_reseller_id: string }
@@ -588,6 +595,7 @@ export type Database = {
             Returns: boolean
           }
       increment_ai_tokens: { Args: { p_org_id: string }; Returns: undefined }
+      mark_domain_verified: { Args: { p_org_id: string }; Returns: Json }
       remove_org_member: { Args: { p_user_id: string }; Returns: Json }
       signup_under_reseller: {
         Args: { p_company_name: string; p_reseller_slug: string }
