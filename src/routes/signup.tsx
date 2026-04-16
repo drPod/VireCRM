@@ -36,7 +36,7 @@ function SignupPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -45,8 +45,13 @@ function SignupPage() {
         },
       });
       if (error) throw error;
-      toast.success("Account created! Redirecting...");
-      navigate({ to: "/dashboard" });
+      // If email confirmation is required, session will be null
+      if (signUpData.session) {
+        toast.success("Account created! Redirecting...");
+        navigate({ to: "/dashboard" });
+      } else {
+        toast.success("Check your email to confirm your account before signing in.");
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Signup failed");
     } finally {
