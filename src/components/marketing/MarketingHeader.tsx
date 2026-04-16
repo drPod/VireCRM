@@ -20,7 +20,7 @@ export function MarketingHeader() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Terminal className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-bold text-gradient-primary">AI CRM</span>
+          <span className="text-lg font-bold text-gradient-primary">Vireon</span>
         </Link>
 
         {/* Desktop Nav */}
