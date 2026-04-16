@@ -22,6 +22,7 @@ import { Route as ConfirmEmailRouteImport } from './routes/confirm-email'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calculate-payouts'
 import { Route as AppWorkflowsRouteImport } from './routes/_app.workflows'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
@@ -36,6 +37,7 @@ import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
 import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
+import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -99,6 +101,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HooksCalculatePayoutsRoute = HooksCalculatePayoutsRouteImport.update({
+  id: '/hooks/calculate-payouts',
+  path: '/hooks/calculate-payouts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppWorkflowsRoute = AppWorkflowsRouteImport.update({
@@ -171,6 +178,11 @@ const RResellerSlugSignupRoute = RResellerSlugSignupRouteImport.update({
   path: '/r/$resellerSlug/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppClientsPayoutsRoute = AppClientsPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => AppClientsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -189,7 +201,7 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AppAnalyticsRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
-  '/clients': typeof AppClientsRoute
+  '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/invoices': typeof AppInvoicesRoute
@@ -198,6 +210,8 @@ export interface FileRoutesByFullPath {
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
   '/workflows': typeof AppWorkflowsRoute
+  '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
+  '/clients/payouts': typeof AppClientsPayoutsRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
 }
 export interface FileRoutesByTo {
@@ -217,7 +231,7 @@ export interface FileRoutesByTo {
   '/analytics': typeof AppAnalyticsRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
-  '/clients': typeof AppClientsRoute
+  '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/invoices': typeof AppInvoicesRoute
@@ -226,6 +240,8 @@ export interface FileRoutesByTo {
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
   '/workflows': typeof AppWorkflowsRoute
+  '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
+  '/clients/payouts': typeof AppClientsPayoutsRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
 }
 export interface FileRoutesById {
@@ -247,7 +263,7 @@ export interface FileRoutesById {
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRoute
-  '/_app/clients': typeof AppClientsRoute
+  '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
   '/_app/invoices': typeof AppInvoicesRoute
@@ -256,6 +272,8 @@ export interface FileRoutesById {
   '/_app/reputation': typeof AppReputationRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/workflows': typeof AppWorkflowsRoute
+  '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
+  '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
 }
 export interface FileRouteTypes {
@@ -286,6 +304,8 @@ export interface FileRouteTypes {
     | '/reputation'
     | '/settings'
     | '/workflows'
+    | '/hooks/calculate-payouts'
+    | '/clients/payouts'
     | '/r/$resellerSlug/signup'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -314,6 +334,8 @@ export interface FileRouteTypes {
     | '/reputation'
     | '/settings'
     | '/workflows'
+    | '/hooks/calculate-payouts'
+    | '/clients/payouts'
     | '/r/$resellerSlug/signup'
   id:
     | '__root__'
@@ -343,6 +365,8 @@ export interface FileRouteTypes {
     | '/_app/reputation'
     | '/_app/settings'
     | '/_app/workflows'
+    | '/hooks/calculate-payouts'
+    | '/_app/clients/payouts'
     | '/r/$resellerSlug/signup'
   fileRoutesById: FileRoutesById
 }
@@ -360,6 +384,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
+  HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
 }
 
@@ -454,6 +479,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/calculate-payouts': {
+      id: '/hooks/calculate-payouts'
+      path: '/hooks/calculate-payouts'
+      fullPath: '/hooks/calculate-payouts'
+      preLoaderRoute: typeof HooksCalculatePayoutsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/workflows': {
@@ -554,15 +586,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RResellerSlugSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/clients/payouts': {
+      id: '/_app/clients/payouts'
+      path: '/payouts'
+      fullPath: '/clients/payouts'
+      preLoaderRoute: typeof AppClientsPayoutsRouteImport
+      parentRoute: typeof AppClientsRoute
+    }
   }
 }
+
+interface AppClientsRouteChildren {
+  AppClientsPayoutsRoute: typeof AppClientsPayoutsRoute
+}
+
+const AppClientsRouteChildren: AppClientsRouteChildren = {
+  AppClientsPayoutsRoute: AppClientsPayoutsRoute,
+}
+
+const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
+  AppClientsRouteChildren,
+)
 
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRoute
-  AppClientsRoute: typeof AppClientsRoute
+  AppClientsRoute: typeof AppClientsRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
@@ -578,7 +629,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRoute,
-  AppClientsRoute: AppClientsRoute,
+  AppClientsRoute: AppClientsRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
   AppInvoicesRoute: AppInvoicesRoute,
@@ -605,6 +656,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
+  HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
 }
 export const routeTree = rootRouteImport
