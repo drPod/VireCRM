@@ -3,23 +3,23 @@ import { TrendingUp, Users, Zap, Clock } from "lucide-react";
 const stats = [
   { icon: TrendingUp, value: "3.2x", label: "More Conversions" },
   { icon: Users, value: "10K+", label: "Leads Managed" },
-  { icon: Zap, value: "95%", label: "Tasks Automated" },
-  { icon: Clock, value: "40hrs", label: "Saved Per Week" },
+  { icon: Zap, value: "95%", label: "Follow-Ups Automated" },
+  { icon: Clock, value: "< 30s", label: "Avg Response Time" },
 ];
 
 const testimonials = [
   {
-    quote: "We replaced 3 SDRs with Vireon and our conversion rate actually went up. The AI follow-ups are relentless in the best way.",
+    quote: "We were losing 60% of our leads to slow follow-up. After Vireon, our close rate tripled. The AI doesn't forget, doesn't get tired, and doesn't take weekends off.",
     name: "Jessica Torres",
     title: "VP of Sales, ScaleUp Inc",
   },
   {
-    quote: "The command interface is genius. I type 'follow up with cold leads' and 200 personalized emails go out. Game changer.",
+    quote: "This isn't software — it's a sales team that works 24/7. We replaced manual follow-ups entirely and our revenue went up 40% in the first quarter.",
     name: "Ryan Chen",
     title: "Founder, NovaTech",
   },
   {
-    quote: "We white-labeled Vireon and sell it to our agency clients. It's become our fastest-growing revenue stream.",
+    quote: "Every lead that comes in gets an instant, personalized response. Our speed-to-lead went from 4 hours to 12 seconds. That alone paid for the entire system.",
     name: "Marcus Williams",
     title: "CEO, Digital Growth Agency",
   },
@@ -27,7 +27,7 @@ const testimonials = [
 
 export function SocialProofSection() {
   return (
-    <section className="border-t border-border bg-card/50 py-20">
+    <section className="py-20">
       <div className="mx-auto max-w-6xl px-6">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
