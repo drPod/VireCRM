@@ -27,10 +27,10 @@ function PricingPage() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h1 className="text-4xl font-bold text-foreground">
-              Lease It or Own It
+              Plans That Fit Your Business
             </h1>
             <p className="mt-3 text-lg text-muted-foreground">
-              White-label AI CRM — run it as your own business. Choose monthly leasing or full ownership.
+              Just need a CRM? We'll build and run it for you. Want to resell it? Go white-label.
             </p>
           </div>
 
