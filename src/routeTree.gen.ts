@@ -30,10 +30,12 @@ import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
+import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -139,6 +141,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClientsRoute = AppClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCampaignsRoute = AppCampaignsRouteImport.update({
   id: '/campaigns',
   path: '/campaigns',
@@ -159,6 +166,11 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   path: '/advisor',
   getParentRoute: () => AppRoute,
 } as any)
+const RResellerSlugSignupRoute = RResellerSlugSignupRouteImport.update({
+  id: '/r/$resellerSlug/signup',
+  path: '/r/$resellerSlug/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -177,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AppAnalyticsRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
+  '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/invoices': typeof AppInvoicesRoute
@@ -185,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
   '/workflows': typeof AppWorkflowsRoute
+  '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -203,6 +217,7 @@ export interface FileRoutesByTo {
   '/analytics': typeof AppAnalyticsRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
+  '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/invoices': typeof AppInvoicesRoute
@@ -211,6 +226,7 @@ export interface FileRoutesByTo {
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
   '/workflows': typeof AppWorkflowsRoute
+  '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -231,6 +247,7 @@ export interface FileRoutesById {
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRoute
+  '/_app/clients': typeof AppClientsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
   '/_app/invoices': typeof AppInvoicesRoute
@@ -239,6 +256,7 @@ export interface FileRoutesById {
   '/_app/reputation': typeof AppReputationRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/workflows': typeof AppWorkflowsRoute
+  '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -259,6 +277,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/calendar'
     | '/campaigns'
+    | '/clients'
     | '/dashboard'
     | '/email-marketing'
     | '/invoices'
@@ -267,6 +286,7 @@ export interface FileRouteTypes {
     | '/reputation'
     | '/settings'
     | '/workflows'
+    | '/r/$resellerSlug/signup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -285,6 +305,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/calendar'
     | '/campaigns'
+    | '/clients'
     | '/dashboard'
     | '/email-marketing'
     | '/invoices'
@@ -293,6 +314,7 @@ export interface FileRouteTypes {
     | '/reputation'
     | '/settings'
     | '/workflows'
+    | '/r/$resellerSlug/signup'
   id:
     | '__root__'
     | '/'
@@ -312,6 +334,7 @@ export interface FileRouteTypes {
     | '/_app/analytics'
     | '/_app/calendar'
     | '/_app/campaigns'
+    | '/_app/clients'
     | '/_app/dashboard'
     | '/_app/email-marketing'
     | '/_app/invoices'
@@ -320,6 +343,7 @@ export interface FileRouteTypes {
     | '/_app/reputation'
     | '/_app/settings'
     | '/_app/workflows'
+    | '/r/$resellerSlug/signup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -336,6 +360,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
+  RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -487,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/clients': {
+      id: '/_app/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AppClientsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/campaigns': {
       id: '/_app/campaigns'
       path: '/campaigns'
@@ -515,6 +547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/r/$resellerSlug/signup': {
+      id: '/r/$resellerSlug/signup'
+      path: '/r/$resellerSlug/signup'
+      fullPath: '/r/$resellerSlug/signup'
+      preLoaderRoute: typeof RResellerSlugSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -523,6 +562,7 @@ interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRoute
+  AppClientsRoute: typeof AppClientsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
@@ -538,6 +578,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRoute,
+  AppClientsRoute: AppClientsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
   AppInvoicesRoute: AppInvoicesRoute,
@@ -564,6 +605,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
+  RResellerSlugSignupRoute: RResellerSlugSignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
