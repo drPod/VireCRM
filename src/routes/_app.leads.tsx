@@ -82,7 +82,10 @@ function LeadsPage() {
           <h1 className="text-2xl font-bold text-foreground">Leads</h1>
           <p className="text-sm text-muted-foreground">{totalCount} total leads in pipeline</p>
         </div>
-        <AddLeadDialog onLeadAdded={handleLeadAdded} />
+        <div className="flex gap-2">
+          <ImportLeadsDialog onLeadsImported={handleLeadAdded} />
+          <AddLeadDialog onLeadAdded={handleLeadAdded} />
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 max-w-sm">
