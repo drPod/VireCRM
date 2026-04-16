@@ -23,6 +23,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { findLeadsFn, type SuggestedLead } from "@/functions/find-leads.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { toast } from "sonner";
 
 interface AutoFindLeadsDialogProps {
@@ -31,6 +32,7 @@ interface AutoFindLeadsDialogProps {
 
 export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProps) {
   const { organization } = useAuth();
+  const { triggerOutreach } = useAutoOutreach();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState("");
@@ -111,7 +113,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
         source: "ai_discovery",
       }));
 
-    const { error: insertError } = await supabase.from("leads").insert(leadsToImport);
+    const { error: insertError, data: inserted } = await supabase.from("leads").insert(leadsToImport).select("id, name, email, company");
 
     if (insertError) {
       toast.error("Failed to import leads: " + insertError.message);
@@ -119,6 +121,11 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       toast.success(`Imported ${leadsToImport.length} lead${leadsToImport.length > 1 ? "s" : ""}!`);
       setImported(true);
       onLeadsImported?.();
+
+      // Trigger auto-outreach in background
+      if (inserted && inserted.length > 0) {
+        triggerOutreach(inserted);
+      }
     }
     setImporting(false);
   };
