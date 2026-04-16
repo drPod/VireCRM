@@ -121,7 +121,7 @@ export const whiteLabelTiers: PricingTier[] = [
     name: "Lease — Starter",
     price: "$249",
     period: "/month",
-    description: "White-label AI CRM leased to your business. Full branding, your domain, your clients.",
+    description: "White-label Vireon CRM leased to your business. Full branding, your domain, your clients.",
     paddlePriceId: "lease_starter_monthly",
     features: [
       { text: "White-label branding", included: true },
@@ -165,7 +165,7 @@ export const whiteLabelTiers: PricingTier[] = [
     name: "Full Ownership",
     price: "$10,000",
     period: "one-time",
-    description: "Own the entire AI CRM platform outright. Your code, your servers, your business — forever.",
+    description: "Own the entire Vireon CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
     paddlePriceId: "full_ownership_onetime",

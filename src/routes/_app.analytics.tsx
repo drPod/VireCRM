@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_app/analytics")({
   component: AnalyticsPage,
   head: () => ({
     meta: [
-      { title: "AI CRM — Analytics" },
+      { title: "Vireon — Analytics" },
       { name: "description", content: "Sales analytics and performance metrics" },
     ],
   }),

@@ -10,7 +10,7 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
   head: () => ({
     meta: [
-      { title: "Reset Password — AI CRM" },
+      { title: "Reset Password — Vireon" },
       { name: "description", content: "Set a new password for your account" },
     ],
   }),

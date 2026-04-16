@@ -9,9 +9,9 @@ export const Route = createFileRoute("/features")({
   component: FeaturesPage,
   head: () => ({
     meta: [
-      { title: "Features — AI CRM" },
-      { name: "description", content: "Explore AI CRM's full feature set: autonomous lead scoring, AI outreach, reply classification, auto scheduling, and white-labeling." },
-      { property: "og:title", content: "AI CRM Features — Autonomous Sales Automation" },
+      { title: "Features — Vireon" },
+      { name: "description", content: "Explore Vireon's full feature set: autonomous lead scoring, AI outreach, reply classification, auto scheduling, and white-labeling." },
+      { property: "og:title", content: "Vireon Features — Autonomous Sales Automation" },
       { property: "og:description", content: "AI lead scoring, automated outreach, reply classification, meeting booking, and white-label support." },
     ],
   }),

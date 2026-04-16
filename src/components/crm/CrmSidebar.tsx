@@ -30,7 +30,7 @@ export function CrmSidebar() {
   const { organization, profile, role, signOut } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
 
-  const brandName = organization?.brand_name || "AI CRM";
+  const brandName = organization?.brand_name || "Vireon";
   const logoUrl = organization?.logo_url;
 
   return (

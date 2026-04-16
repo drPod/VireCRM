@@ -28,9 +28,9 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AI CRM — Autonomous Sales System" },
-      { name: "description", content: "Multi-tenant AI CRM with white-labeling, autonomous sales workflows, and tiered access." },
-      { property: "og:title", content: "AI CRM — Your AI Sales Team That Never Sleeps" },
+      { title: "Vireon — Autonomous Sales System" },
+      { name: "description", content: "Vireon: AI-powered CRM with autonomous sales workflows, white-labeling, and tiered access." },
+      { property: "og:title", content: "Vireon — Your AI Sales Team That Never Sleeps" },
       { property: "og:description", content: "Fully autonomous CRM with AI lead scoring, outreach, and white-labeling." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

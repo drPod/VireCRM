@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
   head: () => ({
     meta: [
-      { title: "AI CRM — Leads" },
+      { title: "Vireon — Leads" },
       { name: "description", content: "Manage and score your leads" },
     ],
   }),

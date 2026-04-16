@@ -11,8 +11,8 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
   head: () => ({
     meta: [
-      { title: "Start Free Trial — AI CRM" },
-      { name: "description", content: "Create your AI CRM account and start automating sales in minutes" },
+      { title: "Start Free Trial — Vireon" },
+      { name: "description", content: "Create your Vireon account and start automating sales in minutes" },
     ],
   }),
 });

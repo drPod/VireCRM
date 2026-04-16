@@ -48,7 +48,7 @@ const features = [
   {
     icon: Palette,
     title: "White-Label Ready",
-    description: "Custom branding, colors, logo, and domain. Sell AI CRM as your own product to your clients.",
+    description: "Custom branding, colors, logo, and domain. Sell Vireon as your own product to your clients.",
   },
 ];
 

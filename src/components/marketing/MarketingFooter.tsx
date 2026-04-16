@@ -11,7 +11,7 @@ export function MarketingFooter() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <Terminal className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="text-lg font-bold text-gradient-primary">AI CRM</span>
+              <span className="text-lg font-bold text-gradient-primary">Vireon</span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
               The autonomous CRM that sells for you.
@@ -45,7 +45,7 @@ export function MarketingFooter() {
         </div>
 
         <div className="mt-12 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} AI CRM. All rights reserved.
+          © {new Date().getFullYear()} Vireon. All rights reserved.
         </div>
       </div>
     </footer>
