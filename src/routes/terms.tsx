@@ -25,7 +25,7 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">1. Acceptance of Terms</h2>
               <p className="mt-2">
-                By accessing or using Vireon (the "<strong>Service</strong>"), operated by [Your Business Name], you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
+                By accessing or using Vireon (the "<strong>Service</strong>"), By accessing or using Vireon (the "<strong>Service</strong>"), operated by Ethan Sereti, you agree to be bound by these Terms of Service. If you do not agree, do not use the Service. to be bound by these Terms of Service. If you do not agree, do not use the Service.
               </p>
             </section>
 

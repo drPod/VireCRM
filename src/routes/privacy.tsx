@@ -25,7 +25,7 @@ function PrivacyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">1. Who We Are</h2>
               <p className="mt-2">
-                Vireon ("<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>") is operated by [Your Business Name]. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
+                Vireon ("<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>") is operated by Ethan Sereti. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
               </p>
             </section>
 
