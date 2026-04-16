@@ -50,7 +50,7 @@ function SignupPage() {
         toast.success("Account created! Redirecting...");
         navigate({ to: "/dashboard" });
       } else {
-        toast.success("Check your email to confirm your account before signing in.");
+        navigate({ to: "/confirm-email" });
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Signup failed");
