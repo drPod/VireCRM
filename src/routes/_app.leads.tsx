@@ -29,6 +29,8 @@ function LeadsPage() {
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
