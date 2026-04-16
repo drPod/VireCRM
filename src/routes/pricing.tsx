@@ -9,10 +9,10 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing — White-Label AI CRM" },
-      { name: "description", content: "Lease or own a white-label AI CRM. From $249/mo leasing to $10,000 full ownership." },
-      { property: "og:title", content: "White-Label AI CRM Pricing — Lease or Own" },
-      { property: "og:description", content: "Lease from $249/mo or own outright for $10,000. Full white-label branding, AI agents, and source code." },
+      { title: "Pricing — AI CRM Plans & White-Label" },
+      { name: "description", content: "Done-for-you CRM plans from $97/mo or white-label plans to resell under your brand. Setup, hosting, and maintenance included." },
+      { property: "og:title", content: "AI CRM Pricing — Plans That Fit Your Business" },
+      { property: "og:description", content: "CRM plans from $97/mo. White-label from $249/mo. Custom builds from $10K." },
     ],
   }),
 });
