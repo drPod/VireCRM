@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { toast } from "sonner";
 
 const statusOptions = ["new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
@@ -14,6 +15,7 @@ interface AddLeadDialogProps {
 
 export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
   const { organization } = useAuth();
+  const { triggerOutreach } = useAutoOutreach();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -43,7 +45,7 @@ export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from("leads").insert({
+      const { error, data: inserted } = await supabase.from("leads").insert({
         organization_id: organization.id,
         name: form.name.trim(),
         email: form.email.trim() || null,
@@ -53,12 +55,17 @@ export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
         score: form.score,
         next_action: form.next_action.trim() || null,
         notes: form.notes.trim() || null,
-      });
+      }).select("id, name, email, company");
       if (error) throw error;
       toast.success(`Lead "${form.name}" added!`);
       setForm({ name: "", email: "", phone: "", company: "", status: "new", score: 50, next_action: "", notes: "" });
       setOpen(false);
       onLeadAdded?.();
+
+      // Trigger auto-outreach in background
+      if (inserted && inserted.length > 0) {
+        triggerOutreach(inserted);
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to add lead");
     } finally {
