@@ -20,6 +20,7 @@ export const Route = createFileRoute("/pricing")({
 function PricingPage() {
   return (
     <div className="min-h-screen">
+      <PaymentTestModeBanner />
       <MarketingHeader />
 
       <section className="pt-32 pb-20">
