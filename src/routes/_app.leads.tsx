@@ -3,6 +3,7 @@ import { LeadCard, type Lead } from "@/components/crm/LeadCard";
 import { AddLeadDialog } from "@/components/crm/AddLeadDialog";
 import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
 import { AutoFindLeadsDialog } from "@/components/crm/AutoFindLeadsDialog";
+import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
 import { Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,8 @@ function LeadsPage() {
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -124,7 +127,14 @@ function LeadsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {leads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} />
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              onClick={() => {
+                setSelectedLead(lead);
+                setDrawerOpen(true);
+              }}
+            />
           ))}
           {leads.length === 0 && (
             <div className="col-span-full rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
@@ -133,6 +143,13 @@ function LeadsPage() {
           )}
         </div>
       )}
+
+      <LeadDetailDrawer
+        lead={selectedLead}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onUpdated={handleLeadAdded}
+      />
     </div>
   );
 }
