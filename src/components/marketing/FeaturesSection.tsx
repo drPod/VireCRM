@@ -7,6 +7,13 @@ import {
   BarChart3,
   Shield,
   Palette,
+  GitBranch,
+  Mail,
+  Star,
+  Receipt,
+  Users,
+  Phone,
+  Globe,
 } from "lucide-react";
 
 const features = [
@@ -16,34 +23,54 @@ const features = [
     description: "Type natural language commands like 'Run outreach on 200 leads' and watch your AI sales team execute.",
   },
   {
+    icon: GitBranch,
+    title: "Workflow Automation",
+    description: "Visual drag-and-drop builder. Multi-step sequences across email, SMS, tasks, and pipeline — all on autopilot.",
+  },
+  {
     icon: Target,
     title: "Smart Lead Scoring",
     description: "AI analyzes every lead and assigns conversion probability scores. Focus on the hottest prospects.",
   },
   {
     icon: MessageSquare,
-    title: "Auto Outreach & Follow-ups",
-    description: "AI writes personalized messages, sends them at optimal times, and automatically follows up on no-replies.",
+    title: "Unified Inbox",
+    description: "All conversations in one place — email, SMS, WhatsApp, social DMs. Never miss a message or lead.",
   },
   {
-    icon: Zap,
-    title: "Reply Classification",
-    description: "AI reads every response and classifies sentiment — interested, not interested, or needs follow-up.",
+    icon: Mail,
+    title: "Email Marketing Suite",
+    description: "Drag-and-drop email builder, templates, broadcast campaigns, drip sequences, and full analytics.",
   },
   {
     icon: Calendar,
-    title: "Autonomous Scheduling",
-    description: "Hot leads get auto-booked for demos. Calendar syncs, confirmations, and reminders handled by AI.",
+    title: "Appointment Booking",
+    description: "Booking links, calendar sync, automated reminders, payment at booking, and round-robin assignment.",
+  },
+  {
+    icon: Star,
+    title: "Reputation Management",
+    description: "Automated review requests, centralized review dashboard, AI-powered response suggestions, and spam detection.",
+  },
+  {
+    icon: Receipt,
+    title: "Invoicing & Payments",
+    description: "Create invoices, send text-to-pay links, recurring billing, and payment tracking tied to contact records.",
+  },
+  {
+    icon: Zap,
+    title: "Auto Outreach & Follow-ups",
+    description: "AI writes personalized messages, sends at optimal times, and automatically follows up on no-replies.",
+  },
+  {
+    icon: Phone,
+    title: "SMS & Phone Integration",
+    description: "Two-way SMS, call tracking, missed-call text-back, voicemail drops, and WhatsApp messaging.",
   },
   {
     icon: BarChart3,
-    title: "Real-Time Analytics",
-    description: "Track conversion rates, AI performance, pipeline health, and revenue forecasts in real-time.",
-  },
-  {
-    icon: Shield,
-    title: "Guardrails & Safety",
-    description: "Rate limiting, duplicate prevention, approval workflows, and full audit logs protect your reputation.",
+    title: "Advanced Analytics",
+    description: "Custom dashboards, pipeline reports, revenue forecasting, campaign ROI tracking, and team performance.",
   },
   {
     icon: Palette,
@@ -58,10 +85,10 @@ export function FeaturesSection() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold text-foreground">
-            Everything Your Sales Team Needs
+            Everything You Need to Close More Deals
           </h2>
           <p className="mt-3 text-muted-foreground">
-            A complete autonomous sales system powered by specialized AI agents
+            A complete sales and marketing platform powered by AI — replaces 10+ tools
           </p>
         </div>
 

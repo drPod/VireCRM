@@ -17,11 +17,16 @@ import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppWorkflowsRouteImport } from './routes/_app.workflows'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppReputationRouteImport } from './routes/_app.reputation'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
+import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
+import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
+import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
 
@@ -64,9 +69,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppWorkflowsRoute = AppWorkflowsRouteImport.update({
+  id: '/workflows',
+  path: '/workflows',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReputationRoute = AppReputationRouteImport.update({
+  id: '/reputation',
+  path: '/reputation',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMessagesRoute = AppMessagesRouteImport.update({
@@ -79,6 +94,16 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInvoicesRoute = AppInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEmailMarketingRoute = AppEmailMarketingRouteImport.update({
+  id: '/email-marketing',
+  path: '/email-marketing',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -87,6 +112,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 const AppCampaignsRoute = AppCampaignsRouteImport.update({
   id: '/campaigns',
   path: '/campaigns',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
@@ -110,11 +140,16 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/email-marketing': typeof AppEmailMarketingRoute
+  '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
+  '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
+  '/workflows': typeof AppWorkflowsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,11 +161,16 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/email-marketing': typeof AppEmailMarketingRoute
+  '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
+  '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
+  '/workflows': typeof AppWorkflowsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -144,11 +184,16 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/analytics': typeof AppAnalyticsRoute
+  '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/email-marketing': typeof AppEmailMarketingRoute
+  '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
+  '/_app/reputation': typeof AppReputationRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/workflows': typeof AppWorkflowsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -162,11 +207,16 @@ export interface FileRouteTypes {
     | '/signup'
     | '/advisor'
     | '/analytics'
+    | '/calendar'
     | '/campaigns'
     | '/dashboard'
+    | '/email-marketing'
+    | '/invoices'
     | '/leads'
     | '/messages'
+    | '/reputation'
     | '/settings'
+    | '/workflows'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -178,11 +228,16 @@ export interface FileRouteTypes {
     | '/signup'
     | '/advisor'
     | '/analytics'
+    | '/calendar'
     | '/campaigns'
     | '/dashboard'
+    | '/email-marketing'
+    | '/invoices'
     | '/leads'
     | '/messages'
+    | '/reputation'
     | '/settings'
+    | '/workflows'
   id:
     | '__root__'
     | '/'
@@ -195,11 +250,16 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_app/advisor'
     | '/_app/analytics'
+    | '/_app/calendar'
     | '/_app/campaigns'
     | '/_app/dashboard'
+    | '/_app/email-marketing'
+    | '/_app/invoices'
     | '/_app/leads'
     | '/_app/messages'
+    | '/_app/reputation'
     | '/_app/settings'
+    | '/_app/workflows'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -271,11 +331,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/workflows': {
+      id: '/_app/workflows'
+      path: '/workflows'
+      fullPath: '/workflows'
+      preLoaderRoute: typeof AppWorkflowsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reputation': {
+      id: '/_app/reputation'
+      path: '/reputation'
+      fullPath: '/reputation'
+      preLoaderRoute: typeof AppReputationRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/messages': {
@@ -292,6 +366,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeadsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/invoices': {
+      id: '/_app/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof AppInvoicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/email-marketing': {
+      id: '/_app/email-marketing'
+      path: '/email-marketing'
+      fullPath: '/email-marketing'
+      preLoaderRoute: typeof AppEmailMarketingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -304,6 +392,13 @@ declare module '@tanstack/react-router' {
       path: '/campaigns'
       fullPath: '/campaigns'
       preLoaderRoute: typeof AppCampaignsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/analytics': {
@@ -326,21 +421,31 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppEmailMarketingRoute: typeof AppEmailMarketingRoute
+  AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
+  AppReputationRoute: typeof AppReputationRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppWorkflowsRoute: typeof AppWorkflowsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppEmailMarketingRoute: AppEmailMarketingRoute,
+  AppInvoicesRoute: AppInvoicesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,
+  AppReputationRoute: AppReputationRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppWorkflowsRoute: AppWorkflowsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -358,3 +463,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
