@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Terminal } from "lucide-react";
+import vireonLogo from "@/assets/vireon-logo.png";
 
 export function MarketingFooter() {
   return (
@@ -8,9 +8,7 @@ export function MarketingFooter() {
         <div className="grid gap-8 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Terminal className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <img src={vireonLogo} alt="Vireon" className="h-8 w-8 rounded-lg object-contain" />
               <span className="text-lg font-bold text-gradient-primary">Vireon</span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">

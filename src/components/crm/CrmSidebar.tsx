@@ -6,7 +6,6 @@ import {
   Zap,
   BarChart3,
   Settings,
-  Terminal,
   Sparkles,
   Moon,
   Sun,
@@ -17,6 +16,7 @@ import {
   Mail,
   Receipt,
 } from "lucide-react";
+import vireonLogo from "@/assets/vireon-logo.png";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -50,9 +50,7 @@ export function CrmSidebar() {
         {logoUrl ? (
           <img src={logoUrl} alt={brandName} className="h-8 w-8 rounded-lg object-contain" />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Terminal className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src={vireonLogo} alt={brandName} className="h-8 w-8 rounded-lg object-contain" />
         )}
         <span className="text-lg font-bold text-gradient-primary">{brandName}</span>
       </div>
