@@ -50,6 +50,10 @@ function TermsPage() {
               </p>
               <p className="mt-2">
                 By subscribing, you authorize Paddle to charge the applicable fees to your chosen payment method. Prices are listed in USD and may vary by region due to localized pricing.
+              <p className="mt-2">
+                Our order process is conducted by our online reseller <strong>Paddle.com</strong>. Paddle.com is the Merchant of Record for all our orders. Paddle provides all customer service inquiries and handles returns. Please refer to{" "}
+                <a href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Paddle's Buyer Terms</a>{" "}
+                for payment, billing, tax, cancellation, and refund mechanics.
               </p>
             </section>
 
