@@ -125,37 +125,84 @@ async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
 }
 
 async function handleTransactionCompleted(data: any, env: PaddleEnv) {
-  // Handle one-time purchases (Full Ownership, Custom Enterprise)
-  const { id, customerId, items, customData } = data;
-  
-  const userId = customData?.userId;
-  if (!userId) {
-    console.log('Transaction completed without userId:', id);
-    return;
-  }
+  const { id, customerId, subscriptionId, items, customData, billedAt, currencyCode, details } = data;
 
-  // Check if this is a one-time purchase (no subscription)
-  const item = items[0];
-  const priceId = item.price.importMeta?.externalId || item.price.id;
-  
-  // If it's a one-time purchase (no billing cycle), store as a permanent subscription
-  if (!item.price.billingCycle) {
-    const productId = item.price.productId;
-    
+  const userId = customData?.userId;
+  const item = items?.[0];
+  const priceId = item?.price?.importMeta?.externalId || item?.price?.id;
+
+  // Persist one-time purchases as a permanent subscription row (existing behavior)
+  if (item && !item.price?.billingCycle && userId) {
     await supabase.from('subscriptions').upsert({
       user_id: userId,
       paddle_subscription_id: `txn_${id}`,
       paddle_customer_id: customerId,
-      product_id: priceId.includes('enterprise') ? 'custom_enterprise' : 'full_ownership',
+      product_id: priceId?.includes('enterprise') ? 'custom_enterprise' : 'full_ownership',
       price_id: priceId,
       status: 'active',
       current_period_start: new Date().toISOString(),
-      current_period_end: null, // perpetual
+      current_period_end: null,
       environment: env,
       updated_at: new Date().toISOString(),
     }, {
       onConflict: 'user_id,environment',
     });
+  }
+
+  // Record the actual transaction for payout calculation.
+  // Resolve attribution: prefer the subscription's stored reseller, fall back to customData.
+  let subscriptionRowId: string | null = null;
+  let attributedResellerId: string | null = null;
+  let resolvedUserId: string | null = userId ?? null;
+
+  if (subscriptionId) {
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('id, user_id, attributed_reseller_id')
+      .eq('paddle_subscription_id', subscriptionId)
+      .eq('environment', env)
+      .maybeSingle();
+    if (sub) {
+      subscriptionRowId = sub.id;
+      attributedResellerId = sub.attributed_reseller_id ?? null;
+      resolvedUserId = resolvedUserId ?? sub.user_id;
+    }
+  }
+
+  // Last-resort attribution from customData (e.g. one-time checkouts via /r/:slug)
+  if (!attributedResellerId && customData?.resellerId) {
+    const { data: resellerRow } = await supabase
+      .from('organizations')
+      .select('id, is_reseller')
+      .eq('id', customData.resellerId)
+      .maybeSingle();
+    if (resellerRow?.is_reseller) attributedResellerId = resellerRow.id;
+  }
+
+  // Amount: Paddle gives grandTotal as a string in minor units
+  const grandTotalRaw =
+    details?.totals?.grandTotal ??
+    details?.totals?.grand_total ??
+    data?.payoutTotals?.grandTotal;
+  const amountCents = grandTotalRaw != null ? Math.abs(Number(grandTotalRaw)) : 0;
+
+  if (amountCents > 0) {
+    const { error: txErr } = await supabase.from('transactions').upsert({
+      paddle_transaction_id: id,
+      paddle_subscription_id: subscriptionId ?? null,
+      subscription_id: subscriptionRowId,
+      user_id: resolvedUserId,
+      attributed_reseller_id: attributedResellerId,
+      amount_cents: amountCents,
+      currency: currencyCode ?? 'USD',
+      status: 'completed',
+      environment: env,
+      billed_at: billedAt ?? new Date().toISOString(),
+      raw_payload: data,
+    }, { onConflict: 'paddle_transaction_id' });
+    if (txErr) console.error('Failed to record transaction:', txErr);
+  } else {
+    console.log('Transaction completed with zero/missing amount, skipping insert:', id);
   }
 
   console.log('Transaction completed:', id, 'env:', env);
