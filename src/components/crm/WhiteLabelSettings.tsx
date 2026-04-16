@@ -1,23 +1,31 @@
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Building2,
   Palette,
   Globe,
   Upload,
   Crown,
-  Users,
   Shield,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export function WhiteLabelSettings() {
-  const { organization, role } = useAuth();
+  const { organization, role, refreshProfile } = useAuth();
   const [brandName, setBrandName] = useState(organization?.brand_name || "");
   const [primaryColor, setPrimaryColor] = useState(organization?.primary_color || "#3b82f6");
   const [logoUrl, setLogoUrl] = useState(organization?.logo_url || "");
   const [customDomain, setCustomDomain] = useState(organization?.custom_domain || "");
+  const initialIsReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
+  const [isReseller, setIsReseller] = useState(initialIsReseller);
+  const [saving, setSaving] = useState(false);
+  const [togglingReseller, setTogglingReseller] = useState(false);
 
   const isEnterprise = organization?.plan === "enterprise";
   const isOwner = role?.role === "owner";
@@ -33,6 +41,44 @@ export function WhiteLabelSettings() {
       </div>
     );
   }
+
+  const handleSave = async () => {
+    if (!organization?.id) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("organizations")
+      .update({
+        brand_name: brandName || null,
+        primary_color: primaryColor,
+        logo_url: logoUrl || null,
+        custom_domain: customDomain || null,
+      })
+      .eq("id", organization.id);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("White-label settings saved");
+      await refreshProfile();
+    }
+  };
+
+  const handleToggleReseller = async (next: boolean) => {
+    if (!organization?.id) return;
+    setTogglingReseller(true);
+    const { error } = await supabase
+      .from("organizations")
+      .update({ is_reseller: next } as never)
+      .eq("id", organization.id);
+    setTogglingReseller(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setIsReseller(next);
+    toast.success(next ? "Reseller mode enabled" : "Reseller mode disabled");
+    await refreshProfile();
+  };
 
   return (
     <div className="space-y-6">
@@ -53,6 +99,31 @@ export function WhiteLabelSettings() {
           </Badge>
         )}
       </div>
+
+      {/* Reseller toggle */}
+      {isEnterprise && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex gap-3">
+              <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Reseller Mode</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Onboard your own clients under your branded CRM. Each client gets an isolated workspace.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {togglingReseller && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              <Switch
+                checked={isReseller}
+                onCheckedChange={handleToggleReseller}
+                disabled={togglingReseller}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`space-y-4 ${!isEnterprise ? "opacity-50 pointer-events-none" : ""}`}>
         {/* Brand Name */}
@@ -137,7 +208,8 @@ export function WhiteLabelSettings() {
           />
         </div>
 
-        <Button variant="command" className="w-full">
+        <Button variant="command" className="w-full" onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save White-Label Settings
         </Button>
       </div>

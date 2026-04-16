@@ -15,12 +15,13 @@ import {
   Star,
   Mail,
   Receipt,
+  Building2,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
 
-const navItems = [
+const baseNavItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/leads", icon: Users, label: "Leads" },
   { to: "/messages", icon: MessageSquare, label: "Messages" },
@@ -42,6 +43,15 @@ export function CrmSidebar() {
 
   const brandName = organization?.brand_name || "Vireon";
   const logoUrl = organization?.logo_url;
+  const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
+  const isOwner = role?.role === "owner";
+
+  const navItems = [
+    ...baseNavItems,
+    ...(isReseller && isOwner
+      ? [{ to: "/clients", icon: Building2, label: "Clients" }]
+      : []),
+  ];
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-border bg-sidebar">
