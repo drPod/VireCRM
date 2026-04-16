@@ -16,7 +16,7 @@ import {
   Mail,
   Receipt,
 } from "lucide-react";
-import vireonLogo from "@/assets/vireon-logo.png";
+
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -50,7 +50,7 @@ export function CrmSidebar() {
         {logoUrl ? (
           <img src={logoUrl} alt={brandName} className="h-8 w-8 rounded-lg object-contain" />
         ) : (
-          <img src={vireonLogo} alt={brandName} className="h-8 w-8 rounded-lg object-contain" />
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white">V</span>
         )}
         <span className="text-lg font-bold text-gradient-primary">{brandName}</span>
       </div>

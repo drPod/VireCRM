@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import vireonLogo from "@/assets/vireon-logo.png";
+
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -18,7 +18,7 @@ export function MarketingHeader() {
     <header className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5">
-          <img src={vireonLogo} alt="Vireon" className="h-8 w-8 rounded-lg object-contain" />
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white">V</span>
           <span className="text-lg font-bold text-gradient-primary">Vireon</span>
         </Link>
 

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import vireonLogo from "@/assets/vireon-logo.png";
+
 
 export function MarketingFooter() {
   return (
@@ -8,7 +8,7 @@ export function MarketingFooter() {
         <div className="grid gap-8 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <img src={vireonLogo} alt="Vireon" className="h-8 w-8 rounded-lg object-contain" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white">V</span>
               <span className="text-lg font-bold text-gradient-primary">Vireon</span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
