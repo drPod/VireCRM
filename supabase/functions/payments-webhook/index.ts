@@ -34,6 +34,11 @@ Deno.serve(async (req) => {
       case EventName.TransactionPaymentFailed:
         console.log('Payment failed:', event.data.id, 'env:', env);
         break;
+      // @ts-ignore — EventName.TransactionRefunded may not be exported in all SDK versions
+      case (EventName as any).TransactionRefunded ?? 'transaction.refunded':
+      case 'transaction.refunded' as any:
+        await handleTransactionRefunded(event.data, env);
+        break;
       default:
         console.log('Unhandled event:', event.eventType);
     }
@@ -154,4 +159,45 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
   }
 
   console.log('Transaction completed:', id, 'env:', env);
+}
+
+async function handleTransactionRefunded(data: any, env: PaddleEnv) {
+  // Fired when a refund is approved. Payload shape (camelCased by SDK):
+  //   { id, subscriptionId, details: { totals: { grandTotal } }, ... }
+  // Fall back across a few field names because Paddle sends slightly different
+  // shapes for transaction.refunded vs adjustment.created.
+  const transactionId: string | undefined = data?.id;
+  const subscriptionId: string | undefined = data?.subscriptionId ?? data?.subscription_id;
+  const refundedAt: string =
+    data?.updatedAt ?? data?.refundedAt ?? data?.createdAt ?? new Date().toISOString();
+
+  // Refund amount in minor units. Try a few plausible paths.
+  const grandTotalStr: string | number | undefined =
+    data?.details?.totals?.grandTotal ??
+    data?.details?.totals?.grand_total ??
+    data?.payoutTotals?.grandTotal ??
+    data?.totals?.grandTotal ??
+    data?.amount;
+  const refundAmountCents = grandTotalStr != null ? Math.abs(Number(grandTotalStr)) : 0;
+
+  if (!transactionId || !subscriptionId || !refundAmountCents) {
+    console.log('Refund webhook missing required fields:', {
+      transactionId, subscriptionId, refundAmountCents, env,
+    });
+    return;
+  }
+
+  const { data: result, error } = await supabase.rpc('apply_refund_adjustment', {
+    p_paddle_subscription_id: subscriptionId,
+    p_refund_transaction_id: transactionId,
+    p_refund_amount_cents: refundAmountCents,
+    p_refund_at: refundedAt,
+    p_environment: env,
+  });
+
+  if (error) {
+    console.error('apply_refund_adjustment failed:', error);
+    return;
+  }
+  console.log('Refund adjustment applied:', { transactionId, env, result });
 }
