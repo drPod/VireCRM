@@ -165,8 +165,17 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
     setFile(f);
 
     try {
-      const text = await f.text();
-      const leads = parseCSV(text);
+      const isExcel = /\.xlsx?$/i.test(f.name);
+      let leads: ParsedLead[];
+
+      if (isExcel) {
+        const buffer = await f.arrayBuffer();
+        leads = parseXLSX(buffer);
+      } else {
+        const text = await f.text();
+        leads = parseCSV(text);
+      }
+
       if (leads.length === 0) {
         setParseError(
           'No leads found. Make sure your file has a header row with a "Name" column.'
