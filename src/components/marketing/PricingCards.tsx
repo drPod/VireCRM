@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, ArrowRight, Sparkles, Crown, Building2 } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, Crown, Building2, Loader2 } from "lucide-react";
+import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 export interface PricingTier {
   name: string;
@@ -13,8 +16,9 @@ export interface PricingTier {
   features: { text: string; included: boolean }[];
   cta: string;
   ctaVariant: "outline" | "command" | "default";
-  ctaLink: string;
+  ctaLink?: string;
   isOwnership?: boolean;
+  paddlePriceId?: string;
 }
 
 export const pricingTiers: PricingTier[] = [
@@ -23,6 +27,7 @@ export const pricingTiers: PricingTier[] = [
     price: "$249",
     period: "/month",
     description: "White-label AI CRM leased to your business. Full branding, your domain, your clients.",
+    paddlePriceId: "lease_starter_monthly",
     features: [
       { text: "White-label branding", included: true },
       { text: "Custom domain", included: true },
@@ -39,7 +44,6 @@ export const pricingTiers: PricingTier[] = [
     ],
     cta: "Start Lease",
     ctaVariant: "outline",
-    ctaLink: "/signup",
   },
   {
     name: "Lease — Professional",
@@ -48,6 +52,7 @@ export const pricingTiers: PricingTier[] = [
     description: "Full-featured white-label CRM with all AI agents. Scale your sales operation.",
     badge: "Most Popular",
     highlighted: true,
+    paddlePriceId: "lease_pro_monthly",
     features: [
       { text: "White-label branding", included: true },
       { text: "Custom domain", included: true },
@@ -64,7 +69,6 @@ export const pricingTiers: PricingTier[] = [
     ],
     cta: "Start Lease",
     ctaVariant: "command",
-    ctaLink: "/signup",
   },
   {
     name: "Full Ownership",
@@ -73,6 +77,7 @@ export const pricingTiers: PricingTier[] = [
     description: "Own the entire AI CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
+    paddlePriceId: "full_ownership_onetime",
     features: [
       { text: "White-label branding", included: true },
       { text: "Custom domain", included: true },
@@ -89,7 +94,6 @@ export const pricingTiers: PricingTier[] = [
     ],
     cta: "Buy Now",
     ctaVariant: "command",
-    ctaLink: "/signup",
   },
   {
     name: "Custom Enterprise",
@@ -98,6 +102,7 @@ export const pricingTiers: PricingTier[] = [
     description: "Full ownership plus custom features built for your specific business needs and workflows.",
     badge: "Tailored",
     isOwnership: true,
+    ctaLink: "/contact",
     features: [
       { text: "Everything in Full Ownership", included: true },
       { text: "Custom feature development", included: true },
@@ -110,11 +115,31 @@ export const pricingTiers: PricingTier[] = [
     ],
     cta: "Contact Us",
     ctaVariant: "outline",
-    ctaLink: "/contact",
   },
 ];
 
 export function PricingCards() {
+  const { openCheckout, loading } = usePaddleCheckout();
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser({ id: data.user.id, email: data.user.email });
+      }
+    });
+  }, []);
+
+  const handleCheckout = (tier: PricingTier) => {
+    if (!tier.paddlePriceId) return;
+    openCheckout({
+      priceId: tier.paddlePriceId,
+      customerEmail: user?.email,
+      customData: user ? { userId: user.id } : undefined,
+      successUrl: `${window.location.origin}/dashboard?checkout=success`,
+    });
+  };
+
   return (
     <div className="space-y-10">
       {/* Category Labels */}
@@ -165,12 +190,25 @@ export function PricingCards() {
               <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
             </div>
 
-            <Link to={tier.ctaLink}>
-              <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
-                {tier.cta}
-                <ArrowRight className="h-4 w-4" />
+            {tier.ctaLink ? (
+              <Link to={tier.ctaLink}>
+                <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
+                  {tier.cta}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                variant={tier.ctaVariant}
+                className="w-full gap-2"
+                size="sm"
+                disabled={loading}
+                onClick={() => handleCheckout(tier)}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : tier.cta}
+                {!loading && <ArrowRight className="h-4 w-4" />}
               </Button>
-            </Link>
+            )}
 
             <div className="mt-6 space-y-2.5 border-t border-border pt-6">
               {tier.features.map((feature) => (

@@ -3,6 +3,7 @@ import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { PricingCards } from "@/components/marketing/PricingCards";
 import { CtaSection } from "@/components/marketing/CtaSection";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/pricing")({
 function PricingPage() {
   return (
     <div className="min-h-screen">
+      <PaymentTestModeBanner />
       <MarketingHeader />
 
       <section className="pt-32 pb-20">
