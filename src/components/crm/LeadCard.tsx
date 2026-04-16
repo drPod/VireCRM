@@ -35,11 +35,14 @@ function ScoreBar({ score }: { score: number }) {
   );
 }
 
-export function LeadCard({ lead }: { lead: Lead }) {
+export function LeadCard({ lead, onClick }: { lead: Lead; onClick?: () => void }) {
   const status = statusConfig[lead.status];
 
   return (
-    <div className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-accent/30">
+    <div
+      onClick={onClick}
+      className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-accent/30 cursor-pointer"
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <h4 className="truncate text-sm font-semibold text-foreground">{lead.name}</h4>
