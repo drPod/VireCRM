@@ -11,21 +11,76 @@ import {
   Shield,
   Sparkles,
   Loader2,
+  Copy,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+type OrgWithDomain = {
+  is_reseller?: boolean;
+  domain_verification_token?: string;
+  domain_verified_at?: string | null;
+};
+
 export function WhiteLabelSettings() {
   const { organization, role, refreshProfile } = useAuth();
+  const orgExt = organization as (typeof organization & OrgWithDomain) | null;
   const [brandName, setBrandName] = useState(organization?.brand_name || "");
   const [primaryColor, setPrimaryColor] = useState(organization?.primary_color || "#3b82f6");
   const [logoUrl, setLogoUrl] = useState(organization?.logo_url || "");
   const [customDomain, setCustomDomain] = useState(organization?.custom_domain || "");
-  const initialIsReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
+  const initialIsReseller = !!orgExt?.is_reseller;
   const [isReseller, setIsReseller] = useState(initialIsReseller);
   const [saving, setSaving] = useState(false);
   const [togglingReseller, setTogglingReseller] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  const verificationToken = orgExt?.domain_verification_token || "";
+  const isDomainVerified = !!orgExt?.domain_verified_at;
+  const savedDomain = organization?.custom_domain || "";
+  const domainChanged = customDomain !== savedDomain;
+
+  const verifyDomain = async () => {
+    if (!organization?.id || !savedDomain) return;
+    setVerifying(true);
+    try {
+      // Use Cloudflare DNS-over-HTTPS to look up TXT records for _vireon.<domain>
+      const lookupHost = `_vireon.${savedDomain}`;
+      const res = await fetch(
+        `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(lookupHost)}&type=TXT`,
+        { headers: { Accept: "application/dns-json" } }
+      );
+      const dns = (await res.json()) as { Answer?: { data: string }[] };
+      const records = (dns.Answer || []).map((a) => a.data.replace(/^"|"$/g, ""));
+      const matched = records.some((r) => r.includes(verificationToken));
+
+      if (!matched) {
+        toast.error(`No matching TXT record found at _vireon.${savedDomain}. DNS can take up to a few minutes to propagate.`);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("mark_domain_verified", {
+        p_org_id: organization.id,
+      });
+      if (error) throw error;
+      const result = data as { success: boolean; error?: string } | null;
+      if (!result?.success) throw new Error(result?.error || "Verification failed");
+      toast.success("Domain verified! Your custom domain is now active.");
+      await refreshProfile();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const copyToken = () => {
+    void navigator.clipboard.writeText(verificationToken);
+    toast.success("Verification token copied");
+  };
 
   const isEnterprise = organization?.plan === "enterprise";
   const isOwner = role?.role === "owner";
