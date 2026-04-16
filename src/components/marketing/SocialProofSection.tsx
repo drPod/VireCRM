@@ -9,7 +9,7 @@ const stats = [
 
 const testimonials = [
   {
-    quote: "We replaced 3 SDRs with AI CRM and our conversion rate actually went up. The AI follow-ups are relentless in the best way.",
+    quote: "We replaced 3 SDRs with Vireon and our conversion rate actually went up. The AI follow-ups are relentless in the best way.",
     name: "Jessica Torres",
     title: "VP of Sales, ScaleUp Inc",
   },
@@ -19,7 +19,7 @@ const testimonials = [
     title: "Founder, NovaTech",
   },
   {
-    quote: "We white-labeled AI CRM and sell it to our agency clients. It's become our fastest-growing revenue stream.",
+    quote: "We white-labeled Vireon and sell it to our agency clients. It's become our fastest-growing revenue stream.",
     name: "Marcus Williams",
     title: "CEO, Digital Growth Agency",
   },

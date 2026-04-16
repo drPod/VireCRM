@@ -27,7 +27,7 @@ function ContactPage() {
               Let's Build Your Custom CRM
             </h1>
             <p className="mt-3 text-lg text-muted-foreground">
-              Tell us about your business and we'll craft a tailored AI CRM solution — starting at $14,000.
+              Tell us about your business and we'll craft a tailored Vireon CRM solution — starting at $14,000.
             </p>
           </div>
 

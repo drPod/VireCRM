@@ -11,8 +11,8 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
   head: () => ({
     meta: [
-      { title: "Sign In — AI CRM" },
-      { name: "description", content: "Sign in to your AI CRM account" },
+      { title: "Sign In — Vireon" },
+      { name: "description", content: "Sign in to your Vireon account" },
     ],
   }),
 });
@@ -64,7 +64,7 @@ function LoginPage() {
               <Terminal className="h-6 w-6 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Sign in to your AI CRM account</p>
+            <p className="mt-1 text-sm text-muted-foreground">Sign in to your Vireon account</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">

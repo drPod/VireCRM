@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
   head: () => ({
     meta: [
-      { title: "AI CRM — Dashboard" },
+      { title: "Vireon — Dashboard" },
       { name: "description", content: "Autonomous AI-powered CRM dashboard" },
     ],
   }),
