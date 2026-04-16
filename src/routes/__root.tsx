@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WhiteLabelTheme } from "@/components/auth/WhiteLabelTheme";
+import { DomainBrandingProvider } from "@/components/auth/DomainBrandingProvider";
 
 import appCss from "../styles.css?url";
 
@@ -62,9 +63,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <WhiteLabelTheme />
-      <Outlet />
-    </AuthProvider>
+    <DomainBrandingProvider>
+      <AuthProvider>
+        <WhiteLabelTheme />
+        <Outlet />
+      </AuthProvider>
+    </DomainBrandingProvider>
   );
 }
