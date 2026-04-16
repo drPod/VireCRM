@@ -33,7 +33,9 @@ async function tryAcceptInvite(token: string | undefined) {
 }
 
 function SignupPage() {
-  const { invite } = Route.useSearch();
+  const invite = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("invite") ?? undefined
+    : undefined;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
