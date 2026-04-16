@@ -127,7 +127,14 @@ function LeadsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {leads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} />
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              onClick={() => {
+                setSelectedLead(lead);
+                setDrawerOpen(true);
+              }}
+            />
           ))}
           {leads.length === 0 && (
             <div className="col-span-full rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
@@ -136,6 +143,13 @@ function LeadsPage() {
           )}
         </div>
       )}
+
+      <LeadDetailDrawer
+        lead={selectedLead}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onUpdated={handleLeadAdded}
+      />
     </div>
   );
 }
