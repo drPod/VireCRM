@@ -28,7 +28,7 @@ export const crmTiers: PricingTier[] = [
     name: "Starter",
     price: "$97",
     period: "/month",
-    setupFee: "$500 – $1,000 setup",
+    
     description: "Contact management, basic pipeline, notes & tasks, and a simple dashboard for small businesses.",
     paddlePriceId: "crm_starter_monthly",
     features: [
@@ -50,7 +50,7 @@ export const crmTiers: PricingTier[] = [
     name: "Growth",
     price: "$197",
     period: "/month",
-    setupFee: "$1,500 – $3,000 setup",
+    
     description: "Automated follow-ups, lead tracking, pipeline optimization, and basic reporting. Where 70% of clients land.",
     badge: "Most Popular",
     highlighted: true,
@@ -74,7 +74,7 @@ export const crmTiers: PricingTier[] = [
     name: "Pro",
     price: "$297–$497",
     period: "/month",
-    setupFee: "$3,000 – $7,500 setup",
+    
     description: "Advanced automation, custom pipelines, integrations, KPI dashboards, and team features for growing companies.",
     badge: "High Value",
     paddlePriceId: "crm_pro_monthly",
