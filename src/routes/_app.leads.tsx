@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LeadCard, type Lead } from "@/components/crm/LeadCard";
 import { AddLeadDialog } from "@/components/crm/AddLeadDialog";
 import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
+import { AutoFindLeadsDialog } from "@/components/crm/AutoFindLeadsDialog";
 import { Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
