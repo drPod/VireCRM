@@ -93,12 +93,12 @@ export const crmTiers: PricingTier[] = [
   },
   {
     name: "Custom CRM",
-    price: "$10,000+",
-    period: "one-time build",
+    price: "Custom",
+    period: "quote",
     description: "Fully customized CRM system — tailored workflows, advanced automations, unique dashboards, and full integration with your business.",
     badge: "Premium",
     isOwnership: true,
-    paddlePriceId: "crm_custom_base",
+    ctaLink: "/contact",
     features: [
       { text: "Fully customized system", included: true },
       { text: "Tailored workflows", included: true },
@@ -163,12 +163,12 @@ export const whiteLabelTiers: PricingTier[] = [
   },
   {
     name: "Full Ownership",
-    price: "$10,000",
-    period: "one-time",
+    price: "Custom",
+    period: "quote",
     description: "Own the entire Vireon CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
-    paddlePriceId: "full_ownership_onetime",
+    ctaLink: "/contact",
     features: [
       { text: "White-label branding", included: true },
       { text: "Custom domain", included: true },
@@ -179,8 +179,8 @@ export const whiteLabelTiers: PricingTier[] = [
       { text: "Auto follow-ups", included: true },
       { text: "AI scheduling agent", included: true },
     ],
-    cta: "Buy Now",
-    ctaVariant: "command",
+    cta: "Contact Us",
+    ctaVariant: "outline",
   },
   {
     name: "Custom Enterprise",
