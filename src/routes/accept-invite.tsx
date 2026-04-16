@@ -36,7 +36,7 @@ function AcceptInvitePage() {
     }
     if (!user) {
       // Not signed in — send them to signup with the token
-      navigate({ to: "/signup", search: { invite: token } as never });
+      window.location.href = `/signup?invite=${encodeURIComponent(token)}`;
     }
   }, [authLoading, user, token, navigate]);
 
