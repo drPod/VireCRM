@@ -84,6 +84,7 @@ function LeadsPage() {
           <p className="text-sm text-muted-foreground">{totalCount} total leads in pipeline</p>
         </div>
         <div className="flex gap-2">
+          <AutoFindLeadsDialog onLeadsImported={handleLeadAdded} />
           <ImportLeadsDialog onLeadsImported={handleLeadAdded} />
           <AddLeadDialog onLeadAdded={handleLeadAdded} />
         </div>
