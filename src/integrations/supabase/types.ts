@@ -336,6 +336,7 @@ export type Database = {
           created_at: string
           id: string
           payout_id: string
+          refund_transaction_id: string | null
           subscription_id: string
         }
         Insert: {
@@ -346,6 +347,7 @@ export type Database = {
           created_at?: string
           id?: string
           payout_id: string
+          refund_transaction_id?: string | null
           subscription_id: string
         }
         Update: {
@@ -356,6 +358,7 @@ export type Database = {
           created_at?: string
           id?: string
           payout_id?: string
+          refund_transaction_id?: string | null
           subscription_id?: string
         }
         Relationships: [
@@ -688,6 +691,16 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
+      apply_refund_adjustment: {
+        Args: {
+          p_environment?: string
+          p_paddle_subscription_id: string
+          p_refund_amount_cents: number
+          p_refund_at: string
+          p_refund_transaction_id: string
+        }
+        Returns: Json
+      }
       calculate_reseller_payouts: {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json
