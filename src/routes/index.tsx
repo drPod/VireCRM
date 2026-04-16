@@ -11,10 +11,10 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
   head: () => ({
     meta: [
-      { title: "Vireon — The Autonomous Sales Engine" },
-      { name: "description", content: "Type one command. AI scores leads, writes outreach, sends messages, classifies replies, and books meetings — automatically." },
-      { property: "og:title", content: "Vireon — Your AI Sales Team That Never Sleeps" },
-      { property: "og:description", content: "Fully autonomous CRM that handles lead scoring, outreach, follow-ups, and meeting booking with AI." },
+      { title: "Vireon — Turn Every Lead Into Revenue, Automatically" },
+      { name: "description", content: "We build AI-powered CRM systems that follow up, nurture, and close your leads for you—so your business keeps selling even when you're not working." },
+      { property: "og:title", content: "Vireon — Turn Every Lead Into Revenue, Automatically" },
+      { property: "og:description", content: "AI-powered CRM systems that respond instantly, follow up relentlessly, and convert leads into paying clients on autopilot." },
     ],
   }),
 });
