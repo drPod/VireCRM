@@ -98,7 +98,47 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-interface ImportLeadsDialogProps {
+function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], { defval: "" });
+  if (rows.length === 0) return [];
+
+  const normalize = (key: string) => key.trim().toLowerCase().replace(/['"]/g, "");
+
+  const leads: ParsedLead[] = [];
+  for (const row of rows) {
+    const mapped: Record<string, string> = {};
+    for (const [key, val] of Object.entries(row)) {
+      mapped[normalize(key)] = String(val ?? "");
+    }
+
+    const name =
+      mapped["name"] || mapped["full name"] || mapped["fullname"] || mapped["contact"] || mapped["lead"];
+    if (!name?.trim()) continue;
+
+    const email = mapped["email"] || mapped["e-mail"] || mapped["email address"] || undefined;
+    const phone = mapped["phone"] || mapped["telephone"] || mapped["tel"] || mapped["mobile"] || undefined;
+    const company = mapped["company"] || mapped["organization"] || mapped["org"] || mapped["business"] || undefined;
+    const statusRaw = (mapped["status"] || mapped["stage"] || "").toLowerCase();
+    const scoreRaw = parseInt(mapped["score"] || mapped["lead score"] || mapped["rating"] || "", 10);
+
+    leads.push({
+      name: name.trim(),
+      email: email?.trim() || undefined,
+      phone: phone?.trim() || undefined,
+      company: company?.trim() || undefined,
+      status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
+      score: !isNaN(scoreRaw) ? Math.min(100, Math.max(0, scoreRaw)) : 50,
+      notes: (mapped["notes"] || mapped["note"] || mapped["comments"] || "").trim() || undefined,
+      source: (mapped["source"] || mapped["lead source"] || mapped["origin"] || "").trim() || "xlsx_import",
+    });
+  }
+  return leads;
+}
+
+
   onLeadsImported?: () => void;
 }
 
