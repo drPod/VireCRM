@@ -46,7 +46,7 @@ export function FeaturesSection() {
         {/* Positioning Shift */}
         <div className="mx-auto mt-20 max-w-3xl text-center">
           <h2 className="text-3xl font-bold text-foreground sm:text-4xl">
-            This Isn't CRM Software
+            This is <span className="text-[oklch(0.65_0.16_320)]">Innovative</span> CRM Software
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
             This is a fully automated sales system built specifically for your business.
