@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Sparkles,
   TrendingUp,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -132,6 +133,12 @@ function ClientsPage() {
             Manage the organizations signed up under your reseller account
           </p>
         </div>
+        <Button variant="outline" asChild className="gap-2">
+          <Link to="/clients/payouts">
+            <DollarSign className="h-4 w-4" />
+            Payouts
+          </Link>
+        </Button>
       </div>
 
       {/* Stats */}

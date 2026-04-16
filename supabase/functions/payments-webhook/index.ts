@@ -61,6 +61,22 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
   const priceId = item.price.importMeta?.externalId || item.price.id;
   const productId = item.product.importMeta?.externalId || item.product.id;
 
+  // Resolve reseller attribution. customData.resellerId is the reseller's organization UUID.
+  let attributedResellerId: string | null = null;
+  const rawResellerId = customData?.resellerId;
+  if (rawResellerId) {
+    const { data: resellerRow } = await supabase
+      .from('organizations')
+      .select('id, is_reseller')
+      .eq('id', rawResellerId)
+      .maybeSingle();
+    if (resellerRow?.is_reseller) {
+      attributedResellerId = resellerRow.id;
+    } else {
+      console.warn('resellerId did not match an active reseller org:', rawResellerId);
+    }
+  }
+
   await supabase.from('subscriptions').upsert({
     user_id: userId,
     paddle_subscription_id: id,
@@ -71,6 +87,7 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     current_period_start: currentBillingPeriod?.startsAt,
     current_period_end: currentBillingPeriod?.endsAt,
     environment: env,
+    attributed_reseller_id: attributedResellerId,
     updated_at: new Date().toISOString(),
   }, {
     onConflict: 'user_id,environment',

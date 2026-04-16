@@ -264,6 +264,7 @@ export type Database = {
           ai_tokens_limit: number
           ai_tokens_used: number
           brand_name: string | null
+          commission_rate: number
           created_at: string
           custom_domain: string | null
           domain_verification_token: string
@@ -282,6 +283,7 @@ export type Database = {
           ai_tokens_limit?: number
           ai_tokens_used?: number
           brand_name?: string | null
+          commission_rate?: number
           created_at?: string
           custom_domain?: string | null
           domain_verification_token?: string
@@ -300,6 +302,7 @@ export type Database = {
           ai_tokens_limit?: number
           ai_tokens_used?: number
           brand_name?: string | null
+          commission_rate?: number
           created_at?: string
           custom_domain?: string | null
           domain_verification_token?: string
@@ -320,6 +323,61 @@ export type Database = {
             columns: ["parent_organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_line_items: {
+        Row: {
+          amount_cents: number
+          client_name: string | null
+          client_org_id: string | null
+          commission_cents: number
+          created_at: string
+          id: string
+          payout_id: string
+          subscription_id: string
+        }
+        Insert: {
+          amount_cents: number
+          client_name?: string | null
+          client_org_id?: string | null
+          commission_cents: number
+          created_at?: string
+          id?: string
+          payout_id: string
+          subscription_id: string
+        }
+        Update: {
+          amount_cents?: number
+          client_name?: string | null
+          client_org_id?: string | null
+          commission_cents?: number
+          created_at?: string
+          id?: string
+          payout_id?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_line_items_client_org_id_fkey"
+            columns: ["client_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_line_items_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_line_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -417,8 +475,68 @@ export type Database = {
           },
         ]
       }
+      reseller_payouts: {
+        Row: {
+          active_client_count: number
+          commission_cents: number
+          commission_rate: number
+          created_at: string
+          currency: string
+          gross_revenue_cents: number
+          id: string
+          notes: string | null
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          reseller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          active_client_count?: number
+          commission_cents?: number
+          commission_rate: number
+          created_at?: string
+          currency?: string
+          gross_revenue_cents?: number
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          reseller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          active_client_count?: number
+          commission_cents?: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          gross_revenue_cents?: number
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          reseller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_payouts_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
+          attributed_reseller_id: string | null
           cancel_at_period_end: boolean | null
           created_at: string | null
           current_period_end: string | null
@@ -434,6 +552,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attributed_reseller_id?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string | null
           current_period_end?: string | null
@@ -449,6 +568,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attributed_reseller_id?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string | null
           current_period_end?: string | null
@@ -463,7 +583,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_attributed_reseller_id_fkey"
+            columns: ["attributed_reseller_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -557,6 +685,10 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
+      calculate_reseller_payouts: {
+        Args: { p_period_end: string; p_period_start: string }
+        Returns: Json
+      }
       get_org_by_domain: { Args: { p_hostname: string }; Returns: Json }
       get_reseller_branding: { Args: { p_slug: string }; Returns: Json }
       get_reseller_clients: {

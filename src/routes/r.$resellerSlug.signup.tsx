@@ -106,6 +106,8 @@ function ResellerSignupPage() {
     setSubmitting(true);
     try {
       sessionStorage.setItem("reseller_pending_company", companyName);
+      // Persist reseller attribution so any future checkout in this session links to the reseller
+      if (branding?.id) sessionStorage.setItem("attributed_reseller_id", branding.id);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -137,6 +139,7 @@ function ResellerSignupPage() {
       return;
     }
     sessionStorage.setItem("reseller_pending_company", companyName);
+    if (branding?.id) sessionStorage.setItem("attributed_reseller_id", branding.id);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: redirectTarget,
     });
