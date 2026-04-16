@@ -6,6 +6,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
+import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -22,6 +23,11 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { branding, isCustomDomain } = useDomainBranding();
+
+  const brandName = branding?.brand_name || "Vireon";
+  const accentColor = branding?.primary_color;
+  const showMarketingHeader = !isCustomDomain;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,15 +62,26 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen">
-      <MarketingHeader />
-      <div className="flex min-h-screen items-center justify-center px-4 pt-16">
+      {showMarketingHeader && <MarketingHeader />}
+      <div className={`flex min-h-screen items-center justify-center px-4 ${showMarketingHeader ? "pt-16" : ""}`}>
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-              <Terminal className="h-6 w-6 text-primary-foreground" />
-            </div>
+            {branding?.logo_url ? (
+              <img
+                src={branding.logo_url}
+                alt={brandName}
+                className="mx-auto mb-4 h-12 w-12 rounded-xl object-contain"
+              />
+            ) : (
+              <div
+                className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
+                style={accentColor ? { backgroundColor: accentColor } : undefined}
+              >
+                <Terminal className="h-6 w-6 text-primary-foreground" />
+              </div>
+            )}
             <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Sign in to your Vireon account</p>
+            <p className="mt-1 text-sm text-muted-foreground">Sign in to your {brandName} account</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -111,7 +128,13 @@ function LoginPage() {
               />
             </div>
 
-            <Button type="submit" variant="command" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              variant="command"
+              className="w-full"
+              disabled={loading}
+              style={accentColor ? { backgroundColor: accentColor } : undefined}
+            >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
@@ -138,9 +161,15 @@ function LoginPage() {
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Don't have an account?{" "}
-            <Link to="/signup" className="font-medium text-primary hover:underline">
-              Start free trial
-            </Link>
+            {isCustomDomain ? (
+              <Link to="/" className="font-medium text-primary hover:underline">
+                Sign up
+              </Link>
+            ) : (
+              <Link to="/signup" className="font-medium text-primary hover:underline">
+                Start free trial
+              </Link>
+            )}
           </p>
         </div>
       </div>
