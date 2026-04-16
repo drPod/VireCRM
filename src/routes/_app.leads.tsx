@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LeadCard, type Lead } from "@/components/crm/LeadCard";
 import { AddLeadDialog } from "@/components/crm/AddLeadDialog";
+import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
 import { Search, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,7 +82,10 @@ function LeadsPage() {
           <h1 className="text-2xl font-bold text-foreground">Leads</h1>
           <p className="text-sm text-muted-foreground">{totalCount} total leads in pipeline</p>
         </div>
-        <AddLeadDialog onLeadAdded={handleLeadAdded} />
+        <div className="flex gap-2">
+          <ImportLeadsDialog onLeadsImported={handleLeadAdded} />
+          <AddLeadDialog onLeadAdded={handleLeadAdded} />
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 max-w-sm">
