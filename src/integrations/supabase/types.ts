@@ -267,8 +267,10 @@ export type Database = {
           created_at: string
           custom_domain: string | null
           id: string
+          is_reseller: boolean
           logo_url: string | null
           name: string
+          parent_organization_id: string | null
           plan: string
           primary_color: string | null
           slug: string
@@ -281,8 +283,10 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           id?: string
+          is_reseller?: boolean
           logo_url?: string | null
           name: string
+          parent_organization_id?: string | null
           plan?: string
           primary_color?: string | null
           slug: string
@@ -295,14 +299,24 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           id?: string
+          is_reseller?: boolean
           logo_url?: string | null
           name?: string
+          parent_organization_id?: string | null
           plan?: string
           primary_color?: string | null
           slug?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_parent_organization_id_fkey"
+            columns: ["parent_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -537,6 +551,21 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
+      get_reseller_branding: { Args: { p_slug: string }; Returns: Json }
+      get_reseller_clients: {
+        Args: { p_reseller_id: string }
+        Returns: {
+          brand_name: string
+          created_at: string
+          id: string
+          last_activity: string
+          lead_count: number
+          member_count: number
+          name: string
+          plan: string
+          slug: string
+        }[]
+      }
       get_user_org_id: { Args: { p_user_id: string }; Returns: string }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
@@ -560,6 +589,10 @@ export type Database = {
           }
       increment_ai_tokens: { Args: { p_org_id: string }; Returns: undefined }
       remove_org_member: { Args: { p_user_id: string }; Returns: Json }
+      signup_under_reseller: {
+        Args: { p_company_name: string; p_reseller_slug: string }
+        Returns: Json
+      }
       update_member_role: {
         Args: {
           p_new_role: Database["public"]["Enums"]["app_role"]
