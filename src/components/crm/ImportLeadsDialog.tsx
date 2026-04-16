@@ -296,7 +296,7 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
               onClick={() => {
                 const input = document.createElement("input");
                 input.type = "file";
-                input.accept = ".csv,.txt";
+                input.accept = ".csv,.txt,.xlsx,.xls";
                 input.onchange = (e) => {
                   const f = (e.target as HTMLInputElement).files?.[0];
                   if (f) handleFile(f);
@@ -307,10 +307,10 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
               <FileSpreadsheet className="h-8 w-8 text-muted-foreground" />
               <div className="text-center">
                 <p className="text-sm font-medium text-foreground">
-                  {file ? file.name : "Drop a CSV file here or click to browse"}
+                  {file ? file.name : "Drop a CSV or Excel file here or click to browse"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  CSV with columns: Name (required), Email, Phone, Company, Status, Score
+                  CSV or XLSX with columns: Name (required), Email, Phone, Company, Status, Score
                 </p>
               </div>
             </div>
