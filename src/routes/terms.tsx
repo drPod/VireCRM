@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 
@@ -25,7 +25,7 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">1. Acceptance of Terms</h2>
               <p className="mt-2">
-                By accessing or using Vireon (the "<strong>Service</strong>"), operated by Ethan Sereti, you agree to be bound by these Terms of Service. If you do not agree, do not use the Service. (the "<strong>Service</strong>"), operated by Ethan Sereti, you agree to be bound by these Terms of Service. If you do not agree, do not use the Service. to be bound by these Terms of Service. If you do not agree, do not use the Service.
+                By accessing or using Vireon (the &quot;Service&quot;), operated by Ethan Sereti, you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
               </p>
             </section>
 
@@ -53,7 +53,7 @@ function TermsPage() {
               </p>
               <p className="mt-2">
                 Our order process is conducted by our online reseller <strong>Paddle.com</strong>. Paddle.com is the Merchant of Record for all our orders. Paddle provides all customer service inquiries and handles returns. Please refer to{" "}
-                <a href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Paddle{"'"}s Buyer Terms</a>{" "}
+                <a href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Paddle&apos;s Buyer Terms</a>{" "}
                 for payment, billing, tax, cancellation, and refund mechanics.
               </p>
             </section>
@@ -78,7 +78,7 @@ function TermsPage() {
               <ul className="mt-2 list-disc pl-6 space-y-1">
                 <li>Use the Service for any unlawful purpose or to send unsolicited communications (spam).</li>
                 <li>Attempt to gain unauthorized access to any part of the Service.</li>
-                <li>Interfere with the operation of the Service or other users' access.</li>
+                <li>Interfere with the operation of the Service or other users&apos; access.</li>
                 <li>Reverse engineer, decompile, or disassemble the Service.</li>
                 <li>Use the Service to store or transmit malicious code.</li>
               </ul>
@@ -87,14 +87,14 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">8. Intellectual Property</h2>
               <p className="mt-2">
-                All content, features, and functionality of the Service are owned by Ethan Sereti and are protected by intellectual property laws. Your data remains yours — we claim no ownership over content you upload., features, and functionality of the Service are owned by Ethan Sereti and are protected by intellectual property laws. Your data remains yours — we claim no ownership over content you upload. by intellectual property laws. Your data remains yours — we claim no ownership over content you upload.
+                All content, features, and functionality of the Service are owned by Ethan Sereti and are protected by intellectual property laws. Your data remains yours — we claim no ownership over content you upload.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">9. Limitation of Liability</h2>
               <p className="mt-2">
-                To the maximum extent permitted by law, Ethan Sereti shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service. Our total liability shall not exceed the amount paid by you in the 12 months preceding the claim., Ethan Sereti shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service. Our total liability shall not exceed the amount paid by you in the 12 months preceding the claim. for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service. Our total liability shall not exceed the amount paid by you in the 12 months preceding the claim.
+                To the maximum extent permitted by law, Ethan Sereti shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service. Our total liability shall not exceed the amount paid by you in the 12 months preceding the claim.
               </p>
             </section>
 
