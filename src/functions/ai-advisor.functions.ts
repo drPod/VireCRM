@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { z } from "zod";
 
 const analyzeSchema = z.object({
@@ -151,9 +152,9 @@ Return ONLY valid JSON, no markdown or explanation.`,
       strategic_hook: result.strategic_hook,
     });
 
-    // Increment token usage (via RPC or direct update won't work due to RLS - use admin)
-    // We'll handle this via a separate approach
-    
+    // Increment token usage atomically via admin client
+    await supabaseAdmin.rpc("increment_ai_tokens", { p_org_id: data.organizationId });
+
     return {
       icp: result.icp,
       searchFilters: result.search_filters,

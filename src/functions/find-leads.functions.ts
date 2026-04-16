@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { z } from "zod";
 
 const findLeadsSchema = z.object({
@@ -114,6 +115,10 @@ Return ONLY valid JSON, no markdown.`,
     }
 
     const result = JSON.parse(toolCall.function.arguments);
+
+    // Increment token usage atomically
+    await supabaseAdmin.rpc("increment_ai_tokens", { p_org_id: data.organizationId });
+
     return { leads: result.leads as SuggestedLead[] };
   });
 

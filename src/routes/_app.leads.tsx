@@ -51,9 +51,13 @@ function LeadsPage() {
       }
 
       if (search.trim()) {
-        query = query.or(
-          `name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%`
-        );
+        // Sanitize search input: strip PostgREST metacharacters and limit length
+        const sanitized = search.trim().slice(0, 200).replace(/[,.()"'\\]/g, "");
+        if (sanitized) {
+          query = query.or(
+            `name.ilike.%${sanitized}%,email.ilike.%${sanitized}%,company.ilike.%${sanitized}%`
+          );
+        }
       }
 
       const { data, count, error } = await query;

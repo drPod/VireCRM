@@ -22,6 +22,14 @@ serve(async (req) => {
     });
   }
 
+  // Validate environment parameter
+  if (environment && !["sandbox", "live"].includes(environment)) {
+    return new Response(JSON.stringify({ error: "Invalid environment" }), {
+      status: 400,
+      ...responseHeaders,
+    });
+  }
+
   const response = await gatewayFetch(environment as PaddleEnv, `/prices?external_id=${encodeURIComponent(priceId)}`);
   const data = await response.json();
 
