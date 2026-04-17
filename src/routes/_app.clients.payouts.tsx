@@ -117,6 +117,10 @@ function PayoutsPage() {
   const [paymentReference, setPaymentReference] = useState("");
   const [marking, setMarking] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"payouts" | "transactions">("payouts");
+  const [transactions, setTransactions] = useState<AttributedTransaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsLoaded, setTransactionsLoaded] = useState(false);
 
   const isOwner = role?.role === "owner";
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
@@ -129,6 +133,14 @@ function PayoutsPage() {
     void loadPayouts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization?.id, isOwner, isReseller]);
+
+  useEffect(() => {
+    if (activeTab !== "transactions") return;
+    if (!organization?.id || !isOwner || !isReseller) return;
+    if (transactionsLoaded) return;
+    void loadTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, organization?.id, isOwner, isReseller, transactionsLoaded]);
 
   const loadPayouts = async () => {
     if (!organization?.id) return;
