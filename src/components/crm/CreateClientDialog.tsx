@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendTransactionalEmail } from "@/lib/email/send";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import {
@@ -150,12 +151,36 @@ export function CreateClientDialog({
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to create");
 
+      const loginUrl = `${window.location.origin}/login`;
       setCreated({
         email: trimmedEmail,
         password,
-        loginUrl: `${window.location.origin}/login`,
+        loginUrl,
       });
       toast.success("Client account created");
+
+      // Auto-email credentials to the client. Failures must not block the
+      // create flow — the reseller still has the credentials in the dialog.
+      try {
+        await sendTransactionalEmail({
+          templateName: "client-credentials",
+          recipientEmail: trimmedEmail,
+          idempotencyKey: `client-credentials-${data.user_id}`,
+          templateData: {
+            brandName: trimmedCompany,
+            fullName: trimmedName,
+            email: trimmedEmail,
+            password,
+            loginUrl,
+          },
+        });
+        toast.success("Login details emailed to the client");
+      } catch (mailErr) {
+        console.error("Failed to email credentials", mailErr);
+        toast.warning(
+          "Account created, but emailing the credentials failed. Copy them manually below.",
+        );
+      }
       onCreated();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to create client";
