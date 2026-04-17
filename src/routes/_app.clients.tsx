@@ -14,10 +14,12 @@ import {
   TrendingUp,
   DollarSign,
   UserPlus,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { CreateClientDialog } from "@/components/crm/CreateClientDialog";
+import { ResetClientPasswordDialog } from "@/components/crm/ResetClientPasswordDialog";
 
 export const Route = createFileRoute("/_app/clients")({
   component: ClientsPage,
@@ -47,6 +49,10 @@ function ClientsPage() {
   const [clients, setClients] = useState<ClientOrg[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [resetTarget, setResetTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const isOwner = role?.role === "owner";
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
@@ -226,6 +232,7 @@ function ClientsPage() {
                 <th className="px-4 py-3">Members</th>
                 <th className="px-4 py-3">Leads</th>
                 <th className="px-4 py-3">Last Activity</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -256,6 +263,22 @@ function ClientsPage() {
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(c.last_activity), { addSuffix: true })}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() =>
+                        setResetTarget({
+                          id: c.id,
+                          name: c.brand_name || c.name,
+                        })
+                      }
+                    >
+                      <KeyRound className="h-3.5 w-3.5" />
+                      Reset password
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -267,6 +290,13 @@ function ClientsPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onCreated={loadClients}
+      />
+
+      <ResetClientPasswordDialog
+        open={!!resetTarget}
+        onOpenChange={(o) => !o && setResetTarget(null)}
+        clientOrgId={resetTarget?.id ?? null}
+        clientName={resetTarget?.name ?? null}
       />
     </div>
   );
