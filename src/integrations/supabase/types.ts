@@ -478,6 +478,72 @@ export type Database = {
           },
         ]
       }
+      pending_welcome_emails: {
+        Row: {
+          attempts: number
+          brand_name: string | null
+          created_at: string
+          failed_at: string | null
+          full_name: string | null
+          id: string
+          last_error: string | null
+          login_url: string
+          organization_id: string
+          recipient_email: string
+          reseller_id: string
+          send_after: string
+          sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          brand_name?: string | null
+          created_at?: string
+          failed_at?: string | null
+          full_name?: string | null
+          id?: string
+          last_error?: string | null
+          login_url: string
+          organization_id: string
+          recipient_email: string
+          reseller_id: string
+          send_after?: string
+          sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          brand_name?: string | null
+          created_at?: string
+          failed_at?: string | null
+          full_name?: string | null
+          id?: string
+          last_error?: string | null
+          login_url?: string
+          organization_id?: string
+          recipient_email?: string
+          reseller_id?: string
+          send_after?: string
+          sent_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_welcome_emails_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_welcome_emails_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
