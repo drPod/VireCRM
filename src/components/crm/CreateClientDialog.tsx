@@ -220,6 +220,32 @@ export function CreateClientDialog({
     toast.success("Credentials copied to clipboard");
   };
 
+  const resendWelcome = async () => {
+    if (!created || created.resending) return;
+    setCreated((prev) => (prev ? { ...prev, resending: true } : prev));
+    try {
+      await sendTransactionalEmail({
+        templateName: "client-welcome",
+        recipientEmail: created.email,
+        idempotencyKey: `client-welcome-${created.email}-${Date.now()}`,
+        templateData: {
+          brandName: created.brandName,
+          fullName: created.fullName,
+          loginUrl: created.loginUrl,
+        },
+      });
+      setCreated((prev) =>
+        prev ? { ...prev, resending: false, resentWelcome: true } : prev,
+      );
+      toast.success("Welcome guide sent (no password included)");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      console.error("Failed to resend welcome", err);
+      setCreated((prev) => (prev ? { ...prev, resending: false } : prev));
+      toast.error(`Could not send welcome email: ${msg}`);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
@@ -240,6 +266,9 @@ export function CreateClientDialog({
               status={created.emailStatus}
               recipient={created.email}
               error={created.emailError}
+              onResendWelcome={resendWelcome}
+              resending={created.resending}
+              resentWelcome={created.resentWelcome}
             />
 
             <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4 font-mono text-xs">
