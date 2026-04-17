@@ -46,6 +46,7 @@ function ClientsPage() {
   const navigate = useNavigate();
   const [clients, setClients] = useState<ClientOrg[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const isOwner = role?.role === "owner";
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
@@ -135,12 +136,22 @@ function ClientsPage() {
             Manage the organizations signed up under your reseller account
           </p>
         </div>
-        <Button variant="outline" asChild className="gap-2">
-          <Link to="/clients/payouts">
-            <DollarSign className="h-4 w-4" />
-            Payouts
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild className="gap-2">
+            <Link to="/clients/payouts">
+              <DollarSign className="h-4 w-4" />
+              Payouts
+            </Link>
+          </Button>
+          <Button
+            variant="command"
+            onClick={() => setCreateOpen(true)}
+            className="gap-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            Create Client
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
