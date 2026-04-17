@@ -39,10 +39,14 @@ interface CreateClientDialogProps {
   onCreated: () => void;
 }
 
+type EmailStatus = "sending" | "sent" | "failed";
+
 interface CreatedClient {
   email: string;
   password: string;
   loginUrl: string;
+  emailStatus: EmailStatus;
+  emailError?: string;
 }
 
 interface PlanOption {
