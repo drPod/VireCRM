@@ -61,6 +61,8 @@ interface LineItem {
   id: string;
   client_name: string | null;
   amount_cents: number;
+  base_cost_cents: number;
+  markup_cents: number;
   commission_cents: number;
 }
 
@@ -246,7 +248,7 @@ function PayoutsPage() {
     if (!lineItems[payoutId]) {
       const { data, error } = await supabase
         .from("payout_line_items")
-        .select("id, client_name, amount_cents, commission_cents")
+        .select("id, client_name, amount_cents, base_cost_cents, markup_cents, commission_cents")
         .eq("payout_id", payoutId);
       if (error) {
         toast.error("Failed to load line items");

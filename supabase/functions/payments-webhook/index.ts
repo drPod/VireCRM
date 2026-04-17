@@ -86,6 +86,22 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     }
   }
 
+  // Resolve reseller plan attribution (for markup-based payouts).
+  let resellerPlanId: string | null = null;
+  const rawPlanId = customData?.resellerPlanId;
+  if (rawPlanId) {
+    const { data: planRow } = await supabase
+      .from('reseller_plans')
+      .select('id, reseller_id')
+      .eq('id', rawPlanId)
+      .maybeSingle();
+    if (planRow) {
+      resellerPlanId = planRow.id;
+      // If we have a plan but no explicit reseller, infer reseller from plan
+      if (!attributedResellerId) attributedResellerId = planRow.reseller_id;
+    }
+  }
+
   await supabase.from('subscriptions').upsert({
     user_id: userId,
     paddle_subscription_id: id,
@@ -97,6 +113,7 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     current_period_end: currentBillingPeriod?.endsAt,
     environment: env,
     attributed_reseller_id: attributedResellerId,
+    reseller_plan_id: resellerPlanId,
     updated_at: new Date().toISOString(),
   }, {
     onConflict: 'user_id,environment',
@@ -154,21 +171,23 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
   }
 
   // Record the actual transaction for payout calculation.
-  // Resolve attribution: prefer the subscription's stored reseller, fall back to customData.
+  // Resolve attribution: prefer the subscription's stored reseller + plan, fall back to customData.
   let subscriptionRowId: string | null = null;
   let attributedResellerId: string | null = null;
+  let attributedPlanId: string | null = null;
   let resolvedUserId: string | null = userId ?? null;
 
   if (subscriptionId) {
     const { data: sub } = await supabase
       .from('subscriptions')
-      .select('id, user_id, attributed_reseller_id')
+      .select('id, user_id, attributed_reseller_id, reseller_plan_id')
       .eq('paddle_subscription_id', subscriptionId)
       .eq('environment', env)
       .maybeSingle();
     if (sub) {
       subscriptionRowId = sub.id;
       attributedResellerId = sub.attributed_reseller_id ?? null;
+      attributedPlanId = sub.reseller_plan_id ?? null;
       resolvedUserId = resolvedUserId ?? sub.user_id;
     }
   }
@@ -181,6 +200,17 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
       .eq('id', customData.resellerId)
       .maybeSingle();
     if (resellerRow?.is_reseller) attributedResellerId = resellerRow.id;
+  }
+  if (!attributedPlanId && customData?.resellerPlanId) {
+    const { data: planRow } = await supabase
+      .from('reseller_plans')
+      .select('id, reseller_id')
+      .eq('id', customData.resellerPlanId)
+      .maybeSingle();
+    if (planRow) {
+      attributedPlanId = planRow.id;
+      if (!attributedResellerId) attributedResellerId = planRow.reseller_id;
+    }
   }
 
   // Amount: Paddle gives grandTotal as a string in minor units
@@ -197,6 +227,7 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
       subscription_id: subscriptionRowId,
       user_id: resolvedUserId,
       attributed_reseller_id: attributedResellerId,
+      reseller_plan_id: attributedPlanId,
       amount_cents: amountCents,
       currency: currencyCode ?? 'USD',
       status: 'completed',
