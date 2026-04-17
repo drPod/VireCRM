@@ -64,6 +64,18 @@ interface LineItem {
   commission_cents: number;
 }
 
+interface AttributedTransaction {
+  id: string;
+  paddle_transaction_id: string;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  billed_at: string;
+  client_name: string | null;
+  payout_period_start: string | null;
+  payout_status: PayoutRow["status"] | null;
+}
+
 function formatCents(cents: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
