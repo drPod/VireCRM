@@ -13,9 +13,11 @@ import {
   Sparkles,
   TrendingUp,
   DollarSign,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { CreateClientDialog } from "@/components/crm/CreateClientDialog";
 
 export const Route = createFileRoute("/_app/clients")({
   component: ClientsPage,
