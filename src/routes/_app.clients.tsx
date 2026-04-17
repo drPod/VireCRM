@@ -205,8 +205,16 @@ function ClientsPage() {
             No clients yet
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Share your signup link above to onboard your first client.
+            Create a client account directly, or share your signup link above.
           </p>
+          <Button
+            variant="command"
+            onClick={() => setCreateOpen(true)}
+            className="mt-4 gap-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            Create your first client
+          </Button>
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -254,6 +262,12 @@ function ClientsPage() {
           </table>
         </div>
       )}
+
+      <CreateClientDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={loadClients}
+      />
     </div>
   );
 }
