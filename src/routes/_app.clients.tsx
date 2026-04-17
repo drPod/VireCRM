@@ -258,6 +258,7 @@ function ClientsPage() {
               <tr className="text-left text-xs font-medium text-muted-foreground">
                 <th className="px-4 py-3">Client</th>
                 <th className="px-4 py-3">Plan</th>
+                <th className="px-4 py-3 text-right">Markup / mo</th>
                 <th className="px-4 py-3">Members</th>
                 <th className="px-4 py-3">Leads</th>
                 <th className="px-4 py-3">Last Activity</th>
@@ -265,7 +266,11 @@ function ClientsPage() {
               </tr>
             </thead>
             <tbody>
-              {clients.map((c) => (
+              {clients.map((c) => {
+                const isActive =
+                  c.subscription_status === "active" ||
+                  c.subscription_status === "trialing";
+                return (
                 <tr
                   key={c.id}
                   className="border-b border-border last:border-0 hover:bg-muted/20"
@@ -279,9 +284,34 @@ function ClientsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant="secondary" className="capitalize">
-                      {c.plan}
-                    </Badge>
+                    {c.reseller_plan_name ? (
+                      <div className="flex flex-col gap-1">
+                        <Badge
+                          variant={isActive ? "default" : "secondary"}
+                          className="w-fit"
+                        >
+                          {c.reseller_plan_name}
+                        </Badge>
+                        {c.subscription_status && !isActive && (
+                          <span className="text-[10px] text-muted-foreground capitalize">
+                            {c.subscription_status.replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="capitalize">
+                        {c.plan} · no plan
+                      </Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm font-medium text-foreground tabular-nums">
+                    {c.markup_cents != null && c.markup_cents > 0 ? (
+                      <span className={isActive ? "text-emerald-500" : "text-muted-foreground"}>
+                        {formatCents(c.markup_cents, c.currency ?? "USD")}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-foreground">
                     {Number(c.member_count)}
