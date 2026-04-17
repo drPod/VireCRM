@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,6 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -34,6 +42,23 @@ interface CreatedClient {
   loginUrl: string;
 }
 
+interface PlanOption {
+  id: string;
+  name: string;
+  monthly_price_cents: number;
+  base_cost_cents: number;
+  currency: string;
+}
+
+const NO_PLAN = "__none__";
+
+function formatCents(cents: number, currency = "USD") {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(cents / 100);
+}
+
 function generatePassword(length = 14) {
   const chars =
     "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
@@ -47,6 +72,7 @@ export function CreateClientDialog({
   onOpenChange,
   onCreated,
 }: CreateClientDialogProps) {
+  const { organization } = useAuth();
   const [companyName, setCompanyName] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -54,6 +80,21 @@ export function CreateClientDialog({
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedClient | null>(null);
+  const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [planId, setPlanId] = useState<string>(NO_PLAN);
+
+  useEffect(() => {
+    if (!open || !organization?.id) return;
+    void (async () => {
+      const { data, error } = await supabase
+        .from("reseller_plans")
+        .select("id, name, monthly_price_cents, base_cost_cents, currency")
+        .eq("reseller_id", organization.id)
+        .eq("is_active", true)
+        .order("monthly_price_cents", { ascending: true });
+      if (!error && data) setPlans(data as PlanOption[]);
+    })();
+  }, [open, organization?.id]);
 
   const reset = () => {
     setCompanyName("");
@@ -61,6 +102,7 @@ export function CreateClientDialog({
     setEmail("");
     setPassword(generatePassword());
     setShowPassword(false);
+    setPlanId(NO_PLAN);
     setCreated(null);
   };
 
@@ -69,6 +111,8 @@ export function CreateClientDialog({
     if (!next) reset();
     onOpenChange(next);
   };
+
+  const selectedPlan = plans.find((p) => p.id === planId) || null;
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -98,6 +142,7 @@ export function CreateClientDialog({
             password,
             companyName: trimmedCompany,
             fullName: trimmedName,
+            resellerPlanId: planId !== NO_PLAN ? planId : null,
           },
         },
       );
@@ -187,7 +232,7 @@ export function CreateClientDialog({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               <div>
                 <Label htmlFor="cc-company">Company name</Label>
                 <Input
@@ -226,6 +271,70 @@ export function CreateClientDialog({
                   maxLength={255}
                   disabled={submitting}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="cc-plan">Plan (optional)</Label>
+                <Select
+                  value={planId}
+                  onValueChange={setPlanId}
+                  disabled={submitting}
+                >
+                  <SelectTrigger id="cc-plan" className="mt-1.5">
+                    <SelectValue placeholder="No plan — assign later" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_PLAN}>
+                      No plan — assign later
+                    </SelectItem>
+                    {plans.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} —{" "}
+                        {formatCents(p.monthly_price_cents, p.currency)}/mo
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedPlan && (
+                  <div className="mt-2 rounded-lg bg-primary/5 border border-primary/20 p-2.5 text-[11px] space-y-0.5">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Client pays</span>
+                      <span className="font-medium text-foreground">
+                        {formatCents(
+                          selectedPlan.monthly_price_cents,
+                          selectedPlan.currency,
+                        )}
+                        /mo
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Base cost</span>
+                      <span className="text-muted-foreground">
+                        {formatCents(
+                          selectedPlan.base_cost_cents,
+                          selectedPlan.currency,
+                        )}
+                        /mo
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-primary/20">
+                      <span className="text-primary font-medium">You earn</span>
+                      <span className="font-bold text-primary">
+                        {formatCents(
+                          selectedPlan.monthly_price_cents -
+                            selectedPlan.base_cost_cents,
+                          selectedPlan.currency,
+                        )}
+                        /mo
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {plans.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    No active plans. Define one in Clients → Plans first.
+                  </p>
+                )}
               </div>
 
               <div>

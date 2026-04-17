@@ -55,6 +55,9 @@ Deno.serve(async (req) => {
     const password = String(body.password ?? "");
     const companyName = String(body.companyName ?? "").trim();
     const fullName = String(body.fullName ?? "").trim() || email.split("@")[0];
+    const resellerPlanId = body.resellerPlanId
+      ? String(body.resellerPlanId)
+      : null;
 
     if (!email.includes("@") || email.length > 255) {
       return json({ error: "Invalid email" }, 400);
@@ -136,6 +139,31 @@ Deno.serve(async (req) => {
       await new Promise((r) => setTimeout(r, 200));
     }
 
+    // 4b. If a reseller plan was provided, validate it belongs to this reseller
+    let plan: {
+      id: string;
+      monthly_price_cents: number;
+      base_cost_cents: number;
+      currency: string;
+      name: string;
+    } | null = null;
+    if (resellerPlanId) {
+      const { data: planRow, error: planErr } = await admin
+        .from("reseller_plans")
+        .select("id, reseller_id, monthly_price_cents, base_cost_cents, currency, name, is_active")
+        .eq("id", resellerPlanId)
+        .maybeSingle();
+      if (planErr || !planRow || planRow.reseller_id !== callerOrg.id) {
+        await admin.auth.admin.deleteUser(newUserId);
+        return json({ error: "Invalid plan" }, 400);
+      }
+      if (!planRow.is_active) {
+        await admin.auth.admin.deleteUser(newUserId);
+        return json({ error: "Plan is paused" }, 400);
+      }
+      plan = planRow;
+    }
+
     // 5. Create the child org
     const slug =
       slugify(companyName) + "-" + crypto.randomUUID().slice(0, 8);
@@ -147,7 +175,7 @@ Deno.serve(async (req) => {
         slug,
         brand_name: companyName,
         parent_organization_id: callerOrg.id,
-        plan: "starter",
+        plan: plan ? plan.name : "starter",
       })
       .select("id")
       .single();
@@ -170,6 +198,29 @@ Deno.serve(async (req) => {
       organization_id: newOrg.id,
       role: "owner",
     });
+
+    // 6b. If a plan was assigned, record a manual subscription attributed to the reseller.
+    // This makes MRR + payouts include offline-onboarded clients alongside Paddle ones.
+    if (plan) {
+      const now = new Date();
+      const periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      const manualId = `manual_${crypto.randomUUID()}`;
+      await admin.from("subscriptions").insert({
+        user_id: newUserId,
+        paddle_subscription_id: manualId,
+        paddle_customer_id: manualId,
+        product_id: "manual",
+        price_id: "manual",
+        status: "active",
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        environment: "manual",
+        attributed_reseller_id: callerOrg.id,
+        reseller_plan_id: plan.id,
+      });
+    }
+
 
     // 7. Clean up the orphan auto-created org
     if (autoOrgId && autoOrgId !== newOrg.id) {
