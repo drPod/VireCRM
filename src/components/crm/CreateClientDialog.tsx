@@ -230,6 +230,12 @@ export function CreateClientDialog({
               </DialogDescription>
             </DialogHeader>
 
+            <EmailStatusBanner
+              status={created.emailStatus}
+              recipient={created.email}
+              error={created.emailError}
+            />
+
             <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4 font-mono text-xs">
               <div>
                 <div className="text-[10px] uppercase text-muted-foreground mb-1">
