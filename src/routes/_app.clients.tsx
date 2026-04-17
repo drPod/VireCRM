@@ -176,17 +176,31 @@ function ClientsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Total Clients" value={clients.length} icon={Building2} />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Total Clients" value={String(clients.length)} icon={Building2} />
         <StatCard
           label="Total Users"
-          value={clients.reduce((sum, c) => sum + Number(c.member_count), 0)}
+          value={String(clients.reduce((sum, c) => sum + Number(c.member_count), 0))}
           icon={Users}
         />
         <StatCard
           label="Total Leads"
-          value={clients.reduce((sum, c) => sum + Number(c.lead_count), 0)}
+          value={String(clients.reduce((sum, c) => sum + Number(c.lead_count), 0))}
           icon={TrendingUp}
+        />
+        <StatCard
+          label="Monthly Markup"
+          value={formatCents(
+            clients.reduce(
+              (sum, c) =>
+                c.subscription_status === "active" || c.subscription_status === "trialing"
+                  ? sum + Number(c.markup_cents ?? 0)
+                  : sum,
+              0,
+            ),
+            clients.find((c) => c.currency)?.currency ?? "USD",
+          )}
+          icon={DollarSign}
         />
       </div>
 
