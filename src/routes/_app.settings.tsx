@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { WhiteLabelSettings } from "@/components/crm/WhiteLabelSettings";
 import { TeamMembers } from "@/components/crm/TeamMembers";
+import { EmailAuditLog } from "@/components/crm/EmailAuditLog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Palette } from "lucide-react";
+import { Users, Palette, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -34,6 +35,10 @@ function SettingsPage() {
             <Palette className="h-4 w-4" />
             White-Label
           </TabsTrigger>
+          <TabsTrigger value="emails" className="gap-2">
+            <Mail className="h-4 w-4" />
+            Emails
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="team">
@@ -42,6 +47,10 @@ function SettingsPage() {
 
         <TabsContent value="branding">
           <WhiteLabelSettings />
+        </TabsContent>
+
+        <TabsContent value="emails">
+          <EmailAuditLog />
         </TabsContent>
       </Tabs>
     </div>
