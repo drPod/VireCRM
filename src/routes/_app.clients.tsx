@@ -41,6 +41,21 @@ interface ClientOrg {
   member_count: number;
   lead_count: number;
   last_activity: string;
+  reseller_plan_name: string | null;
+  monthly_price_cents: number | null;
+  markup_cents: number | null;
+  currency: string | null;
+  subscription_status: string | null;
+}
+
+function formatCents(cents: number | null | undefined, currency = "USD") {
+  if (cents == null) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
 }
 
 function ClientsPage() {
