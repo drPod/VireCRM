@@ -28,6 +28,8 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Mail,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,10 +39,14 @@ interface CreateClientDialogProps {
   onCreated: () => void;
 }
 
+type EmailStatus = "sending" | "sent" | "failed";
+
 interface CreatedClient {
   email: string;
   password: string;
   loginUrl: string;
+  emailStatus: EmailStatus;
+  emailError?: string;
 }
 
 interface PlanOption {
@@ -156,6 +162,7 @@ export function CreateClientDialog({
         email: trimmedEmail,
         password,
         loginUrl,
+        emailStatus: "sending",
       });
       toast.success("Client account created");
 
@@ -174,9 +181,19 @@ export function CreateClientDialog({
             loginUrl,
           },
         });
+        setCreated((prev) =>
+          prev ? { ...prev, emailStatus: "sent" } : prev,
+        );
         toast.success("Login details emailed to the client");
       } catch (mailErr) {
+        const errMsg =
+          mailErr instanceof Error ? mailErr.message : "Unknown error";
         console.error("Failed to email credentials", mailErr);
+        setCreated((prev) =>
+          prev
+            ? { ...prev, emailStatus: "failed", emailError: errMsg }
+            : prev,
+        );
         toast.warning(
           "Account created, but emailing the credentials failed. Copy them manually below.",
         );
@@ -212,6 +229,12 @@ export function CreateClientDialog({
                 password isn&apos;t stored anywhere we can show again.
               </DialogDescription>
             </DialogHeader>
+
+            <EmailStatusBanner
+              status={created.emailStatus}
+              recipient={created.email}
+              error={created.emailError}
+            />
 
             <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4 font-mono text-xs">
               <div>
@@ -428,5 +451,54 @@ export function CreateClientDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EmailStatusBanner({
+  status,
+  recipient,
+  error,
+}: {
+  status: EmailStatus;
+  recipient: string;
+  error?: string;
+}) {
+  if (status === "sending") {
+    return (
+      <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 p-3 text-xs">
+        <Loader2 className="h-4 w-4 mt-0.5 shrink-0 animate-spin text-muted-foreground" />
+        <div>
+          <div className="font-medium text-foreground">Sending credentials…</div>
+          <div className="text-muted-foreground mt-0.5 break-all">
+            Queuing email to {recipient}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (status === "sent") {
+    return (
+      <div className="flex items-start gap-2.5 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs">
+        <Mail className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+        <div>
+          <div className="font-medium text-primary">Credentials emailed</div>
+          <div className="text-muted-foreground mt-0.5 break-all">
+            Sent to {recipient}. Delivery may take up to a minute.
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
+      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-destructive" />
+      <div>
+        <div className="font-medium text-destructive">Email failed to send</div>
+        <div className="text-muted-foreground mt-0.5 break-words">
+          {error || "Unknown error"}. Copy the credentials below and share them
+          manually.
+        </div>
+      </div>
+    </div>
   );
 }
