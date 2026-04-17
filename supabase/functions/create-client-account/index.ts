@@ -55,6 +55,9 @@ Deno.serve(async (req) => {
     const password = String(body.password ?? "");
     const companyName = String(body.companyName ?? "").trim();
     const fullName = String(body.fullName ?? "").trim() || email.split("@")[0];
+    const resellerPlanId = body.resellerPlanId
+      ? String(body.resellerPlanId)
+      : null;
 
     if (!email.includes("@") || email.length > 255) {
       return json({ error: "Invalid email" }, 400);
