@@ -4,6 +4,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,8 @@ import {
   Sparkles,
   Download,
   CheckCheck,
+  Receipt,
+  ArrowDownCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
