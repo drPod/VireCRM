@@ -330,33 +330,39 @@ export type Database = {
       payout_line_items: {
         Row: {
           amount_cents: number
+          base_cost_cents: number
           client_name: string | null
           client_org_id: string | null
           commission_cents: number
           created_at: string
           id: string
+          markup_cents: number
           payout_id: string
           refund_transaction_id: string | null
           subscription_id: string
         }
         Insert: {
           amount_cents: number
+          base_cost_cents?: number
           client_name?: string | null
           client_org_id?: string | null
           commission_cents: number
           created_at?: string
           id?: string
+          markup_cents?: number
           payout_id: string
           refund_transaction_id?: string | null
           subscription_id: string
         }
         Update: {
           amount_cents?: number
+          base_cost_cents?: number
           client_name?: string | null
           client_org_id?: string | null
           commission_cents?: number
           created_at?: string
           id?: string
+          markup_cents?: number
           payout_id?: string
           refund_transaction_id?: string | null
           subscription_id?: string
@@ -540,6 +546,65 @@ export type Database = {
           },
         ]
       }
+      reseller_plans: {
+        Row: {
+          base_cost_cents: number
+          base_price_id: string
+          created_at: string
+          currency: string
+          description: string | null
+          features: string[]
+          id: string
+          is_active: boolean
+          markup_percent: number
+          monthly_price_cents: number
+          name: string
+          reseller_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          base_cost_cents: number
+          base_price_id: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          markup_percent?: number
+          monthly_price_cents: number
+          name: string
+          reseller_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          base_cost_cents?: number
+          base_price_id?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          markup_percent?: number
+          monthly_price_cents?: number
+          name?: string
+          reseller_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_plans_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           attributed_reseller_id: string | null
@@ -553,6 +618,7 @@ export type Database = {
           paddle_subscription_id: string
           price_id: string
           product_id: string
+          reseller_plan_id: string | null
           status: string
           updated_at: string | null
           user_id: string
@@ -569,6 +635,7 @@ export type Database = {
           paddle_subscription_id: string
           price_id: string
           product_id: string
+          reseller_plan_id?: string | null
           status?: string
           updated_at?: string | null
           user_id: string
@@ -585,6 +652,7 @@ export type Database = {
           paddle_subscription_id?: string
           price_id?: string
           product_id?: string
+          reseller_plan_id?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string
@@ -595,6 +663,13 @@ export type Database = {
             columns: ["attributed_reseller_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_reseller_plan_id_fkey"
+            columns: ["reseller_plan_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -668,6 +743,7 @@ export type Database = {
           paddle_subscription_id: string | null
           paddle_transaction_id: string
           raw_payload: Json | null
+          reseller_plan_id: string | null
           status: string
           subscription_id: string | null
           user_id: string | null
@@ -683,6 +759,7 @@ export type Database = {
           paddle_subscription_id?: string | null
           paddle_transaction_id: string
           raw_payload?: Json | null
+          reseller_plan_id?: string | null
           status?: string
           subscription_id?: string | null
           user_id?: string | null
@@ -698,6 +775,7 @@ export type Database = {
           paddle_subscription_id?: string | null
           paddle_transaction_id?: string
           raw_payload?: Json | null
+          reseller_plan_id?: string | null
           status?: string
           subscription_id?: string | null
           user_id?: string | null
@@ -708,6 +786,13 @@ export type Database = {
             columns: ["attributed_reseller_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_reseller_plan_id_fkey"
+            columns: ["reseller_plan_id"]
+            isOneToOne: false
+            referencedRelation: "reseller_plans"
             referencedColumns: ["id"]
           },
           {
@@ -784,6 +869,10 @@ export type Database = {
           slug: string
         }[]
       }
+      get_reseller_plan_public: {
+        Args: { p_plan_slug: string; p_reseller_slug: string }
+        Returns: Json
+      }
       get_user_org_id: { Args: { p_user_id: string }; Returns: string }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
@@ -806,6 +895,18 @@ export type Database = {
             Returns: boolean
           }
       increment_ai_tokens: { Args: { p_org_id: string }; Returns: undefined }
+      list_reseller_plans_public: {
+        Args: { p_reseller_slug: string }
+        Returns: {
+          currency: string
+          description: string
+          features: string[]
+          monthly_price_cents: number
+          name: string
+          plan_id: string
+          slug: string
+        }[]
+      }
       mark_domain_verified: { Args: { p_org_id: string }; Returns: Json }
       mark_payout_paid: {
         Args: { p_payment_reference?: string; p_payout_id: string }
