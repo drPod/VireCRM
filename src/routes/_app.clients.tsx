@@ -271,8 +271,8 @@ function ClientsPage() {
                   c.subscription_status === "active" ||
                   c.subscription_status === "trialing";
                 return (
-                <tr
-                  key={c.id}
+                  <tr
+                    key={c.id}
                   className="border-b border-border last:border-0 hover:bg-muted/20"
                 >
                   <td className="px-4 py-3">
