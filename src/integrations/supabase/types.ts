@@ -833,6 +833,68 @@ export type Database = {
           },
         ]
       }
+      workflows: {
+        Row: {
+          completed_count: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          edges: Json
+          enrolled_count: number
+          id: string
+          last_run_at: string | null
+          name: string
+          nodes: Json
+          organization_id: string
+          status: string
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          completed_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          edges?: Json
+          enrolled_count?: number
+          id?: string
+          last_run_at?: string | null
+          name: string
+          nodes?: Json
+          organization_id: string
+          status?: string
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          edges?: Json
+          enrolled_count?: number
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          nodes?: Json
+          organization_id?: string
+          status?: string
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
