@@ -162,6 +162,7 @@ export function CreateClientDialog({
         email: trimmedEmail,
         password,
         loginUrl,
+        emailStatus: "sending",
       });
       toast.success("Client account created");
 
@@ -180,9 +181,19 @@ export function CreateClientDialog({
             loginUrl,
           },
         });
+        setCreated((prev) =>
+          prev ? { ...prev, emailStatus: "sent" } : prev,
+        );
         toast.success("Login details emailed to the client");
       } catch (mailErr) {
+        const errMsg =
+          mailErr instanceof Error ? mailErr.message : "Unknown error";
         console.error("Failed to email credentials", mailErr);
+        setCreated((prev) =>
+          prev
+            ? { ...prev, emailStatus: "failed", emailError: errMsg }
+            : prev,
+        );
         toast.warning(
           "Account created, but emailing the credentials failed. Copy them manually below.",
         );
