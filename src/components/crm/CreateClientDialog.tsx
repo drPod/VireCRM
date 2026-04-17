@@ -45,8 +45,12 @@ interface CreatedClient {
   email: string;
   password: string;
   loginUrl: string;
+  fullName: string;
+  brandName: string;
   emailStatus: EmailStatus;
   emailError?: string;
+  resending?: boolean;
+  resentWelcome?: boolean;
 }
 
 interface PlanOption {
@@ -162,6 +166,8 @@ export function CreateClientDialog({
         email: trimmedEmail,
         password,
         loginUrl,
+        fullName: trimmedName,
+        brandName: trimmedCompany,
         emailStatus: "sending",
       });
       toast.success("Client account created");
