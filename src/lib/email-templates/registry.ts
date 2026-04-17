@@ -11,6 +11,7 @@ export interface TemplateEntry {
 
 import { template as clientCredentials } from './client-credentials'
 import { template as clientPasswordReset } from './client-password-reset'
+import { template as clientWelcome } from './client-welcome'
 
 /**
  * Template registry — maps template names to their React Email components.
@@ -19,4 +20,5 @@ import { template as clientPasswordReset } from './client-password-reset'
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'client-credentials': clientCredentials,
   'client-password-reset': clientPasswordReset,
+  'client-welcome': clientWelcome,
 }

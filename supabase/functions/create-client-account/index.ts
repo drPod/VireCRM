@@ -233,12 +233,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 8. Schedule a welcome email ~5 minutes after creation. The /hooks/send-pending-welcomes
+    //    cron job picks this up and dispatches via the transactional email queue.
+    //    Failure here is non-fatal — account creation already succeeded.
+    const loginUrl = `${new URL(req.url).origin.replace(/\/+$/, "")}`;
+    try {
+      await admin.from("pending_welcome_emails").insert({
+        user_id: newUserId,
+        organization_id: newOrg.id,
+        reseller_id: callerOrg.id,
+        recipient_email: email,
+        full_name: fullName,
+        brand_name: callerOrg.brand_name || callerOrg.slug,
+        login_url: loginUrl,
+        // send_after defaults to now() + 5 minutes
+      });
+    } catch (welcomeErr) {
+      console.error("Failed to schedule welcome email:", welcomeErr);
+    }
+
     return json({
       success: true,
       user_id: newUserId,
       organization_id: newOrg.id,
       email,
-      login_url: `${new URL(req.url).origin.replace(/\/+$/, "")}`,
+      login_url: loginUrl,
     });
   } catch (err) {
     console.error("create-client-account error:", err);
