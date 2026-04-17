@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendTransactionalEmail } from "@/lib/email/send";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -84,6 +85,27 @@ export function ResetClientPasswordDialog({
         loginUrl: data.login_url,
       });
       toast.success("Password reset");
+
+      // Auto-email the new credentials. Failures are non-blocking.
+      try {
+        await sendTransactionalEmail({
+          templateName: "client-password-reset",
+          recipientEmail: data.email,
+          idempotencyKey: `client-pw-reset-${clientOrgId}-${Date.now()}`,
+          templateData: {
+            brandName: data.client_name || clientName || "your CRM",
+            email: data.email,
+            password,
+            loginUrl: data.login_url,
+          },
+        });
+        toast.success("New password emailed to the client");
+      } catch (mailErr) {
+        console.error("Failed to email new password", mailErr);
+        toast.warning(
+          "Password reset, but emailing the new password failed. Copy it manually below.",
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Reset failed");
     } finally {
