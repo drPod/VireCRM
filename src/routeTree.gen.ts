@@ -23,7 +23,6 @@ import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calculate-payouts'
-import { Route as AppWorkflowsRouteImport } from './routes/_app.workflows'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
@@ -36,7 +35,9 @@ import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
+import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
 import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
+import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as RResellerSlugCheckoutPlanSlugRouteImport } from './routes/r.$resellerSlug.checkout.$planSlug'
@@ -110,11 +111,6 @@ const HooksCalculatePayoutsRoute = HooksCalculatePayoutsRouteImport.update({
   path: '/hooks/calculate-payouts',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppWorkflowsRoute = AppWorkflowsRouteImport.update({
-  id: '/workflows',
-  path: '/workflows',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -175,10 +171,20 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   path: '/advisor',
   getParentRoute: () => AppRoute,
 } as any)
+const AppWorkflowsIndexRoute = AppWorkflowsIndexRouteImport.update({
+  id: '/workflows/',
+  path: '/workflows/',
+  getParentRoute: () => AppRoute,
+} as any)
 const RResellerSlugSignupRoute = RResellerSlugSignupRouteImport.update({
   id: '/r/$resellerSlug/signup',
   path: '/r/$resellerSlug/signup',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppWorkflowsWorkflowIdRoute = AppWorkflowsWorkflowIdRouteImport.update({
+  id: '/workflows/$workflowId',
+  path: '/workflows/$workflowId',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppClientsPlansRoute = AppClientsPlansRouteImport.update({
   id: '/plans',
@@ -222,11 +228,12 @@ export interface FileRoutesByFullPath {
   '/messages': typeof AppMessagesRoute
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
-  '/workflows': typeof AppWorkflowsRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
+  '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
+  '/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesByTo {
@@ -254,11 +261,12 @@ export interface FileRoutesByTo {
   '/messages': typeof AppMessagesRoute
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
-  '/workflows': typeof AppWorkflowsRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
+  '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
+  '/workflows': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesById {
@@ -288,11 +296,12 @@ export interface FileRoutesById {
   '/_app/messages': typeof AppMessagesRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/settings': typeof AppSettingsRoute
-  '/_app/workflows': typeof AppWorkflowsRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
+  '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
+  '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRouteTypes {
@@ -322,11 +331,12 @@ export interface FileRouteTypes {
     | '/messages'
     | '/reputation'
     | '/settings'
-    | '/workflows'
     | '/hooks/calculate-payouts'
     | '/clients/payouts'
     | '/clients/plans'
+    | '/workflows/$workflowId'
     | '/r/$resellerSlug/signup'
+    | '/workflows/'
     | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -354,11 +364,12 @@ export interface FileRouteTypes {
     | '/messages'
     | '/reputation'
     | '/settings'
-    | '/workflows'
     | '/hooks/calculate-payouts'
     | '/clients/payouts'
     | '/clients/plans'
+    | '/workflows/$workflowId'
     | '/r/$resellerSlug/signup'
+    | '/workflows'
     | '/r/$resellerSlug/checkout/$planSlug'
   id:
     | '__root__'
@@ -387,11 +398,12 @@ export interface FileRouteTypes {
     | '/_app/messages'
     | '/_app/reputation'
     | '/_app/settings'
-    | '/_app/workflows'
     | '/hooks/calculate-payouts'
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
+    | '/_app/workflows/$workflowId'
     | '/r/$resellerSlug/signup'
+    | '/_app/workflows/'
     | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesById: FileRoutesById
 }
@@ -514,13 +526,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HooksCalculatePayoutsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/workflows': {
-      id: '/_app/workflows'
-      path: '/workflows'
-      fullPath: '/workflows'
-      preLoaderRoute: typeof AppWorkflowsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -605,12 +610,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/workflows/': {
+      id: '/_app/workflows/'
+      path: '/workflows'
+      fullPath: '/workflows/'
+      preLoaderRoute: typeof AppWorkflowsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/r/$resellerSlug/signup': {
       id: '/r/$resellerSlug/signup'
       path: '/r/$resellerSlug/signup'
       fullPath: '/r/$resellerSlug/signup'
       preLoaderRoute: typeof RResellerSlugSignupRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/workflows/$workflowId': {
+      id: '/_app/workflows/$workflowId'
+      path: '/workflows/$workflowId'
+      fullPath: '/workflows/$workflowId'
+      preLoaderRoute: typeof AppWorkflowsWorkflowIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/clients/plans': {
       id: '/_app/clients/plans'
@@ -663,7 +682,8 @@ interface AppRouteChildren {
   AppMessagesRoute: typeof AppMessagesRoute
   AppReputationRoute: typeof AppReputationRoute
   AppSettingsRoute: typeof AppSettingsRoute
-  AppWorkflowsRoute: typeof AppWorkflowsRoute
+  AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
+  AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -679,7 +699,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppMessagesRoute: AppMessagesRoute,
   AppReputationRoute: AppReputationRoute,
   AppSettingsRoute: AppSettingsRoute,
-  AppWorkflowsRoute: AppWorkflowsRoute,
+  AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
+  AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
