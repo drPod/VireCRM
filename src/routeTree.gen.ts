@@ -23,6 +23,7 @@ import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calculate-payouts'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
@@ -37,10 +38,13 @@ import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
 import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as RResellerSlugCheckoutPlanSlugRouteImport } from './routes/r.$resellerSlug.checkout.$planSlug'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
 const TermsRoute = TermsRouteImport.update({
@@ -110,6 +114,11 @@ const IndexRoute = IndexRouteImport.update({
 const HooksCalculatePayoutsRoute = HooksCalculatePayoutsRouteImport.update({
   id: '/hooks/calculate-payouts',
   path: '/hooks/calculate-payouts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -182,6 +191,11 @@ const RResellerSlugSignupRoute = RResellerSlugSignupRouteImport.update({
   path: '/r/$resellerSlug/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppWorkflowsWorkflowIdRoute = AppWorkflowsWorkflowIdRouteImport.update({
   id: '/workflows/$workflowId',
   path: '/workflows/$workflowId',
@@ -201,6 +215,18 @@ const RResellerSlugCheckoutPlanSlugRoute =
   RResellerSlugCheckoutPlanSlugRouteImport.update({
     id: '/r/$resellerSlug/checkout/$planSlug',
     path: '/r/$resellerSlug/checkout/$planSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
 const LovableEmailQueueProcessRoute =
@@ -235,13 +261,17 @@ export interface FileRoutesByFullPath {
   '/messages': typeof AppMessagesRoute
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesByTo {
@@ -269,13 +299,17 @@ export interface FileRoutesByTo {
   '/messages': typeof AppMessagesRoute
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesById {
@@ -305,13 +339,17 @@ export interface FileRoutesById {
   '/_app/messages': typeof AppMessagesRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRouteTypes {
@@ -341,13 +379,17 @@ export interface FileRouteTypes {
     | '/messages'
     | '/reputation'
     | '/settings'
+    | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/clients/payouts'
     | '/clients/plans'
     | '/workflows/$workflowId'
+    | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/workflows/'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -375,13 +417,17 @@ export interface FileRouteTypes {
     | '/messages'
     | '/reputation'
     | '/settings'
+    | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/clients/payouts'
     | '/clients/plans'
     | '/workflows/$workflowId'
+    | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/workflows'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/r/$resellerSlug/checkout/$planSlug'
   id:
     | '__root__'
@@ -410,13 +456,17 @@ export interface FileRouteTypes {
     | '/_app/messages'
     | '/_app/reputation'
     | '/_app/settings'
+    | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
     | '/_app/workflows/$workflowId'
+    | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesById: FileRoutesById
 }
@@ -434,9 +484,13 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
   RResellerSlugCheckoutPlanSlugRoute: typeof RResellerSlugCheckoutPlanSlugRoute
 }
 
@@ -540,6 +594,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HooksCalculatePayoutsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -638,6 +699,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RResellerSlugSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/workflows/$workflowId': {
       id: '/_app/workflows/$workflowId'
       path: '/workflows/$workflowId'
@@ -664,6 +732,20 @@ declare module '@tanstack/react-router' {
       path: '/r/$resellerSlug/checkout/$planSlug'
       fullPath: '/r/$resellerSlug/checkout/$planSlug'
       preLoaderRoute: typeof RResellerSlugCheckoutPlanSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
@@ -740,9 +822,13 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
   RResellerSlugCheckoutPlanSlugRoute: RResellerSlugCheckoutPlanSlugRoute,
 }
 export const routeTree = rootRouteImport
