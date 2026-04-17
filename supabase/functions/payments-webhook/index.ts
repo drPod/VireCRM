@@ -34,10 +34,14 @@ Deno.serve(async (req) => {
       case EventName.TransactionPaymentFailed:
         console.log('Payment failed:', event.data.id, 'env:', env);
         break;
-      // @ts-ignore — EventName.TransactionRefunded may not be exported in all SDK versions
-      case (EventName as any).TransactionRefunded ?? 'transaction.refunded':
-      case 'transaction.refunded' as any:
-        await handleTransactionRefunded(event.data, env);
+      // Refunds in Paddle are modeled as adjustments. We act on adjustment.updated
+      // because that's when status flips from `pending` -> `approved`. We also
+      // handle adjustment.created in case it lands in `approved` immediately.
+      case (EventName as any).AdjustmentCreated ?? 'adjustment.created':
+      case 'adjustment.created' as any:
+      case (EventName as any).AdjustmentUpdated ?? 'adjustment.updated':
+      case 'adjustment.updated' as any:
+        await handleAdjustment(event.data, env);
         break;
       default:
         console.log('Unhandled event:', event.eventType);
@@ -208,28 +212,39 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
   console.log('Transaction completed:', id, 'env:', env);
 }
 
-async function handleTransactionRefunded(data: any, env: PaddleEnv) {
-  // Fired when a refund is approved. Payload shape (camelCased by SDK):
-  //   { id, subscriptionId, details: { totals: { grandTotal } }, ... }
-  // Fall back across a few field names because Paddle sends slightly different
-  // shapes for transaction.refunded vs adjustment.created.
-  const transactionId: string | undefined = data?.id;
+async function handleAdjustment(data: any, env: PaddleEnv) {
+  // Paddle adjustment payload (camelCased by SDK):
+  //   { id, action, status, transactionId, subscriptionId, totals: { total }, ... }
+  // We only care about approved refunds. Skip credits, chargebacks, pending, rejected.
+  const action: string | undefined = data?.action;
+  const status: string | undefined = data?.status;
+  if (action !== 'refund') {
+    console.log('Skipping non-refund adjustment:', { id: data?.id, action, status });
+    return;
+  }
+  if (status !== 'approved') {
+    console.log('Skipping non-approved refund adjustment:', { id: data?.id, status });
+    return;
+  }
+
+  const adjustmentId: string | undefined = data?.id;
+  const transactionId: string | undefined = data?.transactionId ?? data?.transaction_id;
   const subscriptionId: string | undefined = data?.subscriptionId ?? data?.subscription_id;
   const refundedAt: string =
-    data?.updatedAt ?? data?.refundedAt ?? data?.createdAt ?? new Date().toISOString();
+    data?.updatedAt ?? data?.createdAt ?? new Date().toISOString();
 
-  // Refund amount in minor units. Try a few plausible paths.
+  // Refund amount in minor units. Adjustment totals.total is the canonical field;
+  // fall back to a few alternates in case the SDK shape shifts.
   const grandTotalStr: string | number | undefined =
+    data?.totals?.total ??
+    data?.payoutTotals?.total ??
     data?.details?.totals?.grandTotal ??
-    data?.details?.totals?.grand_total ??
-    data?.payoutTotals?.grandTotal ??
-    data?.totals?.grandTotal ??
-    data?.amount;
+    data?.details?.totals?.grand_total;
   const refundAmountCents = grandTotalStr != null ? Math.abs(Number(grandTotalStr)) : 0;
 
   if (!transactionId || !subscriptionId || !refundAmountCents) {
-    console.log('Refund webhook missing required fields:', {
-      transactionId, subscriptionId, refundAmountCents, env,
+    console.log('Refund adjustment missing required fields:', {
+      adjustmentId, transactionId, subscriptionId, refundAmountCents, env,
     });
     return;
   }
@@ -246,5 +261,5 @@ async function handleTransactionRefunded(data: any, env: PaddleEnv) {
     console.error('apply_refund_adjustment failed:', error);
     return;
   }
-  console.log('Refund adjustment applied:', { transactionId, env, result });
+  console.log('Refund adjustment applied:', { adjustmentId, transactionId, env, result });
 }
