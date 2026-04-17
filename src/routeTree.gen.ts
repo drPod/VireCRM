@@ -41,6 +41,7 @@ import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workfl
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as RResellerSlugCheckoutPlanSlugRouteImport } from './routes/r.$resellerSlug.checkout.$planSlug'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -202,6 +203,12 @@ const RResellerSlugCheckoutPlanSlugRoute =
     path: '/r/$resellerSlug/checkout/$planSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -234,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesByTo {
@@ -267,6 +275,7 @@ export interface FileRoutesByTo {
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesById {
@@ -302,6 +311,7 @@ export interface FileRoutesById {
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRouteTypes {
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/workflows/$workflowId'
     | '/r/$resellerSlug/signup'
     | '/workflows/'
+    | '/lovable/email/queue/process'
     | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/workflows/$workflowId'
     | '/r/$resellerSlug/signup'
     | '/workflows'
+    | '/lovable/email/queue/process'
     | '/r/$resellerSlug/checkout/$planSlug'
   id:
     | '__root__'
@@ -404,6 +416,7 @@ export interface FileRouteTypes {
     | '/_app/workflows/$workflowId'
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
+    | '/lovable/email/queue/process'
     | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesById: FileRoutesById
 }
@@ -423,6 +436,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   RResellerSlugCheckoutPlanSlugRoute: typeof RResellerSlugCheckoutPlanSlugRoute
 }
 
@@ -652,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RResellerSlugCheckoutPlanSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -721,6 +742,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   RResellerSlugCheckoutPlanSlugRoute: RResellerSlugCheckoutPlanSlugRoute,
 }
 export const routeTree = rootRouteImport
