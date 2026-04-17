@@ -41,6 +41,21 @@ interface ClientOrg {
   member_count: number;
   lead_count: number;
   last_activity: string;
+  reseller_plan_name: string | null;
+  monthly_price_cents: number | null;
+  markup_cents: number | null;
+  currency: string | null;
+  subscription_status: string | null;
+}
+
+function formatCents(cents: number | null | undefined, currency = "USD") {
+  if (cents == null) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
 }
 
 function ClientsPage() {
@@ -161,17 +176,31 @@ function ClientsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Total Clients" value={clients.length} icon={Building2} />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Total Clients" value={String(clients.length)} icon={Building2} />
         <StatCard
           label="Total Users"
-          value={clients.reduce((sum, c) => sum + Number(c.member_count), 0)}
+          value={String(clients.reduce((sum, c) => sum + Number(c.member_count), 0))}
           icon={Users}
         />
         <StatCard
           label="Total Leads"
-          value={clients.reduce((sum, c) => sum + Number(c.lead_count), 0)}
+          value={String(clients.reduce((sum, c) => sum + Number(c.lead_count), 0))}
           icon={TrendingUp}
+        />
+        <StatCard
+          label="Monthly Markup"
+          value={formatCents(
+            clients.reduce(
+              (sum, c) =>
+                c.subscription_status === "active" || c.subscription_status === "trialing"
+                  ? sum + Number(c.markup_cents ?? 0)
+                  : sum,
+              0,
+            ),
+            clients.find((c) => c.currency)?.currency ?? "USD",
+          )}
+          icon={DollarSign}
         />
       </div>
 
@@ -229,6 +258,7 @@ function ClientsPage() {
               <tr className="text-left text-xs font-medium text-muted-foreground">
                 <th className="px-4 py-3">Client</th>
                 <th className="px-4 py-3">Plan</th>
+                <th className="px-4 py-3 text-right">Markup / mo</th>
                 <th className="px-4 py-3">Members</th>
                 <th className="px-4 py-3">Leads</th>
                 <th className="px-4 py-3">Last Activity</th>
@@ -236,7 +266,11 @@ function ClientsPage() {
               </tr>
             </thead>
             <tbody>
-              {clients.map((c) => (
+              {clients.map((c) => {
+                const isActive =
+                  c.subscription_status === "active" ||
+                  c.subscription_status === "trialing";
+                return (
                 <tr
                   key={c.id}
                   className="border-b border-border last:border-0 hover:bg-muted/20"
@@ -250,9 +284,34 @@ function ClientsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant="secondary" className="capitalize">
-                      {c.plan}
-                    </Badge>
+                    {c.reseller_plan_name ? (
+                      <div className="flex flex-col gap-1">
+                        <Badge
+                          variant={isActive ? "default" : "secondary"}
+                          className="w-fit"
+                        >
+                          {c.reseller_plan_name}
+                        </Badge>
+                        {c.subscription_status && !isActive && (
+                          <span className="text-[10px] text-muted-foreground capitalize">
+                            {c.subscription_status.replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="capitalize">
+                        {c.plan} · no plan
+                      </Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm font-medium text-foreground tabular-nums">
+                    {c.markup_cents != null && c.markup_cents > 0 ? (
+                      <span className={isActive ? "text-emerald-500" : "text-muted-foreground"}>
+                        {formatCents(c.markup_cents, c.currency ?? "USD")}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-foreground">
                     {Number(c.member_count)}
@@ -280,7 +339,8 @@ function ClientsPage() {
                     </Button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -308,7 +368,7 @@ function StatCard({
   icon: Icon,
 }: {
   label: string;
-  value: number;
+  value: string;
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
