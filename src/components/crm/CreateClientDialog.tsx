@@ -28,6 +28,8 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Mail,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
