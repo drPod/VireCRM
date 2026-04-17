@@ -4,6 +4,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,8 @@ import {
   Sparkles,
   Download,
   CheckCheck,
+  Receipt,
+  ArrowDownCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -59,6 +62,18 @@ interface LineItem {
   client_name: string | null;
   amount_cents: number;
   commission_cents: number;
+}
+
+interface AttributedTransaction {
+  id: string;
+  paddle_transaction_id: string;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  billed_at: string;
+  client_name: string | null;
+  payout_period_start: string | null;
+  payout_status: PayoutRow["status"] | null;
 }
 
 function formatCents(cents: number, currency = "USD") {
@@ -102,6 +117,10 @@ function PayoutsPage() {
   const [paymentReference, setPaymentReference] = useState("");
   const [marking, setMarking] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"payouts" | "transactions">("payouts");
+  const [transactions, setTransactions] = useState<AttributedTransaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsLoaded, setTransactionsLoaded] = useState(false);
 
   const isOwner = role?.role === "owner";
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
@@ -114,6 +133,14 @@ function PayoutsPage() {
     void loadPayouts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization?.id, isOwner, isReseller]);
+
+  useEffect(() => {
+    if (activeTab !== "transactions") return;
+    if (!organization?.id || !isOwner || !isReseller) return;
+    if (transactionsLoaded) return;
+    void loadTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, organization?.id, isOwner, isReseller, transactionsLoaded]);
 
   const loadPayouts = async () => {
     if (!organization?.id) return;
@@ -129,6 +156,85 @@ function PayoutsPage() {
       setPayouts((data || []) as PayoutRow[]);
     }
     setLoading(false);
+  };
+
+  const loadTransactions = async () => {
+    if (!organization?.id) return;
+    setTransactionsLoading(true);
+    try {
+      // Pull the last 12 months of attributed transactions (RLS limits to this reseller).
+      const { data: txData, error: txErr } = await supabase
+        .from("transactions")
+        .select("id, paddle_transaction_id, amount_cents, currency, status, billed_at, user_id")
+        .eq("attributed_reseller_id", organization.id)
+        .order("billed_at", { ascending: false })
+        .limit(500);
+      if (txErr) throw txErr;
+      const txRows = (txData || []) as Array<{
+        id: string;
+        paddle_transaction_id: string;
+        amount_cents: number;
+        currency: string;
+        status: string;
+        billed_at: string;
+        user_id: string | null;
+      }>;
+
+      // Resolve client org name per user_id (one round-trip).
+      const userIds = Array.from(
+        new Set(txRows.map((t) => t.user_id).filter((u): u is string => !!u)),
+      );
+      const userIdToClientName = new Map<string, string>();
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, organization_id, organizations:organization_id(name)")
+          .in("user_id", userIds);
+        for (const p of (profiles || []) as Array<{
+          user_id: string;
+          organizations: { name: string } | null;
+        }>) {
+          if (p.organizations?.name) userIdToClientName.set(p.user_id, p.organizations.name);
+        }
+      }
+
+      // Map each transaction to its calendar-month payout (matches calculate_reseller_payouts).
+      const periodToPayout = new Map<
+        string,
+        { period_start: string; status: PayoutRow["status"] }
+      >();
+      for (const p of payouts) {
+        // payouts already loaded; use period_start as YYYY-MM key
+        periodToPayout.set(p.period_start.slice(0, 7), {
+          period_start: p.period_start,
+          status: p.status,
+        });
+      }
+
+      const enriched: AttributedTransaction[] = txRows.map((t) => {
+        const monthKey = t.billed_at.slice(0, 7);
+        const payout = periodToPayout.get(monthKey) || null;
+        return {
+          id: t.id,
+          paddle_transaction_id: t.paddle_transaction_id,
+          amount_cents: t.amount_cents,
+          currency: t.currency,
+          status: t.status,
+          billed_at: t.billed_at,
+          client_name: t.user_id ? (userIdToClientName.get(t.user_id) ?? null) : null,
+          payout_period_start: payout?.period_start ?? null,
+          payout_status: payout?.status ?? null,
+        };
+      });
+      setTransactions(enriched);
+      setTransactionsLoaded(true);
+    } catch (err) {
+      toast.error(
+        "Failed to load transactions: " + (err instanceof Error ? err.message : "Unknown error"),
+      );
+    } finally {
+      setTransactionsLoading(false);
+    }
   };
 
   const toggleExpand = async (payoutId: string) => {
@@ -335,124 +441,226 @@ function PayoutsPage() {
         />
       </div>
 
-      {/* Payouts table */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : payouts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center">
-          <DollarSign className="mx-auto h-10 w-10 text-muted-foreground/40" />
-          <h3 className="mt-4 text-sm font-semibold text-foreground">No payouts yet</h3>
-          <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
-            Payouts are calculated on the 1st of each month for client subscriptions attributed to your reseller account.
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-border bg-muted/30">
-              <tr className="text-left text-xs font-medium text-muted-foreground">
-                <th className="px-4 py-3">Period</th>
-                <th className="px-4 py-3">Active Clients</th>
-                <th className="px-4 py-3">Gross Revenue</th>
-                <th className="px-4 py-3">Rate</th>
-                <th className="px-4 py-3">Commission</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payouts.map((p) => (
-                <>
-                  <tr
-                    key={p.id}
-                    onClick={() => toggleExpand(p.id)}
-                    className="border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-sm text-foreground flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                        {format(new Date(p.period_start), "MMM yyyy")}
-                      </div>
-                      {p.paid_at && (
-                        <div className="text-[10px] text-muted-foreground mt-0.5">
-                          Paid {format(new Date(p.paid_at), "MMM d, yyyy")}
-                          {p.payment_reference && ` · ${p.payment_reference}`}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground">{p.active_client_count}</td>
-                    <td className="px-4 py-3 text-sm text-foreground">
-                      {formatCents(Number(p.gross_revenue_cents), p.currency)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {(Number(p.commission_rate) * 100).toFixed(1)}%
-                    </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-foreground">
-                      {formatCents(Number(p.commission_cents), p.currency)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <PayoutStatusBadge status={p.status} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {p.status === "pending" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5 h-7 text-xs"
-                          onClick={(e) => openPayDialog(e, p)}
-                        >
-                          <CheckCheck className="h-3 w-3" />
-                          Mark paid
-                        </Button>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
-                      )}
-                    </td>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "payouts" | "transactions")}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="payouts" className="gap-1.5">
+            <DollarSign className="h-3.5 w-3.5" />
+            Payouts
+          </TabsTrigger>
+          <TabsTrigger value="transactions" className="gap-1.5">
+            <Receipt className="h-3.5 w-3.5" />
+            Transactions
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="payouts" className="mt-0">
+          {/* Payouts table */}
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : payouts.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center">
+              <DollarSign className="mx-auto h-10 w-10 text-muted-foreground/40" />
+              <h3 className="mt-4 text-sm font-semibold text-foreground">No payouts yet</h3>
+              <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+                Payouts are calculated on the 1st of each month for client subscriptions attributed to your reseller account.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <table className="w-full">
+                <thead className="border-b border-border bg-muted/30">
+                  <tr className="text-left text-xs font-medium text-muted-foreground">
+                    <th className="px-4 py-3">Period</th>
+                    <th className="px-4 py-3">Active Clients</th>
+                    <th className="px-4 py-3">Gross Revenue</th>
+                    <th className="px-4 py-3">Rate</th>
+                    <th className="px-4 py-3">Commission</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Action</th>
                   </tr>
-                  {expandedId === p.id && (
-                    <tr key={p.id + "-expanded"} className="bg-muted/10 border-b border-border">
-                      <td colSpan={7} className="px-6 py-4">
-                        <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                          Line Items
-                        </div>
-                        {!lineItems[p.id] ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        ) : lineItems[p.id].length === 0 ? (
-                          <p className="text-xs text-muted-foreground">No line items recorded.</p>
-                        ) : (
-                          <div className="space-y-1.5">
-                            {lineItems[p.id].map((li) => (
-                              <div
-                                key={li.id}
-                                className="flex items-center justify-between text-xs"
-                              >
-                                <div className="flex items-center gap-2 text-foreground">
-                                  <Building2 className="h-3 w-3 text-muted-foreground" />
-                                  {li.client_name || "Unknown client"}
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <span className="text-muted-foreground">
-                                    {formatCents(Number(li.amount_cents), p.currency)}
-                                  </span>
-                                  <span className="font-semibold text-foreground w-20 text-right">
-                                    +{formatCents(Number(li.commission_cents), p.currency)}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
+                </thead>
+                <tbody>
+                  {payouts.map((p) => (
+                    <>
+                      <tr
+                        key={p.id}
+                        onClick={() => toggleExpand(p.id)}
+                        className="border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-sm text-foreground flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                            {format(new Date(p.period_start), "MMM yyyy")}
                           </div>
+                          {p.paid_at && (
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              Paid {format(new Date(p.paid_at), "MMM d, yyyy")}
+                              {p.payment_reference && ` · ${p.payment_reference}`}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-foreground">{p.active_client_count}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          {formatCents(Number(p.gross_revenue_cents), p.currency)}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          {(Number(p.commission_rate) * 100).toFixed(1)}%
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold text-foreground">
+                          {formatCents(Number(p.commission_cents), p.currency)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <PayoutStatusBadge status={p.status} />
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {p.status === "pending" ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 h-7 text-xs"
+                              onClick={(e) => openPayDialog(e, p)}
+                            >
+                              <CheckCheck className="h-3 w-3" />
+                              Mark paid
+                            </Button>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                      {expandedId === p.id && (
+                        <tr key={p.id + "-expanded"} className="bg-muted/10 border-b border-border">
+                          <td colSpan={7} className="px-6 py-4">
+                            <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                              Line Items
+                            </div>
+                            {!lineItems[p.id] ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : lineItems[p.id].length === 0 ? (
+                              <p className="text-xs text-muted-foreground">No line items recorded.</p>
+                            ) : (
+                              <div className="space-y-1.5">
+                                {lineItems[p.id].map((li) => {
+                                  const isRefund = Number(li.amount_cents) < 0;
+                                  return (
+                                    <div
+                                      key={li.id}
+                                      className="flex items-center justify-between text-xs"
+                                    >
+                                      <div className="flex items-center gap-2 text-foreground">
+                                        {isRefund ? (
+                                          <ArrowDownCircle className="h-3 w-3 text-destructive" />
+                                        ) : (
+                                          <Building2 className="h-3 w-3 text-muted-foreground" />
+                                        )}
+                                        {li.client_name || "Unknown client"}
+                                      </div>
+                                      <div className="flex items-center gap-4">
+                                        <span className={isRefund ? "text-destructive" : "text-muted-foreground"}>
+                                          {formatCents(Number(li.amount_cents), p.currency)}
+                                        </span>
+                                        <span className={`font-semibold w-20 text-right ${isRefund ? "text-destructive" : "text-foreground"}`}>
+                                          {isRefund ? "" : "+"}{formatCents(Number(li.commission_cents), p.currency)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="transactions" className="mt-0">
+          {transactionsLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center">
+              <Receipt className="mx-auto h-10 w-10 text-muted-foreground/40" />
+              <h3 className="mt-4 text-sm font-semibold text-foreground">No transactions yet</h3>
+              <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+                Once a client of yours pays for a subscription, the transaction will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <table className="w-full">
+                <thead className="border-b border-border bg-muted/30">
+                  <tr className="text-left text-xs font-medium text-muted-foreground">
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Client</th>
+                    <th className="px-4 py-3">Transaction ID</th>
+                    <th className="px-4 py-3 text-right">Amount</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Payout Period</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((t) => (
+                    <tr
+                      key={t.id}
+                      className="border-b border-border last:border-0 hover:bg-muted/20"
+                    >
+                      <td className="px-4 py-3 text-sm text-foreground">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                          {format(new Date(t.billed_at), "MMM d, yyyy")}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {format(new Date(t.billed_at), "HH:mm")}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-foreground">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-3 w-3 text-muted-foreground" />
+                          {t.client_name || "Unknown client"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {t.paddle_transaction_id}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold text-foreground text-right">
+                        {formatCents(Number(t.amount_cents), t.currency)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={t.status === "completed" ? "secondary" : "outline"} className="text-[10px]">
+                          {t.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        {t.payout_period_start ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-foreground">
+                              {format(new Date(t.payout_period_start), "MMM yyyy")}
+                            </span>
+                            {t.payout_status && <PayoutStatusBadge status={t.payout_status} />}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground italic">Not yet rolled up</span>
                         )}
                       </td>
                     </tr>
-                  )}
-                </>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Mark as paid dialog */}
       <Dialog open={!!payDialogPayout} onOpenChange={(o) => !o && setPayDialogPayout(null)}>
