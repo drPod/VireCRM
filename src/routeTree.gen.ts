@@ -23,6 +23,7 @@ import { Route as ConfirmEmailRouteImport } from './routes/confirm-email'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HooksSendPendingWelcomesRouteImport } from './routes/hooks/send-pending-welcomes'
 import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calculate-payouts'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
@@ -117,6 +118,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HooksSendPendingWelcomesRoute =
+  HooksSendPendingWelcomesRouteImport.update({
+    id: '/hooks/send-pending-welcomes',
+    path: '/hooks/send-pending-welcomes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const HooksCalculatePayoutsRoute = HooksCalculatePayoutsRouteImport.update({
   id: '/hooks/calculate-payouts',
   path: '/hooks/calculate-payouts',
@@ -270,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
+  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
@@ -309,6 +317,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
+  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
@@ -350,6 +359,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
+  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
@@ -391,6 +401,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
+    | '/hooks/send-pending-welcomes'
     | '/clients/payouts'
     | '/clients/plans'
     | '/workflows/$workflowId'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
+    | '/hooks/send-pending-welcomes'
     | '/clients/payouts'
     | '/clients/plans'
     | '/workflows/$workflowId'
@@ -470,6 +482,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
+    | '/hooks/send-pending-welcomes'
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
     | '/_app/workflows/$workflowId'
@@ -499,6 +512,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
+  HooksSendPendingWelcomesRoute: typeof HooksSendPendingWelcomesRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -605,6 +619,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/send-pending-welcomes': {
+      id: '/hooks/send-pending-welcomes'
+      path: '/hooks/send-pending-welcomes'
+      fullPath: '/hooks/send-pending-welcomes'
+      preLoaderRoute: typeof HooksSendPendingWelcomesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hooks/calculate-payouts': {
@@ -845,6 +866,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
+  HooksSendPendingWelcomesRoute: HooksSendPendingWelcomesRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
