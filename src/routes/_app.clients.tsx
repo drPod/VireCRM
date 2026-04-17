@@ -13,9 +13,11 @@ import {
   Sparkles,
   TrendingUp,
   DollarSign,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { CreateClientDialog } from "@/components/crm/CreateClientDialog";
 
 export const Route = createFileRoute("/_app/clients")({
   component: ClientsPage,
@@ -44,6 +46,7 @@ function ClientsPage() {
   const navigate = useNavigate();
   const [clients, setClients] = useState<ClientOrg[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const isOwner = role?.role === "owner";
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
@@ -133,12 +136,22 @@ function ClientsPage() {
             Manage the organizations signed up under your reseller account
           </p>
         </div>
-        <Button variant="outline" asChild className="gap-2">
-          <Link to="/clients/payouts">
-            <DollarSign className="h-4 w-4" />
-            Payouts
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild className="gap-2">
+            <Link to="/clients/payouts">
+              <DollarSign className="h-4 w-4" />
+              Payouts
+            </Link>
+          </Button>
+          <Button
+            variant="command"
+            onClick={() => setCreateOpen(true)}
+            className="gap-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            Create Client
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -192,8 +205,16 @@ function ClientsPage() {
             No clients yet
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Share your signup link above to onboard your first client.
+            Create a client account directly, or share your signup link above.
           </p>
+          <Button
+            variant="command"
+            onClick={() => setCreateOpen(true)}
+            className="mt-4 gap-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            Create your first client
+          </Button>
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -241,6 +262,12 @@ function ClientsPage() {
           </table>
         </div>
       )}
+
+      <CreateClientDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={loadClients}
+      />
     </div>
   );
 }
