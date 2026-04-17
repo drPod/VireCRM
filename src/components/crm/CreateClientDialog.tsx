@@ -493,10 +493,16 @@ function EmailStatusBanner({
   status,
   recipient,
   error,
+  onResendWelcome,
+  resending,
+  resentWelcome,
 }: {
   status: EmailStatus;
   recipient: string;
   error?: string;
+  onResendWelcome?: () => void;
+  resending?: boolean;
+  resentWelcome?: boolean;
 }) {
   if (status === "sending") {
     return (
@@ -527,12 +533,34 @@ function EmailStatusBanner({
   return (
     <div className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
       <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-destructive" />
-      <div>
+      <div className="flex-1 min-w-0">
         <div className="font-medium text-destructive">Email failed to send</div>
         <div className="text-muted-foreground mt-0.5 break-words">
           {error || "Unknown error"}. Copy the credentials below and share them
           manually.
         </div>
+        {onResendWelcome && (
+          <div className="mt-2 flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1.5"
+              onClick={onResendWelcome}
+              disabled={resending || resentWelcome}
+            >
+              {resending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Mail className="h-3 w-3" />
+              )}
+              {resentWelcome ? "Welcome guide sent" : "Resend welcome guide"}
+            </Button>
+            <span className="text-[10px] text-muted-foreground">
+              No password — login link only
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
