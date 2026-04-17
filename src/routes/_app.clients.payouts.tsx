@@ -237,6 +237,7 @@ function PayoutsPage() {
     }
   };
 
+  const toggleExpand = async (payoutId: string) => {
     if (expandedId === payoutId) {
       setExpandedId(null);
       return;
