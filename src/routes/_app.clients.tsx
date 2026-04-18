@@ -346,20 +346,36 @@ function ClientsPage() {
                     {formatDistanceToNow(new Date(c.last_activity), { addSuffix: true })}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1.5 text-xs"
-                      onClick={() =>
-                        setResetTarget({
-                          id: c.id,
-                          name: c.brand_name || c.name,
-                        })
-                      }
-                    >
-                      <KeyRound className="h-3.5 w-3.5" />
-                      Reset password
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() =>
+                          setWhiteLabelTarget({
+                            id: c.id,
+                            name: c.brand_name || c.name,
+                          })
+                        }
+                      >
+                        <Palette className="h-3.5 w-3.5" />
+                        White-label
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() =>
+                          setResetTarget({
+                            id: c.id,
+                            name: c.brand_name || c.name,
+                          })
+                        }
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Reset password
+                      </Button>
+                    </div>
                   </td>
                 </tr>
                 );
