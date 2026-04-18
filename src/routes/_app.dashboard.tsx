@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Users, Send, MessageSquare, TrendingUp, Target, Zap, CheckCircle2, AlertTriangle, Clock, ChevronRight } from "lucide-react";
 import { CommandBar } from "@/components/crm/CommandBar";
 import { MetricCard } from "@/components/crm/MetricCard";
@@ -8,6 +8,8 @@ import { PipelineView } from "@/components/crm/PipelineView";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
@@ -24,6 +26,25 @@ function Dashboard() {
   const [plan, setPlan] = useState<CommandPlan | null>(null);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const execCommand = useServerFn(executeCommandFn);
+  const { user } = useAuth();
+  const { refresh } = useSubscription(user?.id);
+
+  // Show celebration toast + refresh subscription state when returning from Paddle checkout.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") !== "success") return;
+    toast.success("Subscription activated! Welcome aboard 🎉", { duration: 5000 });
+    // Webhook may take a few seconds — poll briefly so the gate releases.
+    void (async () => {
+      for (let i = 0; i < 6; i++) {
+        await refresh();
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+    })();
+    // Clean up the URL so refreshes don't re-trigger
+    window.history.replaceState({}, "", window.location.pathname);
+  }, [refresh]);
 
   const handleCommand = async (command: string) => {
     setIsProcessing(true);
