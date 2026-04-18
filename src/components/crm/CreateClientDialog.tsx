@@ -63,6 +63,7 @@ interface PlanOption {
 }
 
 const NO_PLAN = "__none__";
+const LIFETIME = "__lifetime__";
 
 function formatCents(cents: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
