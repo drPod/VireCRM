@@ -118,6 +118,8 @@ export function CreateClientDialog({
     setPassword(generatePassword());
     setShowPassword(false);
     setPlanId(NO_PLAN);
+    setLifetimeAmount("");
+    setLifetimeNote("");
     setCreated(null);
   };
 
