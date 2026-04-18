@@ -16,6 +16,7 @@ import {
   Mail,
   Receipt,
   Building2,
+  CreditCard,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -33,6 +34,7 @@ const baseNavItems = [
   { to: "/reputation", icon: Star, label: "Reputation" },
   { to: "/advisor", icon: Sparkles, label: "AI Advisor" },
   { to: "/analytics", icon: BarChart3, label: "Analytics" },
+  { to: "/billing", icon: CreditCard, label: "Billing" },
 ];
 
 export function CrmSidebar() {
