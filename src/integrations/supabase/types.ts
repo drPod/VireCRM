@@ -360,6 +360,7 @@ export type Database = {
           is_reseller: boolean
           logo_url: string | null
           name: string
+          notes: string | null
           parent_organization_id: string | null
           plan: string
           primary_color: string | null
@@ -379,6 +380,7 @@ export type Database = {
           is_reseller?: boolean
           logo_url?: string | null
           name: string
+          notes?: string | null
           parent_organization_id?: string | null
           plan?: string
           primary_color?: string | null
@@ -398,6 +400,7 @@ export type Database = {
           is_reseller?: boolean
           logo_url?: string | null
           name?: string
+          notes?: string | null
           parent_organization_id?: string | null
           plan?: string
           primary_color?: string | null
@@ -1115,6 +1118,7 @@ export type Database = {
           member_count: number
           monthly_price_cents: number
           name: string
+          notes: string
           plan: string
           reseller_plan_name: string
           slug: string

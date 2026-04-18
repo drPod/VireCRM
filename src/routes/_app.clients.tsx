@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { CreateClientDialog } from "@/components/crm/CreateClientDialog";
 import { ResetClientPasswordDialog } from "@/components/crm/ResetClientPasswordDialog";
+import { ClientNotesCell } from "@/components/crm/ClientNotesCell";
 
 export const Route = createFileRoute("/_app/clients")({
   component: ClientsPage,
@@ -46,6 +47,7 @@ interface ClientOrg {
   markup_cents: number | null;
   currency: string | null;
   subscription_status: string | null;
+  notes: string | null;
 }
 
 function formatCents(cents: number | null | undefined, currency = "USD") {
@@ -261,6 +263,7 @@ function ClientsPage() {
                 <th className="px-4 py-3 text-right">Markup / mo</th>
                 <th className="px-4 py-3">Members</th>
                 <th className="px-4 py-3">Leads</th>
+                <th className="px-4 py-3">Notes</th>
                 <th className="px-4 py-3">Last Activity</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -318,6 +321,20 @@ function ClientsPage() {
                   </td>
                   <td className="px-4 py-3 text-sm text-foreground">
                     {Number(c.lead_count)}
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    <ClientNotesCell
+                      clientId={c.id}
+                      clientName={c.brand_name || c.name}
+                      initialNotes={c.notes}
+                      onSaved={(newNotes) =>
+                        setClients((prev) =>
+                          prev.map((row) =>
+                            row.id === c.id ? { ...row, notes: newNotes } : row,
+                          ),
+                        )
+                      }
+                    />
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(c.last_activity), { addSuffix: true })}
