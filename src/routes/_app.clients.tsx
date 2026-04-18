@@ -15,12 +15,14 @@ import {
   DollarSign,
   UserPlus,
   KeyRound,
+  Palette,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { CreateClientDialog } from "@/components/crm/CreateClientDialog";
 import { ResetClientPasswordDialog } from "@/components/crm/ResetClientPasswordDialog";
 import { ClientNotesCell } from "@/components/crm/ClientNotesCell";
+import { EditClientWhiteLabelDialog } from "@/components/crm/EditClientWhiteLabelDialog";
 
 export const Route = createFileRoute("/_app/clients")({
   component: ClientsPage,
@@ -67,6 +69,10 @@ function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [whiteLabelTarget, setWhiteLabelTarget] = useState<{
     id: string;
     name: string;
   } | null>(null);
@@ -340,20 +346,36 @@ function ClientsPage() {
                     {formatDistanceToNow(new Date(c.last_activity), { addSuffix: true })}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1.5 text-xs"
-                      onClick={() =>
-                        setResetTarget({
-                          id: c.id,
-                          name: c.brand_name || c.name,
-                        })
-                      }
-                    >
-                      <KeyRound className="h-3.5 w-3.5" />
-                      Reset password
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() =>
+                          setWhiteLabelTarget({
+                            id: c.id,
+                            name: c.brand_name || c.name,
+                          })
+                        }
+                      >
+                        <Palette className="h-3.5 w-3.5" />
+                        White-label
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() =>
+                          setResetTarget({
+                            id: c.id,
+                            name: c.brand_name || c.name,
+                          })
+                        }
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Reset password
+                      </Button>
+                    </div>
                   </td>
                 </tr>
                 );
@@ -374,6 +396,14 @@ function ClientsPage() {
         onOpenChange={(o) => !o && setResetTarget(null)}
         clientOrgId={resetTarget?.id ?? null}
         clientName={resetTarget?.name ?? null}
+      />
+
+      <EditClientWhiteLabelDialog
+        open={!!whiteLabelTarget}
+        onOpenChange={(o) => !o && setWhiteLabelTarget(null)}
+        clientOrgId={whiteLabelTarget?.id ?? null}
+        clientName={whiteLabelTarget?.name ?? null}
+        onSaved={loadClients}
       />
     </div>
   );
