@@ -95,6 +95,8 @@ export function CreateClientDialog({
   const [created, setCreated] = useState<CreatedClient | null>(null);
   const [plans, setPlans] = useState<PlanOption[]>([]);
   const [planId, setPlanId] = useState<string>(NO_PLAN);
+  const [lifetimeAmount, setLifetimeAmount] = useState<string>("");
+  const [lifetimeNote, setLifetimeNote] = useState<string>("");
 
   useEffect(() => {
     if (!open || !organization?.id) return;
