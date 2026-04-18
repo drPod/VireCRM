@@ -263,6 +263,7 @@ function ClientsPage() {
                 <th className="px-4 py-3 text-right">Markup / mo</th>
                 <th className="px-4 py-3">Members</th>
                 <th className="px-4 py-3">Leads</th>
+                <th className="px-4 py-3">Notes</th>
                 <th className="px-4 py-3">Last Activity</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
