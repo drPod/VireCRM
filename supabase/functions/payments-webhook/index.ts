@@ -23,6 +23,16 @@ Deno.serve(async (req) => {
         await handleSubscriptionCreated(event.data, env);
         break;
       case EventName.SubscriptionUpdated:
+      case (EventName as any).SubscriptionActivated ?? 'subscription.activated':
+      case 'subscription.activated' as any:
+      case (EventName as any).SubscriptionTrialing ?? 'subscription.trialing':
+      case 'subscription.trialing' as any:
+      case (EventName as any).SubscriptionPastDue ?? 'subscription.past_due':
+      case 'subscription.past_due' as any:
+      case (EventName as any).SubscriptionPaused ?? 'subscription.paused':
+      case 'subscription.paused' as any:
+      case (EventName as any).SubscriptionResumed ?? 'subscription.resumed':
+      case 'subscription.resumed' as any:
         await handleSubscriptionUpdated(event.data, env);
         break;
       case EventName.SubscriptionCanceled:
