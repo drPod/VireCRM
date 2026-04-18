@@ -407,6 +407,9 @@ export function CreateClientDialog({
                     <SelectItem value={NO_PLAN}>
                       No plan — assign later
                     </SelectItem>
+                    <SelectItem value={LIFETIME}>
+                      Lifetime / Paid externally (no recurring)
+                    </SelectItem>
                     {plans.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name} —{" "}
@@ -450,9 +453,59 @@ export function CreateClientDialog({
                     </div>
                   </div>
                 )}
-                {plans.length === 0 && (
+                {isLifetime && (
+                  <div className="mt-2 space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                      <InfinityIcon className="h-3.5 w-3.5" />
+                      One-off ownership sale — no Paddle subscription
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="cc-lifetime-amount"
+                        className="text-[11px] text-muted-foreground"
+                      >
+                        Amount paid (USD)
+                      </Label>
+                      <Input
+                        id="cc-lifetime-amount"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        value={lifetimeAmount}
+                        onChange={(e) => setLifetimeAmount(e.target.value)}
+                        placeholder="10000"
+                        className="mt-1 h-8 text-xs"
+                        disabled={submitting}
+                      />
+                    </div>
+                    <div>
+                      <Label
+                        htmlFor="cc-lifetime-note"
+                        className="text-[11px] text-muted-foreground"
+                      >
+                        Deal terms (optional)
+                      </Label>
+                      <Input
+                        id="cc-lifetime-note"
+                        value={lifetimeNote}
+                        onChange={(e) => setLifetimeNote(e.target.value)}
+                        placeholder="e.g. full source ownership, no support included"
+                        className="mt-1 h-8 text-xs"
+                        maxLength={200}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      Saved as a deal note on this client and excluded from
+                      monthly markup totals.
+                    </p>
+                  </div>
+                )}
+                {plans.length === 0 && !isLifetime && (
                   <p className="text-[11px] text-muted-foreground mt-1.5">
-                    No active plans. Define one in Clients → Plans first.
+                    No active plans. Define one in Clients → Plans first, or
+                    use Lifetime for a one-off sale.
                   </p>
                 )}
               </div>
