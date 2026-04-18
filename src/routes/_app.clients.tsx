@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { CreateClientDialog } from "@/components/crm/CreateClientDialog";
 import { ResetClientPasswordDialog } from "@/components/crm/ResetClientPasswordDialog";
+import { ClientNotesCell } from "@/components/crm/ClientNotesCell";
 
 export const Route = createFileRoute("/_app/clients")({
   component: ClientsPage,
