@@ -72,6 +72,10 @@ function ClientsPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [whiteLabelTarget, setWhiteLabelTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const isOwner = role?.role === "owner";
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
