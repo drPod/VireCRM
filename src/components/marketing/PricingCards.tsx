@@ -301,18 +301,28 @@ export function PricingCards() {
 
   const handleCheckout = (tier: PricingTier) => {
     if (!tier.paddlePriceId) return;
-    // Pull reseller attribution if the visitor came in via /r/:slug/signup
+
+    // Anonymous visitor → bounce them through signup, then auto-resume checkout.
+    if (!user) {
+      const params = new URLSearchParams({
+        plan: tier.paddlePriceId,
+        return: window.location.pathname,
+      });
+      window.location.href = `/signup?${params.toString()}`;
+      return;
+    }
+
+    // Logged-in user → go straight to checkout with proper attribution.
     const resellerId =
       typeof window !== "undefined"
         ? sessionStorage.getItem("attributed_reseller_id") || undefined
         : undefined;
-    const customData: Record<string, string> = {};
-    if (user) customData.userId = user.id;
+    const customData: Record<string, string> = { userId: user.id };
     if (resellerId) customData.resellerId = resellerId;
     openCheckout({
       priceId: tier.paddlePriceId,
-      customerEmail: user?.email,
-      customData: Object.keys(customData).length ? customData : undefined,
+      customerEmail: user.email,
+      customData,
       successUrl: `${window.location.origin}/dashboard?checkout=success`,
     });
   };

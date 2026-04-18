@@ -33,18 +33,28 @@ async function tryAcceptInvite(token: string | undefined) {
 }
 
 function SignupPage() {
-  const invite = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("invite") ?? undefined
-    : undefined;
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const invite = params?.get("invite") ?? undefined;
+  const planAfterSignup = params?.get("plan") ?? undefined; // Paddle external_id
+  const returnPath = params?.get("return") ?? undefined;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const redirectAfterSignup = invite
-    ? `${window.location.origin}/accept-invite?token=${invite}`
-    : window.location.origin;
+  const buildRedirectAfterSignup = () => {
+    if (invite) return `${window.location.origin}/accept-invite?token=${invite}`;
+    if (planAfterSignup) {
+      // Resume checkout: signup callback sends them to /dashboard?resume_plan=<id>,
+      // dashboard will detect the param and reopen Paddle Checkout pre-authenticated.
+      const url = new URL(`${window.location.origin}/dashboard`);
+      url.searchParams.set("resume_plan", planAfterSignup);
+      if (returnPath) url.searchParams.set("from", returnPath);
+      return url.toString();
+    }
+    return window.location.origin;
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +73,7 @@ function SignupPage() {
         password,
         options: {
           data: { full_name: fullName },
-          emailRedirectTo: redirectAfterSignup,
+          emailRedirectTo: buildRedirectAfterSignup(),
         },
       });
       if (error) throw error;
@@ -71,7 +81,14 @@ function SignupPage() {
         // Auto-confirmed: try to accept the invite right away
         await tryAcceptInvite(invite);
         toast.success("Account created! Redirecting...");
-        navigate({ to: "/dashboard" });
+        if (planAfterSignup) {
+          navigate({
+            to: "/dashboard",
+            search: { resume_plan: planAfterSignup } as never,
+          });
+        } else {
+          navigate({ to: "/dashboard" });
+        }
       } else {
         navigate({ to: "/confirm-email" });
       }
@@ -84,7 +101,7 @@ function SignupPage() {
 
   const handleGoogleSignup = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: redirectAfterSignup,
+      redirect_uri: buildRedirectAfterSignup(),
     });
     if (result.error) {
       toast.error(result.error instanceof Error ? result.error.message : "Google sign-in failed");
@@ -94,6 +111,8 @@ function SignupPage() {
     await tryAcceptInvite(invite);
     if (invite) {
       window.location.href = `/accept-invite?token=${invite}`;
+    } else if (planAfterSignup) {
+      navigate({ to: "/dashboard", search: { resume_plan: planAfterSignup } as never });
     } else {
       navigate({ to: "/dashboard" });
     }
