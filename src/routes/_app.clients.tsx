@@ -15,12 +15,14 @@ import {
   DollarSign,
   UserPlus,
   KeyRound,
+  Palette,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { CreateClientDialog } from "@/components/crm/CreateClientDialog";
 import { ResetClientPasswordDialog } from "@/components/crm/ResetClientPasswordDialog";
 import { ClientNotesCell } from "@/components/crm/ClientNotesCell";
+import { EditClientWhiteLabelDialog } from "@/components/crm/EditClientWhiteLabelDialog";
 
 export const Route = createFileRoute("/_app/clients")({
   component: ClientsPage,
