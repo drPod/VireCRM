@@ -47,6 +47,7 @@ interface ClientOrg {
   markup_cents: number | null;
   currency: string | null;
   subscription_status: string | null;
+  notes: string | null;
 }
 
 function formatCents(cents: number | null | undefined, currency = "USD") {
