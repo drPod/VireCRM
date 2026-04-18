@@ -397,6 +397,14 @@ function ClientsPage() {
         clientOrgId={resetTarget?.id ?? null}
         clientName={resetTarget?.name ?? null}
       />
+
+      <EditClientWhiteLabelDialog
+        open={!!whiteLabelTarget}
+        onOpenChange={(o) => !o && setWhiteLabelTarget(null)}
+        clientOrgId={whiteLabelTarget?.id ?? null}
+        clientName={whiteLabelTarget?.name ?? null}
+        onSaved={loadClients}
+      />
     </div>
   );
 }
