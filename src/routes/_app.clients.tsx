@@ -322,6 +322,20 @@ function ClientsPage() {
                   <td className="px-4 py-3 text-sm text-foreground">
                     {Number(c.lead_count)}
                   </td>
+                  <td className="px-4 py-3 align-top">
+                    <ClientNotesCell
+                      clientId={c.id}
+                      clientName={c.brand_name || c.name}
+                      initialNotes={c.notes}
+                      onSaved={(newNotes) =>
+                        setClients((prev) =>
+                          prev.map((row) =>
+                            row.id === c.id ? { ...row, notes: newNotes } : row,
+                          ),
+                        )
+                      }
+                    />
+                  </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(c.last_activity), { addSuffix: true })}
                   </td>
