@@ -30,6 +30,7 @@ import {
   RefreshCw,
   Mail,
   AlertTriangle,
+  Infinity as InfinityIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
