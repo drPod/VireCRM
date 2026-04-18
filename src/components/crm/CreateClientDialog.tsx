@@ -130,6 +130,10 @@ export function CreateClientDialog({
   };
 
   const selectedPlan = plans.find((p) => p.id === planId) || null;
+  const isLifetime = planId === LIFETIME;
+  const lifetimeAmountNum = parseFloat(lifetimeAmount);
+  const lifetimeAmountValid =
+    !Number.isNaN(lifetimeAmountNum) && lifetimeAmountNum > 0;
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -148,6 +152,10 @@ export function CreateClientDialog({
       toast.error("Password must be at least 8 characters");
       return;
     }
+    if (isLifetime && !lifetimeAmountValid) {
+      toast.error("Enter the amount the client paid (e.g. 10000)");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -159,13 +167,36 @@ export function CreateClientDialog({
             password,
             companyName: trimmedCompany,
             fullName: trimmedName,
-            resellerPlanId: planId !== NO_PLAN ? planId : null,
+            resellerPlanId:
+              planId !== NO_PLAN && planId !== LIFETIME ? planId : null,
           },
         },
       );
 
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to create");
+
+      // For lifetime / paid-externally clients, stamp a deal note onto the
+      // child org so the Clients table shows the terms at a glance.
+      if (isLifetime && data.organization_id) {
+        const amountStr = lifetimeAmountNum.toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 2,
+        });
+        const extra = lifetimeNote.trim() ? ` — ${lifetimeNote.trim()}` : "";
+        const dealNote = `Lifetime / Paid externally · ${amountStr}${extra} · ${new Date().toISOString().slice(0, 10)}`;
+        const { error: noteErr } = await supabase
+          .from("organizations")
+          .update({ notes: dealNote, plan: "lifetime" })
+          .eq("id", data.organization_id);
+        if (noteErr) {
+          console.error("Failed to save lifetime note", noteErr);
+          toast.warning(
+            "Account created, but couldn't save the lifetime note. Add it manually.",
+          );
+        }
+      }
 
       const loginUrl = `${window.location.origin}/login`;
       setCreated({
