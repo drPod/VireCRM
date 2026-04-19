@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
@@ -9,16 +10,17 @@ import {
   AlertTriangle,
   Loader2,
   Infinity as InfinityIcon,
-  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
 export const Route = createFileRoute("/_app/billing")({
   component: BillingPage,
   validateSearch: (search: Record<string, unknown>) => ({
     required: search.required === "1" ? "1" : undefined,
+    plan: typeof search.plan === "string" ? search.plan : undefined,
   }),
   head: () => ({
     meta: [
@@ -75,9 +77,31 @@ async function openCustomerPortal() {
 function BillingPage() {
   const { user } = useAuth();
   const search = Route.useSearch();
+  const navigate = useNavigate();
   const { subscription, hasAccess, inGrace, loading } = useSubscription(user?.id);
+  const { openCheckout, CheckoutDialog } = useStripeCheckout();
+  const autoOpenedRef = useRef(false);
 
   const isManual = subscription?.environment === "manual";
+
+  // Auto-open Stripe checkout when ?plan=... is in the URL and user has no active subscription
+  useEffect(() => {
+    if (loading || !user || hasAccess || !search.plan || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    openCheckout({
+      mode: "price",
+      priceId: search.plan,
+      customerEmail: user.email,
+      userId: user.id,
+      returnUrl: `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
+    });
+    // Strip ?plan= from the URL so it doesn't reopen on refresh after closing
+    navigate({
+      to: "/billing",
+      search: { required: search.required, plan: undefined },
+      replace: true,
+    });
+  }, [loading, user, hasAccess, search.plan, search.required, openCheckout, navigate]);
 
   if (loading) {
     return (
@@ -116,20 +140,23 @@ function BillingPage() {
         )}
 
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 flex items-start gap-3">
-          <Wrench className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Self-serve checkout is temporarily unavailable
-            </p>
+          <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Choose a plan to get started</p>
             <p className="text-xs text-muted-foreground mt-1">
-              We're switching payment providers and will be back online shortly. In the meantime, please{" "}
-              <Link to="/contact" className="text-primary hover:underline">
-                contact us
-              </Link>{" "}
-              to subscribe or upgrade.
+              Pick a plan on our pricing page — checkout opens right here in one click.
             </p>
+            <div className="mt-3 flex gap-2">
+              <Link to="/pricing">
+                <Button variant="command" size="sm">View plans</Button>
+              </Link>
+              <Link to="/contact">
+                <Button variant="outline" size="sm">Talk to sales</Button>
+              </Link>
+            </div>
           </div>
         </div>
+        {CheckoutDialog}
       </div>
     );
   }
@@ -209,23 +236,18 @@ function BillingPage() {
         )}
       </div>
 
-      {/* Maintenance banner */}
+      {/* Manage subscription via Stripe portal */}
       {!isManual && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 flex items-start gap-3">
-          <Wrench className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div className="rounded-xl border border-border bg-card p-6 flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-foreground">
-              Self-serve subscription management is temporarily unavailable
-            </p>
+            <p className="text-sm font-medium text-foreground">Manage subscription</p>
             <p className="text-xs text-muted-foreground mt-1">
-              We're switching payment providers. To change your plan, update your payment method, or cancel,
-              please{" "}
-              <Link to="/contact" className="text-primary hover:underline">
-                contact support
-              </Link>
-              .
+              Update your payment method, change plan, download invoices, or cancel.
             </p>
           </div>
+          <Button variant="command" size="sm" onClick={openCustomerPortal}>
+            Open billing portal
+          </Button>
         </div>
       )}
 
