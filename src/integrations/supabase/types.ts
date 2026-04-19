@@ -774,6 +774,8 @@ export type Database = {
           product_id: string
           reseller_plan_id: string | null
           status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -789,6 +791,8 @@ export type Database = {
           product_id: string
           reseller_plan_id?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -804,6 +808,8 @@ export type Database = {
           product_id?: string
           reseller_plan_id?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -917,6 +923,7 @@ export type Database = {
           raw_payload: Json | null
           reseller_plan_id: string | null
           status: string
+          stripe_transaction_id: string | null
           subscription_id: string | null
           user_id: string | null
         }
@@ -931,6 +938,7 @@ export type Database = {
           raw_payload?: Json | null
           reseller_plan_id?: string | null
           status?: string
+          stripe_transaction_id?: string | null
           subscription_id?: string | null
           user_id?: string | null
         }
@@ -945,6 +953,7 @@ export type Database = {
           raw_payload?: Json | null
           reseller_plan_id?: string | null
           status?: string
+          stripe_transaction_id?: string | null
           subscription_id?: string | null
           user_id?: string | null
         }
