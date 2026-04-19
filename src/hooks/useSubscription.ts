@@ -19,11 +19,14 @@ export type SubscriptionRow = {
   reseller_plan_id: string | null;
 };
 
-// Until a payment provider is wired in, we default to "sandbox" (test) mode.
-// "manual" subscriptions (reseller-provisioned lifetime / paid externally) are
-// still honored — they don't depend on any external processor.
+// Derive the active payments environment from the publishable Stripe token.
+// Production builds load .env.production (pk_live_...) → "live"; preview/dev
+// load .env.development (pk_test_...) → "sandbox". This MUST match the env
+// passed to create-checkout / write to subscriptions, otherwise live buyers
+// will be locked out of their workspace even though they paid.
 function getEnvForMode(): "sandbox" | "live" {
-  return "sandbox";
+  const token = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
+  return token?.startsWith("pk_live_") ? "live" : "sandbox";
 }
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
