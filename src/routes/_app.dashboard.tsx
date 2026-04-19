@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Users, Send, MessageSquare, TrendingUp, Target, Zap, CheckCircle2, AlertTriangle, Clock, ChevronRight } from "lucide-react";
 import { CommandBar } from "@/components/crm/CommandBar";
 import { MetricCard } from "@/components/crm/MetricCard";
@@ -8,9 +8,6 @@ import { PipelineView } from "@/components/crm/PipelineView";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { useSubscription } from "@/hooks/useSubscription";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
@@ -27,41 +24,6 @@ function Dashboard() {
   const [plan, setPlan] = useState<CommandPlan | null>(null);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const execCommand = useServerFn(executeCommandFn);
-  const { user } = useAuth();
-  const { refresh } = useSubscription(user?.id);
-  const { openCheckout } = usePaddleCheckout();
-
-  // Show celebration toast + refresh subscription state when returning from Paddle checkout.
-  // Also auto-resumes checkout when arriving from /signup?plan=...
-  useEffect(() => {
-    if (typeof window === "undefined" || !user) return;
-    const params = new URLSearchParams(window.location.search);
-
-    // Path A — coming back from Paddle Checkout success
-    if (params.get("checkout") === "success") {
-      toast.success("Subscription activated! Welcome aboard 🎉", { duration: 5000 });
-      void (async () => {
-        for (let i = 0; i < 6; i++) {
-          await refresh();
-          await new Promise((r) => setTimeout(r, 1500));
-        }
-      })();
-      window.history.replaceState({}, "", window.location.pathname);
-      return;
-    }
-
-    // Path B — arriving from /signup?plan=... — open checkout now that they're logged in
-    const resumePlan = params.get("resume_plan");
-    if (resumePlan) {
-      window.history.replaceState({}, "", window.location.pathname);
-      void openCheckout({
-        priceId: resumePlan,
-        customerEmail: user.email ?? undefined,
-        customData: { userId: user.id },
-        successUrl: `${window.location.origin}/dashboard?checkout=success`,
-      });
-    }
-  }, [user, refresh, openCheckout]);
 
   const handleCommand = async (command: string) => {
     setIsProcessing(true);

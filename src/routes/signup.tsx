@@ -35,8 +35,8 @@ async function tryAcceptInvite(token: string | undefined) {
 function SignupPage() {
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const invite = params?.get("invite") ?? undefined;
-  const planAfterSignup = params?.get("plan") ?? undefined; // Paddle external_id
-  const returnPath = params?.get("return") ?? undefined;
+  // ?plan=... is preserved on the URL but checkout is currently disabled.
+  // It will be re-enabled during the Stripe migration.
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,15 +45,7 @@ function SignupPage() {
 
   const buildRedirectAfterSignup = () => {
     if (invite) return `${window.location.origin}/accept-invite?token=${invite}`;
-    if (planAfterSignup) {
-      // Resume checkout: signup callback sends them to /dashboard?resume_plan=<id>,
-      // dashboard will detect the param and reopen Paddle Checkout pre-authenticated.
-      const url = new URL(`${window.location.origin}/dashboard`);
-      url.searchParams.set("resume_plan", planAfterSignup);
-      if (returnPath) url.searchParams.set("from", returnPath);
-      return url.toString();
-    }
-    return window.location.origin;
+    return `${window.location.origin}/dashboard`;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -78,17 +70,9 @@ function SignupPage() {
       });
       if (error) throw error;
       if (signUpData.session) {
-        // Auto-confirmed: try to accept the invite right away
         await tryAcceptInvite(invite);
         toast.success("Account created! Redirecting...");
-        if (planAfterSignup) {
-          navigate({
-            to: "/dashboard",
-            search: { resume_plan: planAfterSignup } as never,
-          });
-        } else {
-          navigate({ to: "/dashboard" });
-        }
+        navigate({ to: "/dashboard" });
       } else {
         navigate({ to: "/confirm-email" });
       }
@@ -111,8 +95,6 @@ function SignupPage() {
     await tryAcceptInvite(invite);
     if (invite) {
       window.location.href = `/accept-invite?token=${invite}`;
-    } else if (planAfterSignup) {
-      navigate({ to: "/dashboard", search: { resume_plan: planAfterSignup } as never });
     } else {
       navigate({ to: "/dashboard" });
     }

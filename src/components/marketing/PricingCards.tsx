@@ -1,10 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, ArrowRight, Sparkles, Crown, Building2, Loader2, Monitor } from "lucide-react";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor } from "lucide-react";
+import { toast } from "sonner";
 
 export interface PricingTier {
   name: string;
@@ -18,6 +16,10 @@ export interface PricingTier {
   ctaVariant: "outline" | "command" | "default";
   ctaLink?: string;
   isOwnership?: boolean;
+  /**
+   * Internal price identifier. During the Stripe migration this will be wired up
+   * to a real Stripe price ID. For now it just marks the tier as "purchasable".
+   */
   paddlePriceId?: string;
   setupFee?: string;
 }
@@ -28,7 +30,6 @@ export const crmTiers: PricingTier[] = [
     name: "Starter",
     price: "$97",
     period: "/month",
-    
     description: "Contact management, basic pipeline, notes & tasks, and a simple dashboard for small businesses.",
     paddlePriceId: "crm_starter_monthly",
     features: [
@@ -50,7 +51,6 @@ export const crmTiers: PricingTier[] = [
     name: "Growth",
     price: "$197",
     period: "/month",
-    
     description: "Automated follow-ups, lead tracking, pipeline optimization, and basic reporting. Where 70% of clients land.",
     badge: "Most Popular",
     highlighted: true,
@@ -74,7 +74,6 @@ export const crmTiers: PricingTier[] = [
     name: "Pro",
     price: "$297–$497",
     period: "/month",
-    
     description: "Advanced automation, custom pipelines, integrations, KPI dashboards, and team features for growing companies.",
     badge: "High Value",
     paddlePriceId: "crm_pro_monthly",
@@ -206,11 +205,9 @@ export const whiteLabelTiers: PricingTier[] = [
 
 function TierCard({
   tier,
-  loading,
   onCheckout,
 }: {
   tier: PricingTier;
-  loading: boolean;
   onCheckout: (tier: PricingTier) => void;
 }) {
   return (
@@ -257,11 +254,10 @@ function TierCard({
           variant={tier.ctaVariant}
           className="w-full gap-2"
           size="sm"
-          disabled={loading}
           onClick={() => onCheckout(tier)}
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : tier.cta}
-          {!loading && <ArrowRight className="h-4 w-4" />}
+          {tier.cta}
+          <ArrowRight className="h-4 w-4" />
         </Button>
       )}
 
@@ -288,42 +284,11 @@ function TierCard({
 }
 
 export function PricingCards() {
-  const { openCheckout, loading } = usePaddleCheckout();
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUser({ id: data.user.id, email: data.user.email });
-      }
-    });
-  }, []);
-
-  const handleCheckout = (tier: PricingTier) => {
-    if (!tier.paddlePriceId) return;
-
-    // Anonymous visitor → bounce them through signup, then auto-resume checkout.
-    if (!user) {
-      const params = new URLSearchParams({
-        plan: tier.paddlePriceId,
-        return: window.location.pathname,
-      });
-      window.location.href = `/signup?${params.toString()}`;
-      return;
-    }
-
-    // Logged-in user → go straight to checkout with proper attribution.
-    const resellerId =
-      typeof window !== "undefined"
-        ? sessionStorage.getItem("attributed_reseller_id") || undefined
-        : undefined;
-    const customData: Record<string, string> = { userId: user.id };
-    if (resellerId) customData.resellerId = resellerId;
-    openCheckout({
-      priceId: tier.paddlePriceId,
-      customerEmail: user.email,
-      customData,
-      successUrl: `${window.location.origin}/dashboard?checkout=success`,
+  const handleCheckout = (_tier: PricingTier) => {
+    // Payments are temporarily disabled while we migrate to a new payment provider.
+    // Wired back up during the Stripe migration.
+    toast.info("Checkout is temporarily unavailable", {
+      description: "We're switching payment providers. Please contact us to subscribe in the meantime.",
     });
   };
 
@@ -342,7 +307,7 @@ export function PricingCards() {
         </div>
         <div className="grid gap-6 lg:grid-cols-4">
           {crmTiers.map((tier) => (
-            <TierCard key={tier.name} tier={tier} loading={loading} onCheckout={handleCheckout} />
+            <TierCard key={tier.name} tier={tier} onCheckout={handleCheckout} />
           ))}
         </div>
       </div>
@@ -367,7 +332,7 @@ export function PricingCards() {
         </div>
         <div className="grid gap-6 lg:grid-cols-4">
           {whiteLabelTiers.map((tier) => (
-            <TierCard key={tier.name} tier={tier} loading={loading} onCheckout={handleCheckout} />
+            <TierCard key={tier.name} tier={tier} onCheckout={handleCheckout} />
           ))}
         </div>
       </div>
