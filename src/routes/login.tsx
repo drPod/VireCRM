@@ -22,6 +22,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSending, setResetSending] = useState(false);
   const navigate = useNavigate();
   const { branding, isCustomDomain } = useDomainBranding();
 
@@ -45,6 +46,26 @@ function LoginPage() {
       toast.error(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (resetSending) return;
+    if (!email) {
+      toast.error("Enter your email first");
+      return;
+    }
+    setResetSending(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent! Check your email (and spam folder).");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to send reset email");
+    } finally {
+      setResetSending(false);
     }
   };
 
@@ -100,23 +121,11 @@ function LoginPage() {
                 <label className="text-sm font-medium text-foreground">Password</label>
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!email) {
-                      toast.error("Enter your email first");
-                      return;
-                    }
-                    try {
-                      await supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: `${window.location.origin}/reset-password`,
-                      });
-                      toast.success("Password reset link sent! Check your email.");
-                    } catch {
-                      toast.error("Failed to send reset email");
-                    }
-                  }}
-                  className="text-xs font-medium text-primary hover:underline"
+                  onClick={handleForgotPassword}
+                  disabled={resetSending}
+                  className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
                 >
-                  Forgot password?
+                  {resetSending ? "Sending..." : "Forgot password?"}
                 </button>
               </div>
               <input
