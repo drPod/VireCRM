@@ -84,9 +84,11 @@ function BillingPage() {
 
   const isManual = subscription?.environment === "manual";
 
-  // Auto-open Stripe checkout when ?plan=... is in the URL and user has no active subscription
+  // Auto-open Stripe checkout when ?plan=... is in the URL and user has no active subscription.
+  // Waits for the auth session AND the user's email to fully load — important when arriving
+  // from an email confirmation link where the session is still being established.
   useEffect(() => {
-    if (loading || !user || hasAccess || !search.plan || autoOpenedRef.current) return;
+    if (loading || !user?.email || hasAccess || !search.plan || autoOpenedRef.current) return;
     autoOpenedRef.current = true;
     openCheckout({
       mode: "price",
