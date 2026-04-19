@@ -52,24 +52,38 @@ export function useSubscription(userId: string | null | undefined): Subscription
       return;
     }
     setLoading(true);
-    const env = getEnvForMode();
-    const { data } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .in("environment", [env, "manual"])
-      .order("created_at", { ascending: false });
+    try {
+      const env = getEnvForMode();
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .in("environment", [env, "manual"])
+        .order("created_at", { ascending: false });
 
-    const rows = (data ?? []) as unknown as SubscriptionRow[];
-    const best =
-      rows.find((r) => r.environment === "manual" && r.status === "active") ||
-      rows.find((r) => ACTIVE_STATUSES.has(r.status)) ||
-      rows.find((r) => GRACE_STATUSES.has(r.status)) ||
-      rows[0] ||
-      null;
+      if (error) {
+        // Don't hang the UI on transient/RLS errors — treat as "no subscription".
+        console.warn("useSubscription: failed to load", error);
+        setSubscription(null);
+        return;
+      }
 
-    setSubscription(best);
-    setLoading(false);
+      const rows = (data ?? []) as unknown as SubscriptionRow[];
+      const best =
+        rows.find((r) => r.environment === "manual" && r.status === "active") ||
+        rows.find((r) => ACTIVE_STATUSES.has(r.status)) ||
+        rows.find((r) => GRACE_STATUSES.has(r.status)) ||
+        rows[0] ||
+        null;
+
+      setSubscription(best);
+    } catch (err) {
+      console.warn("useSubscription: unexpected error", err);
+      setSubscription(null);
+    } finally {
+      // Always release the loading flag so the page can render.
+      setLoading(false);
+    }
   }, [userId]);
 
   useEffect(() => {
