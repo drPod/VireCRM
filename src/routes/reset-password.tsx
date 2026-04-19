@@ -120,6 +120,15 @@ function ResetPasswordPage() {
             <p className="mt-1 text-sm text-muted-foreground">Enter your new password below</p>
           </div>
 
+          {sessionError && (
+            <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              {sessionError}{" "}
+              <Link to="/login" className="font-medium underline">
+                Request a new link
+              </Link>
+            </div>
+          )}
+
           <form onSubmit={handleReset} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">New Password</label>
@@ -128,7 +137,8 @@ function ResetPasswordPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+                disabled={!sessionReady}
+                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
               />
             </div>
             <div>
@@ -138,13 +148,14 @@ function ResetPasswordPage() {
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+                disabled={!sessionReady}
+                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
               />
             </div>
 
-            <Button type="submit" variant="command" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Update Password
+            <Button type="submit" variant="command" className="w-full" disabled={loading || !sessionReady}>
+              {(loading || (!sessionReady && !sessionError)) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {!sessionReady && !sessionError ? "Verifying link..." : "Update Password"}
             </Button>
           </form>
 
