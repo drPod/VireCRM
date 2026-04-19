@@ -141,20 +141,23 @@ function BillingPage() {
         )}
 
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 flex items-start gap-3">
-          <Wrench className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Self-serve checkout is temporarily unavailable
-            </p>
+          <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Choose a plan to get started</p>
             <p className="text-xs text-muted-foreground mt-1">
-              We're switching payment providers and will be back online shortly. In the meantime, please{" "}
-              <Link to="/contact" className="text-primary hover:underline">
-                contact us
-              </Link>{" "}
-              to subscribe or upgrade.
+              Pick a plan on our pricing page — checkout opens right here in one click.
             </p>
+            <div className="mt-3 flex gap-2">
+              <Link to="/pricing">
+                <Button variant="command" size="sm">View plans</Button>
+              </Link>
+              <Link to="/contact">
+                <Button variant="outline" size="sm">Talk to sales</Button>
+              </Link>
+            </div>
           </div>
         </div>
+        {CheckoutDialog}
       </div>
     );
   }
