@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -21,8 +21,43 @@ function findTierByPriceId(priceId: string): PricingTier | undefined {
   return [...crmTiers, ...whiteLabelTiers].find((t) => t.stripePriceId === priceId);
 }
 
+function BillingErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="p-6 max-w-2xl mx-auto space-y-4">
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Couldn't load billing</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {error?.message || "Something went wrong loading your subscription."}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Button
+            variant="command"
+            size="sm"
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+          >
+            Try again
+          </Button>
+          <Link to="/pricing">
+            <Button variant="outline" size="sm">View plans</Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/_app/billing")({
   component: BillingPage,
+  errorComponent: BillingErrorComponent,
   validateSearch: (search: Record<string, unknown>) => ({
     required: search.required === "1" ? "1" : undefined,
     plan: typeof search.plan === "string" ? search.plan : undefined,
