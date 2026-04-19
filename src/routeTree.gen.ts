@@ -26,6 +26,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as HooksSendPendingWelcomesRouteImport } from './routes/hooks/send-pending-welcomes'
 import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calculate-payouts'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
@@ -133,6 +134,11 @@ const HooksCalculatePayoutsRoute = HooksCalculatePayoutsRouteImport.update({
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -282,6 +288,7 @@ export interface FileRoutesByFullPath {
   '/messages': typeof AppMessagesRoute
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByTo {
   '/messages': typeof AppMessagesRoute
   '/reputation': typeof AppReputationRoute
   '/settings': typeof AppSettingsRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
@@ -366,6 +374,7 @@ export interface FileRoutesById {
   '/_app/messages': typeof AppMessagesRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
@@ -409,6 +418,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/reputation'
     | '/settings'
+    | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
@@ -450,6 +460,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/reputation'
     | '/settings'
+    | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
@@ -492,6 +503,7 @@ export interface FileRouteTypes {
     | '/_app/messages'
     | '/_app/reputation'
     | '/_app/settings'
+    | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
@@ -522,6 +534,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
   HooksSendPendingWelcomesRoute: typeof HooksSendPendingWelcomesRoute
@@ -652,6 +665,13 @@ declare module '@tanstack/react-router' {
       path: '/email/unsubscribe'
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/settings': {
@@ -885,6 +905,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
   HooksSendPendingWelcomesRoute: HooksSendPendingWelcomesRoute,
