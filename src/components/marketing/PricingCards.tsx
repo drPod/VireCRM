@@ -346,6 +346,7 @@ export function PricingCards() {
           ))}
         </div>
       </div>
+      {CheckoutDialog}
     </div>
   );
 }

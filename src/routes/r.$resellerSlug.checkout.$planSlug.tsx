@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Loader2, Terminal, CheckCircle2, Wrench } from "lucide-react";
+import { Loader2, Terminal, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { StripeEmbeddedCheckoutForm } from "@/components/StripeEmbeddedCheckout";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 export const Route = createFileRoute("/r/$resellerSlug/checkout/$planSlug")({
   component: ResellerCheckoutPage,
@@ -35,6 +37,7 @@ function formatCents(cents: number, currency = "USD") {
 
 function ResellerCheckoutPage() {
   const { resellerSlug, planSlug } = Route.useParams();
+  const { user } = useAuth();
   const [plan, setPlan] = useState<PublicPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -83,85 +86,76 @@ function ResellerCheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Plan summary */}
-        <div className="rounded-2xl border border-border bg-card p-8">
-          <div className="flex items-center gap-3 mb-6">
-            {plan.reseller_logo_url ? (
-              <img
-                src={plan.reseller_logo_url}
-                alt={brandName}
-                className="h-10 w-10 rounded-lg object-contain"
-              />
-            ) : (
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-lg"
-                style={{ backgroundColor: accent || "hsl(var(--primary))" }}
-              >
-                <Terminal className="h-5 w-5 text-white" />
+    <div className="min-h-screen">
+      <PaymentTestModeBanner />
+      <div className="flex items-start justify-center px-4 py-12">
+        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Plan summary */}
+          <div className="rounded-2xl border border-border bg-card p-8">
+            <div className="flex items-center gap-3 mb-6">
+              {plan.reseller_logo_url ? (
+                <img
+                  src={plan.reseller_logo_url}
+                  alt={brandName}
+                  className="h-10 w-10 rounded-lg object-contain"
+                />
+              ) : (
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: accent || "hsl(var(--primary))" }}
+                >
+                  <Terminal className="h-5 w-5 text-white" />
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-muted-foreground">You're subscribing to</p>
+                <p className="text-sm font-semibold text-foreground">{brandName}</p>
               </div>
+            </div>
+
+            <h1 className="text-2xl font-bold text-foreground">{plan.plan_name}</h1>
+            {plan.plan_description && (
+              <p className="mt-2 text-sm text-muted-foreground">{plan.plan_description}</p>
             )}
-            <div>
-              <p className="text-xs text-muted-foreground">You're subscribing to</p>
-              <p className="text-sm font-semibold text-foreground">{brandName}</p>
+
+            <div className="mt-6 mb-6">
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-foreground">
+                  {formatCents(plan.monthly_price_cents, plan.currency)}
+                </span>
+                <span className="text-sm text-muted-foreground">/ month</span>
+              </div>
             </div>
+
+            {plan.features.length > 0 && (
+              <ul className="space-y-2">
+                {plan.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                    <CheckCircle2
+                      className="h-4 w-4 mt-0.5 flex-shrink-0"
+                      style={{ color: accent || "hsl(var(--primary))" }}
+                    />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <h1 className="text-2xl font-bold text-foreground">{plan.plan_name}</h1>
-          {plan.plan_description && (
-            <p className="mt-2 text-sm text-muted-foreground">{plan.plan_description}</p>
-          )}
-
-          <div className="mt-6 mb-6">
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-foreground">
-                {formatCents(plan.monthly_price_cents, plan.currency)}
-              </span>
-              <span className="text-sm text-muted-foreground">/ month</span>
-            </div>
+          {/* Embedded Stripe checkout */}
+          <div className="rounded-2xl border border-border bg-card p-4 lg:p-6">
+            <StripeEmbeddedCheckoutForm
+              mode="reseller"
+              resellerSlug={resellerSlug}
+              planSlug={planSlug}
+              customerEmail={user?.email}
+              userId={user?.id}
+              returnUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/checkout/return?session_id={CHECKOUT_SESSION_ID}`}
+            />
           </div>
-
-          {plan.features.length > 0 && (
-            <ul className="space-y-2">
-              {plan.features.map((f, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                  <CheckCircle2
-                    className="h-4 w-4 mt-0.5 flex-shrink-0"
-                    style={{ color: accent || "hsl(var(--primary))" }}
-                  />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Maintenance notice */}
-        <div className="rounded-2xl border border-border bg-card p-8">
-          <div className="flex items-center gap-2 mb-3">
-            <Wrench className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Checkout temporarily unavailable</h2>
-          </div>
-          <p className="text-sm text-muted-foreground mb-6">
-            {brandName} is switching payment providers. Self-serve checkout will be back online shortly.
-            In the meantime, please contact {brandName} directly to subscribe.
-          </p>
-
-          <Button
-            variant="command"
-            className="w-full gap-2"
-            disabled
-            style={accent ? { backgroundColor: accent } : undefined}
-          >
-            Checkout coming soon
-          </Button>
-
-          <p className="mt-6 text-center text-[11px] text-muted-foreground">
-            Secure payment powered by your trusted payment processor.
-          </p>
         </div>
       </div>
     </div>
   );
 }
+
