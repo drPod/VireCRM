@@ -9,6 +9,7 @@ import {
   Html,
   Link,
   Preview,
+  Section,
   Text,
 } from '@react-email/components'
 
@@ -27,29 +28,33 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Confirm your email to start using {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
+        <Section style={brandBar}>
+          <Link href={siteUrl} style={brandLink}>
+            <Text style={brandText}>{siteName}</Text>
+          </Link>
+        </Section>
         <Heading style={h1}>Confirm your email</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          !
+          Thanks for signing up for <strong>{siteName}</strong>. Please verify
+          that <strong>{recipient}</strong> is your email address by clicking
+          the button below.
         </Text>
-        <Text style={text}>
-          Please confirm your email address (
-          <Link href={`mailto:${recipient}`} style={link}>
-            {recipient}
-          </Link>
-          ) by clicking the button below:
+        <Section style={ctaWrap}>
+          <Button style={button} href={confirmationUrl}>
+            Verify email
+          </Button>
+        </Section>
+        <Text style={fallback}>
+          Or paste this link into your browser:
+          <br />
+          <span style={fallbackUrl}>{confirmationUrl}</span>
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Verify Email
-        </Button>
         <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+          If you didn't create a {siteName} account, you can safely ignore
+          this email.
         </Text>
       </Container>
     </Body>
@@ -58,27 +63,56 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
+const main = {
+  backgroundColor: '#ffffff',
+  fontFamily:
+    "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+}
+const container = { padding: '32px 24px', maxWidth: '560px' }
+const brandBar = { paddingBottom: '24px' }
+const brandLink = { textDecoration: 'none' }
+const brandText = {
+  fontSize: '20px',
   fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
+  color: '#3b82f6',
+  margin: '0',
+  letterSpacing: '-0.01em',
+}
+const h1 = {
+  fontSize: '24px',
+  fontWeight: 'bold' as const,
+  color: '#0b0f1c',
+  margin: '0 0 16px',
+  letterSpacing: '-0.01em',
 }
 const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
+  fontSize: '15px',
+  color: '#475569',
+  lineHeight: '1.6',
+  margin: '0 0 24px',
 }
-const link = { color: 'inherit', textDecoration: 'underline' }
+const ctaWrap = { margin: '0 0 28px' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#3b82f6',
   color: '#ffffff',
-  fontSize: '14px',
+  fontSize: '15px',
+  fontWeight: '600' as const,
   borderRadius: '8px',
-  padding: '12px 20px',
+  padding: '12px 24px',
   textDecoration: 'none',
+  display: 'inline-block',
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const fallback = {
+  fontSize: '13px',
+  color: '#64748b',
+  lineHeight: '1.5',
+  margin: '0 0 32px',
+}
+const fallbackUrl = { color: '#3b82f6', wordBreak: 'break-all' as const }
+const footer = {
+  fontSize: '12px',
+  color: '#94a3b8',
+  margin: '32px 0 0',
+  borderTop: '1px solid #e2e8f0',
+  paddingTop: '20px',
+}
