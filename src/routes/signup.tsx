@@ -2,10 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Button } from "@/components/ui/button";
 import { Terminal, Loader2, Mail } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
+import {
+  PasswordStrengthMeter,
+  type PasswordStrengthResult,
+} from "@/components/auth/PasswordStrengthMeter";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -39,8 +43,16 @@ function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [strength, setStrength] = useState<PasswordStrengthResult>({
+    score: 0,
+    feedback: "",
+  });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const handleStrengthChange = useCallback(
+    (r: PasswordStrengthResult) => setStrength(r),
+    [],
+  );
 
   const buildRedirectAfterSignup = () => {
     if (invite) return `${window.location.origin}/accept-invite?token=${invite}`;
@@ -69,8 +81,15 @@ function SignupPage() {
       toast.error("Please fill in all fields");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (strength.score < 2) {
+      toast.error(
+        strength.feedback ||
+          "Password is too weak. Try a longer phrase or add numbers and symbols.",
+      );
       return;
     }
     setLoading(true);
@@ -184,9 +203,15 @@ function SignupPage() {
               <input
                 type="password"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+              />
+              <PasswordStrengthMeter
+                password={password}
+                userInputs={[email, fullName].filter(Boolean)}
+                onChange={handleStrengthChange}
               />
             </div>
 
