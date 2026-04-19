@@ -146,6 +146,24 @@ function BillingPage() {
           </div>
         )}
 
+        {search.plan && (() => {
+          const tier = findTierByPriceId(search.plan);
+          if (!tier) return null;
+          return (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">You're subscribing to</p>
+              <div className="mt-1 flex items-baseline justify-between gap-3 flex-wrap">
+                <h2 className="text-xl font-bold text-foreground">{tier.name}</h2>
+                <p className="text-lg font-semibold text-foreground">
+                  {tier.price}
+                  <span className="text-sm font-normal text-muted-foreground">{tier.period}</span>
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">{tier.description}</p>
+            </div>
+          );
+        })()}
+
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 flex items-start gap-3">
           <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div className="flex-1">
