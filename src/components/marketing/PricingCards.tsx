@@ -30,7 +30,7 @@ export const crmTiers: PricingTier[] = [
     price: "$97",
     period: "/month",
     description: "Contact management, basic pipeline, notes & tasks, and a simple dashboard for small businesses.",
-    paddlePriceId: "crm_starter_monthly",
+    stripePriceId: "crm_starter_monthly",
     features: [
       { text: "Contact management", included: true },
       { text: "Basic pipeline", included: true },
@@ -53,7 +53,7 @@ export const crmTiers: PricingTier[] = [
     description: "Automated follow-ups, lead tracking, pipeline optimization, and basic reporting. Where 70% of clients land.",
     badge: "Most Popular",
     highlighted: true,
-    paddlePriceId: "crm_growth_monthly",
+    stripePriceId: "crm_growth_monthly",
     features: [
       { text: "Everything in Starter", included: true },
       { text: "Automated follow-ups (email/SMS)", included: true },
@@ -75,7 +75,7 @@ export const crmTiers: PricingTier[] = [
     period: "/month",
     description: "Advanced automation, custom pipelines, integrations, KPI dashboards, and team features for growing companies.",
     badge: "High Value",
-    paddlePriceId: "crm_pro_monthly",
+    stripePriceId: "crm_pro_monthly",
     features: [
       { text: "Everything in Growth", included: true },
       { text: "Advanced automation", included: true },
@@ -119,7 +119,7 @@ export const whiteLabelTiers: PricingTier[] = [
     price: "$249",
     period: "/month",
     description: "White-label Vireon CRM leased to your business. Full branding, your domain, your clients.",
-    paddlePriceId: "lease_starter_monthly",
+    stripePriceId: "lease_starter_monthly",
     features: [
       { text: "White-label branding", included: true },
       { text: "Custom domain", included: true },
@@ -142,7 +142,7 @@ export const whiteLabelTiers: PricingTier[] = [
     description: "Full-featured white-label CRM with all AI agents. Scale your sales operation.",
     badge: "Most Popular",
     highlighted: true,
-    paddlePriceId: "lease_pro_monthly",
+    stripePriceId: "lease_pro_monthly",
     features: [
       { text: "White-label branding", included: true },
       { text: "Custom domain", included: true },
