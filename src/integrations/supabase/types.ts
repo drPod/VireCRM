@@ -1121,22 +1121,14 @@ export type Database = {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
-      has_role:
-        | {
-            Args: {
-              p_role: Database["public"]["Enums"]["app_role"]
-              p_user_id: string
-            }
-            Returns: boolean
-          }
-        | {
-            Args: {
-              p_org_id?: string
-              p_role: Database["public"]["Enums"]["app_role"]
-              p_user_id: string
-            }
-            Returns: boolean
-          }
+      has_role: {
+        Args: {
+          p_org_id?: string
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       increment_ai_tokens: { Args: { p_org_id: string }; Returns: undefined }
       list_reseller_plans_public: {
         Args: { p_reseller_slug: string }
