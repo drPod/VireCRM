@@ -20,10 +20,68 @@ function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Establish recovery session from URL (hash or query) on mount
+  useEffect(() => {
+    let mounted = true;
+    const init = async () => {
+      try {
+        // Supabase auto-parses the hash and fires PASSWORD_RECOVERY when type=recovery
+        const { data: existing } = await supabase.auth.getSession();
+        if (existing.session) {
+          if (mounted) setSessionReady(true);
+          return;
+        }
+
+        // Newer recovery links use ?code=... (PKCE). Exchange it for a session.
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          if (mounted) setSessionReady(true);
+          return;
+        }
+
+        // If we got here with no session and no code, the link is invalid/expired
+        if (mounted) {
+          setSessionError(
+            "This reset link is invalid or has expired. Please request a new one."
+          );
+        }
+      } catch (err) {
+        if (mounted) {
+          setSessionError(
+            err instanceof Error ? err.message : "Could not verify reset link"
+          );
+        }
+      }
+    };
+
+    // Listen for the PASSWORD_RECOVERY event (hash-based recovery links)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setSessionReady(true);
+        setSessionError(null);
+      }
+    });
+
+    init();
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!sessionReady) {
+      toast.error("Reset link not verified yet — please wait or request a new link");
+      return;
+    }
     if (!password || !confirmPassword) {
       toast.error("Please fill in both fields");
       return;
