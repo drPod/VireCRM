@@ -46,15 +46,10 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">4. Payments &amp; Billing</h2>
               <p className="mt-2">
-                Paid plans are billed on a recurring basis (monthly or annually) as specified at the time of purchase. All payments are processed by <strong>Paddle.com Market Limited</strong> (for customers outside the USA) and <strong>Paddle.com Inc.</strong> (for customers in the USA), who act as our Merchant of Record. All billing inquiries and payment disputes should be directed to Paddle.
+                Paid plans are billed on a recurring basis (monthly or annually) as specified at the time of purchase. All payments are processed by our third-party payment processor.
               </p>
               <p className="mt-2">
-                By subscribing, you authorize Paddle to charge the applicable fees to your chosen payment method. Prices are listed in USD and may vary by region due to localized pricing.
-              </p>
-              <p className="mt-2">
-                Our order process is conducted by our online reseller <strong>Paddle.com</strong>. Paddle.com is the Merchant of Record for all our orders. Paddle provides all customer service inquiries and handles returns. Please refer to{" "}
-                <a href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Paddle&apos;s Buyer Terms</a>{" "}
-                for payment, billing, tax, cancellation, and refund mechanics.
+                By subscribing, you authorize our payment processor to charge the applicable fees to your chosen payment method. Prices are listed in USD and may vary by region due to localized pricing.
               </p>
             </section>
 

@@ -159,6 +159,15 @@ export function CreateClientDialog({
 
     setSubmitting(true);
     try {
+      // Provisioning is temporarily disabled while we migrate payment providers.
+      // The create-client-account edge function will be rebuilt against Stripe.
+      toast.info("Client provisioning is temporarily unavailable", {
+        description: "We're switching payment providers. New client accounts will be available again shortly.",
+      });
+      setSubmitting(false);
+      return;
+
+      // eslint-disable-next-line no-unreachable
       const { data, error } = await supabase.functions.invoke(
         "create-client-account",
         {
@@ -457,7 +466,7 @@ export function CreateClientDialog({
                   <div className="mt-2 space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                     <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
                       <InfinityIcon className="h-3.5 w-3.5" />
-                      One-off ownership sale — no Paddle subscription
+                      One-off ownership sale — no recurring subscription
                     </div>
                     <div>
                       <Label
