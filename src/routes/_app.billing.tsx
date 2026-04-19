@@ -78,9 +78,31 @@ async function openCustomerPortal() {
 function BillingPage() {
   const { user } = useAuth();
   const search = Route.useSearch();
+  const navigate = useNavigate();
   const { subscription, hasAccess, inGrace, loading } = useSubscription(user?.id);
+  const { openCheckout, CheckoutDialog } = useStripeCheckout();
+  const autoOpenedRef = useRef(false);
 
   const isManual = subscription?.environment === "manual";
+
+  // Auto-open Stripe checkout when ?plan=... is in the URL and user has no active subscription
+  useEffect(() => {
+    if (loading || !user || hasAccess || !search.plan || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    openCheckout({
+      mode: "price",
+      priceId: search.plan,
+      customerEmail: user.email,
+      userId: user.id,
+      returnUrl: `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
+    });
+    // Strip ?plan= from the URL so it doesn't reopen on refresh after closing
+    navigate({
+      to: "/billing",
+      search: { required: search.required, plan: undefined },
+      replace: true,
+    });
+  }, [loading, user, hasAccess, search.plan, search.required, openCheckout, navigate]);
 
   if (loading) {
     return (
