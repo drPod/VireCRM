@@ -2,7 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor } from "lucide-react";
-import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { useNavigate } from "@tanstack/react-router";
 
 export interface PricingTier {
   name: string;
@@ -16,11 +18,8 @@ export interface PricingTier {
   ctaVariant: "outline" | "command" | "default";
   ctaLink?: string;
   isOwnership?: boolean;
-  /**
-   * Internal price identifier. During the Stripe migration this will be wired up
-   * to a real Stripe price ID. For now it just marks the tier as "purchasable".
-   */
-  paddlePriceId?: string;
+  /** Stripe price lookup_key (set in test, automatically synced to live). */
+  stripePriceId?: string;
   setupFee?: string;
 }
 
