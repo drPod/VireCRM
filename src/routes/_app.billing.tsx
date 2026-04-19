@@ -158,7 +158,7 @@ function BillingPage() {
               We'll keep retrying for a few days. Update your payment method to avoid losing access.
             </p>
           </div>
-          <Button variant="command" size="sm" onClick={notifyMaintenance}>
+          <Button variant="command" size="sm" onClick={openCustomerPortal}>
             Update payment
           </Button>
         </div>
