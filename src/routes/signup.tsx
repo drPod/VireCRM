@@ -81,8 +81,15 @@ function SignupPage() {
       toast.error("Please fill in all fields");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (strength.score < 2) {
+      toast.error(
+        strength.feedback ||
+          "Password is too weak. Try a longer phrase or add numbers and symbols.",
+      );
       return;
     }
     setLoading(true);
@@ -196,9 +203,15 @@ function SignupPage() {
               <input
                 type="password"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+              />
+              <PasswordStrengthMeter
+                password={password}
+                userInputs={[email, fullName].filter(Boolean)}
+                onChange={handleStrengthChange}
               />
             </div>
 
