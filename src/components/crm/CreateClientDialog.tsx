@@ -239,7 +239,7 @@ export function CreateClientDialog({
         toast.success("Login details emailed to the client");
       } catch (mailErr) {
         const errMsg =
-          mailErr instanceof Error ? mailErr.message : "Unknown error";
+          mailErr instanceof Error ? (mailErr as Error).message : "Unknown error";
         console.error("Failed to email credentials", mailErr);
         setCreated((prev) =>
           prev
