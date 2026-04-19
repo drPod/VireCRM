@@ -159,15 +159,6 @@ export function CreateClientDialog({
 
     setSubmitting(true);
     try {
-      // Provisioning is temporarily disabled while we migrate payment providers.
-      // The create-client-account edge function will be rebuilt against Stripe.
-      toast.info("Client provisioning is temporarily unavailable", {
-        description: "We're switching payment providers. New client accounts will be available again shortly.",
-      });
-      setSubmitting(false);
-      return;
-
-      // eslint-disable-next-line no-unreachable
       const { data, error } = await supabase.functions.invoke(
         "create-client-account",
         {
@@ -184,6 +175,7 @@ export function CreateClientDialog({
 
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to create");
+
 
       // For lifetime / paid-externally clients, stamp a deal note onto the
       // child org so the Clients table shows the terms at a glance.

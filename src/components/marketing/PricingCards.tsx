@@ -2,7 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor } from "lucide-react";
-import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { useNavigate } from "@tanstack/react-router";
 
 export interface PricingTier {
   name: string;
@@ -16,11 +18,8 @@ export interface PricingTier {
   ctaVariant: "outline" | "command" | "default";
   ctaLink?: string;
   isOwnership?: boolean;
-  /**
-   * Internal price identifier. During the Stripe migration this will be wired up
-   * to a real Stripe price ID. For now it just marks the tier as "purchasable".
-   */
-  paddlePriceId?: string;
+  /** Stripe price lookup_key (set in test, automatically synced to live). */
+  stripePriceId?: string;
   setupFee?: string;
 }
 
@@ -31,7 +30,7 @@ export const crmTiers: PricingTier[] = [
     price: "$97",
     period: "/month",
     description: "Contact management, basic pipeline, notes & tasks, and a simple dashboard for small businesses.",
-    paddlePriceId: "crm_starter_monthly",
+    stripePriceId: "crm_starter_monthly",
     features: [
       { text: "Contact management", included: true },
       { text: "Basic pipeline", included: true },
@@ -54,7 +53,7 @@ export const crmTiers: PricingTier[] = [
     description: "Automated follow-ups, lead tracking, pipeline optimization, and basic reporting. Where 70% of clients land.",
     badge: "Most Popular",
     highlighted: true,
-    paddlePriceId: "crm_growth_monthly",
+    stripePriceId: "crm_growth_monthly",
     features: [
       { text: "Everything in Starter", included: true },
       { text: "Automated follow-ups (email/SMS)", included: true },
@@ -76,7 +75,7 @@ export const crmTiers: PricingTier[] = [
     period: "/month",
     description: "Advanced automation, custom pipelines, integrations, KPI dashboards, and team features for growing companies.",
     badge: "High Value",
-    paddlePriceId: "crm_pro_monthly",
+    stripePriceId: "crm_pro_monthly",
     features: [
       { text: "Everything in Growth", included: true },
       { text: "Advanced automation", included: true },
@@ -120,7 +119,7 @@ export const whiteLabelTiers: PricingTier[] = [
     price: "$249",
     period: "/month",
     description: "White-label Vireon CRM leased to your business. Full branding, your domain, your clients.",
-    paddlePriceId: "lease_starter_monthly",
+    stripePriceId: "lease_starter_monthly",
     features: [
       { text: "White-label branding", included: true },
       { text: "Custom domain", included: true },
@@ -143,7 +142,7 @@ export const whiteLabelTiers: PricingTier[] = [
     description: "Full-featured white-label CRM with all AI agents. Scale your sales operation.",
     badge: "Most Popular",
     highlighted: true,
-    paddlePriceId: "lease_pro_monthly",
+    stripePriceId: "lease_pro_monthly",
     features: [
       { text: "White-label branding", included: true },
       { text: "Custom domain", included: true },
@@ -284,11 +283,22 @@ function TierCard({
 }
 
 export function PricingCards() {
-  const handleCheckout = (_tier: PricingTier) => {
-    // Payments are temporarily disabled while we migrate to a new payment provider.
-    // Wired back up during the Stripe migration.
-    toast.info("Checkout is temporarily unavailable", {
-      description: "We're switching payment providers. Please contact us to subscribe in the meantime.",
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { openCheckout, CheckoutDialog } = useStripeCheckout();
+
+  const handleCheckout = (tier: PricingTier) => {
+    if (!tier.stripePriceId) return;
+    if (!user) {
+      navigate({ to: "/signup", search: { plan: tier.stripePriceId } as never });
+      return;
+    }
+    openCheckout({
+      mode: "price",
+      priceId: tier.stripePriceId,
+      customerEmail: user.email,
+      userId: user.id,
+      returnUrl: `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
     });
   };
 
@@ -336,6 +346,7 @@ export function PricingCards() {
           ))}
         </div>
       </div>
+      {CheckoutDialog}
     </div>
   );
 }
