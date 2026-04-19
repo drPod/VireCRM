@@ -283,11 +283,22 @@ function TierCard({
 }
 
 export function PricingCards() {
-  const handleCheckout = (_tier: PricingTier) => {
-    // Payments are temporarily disabled while we migrate to a new payment provider.
-    // Wired back up during the Stripe migration.
-    toast.info("Checkout is temporarily unavailable", {
-      description: "We're switching payment providers. Please contact us to subscribe in the meantime.",
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { openCheckout, CheckoutDialog } = useStripeCheckout();
+
+  const handleCheckout = (tier: PricingTier) => {
+    if (!tier.stripePriceId) return;
+    if (!user) {
+      navigate({ to: "/signup", search: { plan: tier.stripePriceId } as never });
+      return;
+    }
+    openCheckout({
+      mode: "price",
+      priceId: tier.stripePriceId,
+      customerEmail: user.email,
+      userId: user.id,
+      returnUrl: `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
     });
   };
 
