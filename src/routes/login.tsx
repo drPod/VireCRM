@@ -121,23 +121,11 @@ function LoginPage() {
                 <label className="text-sm font-medium text-foreground">Password</label>
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!email) {
-                      toast.error("Enter your email first");
-                      return;
-                    }
-                    try {
-                      await supabase.auth.resetPasswordForEmail(email, {
-                        redirectTo: `${window.location.origin}/reset-password`,
-                      });
-                      toast.success("Password reset link sent! Check your email.");
-                    } catch {
-                      toast.error("Failed to send reset email");
-                    }
-                  }}
-                  className="text-xs font-medium text-primary hover:underline"
+                  onClick={handleForgotPassword}
+                  disabled={resetSending}
+                  className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
                 >
-                  Forgot password?
+                  {resetSending ? "Sending..." : "Forgot password?"}
                 </button>
               </div>
               <input
