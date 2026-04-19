@@ -1,1 +1,13 @@
 project_id = "mtcthkzvpfctjanehgdr"
+
+[functions.payments-webhook]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.create-reseller-checkout]
+verify_jwt = false
+
+[functions.get-stripe-price]
+verify_jwt = false
