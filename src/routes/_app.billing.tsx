@@ -237,23 +237,18 @@ function BillingPage() {
         )}
       </div>
 
-      {/* Maintenance banner */}
+      {/* Manage subscription via Stripe portal */}
       {!isManual && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 flex items-start gap-3">
-          <Wrench className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div className="rounded-xl border border-border bg-card p-6 flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-foreground">
-              Self-serve subscription management is temporarily unavailable
-            </p>
+            <p className="text-sm font-medium text-foreground">Manage subscription</p>
             <p className="text-xs text-muted-foreground mt-1">
-              We're switching payment providers. To change your plan, update your payment method, or cancel,
-              please{" "}
-              <Link to="/contact" className="text-primary hover:underline">
-                contact support
-              </Link>
-              .
+              Update your payment method, change plan, download invoices, or cancel.
             </p>
           </div>
+          <Button variant="command" size="sm" onClick={openCustomerPortal}>
+            Open billing portal
+          </Button>
         </div>
       )}
 
