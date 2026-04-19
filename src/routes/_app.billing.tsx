@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Loader2,
   Infinity as InfinityIcon,
-  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
