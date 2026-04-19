@@ -108,11 +108,7 @@ function SignupPage() {
     }
     if (result.redirected) return;
     await tryAcceptInvite(invite);
-    if (invite) {
-      window.location.href = `/accept-invite?token=${invite}`;
-    } else {
-      navigate({ to: "/dashboard" });
-    }
+    goPostSignup();
   };
 
   return (
