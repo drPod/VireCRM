@@ -47,9 +47,8 @@ export const Route = createFileRoute("/_app/clients/plans")({
   }),
 });
 
-// Base tiers we offer. Each maps to a Paddle external_id and our internal cost.
-// In production these would be loaded from Paddle, but caching them avoids an extra
-// round-trip on every plan edit and keeps reseller UX snappy.
+// Base tiers we offer. Each maps to an internal price identifier and our cost.
+// During the Stripe migration these will resolve to real Stripe price IDs.
 const BASE_TIERS = [
   { price_id: "starter_monthly", label: "Starter — $29/mo", cost_cents: 2900 },
   { price_id: "pro_monthly", label: "Pro — $99/mo", cost_cents: 9900 },

@@ -46,17 +46,13 @@ function RefundPolicyPage() {
                   with the subject line "Refund Request".
                 </li>
                 <li>Include your account email address and the reason for your refund.</li>
-                <li>
-                  Alternatively, you can request a refund through our payment provider at{" "}
-                  <a href="https://www.paddle.net" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">paddle.net</a>.
-                </li>
               </ol>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">Processing</h2>
               <p className="mt-2">
-                Refunds are processed by our Merchant of Record, Paddle. Once approved, refunds are typically returned to the original payment method within 5–10 business days, depending on your financial institution.
+                Refunds are processed by our payment processor. Once approved, refunds are typically returned to the original payment method within 5–10 business days, depending on your financial institution.
               </p>
             </section>
 

@@ -68,7 +68,6 @@ interface LineItem {
 
 interface AttributedTransaction {
   id: string;
-  paddle_transaction_id: string;
   amount_cents: number;
   currency: string;
   status: string;
@@ -167,14 +166,13 @@ function PayoutsPage() {
       // Pull the last 12 months of attributed transactions (RLS limits to this reseller).
       const { data: txData, error: txErr } = await supabase
         .from("transactions")
-        .select("id, paddle_transaction_id, amount_cents, currency, status, billed_at, user_id")
+        .select("id, amount_cents, currency, status, billed_at, user_id")
         .eq("attributed_reseller_id", organization.id)
         .order("billed_at", { ascending: false })
         .limit(500);
       if (txErr) throw txErr;
       const txRows = (txData || []) as Array<{
         id: string;
-        paddle_transaction_id: string;
         amount_cents: number;
         currency: string;
         status: string;
@@ -218,7 +216,6 @@ function PayoutsPage() {
         const payout = periodToPayout.get(monthKey) || null;
         return {
           id: t.id,
-          paddle_transaction_id: t.paddle_transaction_id,
           amount_cents: t.amount_cents,
           currency: t.currency,
           status: t.status,
@@ -632,7 +629,7 @@ function PayoutsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-[10px] font-mono text-muted-foreground">
-                          {t.paddle_transaction_id}
+                          {t.id.slice(0, 8)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-foreground text-right">

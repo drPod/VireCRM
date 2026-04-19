@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Subscription row used by the app. Provider-specific IDs (e.g. stripe_*) will be
+ * added back during the Stripe migration. For now this matches the slimmed-down DB.
+ */
 export type SubscriptionRow = {
   id: string;
   user_id: string;
-  paddle_subscription_id: string;
-  paddle_customer_id: string;
   product_id: string;
   price_id: string;
   status: string;
@@ -17,13 +19,11 @@ export type SubscriptionRow = {
   reseller_plan_id: string | null;
 };
 
-const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
-
-// In test mode (preview) we count "sandbox" + "manual" subs.
-// In live mode (published) we count "live" + "manual" subs.
-// "manual" = reseller-provisioned client (lifetime / paid externally), always entitled.
+// Until a payment provider is wired in, we default to "sandbox" (test) mode.
+// "manual" subscriptions (reseller-provisioned lifetime / paid externally) are
+// still honored — they don't depend on any external processor.
 function getEnvForMode(): "sandbox" | "live" {
-  return clientToken?.startsWith("test_") ? "sandbox" : "live";
+  return "sandbox";
 }
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
@@ -53,7 +53,6 @@ export function useSubscription(userId: string | null | undefined): Subscription
     }
     setLoading(true);
     const env = getEnvForMode();
-    // Pull every row for this user, then pick the best (manual > active > others).
     const { data } = await supabase
       .from("subscriptions")
       .select("*")
@@ -61,7 +60,7 @@ export function useSubscription(userId: string | null | undefined): Subscription
       .in("environment", [env, "manual"])
       .order("created_at", { ascending: false });
 
-    const rows = (data ?? []) as SubscriptionRow[];
+    const rows = (data ?? []) as unknown as SubscriptionRow[];
     const best =
       rows.find((r) => r.environment === "manual" && r.status === "active") ||
       rows.find((r) => ACTIVE_STATUSES.has(r.status)) ||

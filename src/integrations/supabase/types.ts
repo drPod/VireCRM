@@ -770,8 +770,6 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
-          paddle_customer_id: string
-          paddle_subscription_id: string
           price_id: string
           product_id: string
           reseller_plan_id: string | null
@@ -787,8 +785,6 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
-          paddle_customer_id: string
-          paddle_subscription_id: string
           price_id: string
           product_id: string
           reseller_plan_id?: string | null
@@ -804,8 +800,6 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
-          paddle_customer_id?: string
-          paddle_subscription_id?: string
           price_id?: string
           product_id?: string
           reseller_plan_id?: string | null
@@ -920,8 +914,6 @@ export type Database = {
           currency: string
           environment: string
           id: string
-          paddle_subscription_id: string | null
-          paddle_transaction_id: string
           raw_payload: Json | null
           reseller_plan_id: string | null
           status: string
@@ -936,8 +928,6 @@ export type Database = {
           currency?: string
           environment?: string
           id?: string
-          paddle_subscription_id?: string | null
-          paddle_transaction_id: string
           raw_payload?: Json | null
           reseller_plan_id?: string | null
           status?: string
@@ -952,8 +942,6 @@ export type Database = {
           currency?: string
           environment?: string
           id?: string
-          paddle_subscription_id?: string | null
-          paddle_transaction_id?: string
           raw_payload?: Json | null
           reseller_plan_id?: string | null
           status?: string
@@ -1081,16 +1069,6 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
-      apply_refund_adjustment: {
-        Args: {
-          p_environment?: string
-          p_paddle_subscription_id: string
-          p_refund_amount_cents: number
-          p_refund_at: string
-          p_refund_transaction_id: string
-        }
-        Returns: Json
-      }
       calculate_reseller_payouts: {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json

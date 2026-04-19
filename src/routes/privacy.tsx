@@ -36,7 +36,7 @@ function PrivacyPage() {
                 <li><strong>Account Information:</strong> Name, email address, and password when you create an account.</li>
                 <li><strong>Organization Data:</strong> Company name, team members, and CRM data you input into the platform.</li>
                 <li><strong>Usage Data:</strong> Pages visited, features used, browser type, IP address, and device information.</li>
-                <li><strong>Payment Data:</strong> Billing information is processed by our Merchant of Record (see Section 5) and is not stored on our servers.</li>
+                <li><strong>Payment Data:</strong> Billing information is processed by our third-party payment processor (see Section 5) and is not stored on our servers.</li>
               </ul>
             </section>
 
@@ -59,9 +59,9 @@ function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-foreground">5. Payments &amp; Merchant of Record</h2>
+              <h2 className="text-lg font-semibold text-foreground">5. Payments</h2>
               <p className="mt-2">
-                Our payment processing is handled by Paddle.com Market Limited (for customers outside the USA) and Paddle.com Inc. (for customers in the USA), acting as our Merchant of Record. Paddle processes your payment information in accordance with their own privacy policy. We do not store credit card numbers or sensitive payment details on our servers.
+                Our payment processing is handled by a third-party payment processor. Your payment information is processed in accordance with their privacy policy. We do not store credit card numbers or sensitive payment details on our servers.
               </p>
             </section>
 
