@@ -629,7 +629,7 @@ function PayoutsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-[10px] font-mono text-muted-foreground">
-                          {t.paddle_transaction_id}
+                          {t.id.slice(0, 8)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-foreground text-right">
