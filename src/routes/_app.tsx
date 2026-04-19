@@ -62,7 +62,7 @@ function AppLayout() {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <PaymentTestModeBanner />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <CrmSidebar />
         <main className="flex-1 overflow-y-auto">
           <Outlet />

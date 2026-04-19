@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -17,10 +18,15 @@ import {
   Receipt,
   Building2,
   CreditCard,
+  Menu,
+  X,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const baseNavItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -37,11 +43,27 @@ const baseNavItems = [
   { to: "/billing", icon: CreditCard, label: "Billing" },
 ];
 
+function planLabel(productId: string | undefined, isManual: boolean): string {
+  if (isManual) return "Lifetime";
+  if (!productId) return "Active";
+  // Map known stripe price/product IDs to friendly names
+  const map: Record<string, string> = {
+    crm_starter_monthly: "Starter",
+    crm_growth_monthly: "Growth",
+    crm_pro_monthly: "Pro",
+    lease_starter_monthly: "WL — Starter",
+    lease_pro_monthly: "WL — Pro",
+  };
+  return map[productId] || "Active";
+}
+
 export function CrmSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { organization, profile, role, signOut } = useAuth();
+  const { organization, profile, role, signOut, user } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
+  const { subscription } = useSubscription(user?.id);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const brandName = organization?.brand_name || "Vireon";
   const logoUrl = organization?.logo_url;
@@ -55,16 +77,30 @@ export function CrmSidebar() {
       : []),
   ];
 
-  return (
-    <aside className="flex h-screen w-64 flex-col border-r border-border bg-sidebar">
+  const isManual = subscription?.environment === "manual";
+  const planName = planLabel(subscription?.price_id, isManual);
+
+  const sidebar = (
+    <aside className="flex h-full w-64 flex-col border-r border-border bg-sidebar">
       {/* Logo / Brand */}
-      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-        {logoUrl ? (
-          <img src={logoUrl} alt={brandName} className="h-8 w-8 rounded-lg object-contain" />
-        ) : (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)] transition-all duration-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.7)] hover:scale-110">V</span>
-        )}
-        <span className="text-lg font-bold text-gradient-primary">{brandName}</span>
+      <div className="flex h-16 items-center justify-between gap-3 border-b border-sidebar-border px-6">
+        <div className="flex items-center gap-3">
+          {logoUrl ? (
+            <img src={logoUrl} alt={brandName} className="h-8 w-8 rounded-lg object-contain" />
+          ) : (
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)] transition-all duration-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.7)]">
+              {brandName.charAt(0).toUpperCase()}
+            </span>
+          )}
+          <span className="text-lg font-bold text-gradient-primary truncate">{brandName}</span>
+        </div>
+        <button
+          aria-label="Close menu"
+          className="lg:hidden text-sidebar-foreground/70 hover:text-sidebar-foreground"
+          onClick={() => setMobileOpen(false)}
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       {/* User info */}
@@ -76,21 +112,22 @@ export function CrmSidebar() {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
             <Link
               key={item.to}
               to={item.to as string}
+              onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-sidebar-accent text-sidebar-primary"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               }`}
             >
-              <item.icon className="h-4 w-4" />
-              {item.label}
+              <item.icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{item.label}</span>
             </Link>
           );
         })}
@@ -98,12 +135,30 @@ export function CrmSidebar() {
 
       {/* Plan badge + Settings */}
       <div className="border-t border-sidebar-border p-3 space-y-1">
-        {organization && (
-          <div className="px-3 py-1.5">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {organization.plan} plan
-            </span>
-          </div>
+        {subscription && (
+          <Link
+            to="/billing"
+            className="flex items-center justify-between rounded-lg border border-sidebar-border bg-sidebar-accent/30 px-3 py-2 transition-colors hover:bg-sidebar-accent"
+            onClick={() => setMobileOpen(false)}
+          >
+            <span className="text-xs text-muted-foreground">Current plan</span>
+            <Badge
+              variant={isManual ? "warning" : "default"}
+              className="text-[10px] uppercase tracking-wide"
+            >
+              {planName}
+            </Badge>
+          </Link>
+        )}
+        {!subscription && (
+          <Link
+            to="/billing"
+            className="block rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/10"
+            onClick={() => setMobileOpen(false)}
+          >
+            <Sparkles className="mr-1.5 inline h-3 w-3" />
+            Choose a plan
+          </Link>
         )}
         <button
           onClick={toggleTheme}
@@ -114,6 +169,7 @@ export function CrmSidebar() {
         </button>
         <Link
           to={"/settings" as string}
+          onClick={() => setMobileOpen(false)}
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
           <Settings className="h-4 w-4" />
@@ -131,5 +187,45 @@ export function CrmSidebar() {
         </button>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <div className="flex h-12 items-center justify-between border-b border-border bg-sidebar px-4 lg:hidden">
+        <div className="flex items-center gap-2">
+          {logoUrl ? (
+            <img src={logoUrl} alt={brandName} className="h-6 w-6 rounded object-contain" />
+          ) : (
+            <span className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-xs font-extrabold text-white">
+              {brandName.charAt(0).toUpperCase()}
+            </span>
+          )}
+          <span className="text-sm font-bold text-gradient-primary">{brandName}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Open menu"
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Desktop persistent sidebar */}
+      <div className="hidden h-screen lg:block">{sidebar}</div>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="absolute left-0 top-0 h-full">{sidebar}</div>
+        </div>
+      )}
+    </>
   );
 }

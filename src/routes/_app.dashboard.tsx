@@ -1,6 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import { Users, Send, MessageSquare, TrendingUp, Target, Zap, CheckCircle2, AlertTriangle, Clock, ChevronRight } from "lucide-react";
+import {
+  Users,
+  Send,
+  MessageSquare,
+  TrendingUp,
+  Target,
+  Zap,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  ChevronRight,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CommandBar } from "@/components/crm/CommandBar";
 import { MetricCard } from "@/components/crm/MetricCard";
 import { ActivityFeed } from "@/components/crm/ActivityFeed";
@@ -8,18 +22,59 @@ import { PipelineView } from "@/components/crm/PipelineView";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+
+function DashboardErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Couldn't load your dashboard</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {error?.message || "Something went wrong."}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4">
+          <Button
+            variant="command"
+            size="sm"
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+          >
+            Try again
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
+  errorComponent: DashboardErrorComponent,
   head: () => ({
     meta: [
-      { title: "Vireon — Dashboard" },
-      { name: "description", content: "Autonomous AI-powered CRM dashboard" },
+      { title: "Dashboard — Vireon" },
+      { name: "description", content: "Your AI-powered command center for sales pipeline, leads, and campaigns." },
     ],
   }),
 });
 
+function formatNumber(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return n.toLocaleString();
+}
+
 function Dashboard() {
+  const { organization, profile } = useAuth();
+  const metrics = useDashboardMetrics(organization?.id);
   const [isProcessing, setIsProcessing] = useState(false);
   const [plan, setPlan] = useState<CommandPlan | null>(null);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
@@ -41,11 +96,20 @@ function Dashboard() {
     }
   };
 
+  const isEmpty = !metrics.loading && metrics.totalLeads === 0;
+  const firstName = profile?.full_name?.split(" ")[0];
+
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Command Center</h1>
-        <p className="text-sm text-muted-foreground">Type a command to orchestrate your sales pipeline</p>
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {firstName ? `Welcome back, ${firstName}` : "Command Center"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Type a command, or jump into your pipeline below.
+          </p>
+        </div>
       </div>
 
       <CommandBar onCommand={handleCommand} isProcessing={isProcessing} />
@@ -64,7 +128,7 @@ function Dashboard() {
           <div className="border-b border-border bg-primary/5 px-5 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-400" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
                 <span className="text-sm font-semibold text-foreground">Execution Plan</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -94,11 +158,11 @@ function Dashboard() {
           </div>
 
           {plan.warnings.length > 0 && (
-            <div className="border-t border-border bg-yellow-500/5 px-5 py-3">
+            <div className="border-t border-border bg-warning/5 px-5 py-3">
               {plan.warnings.map((w, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-yellow-500" />
-                  <span className="text-xs text-yellow-400">{w}</span>
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-warning" />
+                  <span className="text-xs text-warning">{w}</span>
                 </div>
               ))}
             </div>
@@ -106,11 +170,61 @@ function Dashboard() {
         </div>
       )}
 
+      {/* First-run empty state */}
+      {isEmpty && (
+        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-foreground">Get your first leads in</h2>
+              <p className="mt-1 text-sm text-muted-foreground max-w-lg">
+                Vireon needs leads before it can score, message, and convert. Add your first
+                lead manually, import a CSV, or let our AI scout build a list for you.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link to="/leads">
+                  <Button variant="command" size="sm" className="gap-1.5">
+                    Add a lead
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+                <Link to="/leads">
+                  <Button variant="outline" size="sm">Import CSV</Button>
+                </Link>
+                <Link to="/advisor">
+                  <Button variant="outline" size="sm">Let AI find leads</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard icon={Users} label="Total Leads" value="1,284" change="+12%" changeType="positive" />
-        <MetricCard icon={Send} label="Outreach Sent" value="3,891" change="+8%" changeType="positive" />
-        <MetricCard icon={MessageSquare} label="Replies" value="412" change="+23%" changeType="positive" />
-        <MetricCard icon={TrendingUp} label="Conversion" value="14.2%" change="+2.1%" changeType="positive" />
+        <MetricCard
+          icon={Users}
+          label="Total Leads"
+          value={metrics.loading ? "—" : formatNumber(metrics.totalLeads)}
+          change={metrics.newLeads30d > 0 ? `+${metrics.newLeads30d} this month` : undefined}
+          changeType="positive"
+        />
+        <MetricCard
+          icon={Send}
+          label="Outreach Sent"
+          value={metrics.loading ? "—" : formatNumber(metrics.outreachSent)}
+        />
+        <MetricCard
+          icon={MessageSquare}
+          label="Replies"
+          value={metrics.loading ? "—" : formatNumber(metrics.replies)}
+        />
+        <MetricCard
+          icon={TrendingUp}
+          label="Conversion"
+          value={metrics.loading ? "—" : `${metrics.conversionRate.toFixed(1)}%`}
+        />
       </div>
 
       <div>
