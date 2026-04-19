@@ -55,11 +55,19 @@ function statusTone(status: string): {
   }
 }
 
-function notifyMaintenance() {
-  toast.info("Billing actions are temporarily unavailable", {
-    description:
-      "We're switching payment providers. Please contact support to make changes in the meantime.",
-  });
+async function openCustomerPortal() {
+  try {
+    const { data, error } = await supabase.functions.invoke("customer-portal", {
+      body: {
+        returnUrl: `${window.location.origin}/billing`,
+        environment: getStripeEnvironment(),
+      },
+    });
+    if (error || !data?.url) throw new Error(error?.message || "Could not open portal");
+    window.open(data.url, "_blank");
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : "Could not open billing portal");
+  }
 }
 
 function BillingPage() {
