@@ -15,6 +15,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { crmTiers, whiteLabelTiers, type PricingTier } from "@/components/marketing/PricingCards";
+
+function findTierByPriceId(priceId: string): PricingTier | undefined {
+  return [...crmTiers, ...whiteLabelTiers].find((t) => t.stripePriceId === priceId);
+}
 
 export const Route = createFileRoute("/_app/billing")({
   component: BillingPage,
