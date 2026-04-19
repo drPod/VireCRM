@@ -35,8 +35,7 @@ async function tryAcceptInvite(token: string | undefined) {
 function SignupPage() {
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const invite = params?.get("invite") ?? undefined;
-  // ?plan=... is preserved on the URL but checkout is currently disabled.
-  // It will be re-enabled during the Stripe migration.
+  const plan = params?.get("plan") ?? undefined;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,7 +44,23 @@ function SignupPage() {
 
   const buildRedirectAfterSignup = () => {
     if (invite) return `${window.location.origin}/accept-invite?token=${invite}`;
+    if (plan) return `${window.location.origin}/billing?plan=${encodeURIComponent(plan)}`;
     return `${window.location.origin}/dashboard`;
+  };
+
+  const goPostSignup = () => {
+    if (invite) {
+      window.location.href = `/accept-invite?token=${invite}`;
+      return;
+    }
+    if (plan) {
+      navigate({
+        to: "/billing",
+        search: { plan, required: undefined },
+      });
+      return;
+    }
+    navigate({ to: "/dashboard" });
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -71,8 +86,8 @@ function SignupPage() {
       if (error) throw error;
       if (signUpData.session) {
         await tryAcceptInvite(invite);
-        toast.success("Account created! Redirecting...");
-        navigate({ to: "/dashboard" });
+        toast.success(plan ? "Account created! Opening checkout..." : "Account created! Redirecting...");
+        goPostSignup();
       } else {
         navigate({ to: "/confirm-email" });
       }
