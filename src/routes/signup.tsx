@@ -2,10 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Button } from "@/components/ui/button";
 import { Terminal, Loader2, Mail } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
+import {
+  PasswordStrengthMeter,
+  type PasswordStrengthResult,
+} from "@/components/auth/PasswordStrengthMeter";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -39,8 +43,16 @@ function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [strength, setStrength] = useState<PasswordStrengthResult>({
+    score: 0,
+    feedback: "",
+  });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const handleStrengthChange = useCallback(
+    (r: PasswordStrengthResult) => setStrength(r),
+    [],
+  );
 
   const buildRedirectAfterSignup = () => {
     if (invite) return `${window.location.origin}/accept-invite?token=${invite}`;
