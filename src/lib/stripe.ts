@@ -17,7 +17,10 @@ export function getStripe(): Promise<Stripe | null> {
 }
 
 export function getStripeEnvironment(): "sandbox" | "live" {
-  return clientToken?.startsWith("pk_test_") ? "sandbox" : "live";
+  // Live ONLY when the publishable key explicitly starts with pk_live_.
+  // Anything else (missing, pk_test_, malformed) → sandbox. This MUST agree
+  // with useSubscription's getEnvForMode so writes/reads target the same env.
+  return clientToken?.startsWith("pk_live_") ? "live" : "sandbox";
 }
 
 export function isStripeConfigured(): boolean {
