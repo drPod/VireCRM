@@ -175,6 +175,23 @@ export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
               onChange={(e) => update("notes", e.target.value)}
             />
           </div>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
+            <label
+              htmlFor="auto-outreach-add"
+              className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              AI auto-outreach
+              <span className="font-normal text-muted-foreground">
+                — send a personalized email after adding
+              </span>
+            </label>
+            <Switch
+              id="auto-outreach-add"
+              checked={outreachEnabled}
+              onCheckedChange={setOutreachEnabled}
+            />
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
               Cancel
