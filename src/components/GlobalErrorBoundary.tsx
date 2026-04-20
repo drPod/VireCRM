@@ -63,6 +63,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     // Avoid throwing from within the boundary itself.
     // eslint-disable-next-line no-console
     console.error("GlobalErrorBoundary caught:", error, info);
+    // Fire-and-forget: persist to Supabase so we can review production crashes.
+    void logErrorToSupabase(error, info);
   }
 
   reset = () => {
