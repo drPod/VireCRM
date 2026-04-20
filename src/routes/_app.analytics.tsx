@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_app/analytics")({
   component: AnalyticsPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Analytics" },
+      { title: "Genesis — Analytics" },
       { name: "description", content: "Sales analytics and performance metrics" },
     ],
   }),

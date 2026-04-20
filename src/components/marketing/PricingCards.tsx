@@ -118,7 +118,7 @@ export const whiteLabelTiers: PricingTier[] = [
     name: "Lease — Starter",
     price: "$249",
     period: "/month",
-    description: "White-label Vireon CRM leased to your business. Full branding, your domain, your clients.",
+    description: "White-label Genesis CRM leased to your business. Full branding, your domain, your clients.",
     stripePriceId: "lease_starter_monthly",
     features: [
       { text: "White-label branding", included: true },
@@ -162,7 +162,7 @@ export const whiteLabelTiers: PricingTier[] = [
     name: "Full Ownership",
     price: "Custom",
     period: "quote",
-    description: "Own the entire Vireon CRM platform outright. Your code, your servers, your business — forever.",
+    description: "Own the entire Genesis CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
     ctaLink: "/contact",

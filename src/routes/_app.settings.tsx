@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Settings" },
+      { title: "Genesis — Settings" },
       { name: "description", content: "Organization, team, and white-label settings" },
     ],
   }),

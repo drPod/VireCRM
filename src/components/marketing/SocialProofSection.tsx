@@ -9,7 +9,7 @@ const stats = [
 
 const testimonials = [
   {
-    quote: "We were losing 60% of our leads to slow follow-up. After Vireon, our close rate tripled. The AI doesn't forget, doesn't get tired, and doesn't take weekends off.",
+    quote: "We were losing 60% of our leads to slow follow-up. After Genesis, our close rate tripled. The AI doesn't forget, doesn't get tired, and doesn't take weekends off.",
     name: "Jessica Torres",
     title: "VP of Sales, ScaleUp Inc",
   },

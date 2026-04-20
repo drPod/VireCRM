@@ -11,8 +11,8 @@ export const Route = createFileRoute("/confirm-email")({
   component: ConfirmEmailPage,
   head: () => ({
     meta: [
-      { title: "Check Your Email — Vireon" },
-      { name: "description", content: "Confirm your email address to activate your Vireon account" },
+      { title: "Check Your Email — Genesis" },
+      { name: "description", content: "Confirm your email address to activate your Genesis account" },
     ],
   }),
 });

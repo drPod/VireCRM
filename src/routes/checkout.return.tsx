@@ -11,7 +11,7 @@ export const Route = createFileRoute("/checkout/return")({
     session_id: typeof search.session_id === "string" ? search.session_id : undefined,
   }),
   head: () => ({
-    meta: [{ title: "Payment complete — Vireon" }],
+    meta: [{ title: "Payment complete — Genesis" }],
   }),
 });
 
@@ -70,7 +70,7 @@ function CheckoutReturnPage() {
             <h1 className="text-2xl font-bold text-foreground">You're all set!</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {hasAccess
-                ? "Your subscription is active. Welcome to Vireon."
+                ? "Your subscription is active. Welcome to Genesis."
                 : "Payment received — your access will be live within a minute. You can refresh from the dashboard."}
             </p>
             {subscription?.price_id && (

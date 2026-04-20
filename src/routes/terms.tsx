@@ -6,8 +6,8 @@ export const Route = createFileRoute("/terms")({
   component: TermsPage,
   head: () => ({
     meta: [
-      { title: "Terms of Service — Vireon" },
-      { name: "description", content: "Terms and conditions governing your use of the Vireon platform." },
+      { title: "Terms of Service — Genesis" },
+      { name: "description", content: "Terms and conditions governing your use of the Genesis platform." },
     ],
   }),
 });
@@ -25,14 +25,14 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">1. Acceptance of Terms</h2>
               <p className="mt-2">
-                By accessing or using Vireon (the &quot;Service&quot;), operated by Ethan Sereti, you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
+                By accessing or using Genesis (the &quot;Service&quot;), operated by Ethan Sereti, you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">2. Description of Service</h2>
               <p className="mt-2">
-                Vireon is an AI-powered CRM platform that helps businesses automate sales processes, manage leads, and conduct outreach campaigns. Features vary by subscription plan.
+                Genesis is an AI-powered CRM platform that helps businesses automate sales processes, manage leads, and conduct outreach campaigns. Features vary by subscription plan.
               </p>
             </section>
 

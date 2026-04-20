@@ -14,8 +14,8 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
   head: () => ({
     meta: [
-      { title: "Sign In — Vireon" },
-      { name: "description", content: "Sign in to your Vireon account" },
+      { title: "Sign In — Genesis" },
+      { name: "description", content: "Sign in to your Genesis account" },
     ],
   }),
 });
@@ -28,7 +28,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { branding, isCustomDomain } = useDomainBranding();
 
-  const brandName = branding?.brand_name || "Vireon";
+  const brandName = branding?.brand_name || "Genesis";
   const accentColor = branding?.primary_color;
   const showMarketingHeader = !isCustomDomain;
 

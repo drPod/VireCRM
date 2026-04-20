@@ -9,9 +9,9 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing — Vireon CRM" },
+      { title: "Pricing — Genesis CRM" },
       { name: "description", content: "Done-for-you CRM plans from $97/mo or white-label plans to resell under your brand." },
-      { property: "og:title", content: "Vireon Pricing — Plans That Fit Your Business" },
+      { property: "og:title", content: "Genesis Pricing — Plans That Fit Your Business" },
       { property: "og:description", content: "CRM plans from $97/mo. White-label from $249/mo. Custom builds from $10K." },
     ],
   }),

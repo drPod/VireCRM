@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_app/leads")({
     typeof search.q === "string" && search.q.length > 0 ? { q: search.q } : {},
   head: () => ({
     meta: [
-      { title: "Vireon — Leads" },
+      { title: "Genesis — Leads" },
       { name: "description", content: "Manage and score your leads" },
     ],
   }),
