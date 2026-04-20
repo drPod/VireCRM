@@ -89,7 +89,7 @@ function CalendarPage() {
     return () => {
       cancelled = true;
     };
-  }, [organization?.id, monthStart, monthEnd]);
+  }, [organization?.id, monthStart, monthEnd, reloadKey]);
 
   const today = new Date();
   const isCurrentMonth =
