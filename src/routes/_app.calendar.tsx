@@ -147,12 +147,15 @@ function CalendarPage() {
                 Open Leads
               </Button>
             </Link>
-            <Link to="/leads">
-              <Button variant="command" className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Task
-              </Button>
-            </Link>
+            <Button
+              variant="command"
+              className="gap-2"
+              onClick={() => setNewTaskOpen(true)}
+              disabled={!organization?.id}
+            >
+              <Plus className="h-4 w-4" />
+              New Task
+            </Button>
           </div>
         </div>
 
