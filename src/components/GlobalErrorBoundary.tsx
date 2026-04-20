@@ -72,6 +72,7 @@ interface Props {
 
 interface State {
   error: Error | null;
+  supportEmail: string;
 }
 
 /**
@@ -81,9 +82,9 @@ interface State {
  * a thrown render-time error in a provider would crash to a blank white page.
  */
 export class GlobalErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, supportEmail: DEFAULT_SUPPORT_EMAIL };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
   }
 
@@ -94,6 +95,11 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     console.error("GlobalErrorBoundary caught:", error, info);
     // Fire-and-forget: persist to Supabase so we can review production crashes.
     void logErrorToSupabase(error, info);
+    // Resolve the support email for the current host (white-label aware) so
+    // the "Report this issue" button targets the right inbox.
+    void resolveSupportEmail().then((email) => {
+      this.setState({ supportEmail: email });
+    });
   }
 
   reset = () => {
@@ -101,7 +107,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   };
 
   render() {
-    const { error } = this.state;
+    const { error, supportEmail } = this.state;
     if (!error) return this.props.children;
 
     return (
@@ -154,9 +160,9 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             <a
               href={(() => {
                 const url = typeof window !== "undefined" ? window.location.href : "(unknown)";
-                const subject = `Vireon issue report: ${error.message?.slice(0, 80) || "Unexpected error"}`;
+                const subject = `Issue report: ${error.message?.slice(0, 80) || "Unexpected error"}`;
                 const body = [
-                  "Hi Vireon team,",
+                  "Hi support team,",
                   "",
                   "I hit an unexpected error in the app. Details below:",
                   "",
@@ -167,7 +173,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                   "What I was doing when it happened:",
                   "(please describe)",
                 ].join("\n");
-                return `mailto:support@vireonx.space?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                return `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
               })()}
               className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
