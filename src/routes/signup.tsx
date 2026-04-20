@@ -10,6 +10,8 @@ import {
   PasswordStrengthMeter,
   type PasswordStrengthResult,
 } from "@/components/auth/PasswordStrengthMeter";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { friendlyAuthError } from "@/lib/auth-errors";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -77,7 +79,9 @@ function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !email || !password) {
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim();
+    if (!trimmedName || !trimmedEmail || !password) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -95,23 +99,23 @@ function SignupPage() {
     setLoading(true);
     try {
       const { data: signUpData, error } = await supabase.auth.signUp({
-        email,
+        email: trimmedEmail,
         password,
         options: {
-          data: { full_name: fullName },
+          data: { full_name: trimmedName },
           emailRedirectTo: buildRedirectAfterSignup(),
         },
       });
       if (error) throw error;
       if (signUpData.session) {
         await tryAcceptInvite(invite);
-        toast.success(plan ? "Account created! Opening checkout..." : "Account created! Redirecting...");
+        toast.success(plan ? "Account created! Opening checkout..." : "Welcome aboard!");
         goPostSignup();
       } else {
         navigate({ to: "/confirm-email" });
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Signup failed");
+      toast.error(friendlyAuthError(err, "Signup failed"));
     } finally {
       setLoading(false);
     }
@@ -122,7 +126,7 @@ function SignupPage() {
       redirect_uri: buildRedirectAfterSignup(),
     });
     if (result.error) {
-      toast.error(result.error instanceof Error ? result.error.message : "Google sign-in failed");
+      toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
       return;
     }
     if (result.redirected) return;
@@ -179,9 +183,13 @@ function SignupPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
+              <label htmlFor="signup-name" className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
               <input
+                id="signup-name"
+                name="name"
                 type="text"
+                autoComplete="name"
+                required
                 placeholder="John Smith"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -189,9 +197,14 @@ function SignupPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Work Email</label>
+              <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-foreground">Work Email</label>
               <input
+                id="signup-email"
+                name="email"
                 type="email"
+                autoComplete="email"
+                inputMode="email"
+                required
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -199,14 +212,15 @@ function SignupPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
+              <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
+              <PasswordInput
+                id="signup-password"
+                name="password"
                 autoComplete="new-password"
+                required
+                placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
               />
               <PasswordStrengthMeter
                 password={password}

@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import type { DomainBranding } from "@/components/auth/DomainBrandingProvider";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { friendlyAuthError } from "@/lib/auth-errors";
 
 async function provisionUnderReseller(slug: string, companyName: string) {
   const { data, error } = await supabase.rpc("signup_under_reseller", {
@@ -42,29 +44,32 @@ export function BrandedSignup({ branding }: { branding: DomainBranding }) {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !companyName || !email || !password) {
+    const trimmedName = fullName.trim();
+    const trimmedCompany = companyName.trim();
+    const trimmedEmail = email.trim();
+    if (!trimmedName || !trimmedCompany || !trimmedEmail || !password) {
       toast.error("Please fill in all fields");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
       return;
     }
     setSubmitting(true);
     try {
-      sessionStorage.setItem("reseller_pending_company", companyName);
+      sessionStorage.setItem("reseller_pending_company", trimmedCompany);
       sessionStorage.setItem("reseller_pending_slug", branding.slug);
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: trimmedEmail,
         password,
         options: {
-          data: { full_name: fullName },
+          data: { full_name: trimmedName },
           emailRedirectTo: redirectTarget,
         },
       });
       if (error) throw error;
       if (data.session) {
-        await provisionUnderReseller(branding.slug, companyName);
+        await provisionUnderReseller(branding.slug, trimmedCompany);
         sessionStorage.removeItem("reseller_pending_company");
         sessionStorage.removeItem("reseller_pending_slug");
         toast.success("Workspace ready!");
@@ -73,34 +78,35 @@ export function BrandedSignup({ branding }: { branding: DomainBranding }) {
         navigate({ to: "/confirm-email" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Signup failed");
+      toast.error(friendlyAuthError(err, "Signup failed"));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleGoogleSignup = async () => {
-    if (!companyName) {
+    const trimmedCompany = companyName.trim();
+    if (!trimmedCompany) {
       toast.error("Please enter your company name first");
       return;
     }
-    sessionStorage.setItem("reseller_pending_company", companyName);
+    sessionStorage.setItem("reseller_pending_company", trimmedCompany);
     sessionStorage.setItem("reseller_pending_slug", branding.slug);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: redirectTarget,
     });
     if (result.error) {
-      toast.error(result.error instanceof Error ? result.error.message : "Google sign-in failed");
+      toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
       return;
     }
     if (result.redirected) return;
     try {
-      await provisionUnderReseller(branding.slug, companyName);
+      await provisionUnderReseller(branding.slug, trimmedCompany);
       sessionStorage.removeItem("reseller_pending_company");
       sessionStorage.removeItem("reseller_pending_slug");
       navigate({ to: "/dashboard" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Setup failed");
+      toast.error(friendlyAuthError(err, "Setup failed"));
     }
   };
 
@@ -156,9 +162,13 @@ export function BrandedSignup({ branding }: { branding: DomainBranding }) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Your Name</label>
+            <label htmlFor="brand-name" className="mb-1.5 block text-sm font-medium text-foreground">Your Name</label>
             <input
+              id="brand-name"
+              name="name"
               type="text"
+              autoComplete="name"
+              required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
@@ -166,9 +176,13 @@ export function BrandedSignup({ branding }: { branding: DomainBranding }) {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Company Name</label>
+            <label htmlFor="brand-company" className="mb-1.5 block text-sm font-medium text-foreground">Company Name</label>
             <input
+              id="brand-company"
+              name="organization"
               type="text"
+              autoComplete="organization"
+              required
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
@@ -176,9 +190,14 @@ export function BrandedSignup({ branding }: { branding: DomainBranding }) {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+            <label htmlFor="brand-email" className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
             <input
+              id="brand-email"
+              name="email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
@@ -186,13 +205,15 @@ export function BrandedSignup({ branding }: { branding: DomainBranding }) {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
-            <input
-              type="password"
+            <label htmlFor="brand-password" className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
+            <PasswordInput
+              id="brand-password"
+              name="password"
+              autoComplete="new-password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
-              placeholder="••••••••"
+              placeholder="At least 8 characters"
             />
           </div>
 
