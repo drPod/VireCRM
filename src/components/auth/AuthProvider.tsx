@@ -108,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let initialized = false;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
@@ -122,17 +124,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRole(null);
           setOrganization(null);
         }
-        setLoading(false);
+        // Only release loading after the initial session check has run, so the
+        // app doesn't briefly see user=null and bounce to /login.
+        if (initialized) setLoading(false);
       }
     );
 
-    // THEN check existing session
+    // THEN check existing session — this is the authoritative initial state.
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
         fetchUserData(existingSession.user.id);
       }
+      initialized = true;
       setLoading(false);
     });
 
