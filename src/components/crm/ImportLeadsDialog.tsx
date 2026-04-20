@@ -28,11 +28,29 @@ interface ParsedLead {
   source?: string;
 }
 
+/** Per-row warning/error captured during parsing — surfaced to the user. */
+interface ParseIssue {
+  row: number; // 1-indexed, matches what the user sees in their spreadsheet
+  message: string;
+}
+
+interface ParseOutcome {
+  leads: ParsedLead[];
+  issues: ParseIssue[];
+  /** Hard error that prevented parsing the file at all (vs. per-row issues). */
+  fatal?: string;
+}
+
 const VALID_STATUSES = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
 
-function parseCSV(text: string): ParsedLead[] {
+/** Same RFC-5322-lite check used everywhere else in the app. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function parseCSV(text: string): ParseOutcome {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) return [];
+  if (lines.length < 2) {
+    return { leads: [], issues: [], fatal: "File looks empty — need a header row plus at least one data row." };
+  }
 
   const headerLine = lines[0];
   const headers = headerLine.split(",").map((h) => h.trim().toLowerCase().replace(/['"]/g, ""));
@@ -46,20 +64,43 @@ function parseCSV(text: string): ParsedLead[] {
   const notesIdx = headers.findIndex((h) => ["notes", "note", "comments", "description"].includes(h));
   const sourceIdx = headers.findIndex((h) => ["source", "lead source", "origin", "channel"].includes(h));
 
-  if (nameIdx === -1) return [];
+  if (nameIdx === -1) {
+    return {
+      leads: [],
+      issues: [],
+      fatal: `Missing "Name" column. Detected headers: ${headers.join(", ") || "(none)"}.`,
+    };
+  }
 
   const leads: ParsedLead[] = [];
+  const issues: ParseIssue[] = [];
+
   for (let i = 1; i < lines.length; i++) {
+    const rowNum = i + 1; // 1-indexed for the user (header is row 1)
     const values = parseCSVLine(lines[i]);
     const name = values[nameIdx]?.trim();
-    if (!name) continue;
+    if (!name) {
+      issues.push({ row: rowNum, message: "missing name" });
+      continue;
+    }
+
+    const rawEmail = emailIdx >= 0 ? values[emailIdx]?.trim() : undefined;
+    let email: string | undefined;
+    if (rawEmail) {
+      const normalized = rawEmail.toLowerCase();
+      if (!EMAIL_RE.test(normalized)) {
+        issues.push({ row: rowNum, message: `invalid email "${rawEmail}"` });
+      } else {
+        email = normalized;
+      }
+    }
 
     const statusRaw = statusIdx >= 0 ? values[statusIdx]?.trim().toLowerCase() : undefined;
     const scoreRaw = scoreIdx >= 0 ? parseInt(values[scoreIdx]?.trim(), 10) : undefined;
 
     leads.push({
       name,
-      email: emailIdx >= 0 ? values[emailIdx]?.trim() || undefined : undefined,
+      email,
       phone: phoneIdx >= 0 ? values[phoneIdx]?.trim() || undefined : undefined,
       company: companyIdx >= 0 ? values[companyIdx]?.trim() || undefined : undefined,
       status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
@@ -68,7 +109,7 @@ function parseCSV(text: string): ParsedLead[] {
       source: sourceIdx >= 0 ? values[sourceIdx]?.trim() || undefined : "csv_import",
     });
   }
-  return leads;
+  return { leads, issues };
 }
 
 function parseCSVLine(line: string): string[] {
@@ -101,17 +142,46 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
-  const workbook = XLSX.read(buffer, { type: "array" });
+function parseXLSX(buffer: ArrayBuffer): ParseOutcome {
+  let workbook: XLSX.WorkBook;
+  try {
+    workbook = XLSX.read(buffer, { type: "array" });
+  } catch (err) {
+    return {
+      leads: [],
+      issues: [],
+      fatal: `Couldn't open the spreadsheet: ${err instanceof Error ? err.message : "unknown error"}.`,
+    };
+  }
   const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return [];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], { defval: "" });
-  if (rows.length === 0) return [];
+  if (!sheetName) return { leads: [], issues: [], fatal: "Workbook has no sheets." };
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+    workbook.Sheets[sheetName],
+    { defval: "" }
+  );
+  if (rows.length === 0) {
+    return { leads: [], issues: [], fatal: `Sheet "${sheetName}" is empty.` };
+  }
 
   const normalize = (key: string) => key.trim().toLowerCase().replace(/['"]/g, "");
 
+  // Validate that we have a name-ish header in row 1.
+  const firstRow = rows[0];
+  const headerKeys = Object.keys(firstRow).map(normalize);
+  const NAME_HEADERS = ["name", "full name", "fullname", "contact", "lead"];
+  if (!headerKeys.some((h) => NAME_HEADERS.includes(h))) {
+    return {
+      leads: [],
+      issues: [],
+      fatal: `Missing "Name" column in sheet "${sheetName}". Detected headers: ${headerKeys.join(", ")}.`,
+    };
+  }
+
   const leads: ParsedLead[] = [];
-  for (const row of rows) {
+  const issues: ParseIssue[] = [];
+
+  rows.forEach((row, idx) => {
+    const rowNum = idx + 2; // +2: header is row 1, data starts at row 2
     const mapped: Record<string, string> = {};
     for (const [key, val] of Object.entries(row)) {
       mapped[normalize(key)] = String(val ?? "");
@@ -119,9 +189,22 @@ function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
 
     const name =
       mapped["name"] || mapped["full name"] || mapped["fullname"] || mapped["contact"] || mapped["lead"];
-    if (!name?.trim()) continue;
+    if (!name?.trim()) {
+      issues.push({ row: rowNum, message: "missing name" });
+      return;
+    }
 
-    const email = mapped["email"] || mapped["e-mail"] || mapped["email address"] || undefined;
+    const rawEmail = (mapped["email"] || mapped["e-mail"] || mapped["email address"] || "").trim();
+    let email: string | undefined;
+    if (rawEmail) {
+      const normalized = rawEmail.toLowerCase();
+      if (!EMAIL_RE.test(normalized)) {
+        issues.push({ row: rowNum, message: `invalid email "${rawEmail}"` });
+      } else {
+        email = normalized;
+      }
+    }
+
     const phone = mapped["phone"] || mapped["telephone"] || mapped["tel"] || mapped["mobile"] || undefined;
     const company = mapped["company"] || mapped["organization"] || mapped["org"] || mapped["business"] || undefined;
     const statusRaw = (mapped["status"] || mapped["stage"] || "").toLowerCase();
@@ -129,7 +212,7 @@ function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
 
     leads.push({
       name: name.trim(),
-      email: email?.trim() || undefined,
+      email,
       phone: phone?.trim() || undefined,
       company: company?.trim() || undefined,
       status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
@@ -137,8 +220,9 @@ function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
       notes: (mapped["notes"] || mapped["note"] || mapped["comments"] || "").trim() || undefined,
       source: (mapped["source"] || mapped["lead source"] || mapped["origin"] || "").trim() || "xlsx_import",
     });
-  }
-  return leads;
+  });
+
+  return { leads, issues };
 }
 
 
@@ -167,6 +251,7 @@ export function ImportLeadsDialog({
   };
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<ParsedLead[]>([]);
+  const [issues, setIssues] = useState<ParseIssue[]>([]);
   const [loading, setLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -174,37 +259,59 @@ export function ImportLeadsDialog({
   const reset = useCallback(() => {
     setFile(null);
     setParsed([]);
+    setIssues([]);
     setImportResult(null);
     setParseError(null);
   }, []);
 
   const handleFile = useCallback(async (f: File) => {
     setParseError(null);
+    setIssues([]);
     setImportResult(null);
     setFile(f);
 
     try {
       const isExcel = /\.xlsx?$/i.test(f.name);
-      let leads: ParsedLead[];
+      const isCsv = /\.(csv|txt)$/i.test(f.name);
 
+      if (!isExcel && !isCsv) {
+        setParseError("Unsupported file format. Please upload a .csv, .txt, or .xlsx file.");
+        setParsed([]);
+        return;
+      }
+
+      let outcome: ParseOutcome;
       if (isExcel) {
         const buffer = await f.arrayBuffer();
-        leads = parseXLSX(buffer);
+        outcome = parseXLSX(buffer);
       } else {
         const text = await f.text();
-        leads = parseCSV(text);
+        outcome = parseCSV(text);
       }
 
-      if (leads.length === 0) {
-        setParseError(
-          'No leads found. Make sure your file has a header row with a "Name" column.'
-        );
+      if (outcome.fatal) {
+        setParseError(outcome.fatal);
         setParsed([]);
-      } else {
-        setParsed(leads);
+        return;
       }
-    } catch {
-      setParseError("Failed to read the file. Please check the format.");
+
+      if (outcome.leads.length === 0) {
+        const detail =
+          outcome.issues.length > 0
+            ? ` (${outcome.issues.length} row${outcome.issues.length > 1 ? "s" : ""} skipped — ${outcome.issues[0].message})`
+            : "";
+        setParseError(`0 valid rows detected${detail}.`);
+        setParsed([]);
+        setIssues(outcome.issues);
+        return;
+      }
+
+      setParsed(outcome.leads);
+      setIssues(outcome.issues);
+    } catch (err) {
+      setParseError(
+        `Failed to read the file: ${err instanceof Error ? err.message : "unknown error"}`
+      );
       setParsed([]);
     }
   }, []);
@@ -356,9 +463,32 @@ export function ImportLeadsDialog({
             {parseError && (
               <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                {parseError}
+                <div className="space-y-1">
+                  <p>{parseError}</p>
+                  {issues.length > 0 && (
+                    <ul className="list-disc pl-4 text-xs opacity-80">
+                      {issues.slice(0, 5).map((iss, i) => (
+                        <li key={i}>Row {iss.row}: {iss.message}</li>
+                      ))}
+                      {issues.length > 5 && <li>…and {issues.length - 5} more</li>}
+                    </ul>
+                  )}
+                </div>
               </div>
             )}
+
+            {parsed.length > 0 && issues.length > 0 && (
+              <div className="flex items-start gap-2 rounded-md bg-warning/10 p-3 text-xs text-warning">
+                <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium">{issues.length} row{issues.length > 1 ? "s" : ""} skipped</span>
+                  {" — "}
+                  {issues.slice(0, 3).map((i) => `row ${i.row} (${i.message})`).join(", ")}
+                  {issues.length > 3 && `, +${issues.length - 3} more`}
+                </div>
+              </div>
+            )}
+
 
             {parsed.length > 0 && (
               <>
