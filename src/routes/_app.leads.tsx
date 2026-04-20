@@ -55,10 +55,10 @@ function LeadsPage() {
   useEffect(() => {
     if (action === "add") {
       setAddOpen(true);
-      navigate({ to: "/leads", search: (prev) => ({ ...prev, action: undefined }), replace: true });
+      navigate({ to: "/leads", search: (prev: LeadsSearch) => ({ ...prev, action: undefined }), replace: true });
     } else if (action === "import") {
       setImportOpen(true);
-      navigate({ to: "/leads", search: (prev) => ({ ...prev, action: undefined }), replace: true });
+      navigate({ to: "/leads", search: (prev: LeadsSearch) => ({ ...prev, action: undefined }), replace: true });
     }
   }, [action, navigate]);
 
