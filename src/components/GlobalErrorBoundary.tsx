@@ -44,7 +44,8 @@ interface Props {
 
 interface State {
   error: Error | null;
-  supportEmail: string;
+  componentStack: string | null;
+  reportOpen: boolean;
 }
 
 /**
@@ -54,32 +55,28 @@ interface State {
  * a thrown render-time error in a provider would crash to a blank white page.
  */
 export class GlobalErrorBoundary extends Component<Props, State> {
-  state: State = { error: null, supportEmail: DEFAULT_SUPPORT_EMAIL };
+  state: State = { error: null, componentStack: null, reportOpen: false };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Surface for debugging in dev tools / error monitoring.
-    // Avoid throwing from within the boundary itself.
     // eslint-disable-next-line no-console
     console.error("GlobalErrorBoundary caught:", error, info);
-    // Fire-and-forget: persist to Supabase so we can review production crashes.
+    this.setState({ componentStack: info.componentStack ?? null });
     void logErrorToSupabase(error, info);
-    // Resolve the support email for the current host (white-label aware) so
-    // the "Report this issue" button targets the right inbox.
-    void resolveSupportEmail().then((email) => {
-      this.setState({ supportEmail: email });
-    });
   }
 
   reset = () => {
-    this.setState({ error: null });
+    this.setState({ error: null, componentStack: null, reportOpen: false });
   };
 
+  openReport = () => this.setState({ reportOpen: true });
+  setReportOpen = (open: boolean) => this.setState({ reportOpen: open });
+
   render() {
-    const { error, supportEmail } = this.state;
+    const { error, componentStack, reportOpen } = this.state;
     if (!error) return this.props.children;
 
     return (
@@ -129,31 +126,23 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             >
               Go home
             </a>
-            <a
-              href={(() => {
-                const url = typeof window !== "undefined" ? window.location.href : "(unknown)";
-                const subject = `Issue report: ${error.message?.slice(0, 80) || "Unexpected error"}`;
-                const body = [
-                  "Hi support team,",
-                  "",
-                  "I hit an unexpected error in the app. Details below:",
-                  "",
-                  `URL: ${url}`,
-                  `Error: ${error.message || "Unknown error"}`,
-                  `Time: ${new Date().toISOString()}`,
-                  "",
-                  "What I was doing when it happened:",
-                  "(please describe)",
-                ].join("\n");
-                return `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-              })()}
+            <button
+              type="button"
+              onClick={this.openReport}
               className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
               Report this issue
-            </a>
+            </button>
           </div>
         </div>
+        <ReportIssueDialog
+          open={reportOpen}
+          onOpenChange={this.setReportOpen}
+          error={error}
+          componentStack={componentStack}
+        />
       </div>
     );
   }
 }
+
