@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Wand2,
   Loader2,
@@ -24,6 +25,7 @@ import { findLeadsFn, type SuggestedLead } from "@/functions/find-leads.function
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
+import { useAutoOutreachPreference } from "@/hooks/useAutoOutreachPreference";
 import { toast } from "sonner";
 
 interface AutoFindLeadsDialogProps {
@@ -33,6 +35,7 @@ interface AutoFindLeadsDialogProps {
 export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProps) {
   const { organization } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
+  const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState("");
@@ -122,8 +125,8 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       setImported(true);
       onLeadsImported?.();
 
-      // Trigger auto-outreach in background
-      if (inserted && inserted.length > 0) {
+      // Trigger auto-outreach in background — only when the user opted in.
+      if (outreachEnabled && inserted && inserted.length > 0) {
         triggerOutreach(inserted);
       }
     }
@@ -296,6 +299,25 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Auto-outreach toggle */}
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
+              <label
+                htmlFor="auto-outreach-find"
+                className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                AI auto-outreach
+                <span className="font-normal text-muted-foreground">
+                  — email selected leads after import
+                </span>
+              </label>
+              <Switch
+                id="auto-outreach-find"
+                checked={outreachEnabled}
+                onCheckedChange={setOutreachEnabled}
+              />
             </div>
 
             {/* Actions */}

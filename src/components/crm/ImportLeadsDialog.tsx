@@ -9,10 +9,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, Loader2, AlertCircle, CheckCircle2, Download } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Upload, FileSpreadsheet, Loader2, AlertCircle, CheckCircle2, Download, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
+import { useAutoOutreachPreference } from "@/hooks/useAutoOutreachPreference";
 import { toast } from "sonner";
 
 interface ParsedLead {
@@ -147,6 +149,7 @@ interface ImportLeadsDialogProps {
 export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
   const { organization } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
+  const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<ParsedLead[]>([]);
@@ -239,8 +242,8 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
       toast.success(`Imported ${success} lead${success > 1 ? "s" : ""} successfully!`);
       onLeadsImported?.();
 
-      // Trigger auto-outreach in background
-      if (allInserted.length > 0) {
+      // Trigger auto-outreach in background — only if the user opted in.
+      if (outreachEnabled && allInserted.length > 0) {
         triggerOutreach(allInserted);
       }
     }
@@ -371,6 +374,24 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
                       …and {parsed.length - 50} more
                     </p>
                   )}
+                </div>
+
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
+                  <label
+                    htmlFor="auto-outreach-import"
+                    className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    AI auto-outreach
+                    <span className="font-normal text-muted-foreground">
+                      — email imported leads with addresses
+                    </span>
+                  </label>
+                  <Switch
+                    id="auto-outreach-import"
+                    checked={outreachEnabled}
+                    onCheckedChange={setOutreachEnabled}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">

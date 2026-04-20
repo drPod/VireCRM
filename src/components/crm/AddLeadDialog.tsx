@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
+import { useAutoOutreachPreference } from "@/hooks/useAutoOutreachPreference";
 import { toast } from "sonner";
 
 const statusOptions = ["new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
@@ -16,6 +18,7 @@ interface AddLeadDialogProps {
 export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
   const { organization } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
+  const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -62,8 +65,8 @@ export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
       setOpen(false);
       onLeadAdded?.();
 
-      // Trigger auto-outreach in background
-      if (inserted && inserted.length > 0) {
+      // Trigger auto-outreach in background — only if the user has it enabled.
+      if (outreachEnabled && inserted && inserted.length > 0) {
         triggerOutreach(inserted);
       }
     } catch (err: unknown) {
@@ -170,6 +173,23 @@ export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
               placeholder="Any notes about this lead..."
               value={form.notes}
               onChange={(e) => update("notes", e.target.value)}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
+            <label
+              htmlFor="auto-outreach-add"
+              className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              AI auto-outreach
+              <span className="font-normal text-muted-foreground">
+                — send a personalized email after adding
+              </span>
+            </label>
+            <Switch
+              id="auto-outreach-add"
+              checked={outreachEnabled}
+              onCheckedChange={setOutreachEnabled}
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
