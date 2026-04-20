@@ -104,6 +104,7 @@ export function PlatformAdminPanel() {
       }
       setEmail("");
       setNote("");
+      void loadSubs();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unexpected error");
     } finally {
