@@ -68,20 +68,6 @@ function SupportEmailLine() {
     </p>
   );
 }
-      <a href={`mailto:${email}`} className="font-medium text-foreground underline-offset-2 hover:underline">
-        {email}
-      </a>
-      .{" "}
-      <button
-        type="button"
-        onClick={onReport}
-        className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
-      >
-        Report this issue
-      </button>
-    </p>
-  );
-}
 
 // Best-effort: log a caught error to the error_logs table for production review.
 // Never throws — failures are swallowed to avoid loops inside the boundary.
