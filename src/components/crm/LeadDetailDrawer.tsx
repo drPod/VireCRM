@@ -251,7 +251,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
 
   const lastOutreachDate = activities.find((a) => a.type === "email")?.date ?? null;
-  const lastOutreachLabel = lastOutreachDate ? formatRelative(lastOutreachDate) : null;
+  const lastOutreachLabel = lastOutreachDate ? formatRelativeTime(lastOutreachDate) : null;
 
   if (!lead) return null;
 
