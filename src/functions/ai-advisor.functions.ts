@@ -128,16 +128,19 @@ Return ONLY valid JSON, no markdown or explanation.`,
     });
 
     if (!aiResponse.ok) {
+      const errBody = await aiResponse.text().catch(() => "");
+      console.error("AI advisor gateway error", aiResponse.status, errBody);
       if (aiResponse.status === 429) throw new Error("Rate limit reached. Please try again in a moment.");
-      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Please add funds.");
-      throw new Error("AI analysis failed");
+      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
+      throw new Error(`AI analysis failed (${aiResponse.status})${errBody ? ` — ${errBody.slice(0, 200)}` : ""}`);
     }
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    
+
     if (!toolCall?.function?.arguments) {
-      throw new Error("AI did not return structured output");
+      console.error("AI advisor: no tool_calls in response", JSON.stringify(aiData).slice(0, 500));
+      throw new Error("AI did not return structured output. Try rephrasing your business description.");
     }
 
     const result = JSON.parse(toolCall.function.arguments);
