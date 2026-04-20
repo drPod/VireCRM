@@ -1,6 +1,35 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const DEFAULT_SUPPORT_EMAIL = "support@vireonx.space";
+
+// Best-effort lookup of the org's configured support email so white-label
+// resellers receive issue reports at their own inbox instead of Vireon's.
+// Runs entirely client-side and never throws — falls back to the default.
+async function resolveSupportEmail(): Promise<string> {
+  if (typeof window === "undefined") return DEFAULT_SUPPORT_EMAIL;
+  try {
+    const host = window.location.hostname;
+    // Skip the RPC for system hosts — they always use the default inbox.
+    const systemHost =
+      /\.lovable\.app$/i.test(host) ||
+      /\.lovable-project\.com$/i.test(host) ||
+      /\.lovableproject\.com$/i.test(host) ||
+      /^localhost$/i.test(host) ||
+      /^127\.0\.0\.1$/i.test(host) ||
+      /^vireonx\.space$/i.test(host) ||
+      /^www\.vireonx\.space$/i.test(host);
+    if (!systemHost) {
+      const { data } = await supabase.rpc("get_org_by_domain", { p_hostname: host });
+      const branding = data as { support_email?: string | null } | null;
+      if (branding?.support_email) return branding.support_email;
+    }
+  } catch {
+    // ignore — fall through to default
+  }
+  return DEFAULT_SUPPORT_EMAIL;
+}
+
 // Best-effort: log a caught error to the error_logs table for production review.
 // Never throws — failures are swallowed to avoid loops inside the boundary.
 async function logErrorToSupabase(error: Error, info: ErrorInfo): Promise<void> {
