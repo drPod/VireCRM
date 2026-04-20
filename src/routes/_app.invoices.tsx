@@ -162,7 +162,7 @@ function InvoicesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link to="/billing">
+            <Link to="/billing" search={{ required: undefined, plan: undefined }}>
               <Button variant="outline" className="gap-2">
                 <CreditCard className="h-4 w-4" />
                 Manage billing
@@ -264,7 +264,7 @@ function InvoicesPage() {
                   : "Try a different filter."}
               </p>
               {txns.length === 0 && (
-                <Link to="/billing">
+                <Link to="/billing" search={{ required: undefined, plan: undefined }}>
                   <Button variant="outline" size="sm" className="mt-4 gap-1">
                     <ExternalLink className="h-3.5 w-3.5" />
                     Go to billing
