@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ interface AnalysisResult {
 
 export function AiAdvisorPanel() {
   const { organization, session } = useAuth();
+  const navigate = useNavigate();
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -269,7 +271,18 @@ export function AiAdvisorPanel() {
               )}
             </div>
 
-            <Button variant="command" className="mt-4 w-full gap-2">
+            <Button
+              variant="command"
+              className="mt-4 w-full gap-2"
+              onClick={() => {
+                const term =
+                  result.searchFilters.keywords[0] ||
+                  result.searchFilters.industries[0] ||
+                  result.searchFilters.job_titles[0] ||
+                  "";
+                navigate({ to: "/leads", search: { q: term } });
+              }}
+            >
               <Search className="h-4 w-4" />
               Search Leads with These Filters
             </Button>

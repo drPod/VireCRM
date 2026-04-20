@@ -10,8 +10,12 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 
+type LeadsSearch = { q?: string };
+
 export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
+  validateSearch: (search: Record<string, unknown>): LeadsSearch =>
+    typeof search.q === "string" && search.q.length > 0 ? { q: search.q } : {},
   head: () => ({
     meta: [
       { title: "Vireon — Leads" },
@@ -24,7 +28,8 @@ const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "w
 
 function LeadsPage() {
   const { organization } = useAuth();
-  const [search, setSearch] = useState("");
+  const { q } = Route.useSearch();
+  const [search, setSearch] = useState(q ?? "");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +37,11 @@ function LeadsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
+  useEffect(() => {
+    if (q !== undefined) setSearch(q);
+  }, [q]);
 
   const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
