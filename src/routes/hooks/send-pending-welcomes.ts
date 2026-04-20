@@ -68,7 +68,7 @@ export const Route = createFileRoute('/hooks/send-pending-welcomes')({
         const { data: rows, error: fetchErr } = await supabase
           .from('pending_welcome_emails')
           .select(
-            'id, recipient_email, full_name, brand_name, login_url, attempts',
+            'id, recipient_email, full_name, brand_name, login_url, attempts, reseller_id',
           )
           .is('sent_at', null)
           .is('failed_at', null)
@@ -90,6 +90,28 @@ export const Route = createFileRoute('/hooks/send-pending-welcomes')({
             JSON.stringify({ success: true, processed: 0 }),
             { headers: { 'Content-Type': 'application/json' } },
           )
+        }
+
+        // Batch-load reseller branding so reply-to / from-name match the
+        // reseller the client signed up under (white-label experience).
+        const resellerIds = Array.from(
+          new Set(rows.map((r) => r.reseller_id).filter(Boolean)),
+        )
+        const resellerBranding = new Map<
+          string,
+          { brand_name: string | null; support_email: string | null }
+        >()
+        if (resellerIds.length > 0) {
+          const { data: resellerRows } = await supabase
+            .from('organizations')
+            .select('id, brand_name, name, support_email')
+            .in('id', resellerIds)
+          for (const r of resellerRows ?? []) {
+            resellerBranding.set(r.id, {
+              brand_name: r.brand_name ?? r.name ?? null,
+              support_email: r.support_email ?? null,
+            })
+          }
         }
 
         const template = TEMPLATES[TEMPLATE_NAME]
