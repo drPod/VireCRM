@@ -148,6 +148,21 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     });
   }, [lead]);
 
+  // Fetch email send log when the Emails tab is opened (refetch on email change too)
+  useEffect(() => {
+    if (!lead || activeTab !== "emails") return;
+    const email = (form.email || lead.email || "").trim();
+    if (!email) {
+      setEmailLogs([]);
+      return;
+    }
+    setLoadingEmailLogs(true);
+    listLeadEmailLogsFn({ data: { email } })
+      .then((rows) => setEmailLogs(rows ?? []))
+      .catch(() => setEmailLogs([]))
+      .finally(() => setLoadingEmailLogs(false));
+  }, [lead, activeTab, form.email]);
+
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
