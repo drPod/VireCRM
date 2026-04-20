@@ -1,18 +1,33 @@
 import { useLocation } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 /**
- * Wraps page content and re-triggers a fade+slide animation
- * whenever the route pathname changes.
+ * Plays a quick fade-in on route changes WITHOUT unmounting the subtree.
  *
- * Uses the `key` prop to force React to remount the subtree,
- * which restarts the CSS animation defined in styles.css
- * (.page-transition).
+ * Previous implementation used `key={pathname}` which forced React to
+ * unmount/remount the entire page tree (including heavy headers/footers)
+ * on every navigation, causing visible lag. This version restarts the CSS
+ * animation imperatively (remove + force reflow + re-add class) so the
+ * DOM is reused and only the cheap fade plays.
  */
 export function PageTransition({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  const ref = useRef<HTMLDivElement>(null);
+  const lastPath = useRef(pathname);
+
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    const el = ref.current;
+    if (!el) return;
+    el.classList.remove("page-transition");
+    // Force reflow so the browser registers the class removal before re-adding.
+    void el.offsetWidth;
+    el.classList.add("page-transition");
+  }, [pathname]);
+
   return (
-    <div key={pathname} className="page-transition">
+    <div ref={ref} className="page-transition">
       {children}
     </div>
   );
