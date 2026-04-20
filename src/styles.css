@@ -286,19 +286,17 @@
 @keyframes page-enter {
   0% {
     opacity: 0;
-    transform: translateY(8px);
-    filter: blur(4px);
+    transform: translate3d(0, 6px, 0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 .page-transition {
-  animation: page-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: opacity, transform, filter;
+  animation: page-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
