@@ -138,6 +138,7 @@ export function CrmSidebar() {
         {subscription && (
           <Link
             to="/billing"
+            search={{ required: undefined, plan: undefined }}
             className="flex items-center justify-between rounded-lg border border-sidebar-border bg-sidebar-accent/30 px-3 py-2 transition-colors hover:bg-sidebar-accent"
             onClick={() => setMobileOpen(false)}
           >
@@ -153,6 +154,7 @@ export function CrmSidebar() {
         {!subscription && (
           <Link
             to="/billing"
+            search={{ required: undefined, plan: undefined }}
             className="block rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/10"
             onClick={() => setMobileOpen(false)}
           >
