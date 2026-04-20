@@ -1,5 +1,5 @@
 import { useLocation } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 /**
  * Plays a quick fade-in on route changes WITHOUT unmounting the subtree.
@@ -7,25 +7,27 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  * Previous implementation used `key={pathname}` which forced React to
  * unmount/remount the entire page tree (including heavy headers/footers)
  * on every navigation, causing visible lag. This version restarts the CSS
- * animation by toggling a class via a state flip, so the DOM is reused
- * and only the cheap fade plays.
+ * animation imperatively (remove + force reflow + re-add class) so the
+ * DOM is reused and only the cheap fade plays.
  */
 export function PageTransition({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const [tick, setTick] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
   const lastPath = useRef(pathname);
 
   useEffect(() => {
-    if (lastPath.current !== pathname) {
-      lastPath.current = pathname;
-      setTick((t) => t + 1);
-    }
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    const el = ref.current;
+    if (!el) return;
+    el.classList.remove("page-transition");
+    // Force reflow so the browser registers the class removal before re-adding.
+    void el.offsetWidth;
+    el.classList.add("page-transition");
   }, [pathname]);
 
-  // `tick` in the key only wraps a tiny inner span, not the children,
-  // so React reuses the existing DOM nodes — only the animation restarts.
   return (
-    <div className="page-transition" data-tick={tick}>
+    <div ref={ref} className="page-transition">
       {children}
     </div>
   );
