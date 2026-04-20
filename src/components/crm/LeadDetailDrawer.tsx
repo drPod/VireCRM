@@ -250,6 +250,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const inputClass =
     "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
 
+  const lastOutreachDate = activities.find((a) => a.type === "email")?.date ?? null;
+  const lastOutreachLabel = lastOutreachDate ? formatRelativeTime(lastOutreachDate) : null;
+
   if (!lead) return null;
 
   return (
@@ -261,25 +264,35 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               <SheetTitle>Lead Details</SheetTitle>
               <SheetDescription>Edit lead information and view activity history.</SheetDescription>
             </div>
-            <Button
-              variant="command"
-              size="sm"
-              onClick={handleResendOutreach}
-              disabled={resending || !(form.email.trim() || lead.email)}
-              title={
-                form.email.trim() || lead.email
-                  ? "Generate and send a fresh AI outreach email to this lead"
-                  : "Add an email address to enable sending"
-              }
-              className="shrink-0"
-            >
-              {resending ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Send className="mr-1.5 h-3.5 w-3.5" />
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <Button
+                variant="command"
+                size="sm"
+                onClick={handleResendOutreach}
+                disabled={resending || !(form.email.trim() || lead.email)}
+                title={
+                  form.email.trim() || lead.email
+                    ? "Generate and send a fresh AI outreach email to this lead"
+                    : "Add an email address to enable sending"
+                }
+              >
+                {resending ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Send className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                Send outreach
+              </Button>
+              {lastOutreachLabel && (
+                <span
+                  className="flex items-center gap-1 text-[10px] text-muted-foreground"
+                  title={new Date(lastOutreachDate!).toLocaleString()}
+                >
+                  <Clock className="h-3 w-3" />
+                  Last outreach: {lastOutreachLabel}
+                </span>
               )}
-              Send outreach
-            </Button>
+            </div>
           </div>
         </SheetHeader>
 
