@@ -39,6 +39,14 @@ const INDUSTRY_PRESETS = [
   "Local Services",
 ] as const;
 
+// Common B2B buyer personas. "Any" lets AI pick varied roles.
+const PERSONA_PRESETS = [
+  "Founder/CEO",
+  "Head of Sales",
+  "Marketing Lead",
+  "Operations",
+] as const;
+
 interface AutoFindLeadsDialogProps {
   onLeadsImported?: () => void;
 }
@@ -52,6 +60,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const [industry, setIndustry] = useState("");
   // "" = Any industry, preset name = picked from list, "__custom__" = free-text.
   const [industryChoice, setIndustryChoice] = useState<string>("");
+  const [persona, setPersona] = useState<string>("");
   const [count, setCount] = useState(10);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -84,6 +93,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
           // Otherwise the server falls back to a generic B2B prompt.
           businessDescription: trimmed.length >= 10 ? trimmed : undefined,
           industry: industry || undefined,
+          persona: persona || undefined,
           count,
         },
       });
@@ -246,6 +256,21 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
                 )}
               </div>
               <div>
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Lead persona (optional)
+                </label>
+                <select
+                  className={inputClass}
+                  value={persona}
+                  onChange={(e) => setPersona(e.target.value)}
+                >
+                  <option value="">Any role</option>
+                  {PERSONA_PRESETS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
                 <label className="mb-1 block text-xs font-medium text-foreground">
                   Number of leads
                 </label>

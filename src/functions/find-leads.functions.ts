@@ -9,6 +9,7 @@ const findLeadsSchema = z.object({
   // discover leads in one click without filling anything in.
   businessDescription: z.string().max(5000).optional(),
   industry: z.string().min(1).max(200).optional(),
+  persona: z.string().min(1).max(200).optional(),
   count: z.number().min(1).max(20).default(10),
 });
 
@@ -45,6 +46,9 @@ export const findLeadsFn = createServerFn({ method: "POST" })
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
 
     const industryHint = data.industry ? `The business is in the ${data.industry} industry.` : "";
+    const personaHint = data.persona
+      ? `Target persona: every lead MUST hold the role of "${data.persona}" (or a near-equivalent title) at their company.`
+      : "";
     const description = data.businessDescription?.trim();
     const orgHint = org.name ? `The user's company is called "${org.name}".` : "";
     const userPrompt = description
@@ -62,7 +66,7 @@ export const findLeadsFn = createServerFn({ method: "POST" })
         messages: [
           {
             role: "system",
-            content: `You are a B2B lead generation expert. Generate ${data.count} realistic potential lead contacts. ${industryHint}
+            content: `You are a B2B lead generation expert. Generate ${data.count} realistic potential lead contacts. ${industryHint} ${personaHint}
 
 Each lead should be a realistic-sounding person at a company that would genuinely benefit from a B2B product or service. Make names, companies, emails, and roles diverse and realistic. Use realistic email formats (firstname@company.com). Vary the company sizes and lead quality scores.
 
