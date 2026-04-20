@@ -33,7 +33,8 @@ const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "w
 
 function LeadsPage() {
   const { organization } = useAuth();
-  const { q } = Route.useSearch();
+  const navigate = useNavigate();
+  const { q, action } = Route.useSearch();
   const [search, setSearch] = useState(q ?? "");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -42,11 +43,24 @@ function LeadsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
     if (q !== undefined) setSearch(q);
   }, [q]);
+
+  // Auto-open dialogs from ?action= and clear the param so refresh doesn't reopen.
+  useEffect(() => {
+    if (action === "add") {
+      setAddOpen(true);
+      navigate({ to: "/leads", search: (prev) => ({ ...prev, action: undefined }), replace: true });
+    } else if (action === "import") {
+      setImportOpen(true);
+      navigate({ to: "/leads", search: (prev) => ({ ...prev, action: undefined }), replace: true });
+    }
+  }, [action, navigate]);
 
   const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -109,8 +123,16 @@ function LeadsPage() {
         <div className="flex gap-2">
           <ExportLeadsButton leads={leads} />
           <AutoFindLeadsDialog onLeadsImported={handleLeadAdded} />
-          <ImportLeadsDialog onLeadsImported={handleLeadAdded} />
-          <AddLeadDialog onLeadAdded={handleLeadAdded} />
+          <ImportLeadsDialog
+            onLeadsImported={handleLeadAdded}
+            open={importOpen}
+            onOpenChange={setImportOpen}
+          />
+          <AddLeadDialog
+            onLeadAdded={handleLeadAdded}
+            open={addOpen}
+            onOpenChange={setAddOpen}
+          />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
