@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox } from "lucide-react";
+import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
@@ -149,19 +149,28 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   }, [lead]);
 
   // Fetch email send log when the Emails tab is opened (refetch on email change too)
-  useEffect(() => {
-    if (!lead || activeTab !== "emails") return;
+  const refreshEmailLogs = useCallback(async () => {
+    if (!lead) return;
     const email = (form.email || lead.email || "").trim();
     if (!email) {
       setEmailLogs([]);
       return;
     }
     setLoadingEmailLogs(true);
-    listLeadEmailLogsFn({ data: { email } })
-      .then((rows) => setEmailLogs(rows ?? []))
-      .catch(() => setEmailLogs([]))
-      .finally(() => setLoadingEmailLogs(false));
-  }, [lead, activeTab, form.email]);
+    try {
+      const rows = await listLeadEmailLogsFn({ data: { email } });
+      setEmailLogs(rows ?? []);
+    } catch {
+      setEmailLogs([]);
+    } finally {
+      setLoadingEmailLogs(false);
+    }
+  }, [lead, form.email]);
+
+  useEffect(() => {
+    if (!lead || activeTab !== "emails") return;
+    void refreshEmailLogs();
+  }, [lead, activeTab, refreshEmailLogs]);
 
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -473,11 +482,27 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           </div>
         ) : (
           <div className="pt-4 space-y-2">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-muted-foreground">
+                Send history for {(form.email || lead.email || "").trim() || "this lead"}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void refreshEmailLogs()}
+                disabled={loadingEmailLogs || !(form.email.trim() || lead.email)}
+                className="h-7 px-2 text-xs"
+                title="Refresh email send log"
+              >
+                <RefreshCw className={`h-3 w-3 ${loadingEmailLogs ? "animate-spin" : ""}`} />
+                <span className="ml-1.5">Refresh</span>
+              </Button>
+            </div>
             {!(form.email.trim() || lead.email) ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
                 Add an email address to see send history.
               </div>
-            ) : loadingEmailLogs ? (
+            ) : loadingEmailLogs && emailLogs.length === 0 ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
