@@ -113,76 +113,144 @@ export function PlatformAdminPanel() {
   }
 
   return (
-    <Card className="border-primary/40">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Crown className="h-5 w-5 text-primary" />
-          <CardTitle>Platform Admin — Grant Manual Subscription</CardTitle>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Comp any user (by email) with a lifetime manual subscription. Bypasses
-          Stripe. Use for internal team, partners, or offline-sold accounts.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground flex items-start gap-2">
-          <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-          <span>
-            Visible only to platform admins. Server-side authorization is enforced
-            independently — even if this UI leaked, the action would still be denied.
-          </span>
-        </div>
+    <div className="space-y-6">
+      <Card className="border-primary/40">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-primary" />
+            <CardTitle>Platform Admin — Grant Manual Subscription</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Comp any user (by email) with a lifetime manual subscription. Bypasses
+            Stripe. Use for internal team, partners, or offline-sold accounts.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground flex items-start gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <span>
+              Visible only to platform admins. Server-side authorization is enforced
+              independently — even if this UI leaked, the action would still be denied.
+            </span>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="grant-email">User email</Label>
-          <Input
-            id="grant-email"
-            type="email"
-            placeholder="user@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={submitting}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="grant-email">User email</Label>
+            <Input
+              id="grant-email"
+              type="email"
+              placeholder="user@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={submitting}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="grant-plan">Plan</Label>
-          <Select value={plan} onValueChange={setPlan} disabled={submitting}>
-            <SelectTrigger id="grant-plan">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PLAN_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="grant-plan">Plan</Label>
+            <Select value={plan} onValueChange={setPlan} disabled={submitting}>
+              <SelectTrigger id="grant-plan">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PLAN_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="grant-note">Internal note (optional)</Label>
-          <Input
-            id="grant-note"
-            placeholder="e.g. Beta partner, lifetime deal Q4"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            disabled={submitting}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="grant-note">Internal note (optional)</Label>
+            <Input
+              id="grant-note"
+              placeholder="e.g. Beta partner, lifetime deal Q4"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              disabled={submitting}
+            />
+          </div>
 
-        <Button onClick={handleGrant} disabled={submitting} className="w-full">
-          {submitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Granting...
-            </>
+          <Button onClick={handleGrant} disabled={submitting} className="w-full">
+            {submitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Granting...
+              </>
+            ) : (
+              "Grant Manual Subscription"
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <CardTitle>Active Manual Subscriptions</CardTitle>
+            {subs && (
+              <Badge variant="secondary" className="ml-1">
+                {subs.length}
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void loadSubs()}
+            disabled={loadingSubs}
+          >
+            {loadingSubs ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loadingSubs && !subs ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : !subs || subs.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No active manual subscriptions yet.
+            </p>
           ) : (
-            "Grant Manual Subscription"
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Granted</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subs.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-mono text-xs">{s.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {s.plan.replace("manual_", "")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(s.granted_at), {
+                          addSuffix: true,
+                        })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
-        </Button>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
