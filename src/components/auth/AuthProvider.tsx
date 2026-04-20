@@ -22,6 +22,7 @@ interface Organization {
   primary_color: string | null;
   brand_name: string | null;
   custom_domain: string | null;
+  support_email: string | null;
   plan: string;
   ai_tokens_used: number;
   ai_tokens_limit: number;
