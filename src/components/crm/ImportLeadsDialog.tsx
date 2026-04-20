@@ -376,6 +376,24 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
                   )}
                 </div>
 
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
+                  <label
+                    htmlFor="auto-outreach-import"
+                    className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    AI auto-outreach
+                    <span className="font-normal text-muted-foreground">
+                      — email imported leads with addresses
+                    </span>
+                  </label>
+                  <Switch
+                    id="auto-outreach-import"
+                    checked={outreachEnabled}
+                    onCheckedChange={setOutreachEnabled}
+                  />
+                </div>
+
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
                     {parsed.length} lead{parsed.length > 1 ? "s" : ""} ready to import
