@@ -40,13 +40,33 @@ export function PlatformAdminPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [allowed, setAllowed] = useState<boolean>(false);
   const [checking, setChecking] = useState(true);
+  const [subs, setSubs] = useState<ManualSub[] | null>(null);
+  const [loadingSubs, setLoadingSubs] = useState(false);
+
+  const loadSubs = useCallback(async () => {
+    setLoadingSubs(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("list-manual-subscriptions");
+      if (error) {
+        toast.error(error.message ?? "Failed to load subscriptions");
+        return;
+      }
+      setSubs((data?.subscriptions as ManualSub[]) ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setLoadingSubs(false);
+    }
+  }, []);
 
   useEffect(() => {
     // Client-side gate is purely cosmetic — the real check is in the edge function.
     const callerEmail = (user?.email ?? "").toLowerCase();
-    setAllowed(FALLBACK_ADMIN_EMAILS.includes(callerEmail));
+    const isAdmin = FALLBACK_ADMIN_EMAILS.includes(callerEmail);
+    setAllowed(isAdmin);
     setChecking(false);
-  }, [user?.email]);
+    if (isAdmin) void loadSubs();
+  }, [user?.email, loadSubs]);
 
   if (checking) {
     return (
