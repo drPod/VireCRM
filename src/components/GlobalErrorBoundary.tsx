@@ -106,7 +106,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               {error.message}
             </pre>
           )}
-          <div className="mt-6 flex items-center justify-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => {
                 this.reset();
@@ -121,6 +121,28 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
               Go home
+            </a>
+            <a
+              href={(() => {
+                const url = typeof window !== "undefined" ? window.location.href : "(unknown)";
+                const subject = `Vireon issue report: ${error.message?.slice(0, 80) || "Unexpected error"}`;
+                const body = [
+                  "Hi Vireon team,",
+                  "",
+                  "I hit an unexpected error in the app. Details below:",
+                  "",
+                  `URL: ${url}`,
+                  `Error: ${error.message || "Unknown error"}`,
+                  `Time: ${new Date().toISOString()}`,
+                  "",
+                  "What I was doing when it happened:",
+                  "(please describe)",
+                ].join("\n");
+                return `mailto:support@vireonx.space?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+              })()}
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              Report this issue
             </a>
           </div>
         </div>
