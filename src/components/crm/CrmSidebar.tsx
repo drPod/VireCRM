@@ -182,7 +182,16 @@ export function CrmSidebar() {
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
           <ArrowUpCircle className="h-4 w-4" />
-          Upgrade Plan
+          <span className="flex-1">Upgrade Plan</span>
+          {!subscription && (
+            <span
+              aria-label="Upgrade available"
+              className="relative flex h-2 w-2"
+            >
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+          )}
         </Link>
         <Link
           to={"/settings" as string}
