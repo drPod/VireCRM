@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Crown, Loader2, ShieldCheck } from "lucide-react";
+import { Crown, Loader2, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+
+interface ManualSub {
+  id: string;
+  user_id: string;
+  email: string;
+  plan: string;
+  granted_at: string;
+  expires_at: string | null;
+}
 
 // Hardcoded fallback list — must mirror FALLBACK_ADMINS in the edge function.
 // Update both if you change platform admins.
