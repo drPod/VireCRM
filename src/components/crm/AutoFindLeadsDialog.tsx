@@ -183,13 +183,13 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
           <div className="space-y-4 pt-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">
-                What does your business do? *
+                What does your business do? <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               <textarea
                 className="w-full rounded-lg border border-input bg-input p-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
                 rows={3}
                 maxLength={5000}
-                placeholder="e.g. We provide cloud-based accounting software for small and medium businesses..."
+                placeholder="Leave blank for generic B2B leads, or describe your business for tailored results — e.g. cloud accounting software for SMBs."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
