@@ -5,7 +5,9 @@ import { z } from "zod";
 
 const findLeadsSchema = z.object({
   organizationId: z.string().uuid(),
-  businessDescription: z.string().min(10).max(5000),
+  // Optional — if omitted we fall back to a generic B2B prompt so users can
+  // discover leads in one click without filling anything in.
+  businessDescription: z.string().max(5000).optional(),
   industry: z.string().min(1).max(200).optional(),
   count: z.number().min(1).max(20).default(10),
 });
@@ -43,6 +45,11 @@ export const findLeadsFn = createServerFn({ method: "POST" })
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
 
     const industryHint = data.industry ? `The business is in the ${data.industry} industry.` : "";
+    const description = data.businessDescription?.trim();
+    const orgHint = org.name ? `The user's company is called "${org.name}".` : "";
+    const userPrompt = description
+      ? `Business: ${description}\n\nGenerate ${data.count} potential leads.`
+      : `${orgHint} No business description was provided. Generate ${data.count} high-quality, diverse B2B leads (decision-makers at SMBs and mid-market companies across varied industries) that any growing business could plausibly sell to.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -55,15 +62,15 @@ export const findLeadsFn = createServerFn({ method: "POST" })
         messages: [
           {
             role: "system",
-            content: `You are a B2B lead generation expert. Based on the business description, generate ${data.count} realistic potential lead contacts that would be ideal customers for this business. ${industryHint}
+            content: `You are a B2B lead generation expert. Generate ${data.count} realistic potential lead contacts. ${industryHint}
 
-Each lead should be a realistic-sounding person at a company that would genuinely benefit from the described product/service. Make names, companies, emails, and roles diverse and realistic. Use realistic email formats (firstname@company.com). Vary the company sizes and lead quality scores.
+Each lead should be a realistic-sounding person at a company that would genuinely benefit from a B2B product or service. Make names, companies, emails, and roles diverse and realistic. Use realistic email formats (firstname@company.com). Vary the company sizes and lead quality scores.
 
 Return ONLY valid JSON, no markdown.`,
           },
           {
             role: "user",
-            content: `Business: ${data.businessDescription}\n\nGenerate ${data.count} potential leads.`,
+            content: userPrompt,
           },
         ],
         tools: [
