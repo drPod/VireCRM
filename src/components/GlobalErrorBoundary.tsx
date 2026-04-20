@@ -1,4 +1,41 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+// Best-effort: log a caught error to the error_logs table for production review.
+// Never throws — failures are swallowed to avoid loops inside the boundary.
+async function logErrorToSupabase(error: Error, info: ErrorInfo): Promise<void> {
+  try {
+    let userId: string | null = null;
+    let organizationId: string | null = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      userId = data.session?.user?.id ?? null;
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("user_id", userId)
+          .maybeSingle();
+        organizationId = profile?.organization_id ?? null;
+      }
+    } catch {
+      // ignore — we still want to log the error itself
+    }
+
+    await supabase.from("error_logs").insert({
+      message: error.message?.slice(0, 2000) || "Unknown error",
+      stack: error.stack?.slice(0, 8000) ?? null,
+      component_stack: info.componentStack?.slice(0, 8000) ?? null,
+      url: typeof window !== "undefined" ? window.location.href : null,
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      user_id: userId,
+      organization_id: organizationId,
+      metadata: { name: error.name },
+    });
+  } catch {
+    // Swallow — never let logging break the boundary fallback.
+  }
+}
 
 interface Props {
   children: ReactNode;
@@ -26,6 +63,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     // Avoid throwing from within the boundary itself.
     // eslint-disable-next-line no-console
     console.error("GlobalErrorBoundary caught:", error, info);
+    // Fire-and-forget: persist to Supabase so we can review production crashes.
+    void logErrorToSupabase(error, info);
   }
 
   reset = () => {
