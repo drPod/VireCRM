@@ -463,9 +463,32 @@ export function ImportLeadsDialog({
             {parseError && (
               <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                {parseError}
+                <div className="space-y-1">
+                  <p>{parseError}</p>
+                  {issues.length > 0 && (
+                    <ul className="list-disc pl-4 text-xs opacity-80">
+                      {issues.slice(0, 5).map((iss, i) => (
+                        <li key={i}>Row {iss.row}: {iss.message}</li>
+                      ))}
+                      {issues.length > 5 && <li>…and {issues.length - 5} more</li>}
+                    </ul>
+                  )}
+                </div>
               </div>
             )}
+
+            {parsed.length > 0 && issues.length > 0 && (
+              <div className="flex items-start gap-2 rounded-md bg-warning/10 p-3 text-xs text-warning">
+                <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium">{issues.length} row{issues.length > 1 ? "s" : ""} skipped</span>
+                  {" — "}
+                  {issues.slice(0, 3).map((i) => `row ${i.row} (${i.message})`).join(", ")}
+                  {issues.length > 3 && `, +${issues.length - 3} more`}
+                </div>
+              </div>
+            )}
+
 
             {parsed.length > 0 && (
               <>
