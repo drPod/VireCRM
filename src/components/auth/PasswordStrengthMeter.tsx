@@ -49,11 +49,16 @@ export function PasswordStrengthMeter({
     setReady(true);
   }, []);
 
+  // Stable key so a new-array-every-render `userInputs` prop doesn't recompute
+  // the result and refire the onChange effect, which previously caused an
+  // infinite render loop in parents that called setState in onChange.
+  const userInputsKey = (userInputs ?? []).join("\u0001");
   const result = useMemo(() => {
     if (!ready || !password) return null;
     const r = zxcvbn(password, userInputs ?? []);
     return r;
-  }, [ready, password, userInputs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, password, userInputsKey]);
 
   useEffect(() => {
     if (!onChange) return;
