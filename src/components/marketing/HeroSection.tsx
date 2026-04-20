@@ -58,8 +58,9 @@ export function HeroSection() {
 
         {/* Hero Image */}
         <div className="relative mx-auto mt-16 max-w-5xl">
-          <div className="absolute -inset-4 rounded-3xl bg-primary/10 blur-2xl" />
-          <div className="relative overflow-hidden rounded-2xl border border-border shadow-2xl shadow-primary/15">
+          <div className="pointer-events-none absolute -inset-12 rounded-[2rem] hero-aurora opacity-70" />
+          <div className="pointer-events-none absolute -inset-4 rounded-3xl bg-primary/10 blur-2xl" />
+          <div className="relative overflow-hidden rounded-2xl border border-border shadow-2xl shadow-primary/15 hero-float">
             <img
               src={heroImage}
               alt="Genesis AI CRM — automated sales pipeline overview"
