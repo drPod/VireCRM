@@ -301,6 +301,25 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
               ))}
             </div>
 
+            {/* Auto-outreach toggle */}
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
+              <label
+                htmlFor="auto-outreach-find"
+                className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                AI auto-outreach
+                <span className="font-normal text-muted-foreground">
+                  — email selected leads after import
+                </span>
+              </label>
+              <Switch
+                id="auto-outreach-find"
+                checked={outreachEnabled}
+                onCheckedChange={setOutreachEnabled}
+              />
+            </div>
+
             {/* Actions */}
             <div className="flex items-center justify-between pt-2 border-t border-border">
               <Button variant="outline" size="sm" onClick={reset}>
