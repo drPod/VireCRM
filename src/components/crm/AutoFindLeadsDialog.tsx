@@ -235,7 +235,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
               variant="command"
               className="w-full gap-2"
               onClick={handleFind}
-              disabled={loading || description.length < 10}
+              disabled={loading}
             >
               {loading ? (
                 <>
