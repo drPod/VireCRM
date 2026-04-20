@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
+import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
