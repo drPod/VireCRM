@@ -17,9 +17,72 @@ import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { crmTiers, whiteLabelTiers, type PricingTier } from "@/components/marketing/PricingCards";
+import { Check, X } from "lucide-react";
 
 function findTierByPriceId(priceId: string): PricingTier | undefined {
   return [...crmTiers, ...whiteLabelTiers].find((t) => t.stripePriceId === priceId);
+}
+
+function InlinePlans({
+  onSelect,
+  currentPriceId,
+}: {
+  onSelect: (tier: PricingTier) => void;
+  currentPriceId?: string;
+}) {
+  const allTiers = [...crmTiers, ...whiteLabelTiers].filter((t) => t.stripePriceId);
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {allTiers.map((tier) => {
+        const isCurrent = tier.stripePriceId === currentPriceId;
+        return (
+          <div
+            key={tier.name}
+            className={`rounded-xl border p-5 flex flex-col ${
+              tier.highlighted
+                ? "border-primary/40 bg-primary/5"
+                : "border-border bg-card"
+            }`}
+          >
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <h3 className="text-base font-bold text-foreground">{tier.name}</h3>
+              {tier.badge && (
+                <Badge variant="secondary" className="text-[10px]">{tier.badge}</Badge>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{tier.description}</p>
+            <p className="mt-3 text-xl font-bold text-foreground">
+              {tier.price}
+              <span className="text-xs font-normal text-muted-foreground">{tier.period}</span>
+            </p>
+            <ul className="mt-3 space-y-1.5 flex-1">
+              {tier.features.slice(0, 5).map((f, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-xs">
+                  {f.included ? (
+                    <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                  ) : (
+                    <X className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 mt-0.5" />
+                  )}
+                  <span className={f.included ? "text-foreground" : "text-muted-foreground/60 line-through"}>
+                    {f.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              variant={tier.highlighted ? "command" : "outline"}
+              size="sm"
+              className="mt-4 w-full"
+              disabled={isCurrent}
+              onClick={() => onSelect(tier)}
+            >
+              {isCurrent ? "Current plan" : tier.cta}
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function BillingErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
