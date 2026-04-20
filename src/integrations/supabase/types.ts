@@ -1044,6 +1044,54 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          component_stack: string | null
+          created_at: string
+          description: string
+          error_message: string | null
+          error_stack: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+          status: string
+          updated_at: string
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          component_stack?: string | null
+          created_at?: string
+          description: string
+          error_message?: string | null
+          error_stack?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          status?: string
+          updated_at?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          component_stack?: string | null
+          created_at?: string
+          description?: string
+          error_message?: string | null
+          error_stack?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          status?: string
+          updated_at?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
