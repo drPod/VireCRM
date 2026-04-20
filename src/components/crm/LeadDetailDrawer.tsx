@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send } from "lucide-react";
+import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
+import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
@@ -52,7 +53,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "activity">("details");
+  const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>([]);
+  const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
 
   useEffect(() => {
     if (!lead) return;
@@ -144,6 +147,21 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       setLoadingActivity(false);
     });
   }, [lead]);
+
+  // Fetch email send log when the Emails tab is opened (refetch on email change too)
+  useEffect(() => {
+    if (!lead || activeTab !== "emails") return;
+    const email = (form.email || lead.email || "").trim();
+    if (!email) {
+      setEmailLogs([]);
+      return;
+    }
+    setLoadingEmailLogs(true);
+    listLeadEmailLogsFn({ data: { email } })
+      .then((rows) => setEmailLogs(rows ?? []))
+      .catch(() => setEmailLogs([]))
+      .finally(() => setLoadingEmailLogs(false));
+  }, [lead, activeTab, form.email]);
 
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -257,6 +275,21 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
             {activities.length > 0 && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                 {activities.length}
+              </Badge>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("emails")}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === "emails"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Emails
+            {emailLogs.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                {emailLogs.length}
               </Badge>
             )}
           </button>
@@ -417,7 +450,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </p>
             )}
           </div>
-        ) : (
+        ) : activeTab === "activity" ? (
           <div className="pt-4">
             {loadingActivity ? (
               <div className="flex items-center justify-center py-8">
@@ -436,6 +469,24 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   <ActivityEntry key={`${item.type}-${item.id}`} item={item} />
                 ))}
               </div>
+            )}
+          </div>
+        ) : (
+          <div className="pt-4 space-y-2">
+            {!(form.email.trim() || lead.email) ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                Add an email address to see send history.
+              </div>
+            ) : loadingEmailLogs ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : emailLogs.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                No emails sent to this lead yet.
+              </div>
+            ) : (
+              emailLogs.map((log) => <EmailLogEntryRow key={log.id} log={log} />)
             )}
           </div>
         )}
@@ -520,4 +571,43 @@ function formatRelativeTime(dateStr: string): string {
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}d ago`;
   return new Date(dateStr).toLocaleDateString();
+}
+
+function EmailLogEntryRow({ log }: { log: EmailLogEntry }) {
+  const status = (log.status || "unknown").toLowerCase();
+  const colorClass =
+    status === "sent" || status === "delivered"
+      ? "border-green-500/30 text-green-400 bg-green-500/10"
+      : status === "pending" || status === "queued"
+        ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10"
+        : status === "suppressed"
+          ? "border-orange-500/30 text-orange-400 bg-orange-500/10"
+          : status === "failed" || status === "error" || status === "bounced"
+            ? "border-red-500/30 text-red-400 bg-red-500/10"
+            : "border-muted text-muted-foreground bg-muted/30";
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-3 space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Inbox className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-xs font-medium text-foreground truncate">
+            {log.template_name}
+          </span>
+        </div>
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+          {formatRelativeTime(log.created_at)}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 capitalize ${colorClass}`}>
+          {status}
+        </Badge>
+        <span className="text-[10px] text-muted-foreground truncate">{log.recipient_email}</span>
+      </div>
+      {log.error_message && (
+        <p className="text-[11px] text-red-400 leading-relaxed line-clamp-2">{log.error_message}</p>
+      )}
+    </div>
+  );
 }
