@@ -18,6 +18,7 @@ interface AddLeadDialogProps {
 export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
   const { organization } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
+  const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
