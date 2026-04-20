@@ -223,27 +223,25 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     }
   };
 
-  const handleResendOutreach = async () => {
+  const handleOpenPreview = () => {
     if (!lead) return;
     const email = form.email.trim() || lead.email;
     if (!email) {
       toast.error("Add an email address first");
       return;
     }
-    setResending(true);
-    try {
-      await triggerOutreach([
-        {
-          id: lead.id,
-          name: form.name.trim() || lead.name,
-          email,
-          company: form.company.trim() || lead.company || null,
-        },
-      ]);
-      // triggerOutreach surfaces its own toast; refresh activity on close/reopen.
-      onUpdated();
-    } finally {
-      setResending(false);
+    setPreviewOpen(true);
+  };
+
+  const handleSent = () => {
+    // Refresh parent list (lead status may have moved to "contacted") and the
+    // activity tab so the new message shows up immediately.
+    onUpdated();
+    if (lead) {
+      void refreshEmailLogs();
+      // Re-fetch activities by reusing the lead-effect: trigger by setting lead state.
+      // Simpler: the parent's onUpdated will close & reopen flows; here we just
+      // trust the next drawer open to refetch. For now, optimistically nothing more.
     }
   };
 
