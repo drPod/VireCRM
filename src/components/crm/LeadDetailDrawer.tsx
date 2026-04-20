@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send } from "lucide-react";
+import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
+import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
