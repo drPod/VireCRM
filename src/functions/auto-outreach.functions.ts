@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { z } from "zod";
@@ -16,11 +17,38 @@ const outreachSchema = z.object({
   businessContext: z.string().min(1).max(5000).optional(),
 });
 
+interface GeneratedEmail {
+  lead_name: string;
+  subject: string;
+  body: string;
+}
+
+interface OutreachResult {
+  /** Emails actually accepted by the email queue. */
+  sent: number;
+  /** Leads we couldn't email (no address, AI didn't return one for them, send failed). */
+  skipped: number;
+  /** Per-lead failure reasons — useful for the UI toast. */
+  errors: string[];
+  messages: GeneratedEmail[];
+}
+
+/** Tiny helper so one bad send doesn't block the loop. */
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 export const autoOutreachFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof outreachSchema>) => outreachSchema.parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<OutreachResult> => {
     const { supabase, userId } = context;
+
+    // Forward the caller's JWT to the internal /lovable/email/transactional/send
+    // route — that route requires `Authorization: Bearer <user-jwt>` and we're
+    // running server-side here so we have to re-attach it manually.
+    const incomingAuth = getRequest()?.headers.get("authorization") ?? null;
+    if (!incomingAuth) {
+      throw new Error("Missing authorization header — cannot send emails");
+    }
 
     // Verify org membership
     const { data: profile } = await supabase
@@ -33,7 +61,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       throw new Error("Unauthorized: not a member of this organization");
     }
 
-    // Get org info for context
+    // Get org info for context + token-budget enforcement
     const { data: org } = await supabase
       .from("organizations")
       .select("name, brand_name, ai_tokens_used, ai_tokens_limit")
@@ -48,10 +76,16 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
 
-    // Filter leads that have emails
+    // Filter leads that have emails — no email = no outreach.
     const leadsWithEmail = data.leads.filter((l) => l.email);
+    const noEmailCount = data.leads.length - leadsWithEmail.length;
     if (leadsWithEmail.length === 0) {
-      return { sent: 0, skipped: data.leads.length, messages: [] };
+      return {
+        sent: 0,
+        skipped: data.leads.length,
+        errors: noEmailCount > 0 ? [`${noEmailCount} lead(s) had no email address`] : [],
+        messages: [],
+      };
     }
 
     const businessName = org.brand_name || org.name;
@@ -63,6 +97,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       `- ${l.name}${l.company ? ` at ${l.company}` : ""}${l.role ? ` (${l.role})` : ""}${l.score ? ` [score: ${l.score}]` : ""}`
     ).join("\n");
 
+    // ----- 1. Generate copy in one AI call (cheaper + more consistent voice) -----
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -128,58 +163,122 @@ Return ONLY valid JSON, no markdown.`,
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-
     if (!toolCall?.function?.arguments) {
       throw new Error("AI did not return structured output");
     }
 
     const result = JSON.parse(toolCall.function.arguments);
-    const generatedEmails = result.emails as Array<{
-      lead_name: string;
-      subject: string;
-      body: string;
-    }>;
+    const generatedEmails = (result.emails ?? []) as GeneratedEmail[];
 
-    // Match generated emails to leads and insert messages
-    const messagesToInsert = generatedEmails
-      .map((email) => {
-        const lead = leadsWithEmail.find(
-          (l) => l.name.toLowerCase() === email.lead_name.toLowerCase()
-        );
-        if (!lead) return null;
-        return {
-          organization_id: data.organizationId,
-          lead_id: lead.id,
-          subject: email.subject,
-          content: email.body,
-          type: "email" as const,
-          status: "sent" as const,
-        };
-      })
-      .filter((m): m is NonNullable<typeof m> => m !== null);
+    // ----- 2. Per-lead: insert message row + dispatch email + update lead.
+    // Each iteration is wrapped in its own try/catch so a single bad row
+    // (RLS reject, suppressed recipient, transient 5xx) cannot kill the run.
+    let sent = 0;
+    let skipped = noEmailCount;
+    const errors: string[] = [];
+    const SEND_DELAY_MS = 250; // smooth out bursts; queue handles real rate limits
 
-    if (messagesToInsert.length > 0) {
-      const { error } = await supabase.from("messages").insert(messagesToInsert);
-      if (error) {
-        console.error("Failed to save outreach messages:", error);
-        throw new Error("Failed to save outreach messages");
+    for (const email of generatedEmails) {
+      const lead = leadsWithEmail.find(
+        (l) => l.name.toLowerCase() === email.lead_name.toLowerCase()
+      );
+      if (!lead || !lead.email) {
+        skipped++;
+        continue;
       }
 
-      // Update lead status to "contacted" and set last_contact
-      const leadIds = messagesToInsert.map((m) => m!.lead_id!);
-      await supabase
-        .from("leads")
-        .update({ status: "contacted", last_contact: new Date().toISOString() })
-        .in("id", leadIds)
-        .eq("status", "new"); // Only update leads still in "new" status
+      try {
+        // a) Persist the message record (status: pending until queue accepts)
+        const { data: inserted, error: insertErr } = await supabase
+          .from("messages")
+          .insert({
+            organization_id: data.organizationId,
+            lead_id: lead.id,
+            subject: email.subject,
+            content: email.body,
+            type: "email",
+            status: "pending",
+          })
+          .select("id")
+          .single();
+
+        if (insertErr || !inserted) {
+          throw new Error(insertErr?.message || "Failed to save message");
+        }
+
+        // b) Hand off to the transactional email pipeline. We forward the
+        // caller's JWT so the send route's auth check passes.
+        const sendRes = await fetch("/lovable/email/transactional/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: incomingAuth,
+          },
+          body: JSON.stringify({
+            templateName: "outreach-email",
+            recipientEmail: lead.email,
+            // Idempotency key so a retry of this server fn won't duplicate-send.
+            idempotencyKey: `outreach-${inserted.id}`,
+            templateData: {
+              subject: email.subject,
+              body: email.body,
+              brandName: businessName,
+            },
+            fromName: businessName,
+          }),
+        });
+
+        if (!sendRes.ok) {
+          const detail = await sendRes.text().catch(() => "");
+          throw new Error(`Email pipeline rejected (${sendRes.status}): ${detail.slice(0, 120)}`);
+        }
+
+        const sendBody = (await sendRes.json().catch(() => ({}))) as {
+          success?: boolean;
+          reason?: string;
+        };
+
+        if (sendBody.success === false) {
+          // e.g. recipient is on the suppression list — that's expected, not a crash.
+          await supabase
+            .from("messages")
+            .update({ status: "suppressed" })
+            .eq("id", inserted.id);
+          skipped++;
+          errors.push(`${lead.name}: ${sendBody.reason || "suppressed"}`);
+          continue;
+        }
+
+        // c) Mark message sent + advance lead to "contacted" if still new.
+        await supabase
+          .from("messages")
+          .update({ status: "sent" })
+          .eq("id", inserted.id);
+
+        await supabase
+          .from("leads")
+          .update({ status: "contacted", last_contact: new Date().toISOString() })
+          .eq("id", lead.id)
+          .eq("status", "new");
+
+        sent++;
+      } catch (err) {
+        skipped++;
+        const message = err instanceof Error ? err.message : "unknown error";
+        errors.push(`${lead.name}: ${message}`);
+        console.error(`[auto-outreach] send failed for ${lead.name}:`, err);
+      }
+
+      await sleep(SEND_DELAY_MS);
     }
 
-    // Increment token usage atomically
+    // ----- 3. Bill the AI generation once, regardless of per-lead delivery outcome.
     await supabaseAdmin.rpc("increment_ai_tokens", { p_org_id: data.organizationId });
 
     return {
-      sent: messagesToInsert.length,
-      skipped: data.leads.length - messagesToInsert.length,
+      sent,
+      skipped,
+      errors: errors.slice(0, 10), // cap so toast doesn't explode
       messages: generatedEmails,
     };
   });
