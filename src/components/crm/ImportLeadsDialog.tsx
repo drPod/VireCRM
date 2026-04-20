@@ -142,17 +142,46 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
-  const workbook = XLSX.read(buffer, { type: "array" });
+function parseXLSX(buffer: ArrayBuffer): ParseOutcome {
+  let workbook: XLSX.WorkBook;
+  try {
+    workbook = XLSX.read(buffer, { type: "array" });
+  } catch (err) {
+    return {
+      leads: [],
+      issues: [],
+      fatal: `Couldn't open the spreadsheet: ${err instanceof Error ? err.message : "unknown error"}.`,
+    };
+  }
   const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return [];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], { defval: "" });
-  if (rows.length === 0) return [];
+  if (!sheetName) return { leads: [], issues: [], fatal: "Workbook has no sheets." };
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+    workbook.Sheets[sheetName],
+    { defval: "" }
+  );
+  if (rows.length === 0) {
+    return { leads: [], issues: [], fatal: `Sheet "${sheetName}" is empty.` };
+  }
 
   const normalize = (key: string) => key.trim().toLowerCase().replace(/['"]/g, "");
 
+  // Validate that we have a name-ish header in row 1.
+  const firstRow = rows[0];
+  const headerKeys = Object.keys(firstRow).map(normalize);
+  const NAME_HEADERS = ["name", "full name", "fullname", "contact", "lead"];
+  if (!headerKeys.some((h) => NAME_HEADERS.includes(h))) {
+    return {
+      leads: [],
+      issues: [],
+      fatal: `Missing "Name" column in sheet "${sheetName}". Detected headers: ${headerKeys.join(", ")}.`,
+    };
+  }
+
   const leads: ParsedLead[] = [];
-  for (const row of rows) {
+  const issues: ParseIssue[] = [];
+
+  rows.forEach((row, idx) => {
+    const rowNum = idx + 2; // +2: header is row 1, data starts at row 2
     const mapped: Record<string, string> = {};
     for (const [key, val] of Object.entries(row)) {
       mapped[normalize(key)] = String(val ?? "");
@@ -160,9 +189,22 @@ function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
 
     const name =
       mapped["name"] || mapped["full name"] || mapped["fullname"] || mapped["contact"] || mapped["lead"];
-    if (!name?.trim()) continue;
+    if (!name?.trim()) {
+      issues.push({ row: rowNum, message: "missing name" });
+      return;
+    }
 
-    const email = mapped["email"] || mapped["e-mail"] || mapped["email address"] || undefined;
+    const rawEmail = (mapped["email"] || mapped["e-mail"] || mapped["email address"] || "").trim();
+    let email: string | undefined;
+    if (rawEmail) {
+      const normalized = rawEmail.toLowerCase();
+      if (!EMAIL_RE.test(normalized)) {
+        issues.push({ row: rowNum, message: `invalid email "${rawEmail}"` });
+      } else {
+        email = normalized;
+      }
+    }
+
     const phone = mapped["phone"] || mapped["telephone"] || mapped["tel"] || mapped["mobile"] || undefined;
     const company = mapped["company"] || mapped["organization"] || mapped["org"] || mapped["business"] || undefined;
     const statusRaw = (mapped["status"] || mapped["stage"] || "").toLowerCase();
@@ -170,7 +212,7 @@ function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
 
     leads.push({
       name: name.trim(),
-      email: email?.trim() || undefined,
+      email,
       phone: phone?.trim() || undefined,
       company: company?.trim() || undefined,
       status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
@@ -178,8 +220,9 @@ function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
       notes: (mapped["notes"] || mapped["note"] || mapped["comments"] || "").trim() || undefined,
       source: (mapped["source"] || mapped["lead source"] || mapped["origin"] || "").trim() || "xlsx_import",
     });
-  }
-  return leads;
+  });
+
+  return { leads, issues };
 }
 
 
