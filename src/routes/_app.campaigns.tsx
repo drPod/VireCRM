@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +25,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
 
+type CampaignsSearch = { new?: boolean };
+
 export const Route = createFileRoute("/_app/campaigns")({
   component: CampaignsPage,
+  validateSearch: (search: Record<string, unknown>): CampaignsSearch => {
+    const isNew = search.new === true || search.new === "1" || search.new === 1 || search.new === "true";
+    return isNew ? { new: true } : {};
+  },
   head: () => ({
     meta: [
       { title: "Genesis — Campaigns" },

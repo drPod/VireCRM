@@ -184,13 +184,13 @@ function Dashboard() {
                 lead manually, import a CSV, or let our AI scout build a list for you.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link to="/leads">
+                <Link to="/leads" search={{ action: "add" }}>
                   <Button variant="command" size="sm" className="gap-1.5">
                     Add a lead
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
-                <Link to="/leads">
+                <Link to="/leads" search={{ action: "import" }}>
                   <Button variant="outline" size="sm">Import CSV</Button>
                 </Link>
                 <Link to="/advisor">
