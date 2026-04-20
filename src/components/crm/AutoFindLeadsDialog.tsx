@@ -28,6 +28,17 @@ import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { useAutoOutreachPreference } from "@/hooks/useAutoOutreachPreference";
 import { toast } from "sonner";
 
+// Common industry presets — keep the list short so users can pick fast.
+// "Other" reveals a free-text input for anything not on the list.
+const INDUSTRY_PRESETS = [
+  "SaaS",
+  "E-commerce",
+  "Real Estate",
+  "Healthcare",
+  "Agency",
+  "Local Services",
+] as const;
+
 interface AutoFindLeadsDialogProps {
   onLeadsImported?: () => void;
 }
@@ -39,6 +50,8 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState("");
+  // "" = Any industry, preset name = picked from list, "__custom__" = free-text.
+  const [industryChoice, setIndustryChoice] = useState<string>("");
   const [count, setCount] = useState(10);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -199,13 +212,38 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
                 <label className="mb-1 block text-xs font-medium text-foreground">
                   Industry (optional)
                 </label>
-                <input
+                <select
                   className={inputClass}
-                  placeholder="e.g. SaaS, Healthcare, Real Estate"
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
-                  maxLength={200}
-                />
+                  value={industryChoice}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setIndustryChoice(v);
+                    // Sync the value the server receives: blank for "Any",
+                    // the preset itself, or clear when switching to custom
+                    // so the free-text input starts empty.
+                    if (v === "__custom__") {
+                      setIndustry("");
+                    } else {
+                      setIndustry(v);
+                    }
+                  }}
+                >
+                  <option value="">Any industry</option>
+                  {INDUSTRY_PRESETS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                  <option value="__custom__">Other (type your own)…</option>
+                </select>
+                {industryChoice === "__custom__" && (
+                  <input
+                    className={`${inputClass} mt-2`}
+                    placeholder="e.g. Construction, Education, Logistics"
+                    value={industry}
+                    onChange={(e) => setIndustry(e.target.value)}
+                    maxLength={200}
+                    autoFocus
+                  />
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-foreground">
