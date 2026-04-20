@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Link } from "@tanstack/react-router";
+import { NewTaskDialog } from "@/components/crm/NewTaskDialog";
 
 export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
@@ -47,6 +48,8 @@ function CalendarPage() {
   const { organization } = useAuth();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -86,7 +89,7 @@ function CalendarPage() {
     return () => {
       cancelled = true;
     };
-  }, [organization?.id, monthStart, monthEnd]);
+  }, [organization?.id, monthStart, monthEnd, reloadKey]);
 
   const today = new Date();
   const isCurrentMonth =
@@ -144,12 +147,15 @@ function CalendarPage() {
                 Open Leads
               </Button>
             </Link>
-            <Link to="/leads">
-              <Button variant="command" className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Task
-              </Button>
-            </Link>
+            <Button
+              variant="command"
+              className="gap-2"
+              onClick={() => setNewTaskOpen(true)}
+              disabled={!organization?.id}
+            >
+              <Plus className="h-4 w-4" />
+              New Task
+            </Button>
           </div>
         </div>
 
@@ -255,11 +261,15 @@ function CalendarPage() {
                   <p className="text-xs text-muted-foreground">
                     No scheduled tasks{isCurrentMonth ? " today" : " this month"}.
                   </p>
-                  <Link to="/leads">
-                    <Button variant="ghost" size="sm" className="mt-2 text-xs">
-                      Schedule a follow-up
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 text-xs"
+                    onClick={() => setNewTaskOpen(true)}
+                    disabled={!organization?.id}
+                  >
+                    Schedule a follow-up
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -322,6 +332,14 @@ function CalendarPage() {
           </div>
         </div>
       </div>
+      {organization?.id && (
+        <NewTaskDialog
+          open={newTaskOpen}
+          onOpenChange={setNewTaskOpen}
+          organizationId={organization.id}
+          onCreated={() => setReloadKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }
