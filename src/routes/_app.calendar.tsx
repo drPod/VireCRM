@@ -50,15 +50,60 @@ const priorityColor = (p: string) => {
 };
 
 function CalendarPage() {
-  const { organization } = useAuth();
+  const { organization, role } = useAuth();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const completeTask = useServerFn(completeTaskWithAiFn);
+  const isOwner = role?.role === "owner";
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+
+  const handleCompleteWithAi = async (taskId: string) => {
+    setCompletingId(taskId);
+    try {
+      const result = await completeTask({ data: { taskId } });
+
+      // If the lead has an email, fire the transactional send from the client
+      // (the route validates the user's JWT, so it must originate here).
+      if (result.lead?.email) {
+        try {
+          await sendTransactionalEmail({
+            templateName: "review-request",
+            recipientEmail: result.lead.email,
+            templateData: {
+              brandName: result.brandName,
+              customerName: result.lead.name.split(" ")[0],
+              senderName: result.senderName,
+              customMessage: result.draft.body,
+            },
+            fromName: result.brandName,
+            replyTo: result.supportEmail ?? undefined,
+          });
+          toast.success(`Email sent to ${result.lead.name} — task marked done`);
+        } catch (sendErr) {
+          const msg = sendErr instanceof Error ? sendErr.message : "Email failed";
+          toast.warning(`Task marked done, but email send failed: ${msg}`);
+        }
+      } else {
+        toast.success(
+          result.lead
+            ? `Draft saved on ${result.lead.name} (no email on file). Task marked done.`
+            : "Task marked done with AI draft.",
+        );
+      }
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to complete task";
+      toast.error(msg);
+    } finally {
+      setCompletingId(null);
+    }
+  };
 
   const monthStart = cursor;
   const monthEnd = useMemo(
