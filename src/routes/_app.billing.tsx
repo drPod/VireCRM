@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
@@ -278,21 +278,21 @@ function BillingPage() {
           );
         })()}
 
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 flex items-start gap-3">
-          <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Choose a plan to get started</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Pick a plan on our pricing page — checkout opens right here in one click.
-            </p>
-            <div className="mt-3 flex gap-2">
-              <Link to="/pricing">
-                <Button variant="command" size="sm">View plans</Button>
-              </Link>
-              <Link to="/contact">
-                <Button variant="outline" size="sm">Talk to sales</Button>
-              </Link>
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
+          <div className="flex items-start gap-3 mb-4">
+            <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Choose a plan to get started</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Pick a plan below — checkout opens right here in one click.
+              </p>
             </div>
+          </div>
+          <InlinePlans onSelect={handleSelectTier} />
+          <div className="mt-4 flex justify-center">
+            <Link to="/contact">
+              <Button variant="outline" size="sm">Talk to sales</Button>
+            </Link>
           </div>
         </div>
         {CheckoutDialog}
@@ -392,19 +392,27 @@ function BillingPage() {
 
       {/* Upgrade / change plan — explicit CTA so users don't need to dig through Stripe portal */}
       {!isManual && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <p className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Want to upgrade?
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Compare every CRM and white-label plan side-by-side, then switch in one click.
-            </p>
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Want to upgrade?
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Compare every CRM and white-label plan side-by-side, then switch in one click.
+              </p>
+            </div>
+            <Button variant="command" size="sm" onClick={() => setShowPlans((v) => !v)}>
+              {showPlans ? "Hide plans" : "View all plans"}
+            </Button>
           </div>
-          <Link to="/pricing">
-            <Button variant="command" size="sm">View all plans</Button>
-          </Link>
+          {showPlans && (
+            <InlinePlans
+              onSelect={handleSelectTier}
+              currentPriceId={subscription.price_id}
+            />
+          )}
         </div>
       )}
 
