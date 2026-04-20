@@ -366,7 +366,7 @@ export function WhiteLabelSettings() {
             White-labeling is available on the Enterprise plan. Customize your logo, colors, domain, and sell the CRM as your own.
           </p>
           <Button variant="command" size="sm" className="mt-3" asChild>
-            <Link to="/billing">Upgrade Now</Link>
+            <Link to="/billing" search={{ required: undefined, plan: undefined }}>Upgrade Now</Link>
           </Button>
         </div>
       )}
