@@ -35,6 +35,7 @@ interface AutoFindLeadsDialogProps {
 export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProps) {
   const { organization } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
+  const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState("");
@@ -124,8 +125,8 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       setImported(true);
       onLeadsImported?.();
 
-      // Trigger auto-outreach in background
-      if (inserted && inserted.length > 0) {
+      // Trigger auto-outreach in background — only when the user opted in.
+      if (outreachEnabled && inserted && inserted.length > 0) {
         triggerOutreach(inserted);
       }
     }
