@@ -2,8 +2,16 @@ import { Briefcase, Cog, TrendingUp } from "lucide-react";
 
 export function HowItWorksSection() {
   return (
-    <section className="border-t border-border bg-card/50 py-20">
-      <div className="mx-auto max-w-6xl px-6">
+    <section className="relative overflow-hidden border-t border-border bg-card/50 py-20">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-32 right-1/4 h-[500px] w-[700px] section-aurora-reverse opacity-55"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-32 left-0 h-[450px] w-[650px] section-aurora opacity-50"
+      />
+      <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold text-foreground">
             Built for Businesses That Want Leverage, Not More Work
