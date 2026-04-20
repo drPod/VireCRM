@@ -278,6 +278,21 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </Badge>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab("emails")}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+              activeTab === "emails"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Emails
+            {emailLogs.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                {emailLogs.length}
+              </Badge>
+            )}
+          </button>
         </div>
 
         {activeTab === "details" ? (
