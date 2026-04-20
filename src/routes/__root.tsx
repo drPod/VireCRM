@@ -3,6 +3,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WhiteLabelTheme } from "@/components/auth/WhiteLabelTheme";
 import { DomainBrandingProvider } from "@/components/auth/DomainBrandingProvider";
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
+import { PageTransition } from "@/components/PageTransition";
 
 import appCss from "../styles.css?url";
 
@@ -68,7 +69,9 @@ function RootComponent() {
       <DomainBrandingProvider>
         <AuthProvider>
           <WhiteLabelTheme />
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </AuthProvider>
       </DomainBrandingProvider>
     </GlobalErrorBoundary>
