@@ -66,6 +66,8 @@ function isCampaignStatus(s: string): s is CampaignStatus {
 
 function CampaignsPage() {
   const { organization } = useAuth();
+  const navigate = useNavigate();
+  const { new: openNew } = Route.useSearch();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -73,6 +75,18 @@ function CampaignsPage() {
   const [name, setName] = useState("");
   const [objective, setObjective] = useState("");
   const [status, setStatus] = useState<CampaignStatus>("draft");
+
+  // Auto-open the create dialog when arriving with ?new=1, then strip the param.
+  useEffect(() => {
+    if (openNew) {
+      setDialogOpen(true);
+      navigate({
+        to: "/campaigns",
+        search: (prev: CampaignsSearch) => ({ ...prev, new: undefined }),
+        replace: true,
+      });
+    }
+  }, [openNew, navigate]);
 
   const loadCampaigns = async (orgId: string) => {
     const { data, error } = await supabase
