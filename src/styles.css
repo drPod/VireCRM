@@ -283,11 +283,30 @@
   }
 }
 
+@keyframes page-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.page-transition {
+  animation: page-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform, filter;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-aurora,
   .hero-float,
   .section-aurora,
-  .section-aurora-reverse {
+  .section-aurora-reverse,
+  .page-transition {
     animation: none;
   }
 }
