@@ -20,6 +20,8 @@ import {
   CreditCard,
   Menu,
   X,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -36,6 +38,9 @@ const baseNavItems = [
   { to: "/workflows", icon: GitBranch, label: "Workflows" },
   { to: "/calendar", icon: CalendarDays, label: "Calendar" },
   { to: "/email-marketing", icon: Mail, label: "Email Marketing" },
+  { to: "/revenue", icon: TrendingUp, label: "Revenue" },
+  { to: "/payouts", icon: Wallet, label: "Payouts" },
+  { to: "/expenses", icon: Receipt, label: "Expenses" },
   { to: "/invoices", icon: Receipt, label: "Invoices" },
   { to: "/reputation", icon: Star, label: "Reputation" },
   { to: "/advisor", icon: Sparkles, label: "AI Advisor" },

@@ -102,6 +102,116 @@ export type Database = {
           },
         ]
       }
+      commission_earnings: {
+        Row: {
+          commission_cents: number
+          created_at: string
+          currency: string
+          deal_value_cents: number
+          id: string
+          lead_id: string | null
+          notes: string | null
+          organization_id: string
+          paid_at: string | null
+          payment_reference: string | null
+          rule_snapshot: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_cents?: number
+          created_at?: string
+          currency?: string
+          deal_value_cents?: number
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id: string
+          paid_at?: string | null
+          payment_reference?: string | null
+          rule_snapshot?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_cents?: number
+          created_at?: string
+          currency?: string
+          deal_value_cents?: number
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          paid_at?: string | null
+          payment_reference?: string | null
+          rule_snapshot?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_earnings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_earnings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_rules: {
+        Row: {
+          created_at: string
+          flat_cents: number
+          id: string
+          is_active: boolean
+          organization_id: string
+          percent: number
+          rule_type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          flat_cents?: number
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          percent?: number
+          rule_type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          flat_cents?: number
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          percent?: number
+          rule_type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_rules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -228,6 +338,56 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          id: string
+          incurred_at: string
+          organization_id: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          amount_cents: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          incurred_at?: string
+          organization_id: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          incurred_at?: string
+          organization_id?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -277,8 +437,12 @@ export type Database = {
       }
       leads: {
         Row: {
+          closed_at: string | null
+          closed_by_user_id: string | null
           company: string | null
           created_at: string
+          deal_currency: string
+          deal_value_cents: number | null
           email: string | null
           id: string
           last_contact: string | null
@@ -293,8 +457,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          closed_at?: string | null
+          closed_by_user_id?: string | null
           company?: string | null
           created_at?: string
+          deal_currency?: string
+          deal_value_cents?: number | null
           email?: string | null
           id?: string
           last_contact?: string | null
@@ -309,8 +477,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          closed_at?: string | null
+          closed_by_user_id?: string | null
           company?: string | null
           created_at?: string
+          deal_currency?: string
+          deal_value_cents?: number | null
           email?: string | null
           id?: string
           last_contact?: string | null
@@ -1185,6 +1357,10 @@ export type Database = {
         }[]
       }
       mark_domain_verified: { Args: { p_org_id: string }; Returns: Json }
+      mark_earning_paid: {
+        Args: { p_earning_id: string; p_payment_reference?: string }
+        Returns: Json
+      }
       mark_payout_paid: {
         Args: { p_payment_reference?: string; p_payout_id: string }
         Returns: Json
