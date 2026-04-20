@@ -5,7 +5,9 @@ import { z } from "zod";
 
 const findLeadsSchema = z.object({
   organizationId: z.string().uuid(),
-  businessDescription: z.string().min(10).max(5000),
+  // Optional — if omitted we fall back to a generic B2B prompt so users can
+  // discover leads in one click without filling anything in.
+  businessDescription: z.string().max(5000).optional(),
   industry: z.string().min(1).max(200).optional(),
   count: z.number().min(1).max(20).default(10),
 });
