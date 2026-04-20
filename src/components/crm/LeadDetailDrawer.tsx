@@ -256,8 +256,31 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Lead Details</SheetTitle>
-          <SheetDescription>Edit lead information and view activity history.</SheetDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <SheetTitle>Lead Details</SheetTitle>
+              <SheetDescription>Edit lead information and view activity history.</SheetDescription>
+            </div>
+            <Button
+              variant="command"
+              size="sm"
+              onClick={handleResendOutreach}
+              disabled={resending || !(form.email.trim() || lead.email)}
+              title={
+                form.email.trim() || lead.email
+                  ? "Generate and send a fresh AI outreach email to this lead"
+                  : "Add an email address to enable sending"
+              }
+              className="shrink-0"
+            >
+              {resending ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Send outreach
+            </Button>
+          </div>
         </SheetHeader>
 
         {/* Tabs */}
@@ -417,34 +440,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 )}
                 {confirmDelete ? "Confirm Delete" : "Delete"}
               </Button>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResendOutreach}
-                  disabled={resending || !(form.email.trim() || lead.email)}
-                  title={
-                    form.email.trim() || lead.email
-                      ? "Generate and send a fresh AI outreach email to this lead"
-                      : "Add an email address to enable resend"
-                  }
-                >
-                  {resending ? (
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Send className="mr-1.5 h-3.5 w-3.5" />
-                  )}
-                  Resend outreach
-                </Button>
-                <Button variant="command" size="sm" onClick={handleSave} disabled={saving}>
-                  {saving ? (
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Save className="mr-1.5 h-3.5 w-3.5" />
-                  )}
-                  Save Changes
-                </Button>
-              </div>
+              <Button variant="command" size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                Save Changes
+              </Button>
             </div>
 
             {confirmDelete && (
