@@ -65,8 +65,8 @@ export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
       setOpen(false);
       onLeadAdded?.();
 
-      // Trigger auto-outreach in background
-      if (inserted && inserted.length > 0) {
+      // Trigger auto-outreach in background — only if the user has it enabled.
+      if (outreachEnabled && inserted && inserted.length > 0) {
         triggerOutreach(inserted);
       }
     } catch (err: unknown) {
