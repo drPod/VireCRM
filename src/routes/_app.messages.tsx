@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_app/messages")({
   component: MessagesPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Messages" },
+      { title: "Genesis — Messages" },
       { name: "description", content: "View all outreach messages and replies" },
     ],
   }),

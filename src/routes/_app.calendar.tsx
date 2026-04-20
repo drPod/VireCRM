@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Calendar" },
+      { title: "Genesis — Calendar" },
       { name: "description", content: "Appointment booking and calendar management" },
     ],
   }),

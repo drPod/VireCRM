@@ -74,7 +74,7 @@ export const Route = createFileRoute("/_app/payouts")({
   errorComponent: PayoutsErrorComponent,
   head: () => ({
     meta: [
-      { title: "Team Payouts — Vireon" },
+      { title: "Team Payouts — Genesis" },
       {
         name: "description",
         content: "Track and pay out commissions earned by your sales team on closed deals.",

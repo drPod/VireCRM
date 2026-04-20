@@ -26,7 +26,7 @@ export function HeroSection() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-            Vireon is a custom-built AI CRM that follows up, nurtures, and closes your leads for you — so your business keeps selling even when you're not working.
+            Genesis is a custom-built AI CRM that follows up, nurtures, and closes your leads for you — so your business keeps selling even when you're not working.
           </p>
 
           <p className="mx-auto mt-4 max-w-lg text-sm text-muted-foreground/80">
@@ -62,7 +62,7 @@ export function HeroSection() {
           <div className="relative overflow-hidden rounded-2xl border border-border shadow-2xl shadow-primary/15">
             <img
               src={heroImage}
-              alt="Vireon AI CRM — automated sales pipeline overview"
+              alt="Genesis AI CRM — automated sales pipeline overview"
               width={1920}
               height={1080}
               className="w-full"

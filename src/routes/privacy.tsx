@@ -6,8 +6,8 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
   head: () => ({
     meta: [
-      { title: "Privacy Policy — Vireon" },
-      { name: "description", content: "How Vireon collects, uses, and protects your personal data." },
+      { title: "Privacy Policy — Genesis" },
+      { name: "description", content: "How Genesis collects, uses, and protects your personal data." },
     ],
   }),
 });
@@ -25,7 +25,7 @@ function PrivacyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">1. Who We Are</h2>
               <p className="mt-2">
-                Vireon ("<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>") is operated by Ethan Sereti. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
+                Genesis ("<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>") is operated by Ethan Sereti. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
               </p>
             </section>
 

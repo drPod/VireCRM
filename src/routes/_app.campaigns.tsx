@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_app/campaigns")({
   component: CampaignsPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Campaigns" },
+      { title: "Genesis — Campaigns" },
       { name: "description", content: "Manage automated outreach campaigns" },
     ],
   }),

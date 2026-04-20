@@ -65,7 +65,7 @@ export const Route = createFileRoute("/_app/billing")({
   }),
   head: () => ({
     meta: [
-      { title: "Billing — Vireon" },
+      { title: "Billing — Genesis" },
       { name: "description", content: "Manage your subscription, plan, and payment method" },
     ],
   }),

@@ -7,14 +7,14 @@ export const Route = createFileRoute("/_app/reputation")({
   component: ReputationPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Reputation" },
+      { title: "Genesis — Reputation" },
       { name: "description", content: "Review management and reputation tracking" },
     ],
   }),
 });
 
 const platforms = [
-  { name: "Google Business", description: "Sync reviews and reply from Vireon" },
+  { name: "Google Business", description: "Sync reviews and reply from Genesis" },
   { name: "Facebook", description: "Pull recommendations and respond inline" },
   { name: "Trustpilot", description: "Import ratings and trigger review requests" },
 ];
@@ -45,7 +45,7 @@ function ReputationPage() {
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             Connect Google, Facebook, or Trustpilot to import reviews automatically and
-            reply to customers without leaving Vireon.
+            reply to customers without leaving Genesis.
           </p>
           <Button variant="command" className="mt-5 gap-2" disabled>
             <Plug className="h-4 w-4" />

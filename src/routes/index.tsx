@@ -17,9 +17,9 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Turn Every Lead Into Revenue, Automatically" },
+      { title: "Genesis — Turn Every Lead Into Revenue, Automatically" },
       { name: "description", content: "We build AI-powered CRM systems that follow up, nurture, and close your leads for you—so your business keeps selling even when you're not working." },
-      { property: "og:title", content: "Vireon — Turn Every Lead Into Revenue, Automatically" },
+      { property: "og:title", content: "Genesis — Turn Every Lead Into Revenue, Automatically" },
       { property: "og:description", content: "AI-powered CRM systems that respond instantly, follow up relentlessly, and convert leads into paying clients on autopilot." },
     ],
   }),

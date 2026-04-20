@@ -71,7 +71,7 @@ export function CrmSidebar() {
   const { subscription } = useSubscription(user?.id);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const brandName = organization?.brand_name || "Vireon";
+  const brandName = organization?.brand_name || "Genesis";
   const logoUrl = organization?.logo_url;
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
   const isOwner = role?.role === "owner";

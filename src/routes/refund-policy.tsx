@@ -6,8 +6,8 @@ export const Route = createFileRoute("/refund-policy")({
   component: RefundPolicyPage,
   head: () => ({
     meta: [
-      { title: "Refund Policy — Vireon" },
-      { name: "description", content: "Vireon's refund policy for subscription plans and purchases." },
+      { title: "Refund Policy — Genesis" },
+      { name: "description", content: "Genesis's refund policy for subscription plans and purchases." },
     ],
   }),
 });
@@ -25,14 +25,14 @@ function RefundPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">Overview</h2>
               <p className="mt-2">
-                We want you to be satisfied with Vireon. If you're not happy with your purchase, we offer a straightforward refund policy as outlined below.
+                We want you to be satisfied with Genesis. If you're not happy with your purchase, we offer a straightforward refund policy as outlined below.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">30-Day Money-Back Guarantee</h2>
               <p className="mt-2">
-                If you are unsatisfied with Vireon for any reason, you may request a full refund within <strong>30 days</strong> of your initial purchase. This applies to the first payment of new subscriptions only.
+                If you are unsatisfied with Genesis for any reason, you may request a full refund within <strong>30 days</strong> of your initial purchase. This applies to the first payment of new subscriptions only.
               </p>
             </section>
 

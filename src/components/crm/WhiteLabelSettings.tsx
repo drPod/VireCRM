@@ -346,7 +346,7 @@ export function WhiteLabelSettings() {
             className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Your clients will see this address when reporting issues from the error screen on your branded domain. Leave blank to use the default Vireon support inbox.
+            Your clients will see this address when reporting issues from the error screen on your branded domain. Leave blank to use the default Genesis support inbox.
           </p>
         </div>
 

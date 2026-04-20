@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_app/email-marketing")({
   component: EmailMarketingPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Email Marketing" },
+      { title: "Genesis — Email Marketing" },
       { name: "description", content: "Email campaigns, templates, and analytics" },
     ],
   }),

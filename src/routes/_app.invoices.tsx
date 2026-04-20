@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_app/invoices")({
   component: InvoicesPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Invoices" },
+      { title: "Genesis — Invoices" },
       { name: "description", content: "Invoicing, payments, and billing management" },
     ],
   }),

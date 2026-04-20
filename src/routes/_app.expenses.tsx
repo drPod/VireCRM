@@ -66,7 +66,7 @@ export const Route = createFileRoute("/_app/expenses")({
   errorComponent: ExpensesErrorComponent,
   head: () => ({
     meta: [
-      { title: "Expenses — Vireon" },
+      { title: "Expenses — Genesis" },
       {
         name: "description",
         content: "Track ads, tools, payroll, and other business costs to see your true profit.",

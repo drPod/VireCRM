@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_app/workflows/")({
   component: WorkflowsListPage,
   head: () => ({
     meta: [
-      { title: "Vireon — Workflows" },
+      { title: "Genesis — Workflows" },
       { name: "description", content: "Visual workflow automation builder" },
     ],
   }),
