@@ -53,7 +53,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "activity">("details");
+  const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>([]);
+  const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
 
   useEffect(() => {
     if (!lead) return;
