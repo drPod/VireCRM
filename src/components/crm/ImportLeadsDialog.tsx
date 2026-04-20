@@ -251,6 +251,7 @@ export function ImportLeadsDialog({
   };
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<ParsedLead[]>([]);
+  const [issues, setIssues] = useState<ParseIssue[]>([]);
   const [loading, setLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -258,37 +259,59 @@ export function ImportLeadsDialog({
   const reset = useCallback(() => {
     setFile(null);
     setParsed([]);
+    setIssues([]);
     setImportResult(null);
     setParseError(null);
   }, []);
 
   const handleFile = useCallback(async (f: File) => {
     setParseError(null);
+    setIssues([]);
     setImportResult(null);
     setFile(f);
 
     try {
       const isExcel = /\.xlsx?$/i.test(f.name);
-      let leads: ParsedLead[];
+      const isCsv = /\.(csv|txt)$/i.test(f.name);
 
+      if (!isExcel && !isCsv) {
+        setParseError("Unsupported file format. Please upload a .csv, .txt, or .xlsx file.");
+        setParsed([]);
+        return;
+      }
+
+      let outcome: ParseOutcome;
       if (isExcel) {
         const buffer = await f.arrayBuffer();
-        leads = parseXLSX(buffer);
+        outcome = parseXLSX(buffer);
       } else {
         const text = await f.text();
-        leads = parseCSV(text);
+        outcome = parseCSV(text);
       }
 
-      if (leads.length === 0) {
-        setParseError(
-          'No leads found. Make sure your file has a header row with a "Name" column.'
-        );
+      if (outcome.fatal) {
+        setParseError(outcome.fatal);
         setParsed([]);
-      } else {
-        setParsed(leads);
+        return;
       }
-    } catch {
-      setParseError("Failed to read the file. Please check the format.");
+
+      if (outcome.leads.length === 0) {
+        const detail =
+          outcome.issues.length > 0
+            ? ` (${outcome.issues.length} row${outcome.issues.length > 1 ? "s" : ""} skipped — ${outcome.issues[0].message})`
+            : "";
+        setParseError(`0 valid rows detected${detail}.`);
+        setParsed([]);
+        setIssues(outcome.issues);
+        return;
+      }
+
+      setParsed(outcome.leads);
+      setIssues(outcome.issues);
+    } catch (err) {
+      setParseError(
+        `Failed to read the file: ${err instanceof Error ? err.message : "unknown error"}`
+      );
       setParsed([]);
     }
   }, []);
