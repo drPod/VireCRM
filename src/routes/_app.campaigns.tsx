@@ -1,10 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Zap, Plus, Users, Send, BarChart3, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/campaigns")({
   component: CampaignsPage,
@@ -43,38 +62,78 @@ function CampaignsPage() {
   const { organization } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [name, setName] = useState("");
+  const [objective, setObjective] = useState("");
+  const [status, setStatus] = useState<CampaignStatus>("draft");
+
+  const loadCampaigns = async (orgId: string) => {
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select("id, name, objective, status, leads_count, sent_count, replies_count")
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (!error && data) {
+      setCampaigns(
+        data.map((c) => ({
+          id: c.id,
+          name: c.name,
+          objective: c.objective,
+          status: isCampaignStatus(c.status) ? c.status : "draft",
+          leads_count: c.leads_count ?? 0,
+          sent_count: c.sent_count ?? 0,
+          replies_count: c.replies_count ?? 0,
+        })),
+      );
+    }
+  };
 
   useEffect(() => {
     if (!organization?.id) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("campaigns")
-        .select("id, name, objective, status, leads_count, sent_count, replies_count")
-        .eq("organization_id", organization.id)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (cancelled) return;
-      if (!error && data) {
-        setCampaigns(
-          data.map((c) => ({
-            id: c.id,
-            name: c.name,
-            objective: c.objective,
-            status: isCampaignStatus(c.status) ? c.status : "draft",
-            leads_count: c.leads_count ?? 0,
-            sent_count: c.sent_count ?? 0,
-            replies_count: c.replies_count ?? 0,
-          })),
-        );
-      }
-      setLoading(false);
+      await loadCampaigns(organization.id);
+      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, [organization?.id]);
+
+  const resetForm = () => {
+    setName("");
+    setObjective("");
+    setStatus("draft");
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!organization?.id) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Campaign name is required");
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from("campaigns").insert({
+      organization_id: organization.id,
+      name: trimmedName,
+      objective: objective.trim() || null,
+      status,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message || "Failed to create campaign");
+      return;
+    }
+    toast.success("Campaign created");
+    setDialogOpen(false);
+    resetForm();
+    await loadCampaigns(organization.id);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -83,7 +142,7 @@ function CampaignsPage() {
           <h1 className="text-2xl font-bold text-foreground">Campaigns</h1>
           <p className="text-sm text-muted-foreground">Automated outreach sequences</p>
         </div>
-        <Button variant="command" size="sm">
+        <Button variant="command" size="sm" onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           New Campaign
         </Button>
@@ -100,6 +159,15 @@ function CampaignsPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Create your first outreach campaign to start engaging leads automatically.
           </p>
+          <Button
+            variant="command"
+            size="sm"
+            className="mt-4"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            New Campaign
+          </Button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -142,6 +210,80 @@ function CampaignsPage() {
           })}
         </div>
       )}
+
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) resetForm();
+        }}
+      >
+        <DialogContent>
+          <form onSubmit={handleCreate}>
+            <DialogHeader>
+              <DialogTitle>New Campaign</DialogTitle>
+              <DialogDescription>
+                Create a new outreach campaign. You can wire it up to leads and workflows
+                afterwards.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="campaign-name">Name</Label>
+                <Input
+                  id="campaign-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Q1 enterprise outbound"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="campaign-objective">Objective (optional)</Label>
+                <Textarea
+                  id="campaign-objective"
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                  placeholder="Book demos with mid-market SaaS founders"
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="campaign-status">Status</Label>
+                <Select
+                  value={status}
+                  onValueChange={(v) => isCampaignStatus(v) && setStatus(v)}
+                >
+                  <SelectTrigger id="campaign-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="command" disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Create campaign
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
