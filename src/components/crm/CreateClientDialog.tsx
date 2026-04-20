@@ -212,11 +212,18 @@ export function CreateClientDialog({
 
       // Auto-email credentials to the client. Failures must not block the
       // create flow — the reseller still has the credentials in the dialog.
+      const senderName =
+        organization?.brand_name?.trim() ||
+        organization?.name?.trim() ||
+        trimmedCompany;
+      const replyToAddress = organization?.support_email?.trim() || undefined;
       try {
         await sendTransactionalEmail({
           templateName: "client-credentials",
           recipientEmail: trimmedEmail,
           idempotencyKey: `client-credentials-${data.user_id}`,
+          fromName: senderName,
+          replyTo: replyToAddress,
           templateData: {
             brandName: trimmedCompany,
             fullName: trimmedName,
@@ -261,11 +268,18 @@ export function CreateClientDialog({
   const resendWelcome = async () => {
     if (!created || created.resending) return;
     setCreated((prev) => (prev ? { ...prev, resending: true } : prev));
+    const senderName =
+      organization?.brand_name?.trim() ||
+      organization?.name?.trim() ||
+      created.brandName;
+    const replyToAddress = organization?.support_email?.trim() || undefined;
     try {
       await sendTransactionalEmail({
         templateName: "client-welcome",
         recipientEmail: created.email,
         idempotencyKey: `client-welcome-${created.email}-${Date.now()}`,
+        fromName: senderName,
+        replyTo: replyToAddress,
         templateData: {
           brandName: created.brandName,
           fullName: created.fullName,

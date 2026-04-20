@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +36,7 @@ export function ResetClientPasswordDialog({
   clientOrgId,
   clientName,
 }: Props) {
+  const { organization } = useAuth();
   const [password, setPassword] = useState(() => generatePassword());
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<{
@@ -87,11 +89,20 @@ export function ResetClientPasswordDialog({
       toast.success("Password reset");
 
       // Auto-email the new credentials. Failures are non-blocking.
+      const senderName =
+        organization?.brand_name?.trim() ||
+        organization?.name?.trim() ||
+        data.client_name ||
+        clientName ||
+        undefined;
+      const replyToAddress = organization?.support_email?.trim() || undefined;
       try {
         await sendTransactionalEmail({
           templateName: "client-password-reset",
           recipientEmail: data.email,
           idempotencyKey: `client-pw-reset-${clientOrgId}-${Date.now()}`,
+          fromName: senderName,
+          replyTo: replyToAddress,
           templateData: {
             brandName: data.client_name || clientName || "your CRM",
             email: data.email,
