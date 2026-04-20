@@ -48,9 +48,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [resending, setResending] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const { triggerOutreach } = useAutoOutreach();
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
