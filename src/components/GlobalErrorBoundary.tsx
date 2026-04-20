@@ -54,11 +54,20 @@ function useResolvedSupportEmail(): string {
   return email;
 }
 
-function SupportEmailHint({ onReport }: { onReport: () => void }) {
+function SupportEmailLine() {
   const email = useResolvedSupportEmail();
   return (
-    <p className="mt-3 text-xs text-muted-foreground">
-      Report goes to{" "}
+    <p className="mt-4 text-xs text-muted-foreground">
+      Email{" "}
+      <a
+        href={`mailto:${email}`}
+        className="font-medium text-foreground underline-offset-2 hover:underline"
+      >
+        {email}
+      </a>
+    </p>
+  );
+}
       <a href={`mailto:${email}`} className="font-medium text-foreground underline-offset-2 hover:underline">
         {email}
       </a>
