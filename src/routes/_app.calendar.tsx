@@ -10,11 +10,16 @@ import {
   ExternalLink,
   Loader2,
   CalendarDays,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Link } from "@tanstack/react-router";
 import { NewTaskDialog } from "@/components/crm/NewTaskDialog";
+import { useServerFn } from "@tanstack/react-start";
+import { completeTaskWithAiFn } from "@/functions/complete-task.functions";
+import { sendTransactionalEmail } from "@/lib/email/send";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
