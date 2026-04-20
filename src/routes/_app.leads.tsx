@@ -10,11 +10,12 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 
+type LeadsSearch = { q?: string };
+
 export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    q: typeof search.q === "string" ? search.q : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): LeadsSearch =>
+    typeof search.q === "string" && search.q.length > 0 ? { q: search.q } : {},
   head: () => ({
     meta: [
       { title: "Vireon — Leads" },
