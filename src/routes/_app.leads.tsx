@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LeadCard, type Lead } from "@/components/crm/LeadCard";
 import { AddLeadDialog } from "@/components/crm/AddLeadDialog";
 import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
@@ -10,12 +10,17 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-type LeadsSearch = { q?: string };
+type LeadsAction = "add" | "import";
+type LeadsSearch = { q?: string; action?: LeadsAction };
 
 export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
-  validateSearch: (search: Record<string, unknown>): LeadsSearch =>
-    typeof search.q === "string" && search.q.length > 0 ? { q: search.q } : {},
+  validateSearch: (search: Record<string, unknown>): LeadsSearch => {
+    const out: LeadsSearch = {};
+    if (typeof search.q === "string" && search.q.length > 0) out.q = search.q;
+    if (search.action === "add" || search.action === "import") out.action = search.action;
+    return out;
+  },
   head: () => ({
     meta: [
       { title: "Genesis — Leads" },
