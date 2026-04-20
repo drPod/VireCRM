@@ -37,11 +37,27 @@ function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Avoid bouncing freshly-signed-in users back to /login: after a successful
+  // signInWithPassword, navigate fires before AuthProvider's onAuthStateChange
+  // listener has propagated the new user. Re-check Supabase's local session
+  // directly before redirecting, so we only kick out genuinely unauthenticated
+  // visitors.
   useEffect(() => {
     if (!hydrated) return;
-    if (!loading && !user) {
-      navigate({ to: "/login" });
-    }
+    if (loading || user) return;
+
+    let cancelled = false;
+    void (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (!data.session) {
+        navigate({ to: "/login" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [hydrated, loading, user, navigate]);
 
   // Hard entitlement gate: redirect to /billing when no active sub.
