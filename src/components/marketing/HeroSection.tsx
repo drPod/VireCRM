@@ -22,7 +22,7 @@ export function HeroSection() {
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Turn Every Lead Into Revenue
             <br />
-            <span className="text-gradient-primary">— Automatically.</span>
+            <span className="text-gradient-primary [-webkit-text-fill-color:transparent] drop-shadow-[0_2px_12px_oklch(0.65_0.2_250/0.35)]">— Automatically.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
