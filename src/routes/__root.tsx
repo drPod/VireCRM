@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WhiteLabelTheme } from "@/components/auth/WhiteLabelTheme";
 import { DomainBrandingProvider } from "@/components/auth/DomainBrandingProvider";
+import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
 
 import appCss from "../styles.css?url";
 
@@ -63,11 +64,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <DomainBrandingProvider>
-      <AuthProvider>
-        <WhiteLabelTheme />
-        <Outlet />
-      </AuthProvider>
-    </DomainBrandingProvider>
+    <GlobalErrorBoundary>
+      <DomainBrandingProvider>
+        <AuthProvider>
+          <WhiteLabelTheme />
+          <Outlet />
+        </AuthProvider>
+      </DomainBrandingProvider>
+    </GlobalErrorBoundary>
   );
 }
