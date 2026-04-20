@@ -350,6 +350,22 @@ function CalendarPage() {
                           {t.status.replace("_", " ")}
                         </Badge>
                       </div>
+                      {isOwner && t.status !== "done" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 w-full gap-2 text-xs"
+                          onClick={() => handleCompleteWithAi(t.id)}
+                          disabled={completingId === t.id}
+                        >
+                          {completingId === t.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3.5 w-3.5" />
+                          )}
+                          {completingId === t.id ? "AI working…" : "Complete with AI"}
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
