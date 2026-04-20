@@ -1,6 +1,73 @@
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportIssueDialog } from "@/components/ReportIssueDialog";
+
+const DEFAULT_SUPPORT_EMAIL = "support@vireonx.space";
+
+// Hosts that always use the default support email (never resolve a reseller).
+const SYSTEM_HOST_PATTERNS = [
+  /\.lovable\.app$/i,
+  /\.lovable-project\.com$/i,
+  /\.lovableproject\.com$/i,
+  /^localhost$/i,
+  /^127\.0\.0\.1$/i,
+  /^vireonx\.space$/i,
+  /^www\.vireonx\.space$/i,
+];
+
+function isSystemHost(hostname: string): boolean {
+  return SYSTEM_HOST_PATTERNS.some((p) => p.test(hostname));
+}
+
+/**
+ * Resolves the support email for the current hostname. The boundary renders
+ * ABOVE DomainBrandingProvider, so we can't use the context — we re-query the
+ * same RPC directly. Falls back to the platform default for system hosts or
+ * when no reseller branding is found / RPC fails.
+ */
+function useResolvedSupportEmail(): string {
+  const [email, setEmail] = useState<string>(DEFAULT_SUPPORT_EMAIL);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const host = window.location.hostname;
+    if (isSystemHost(host)) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc("get_org_by_domain", {
+          p_hostname: host,
+        });
+        if (cancelled || error || !data) return;
+        const branding = data as unknown as { support_email: string | null };
+        if (branding.support_email) setEmail(branding.support_email);
+      } catch {
+        // ignore — keep default
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return email;
+}
+
+function SupportEmailLine() {
+  const email = useResolvedSupportEmail();
+  return (
+    <p className="mt-4 text-xs text-muted-foreground">
+      Email{" "}
+      <a
+        href={`mailto:${email}`}
+        className="font-medium text-foreground underline-offset-2 hover:underline"
+      >
+        {email}
+      </a>
+    </p>
+  );
+}
 
 // Best-effort: log a caught error to the error_logs table for production review.
 // Never throws — failures are swallowed to avoid loops inside the boundary.
@@ -134,6 +201,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               Report this issue
             </button>
           </div>
+          <SupportEmailLine />
         </div>
         <ReportIssueDialog
           open={reportOpen}
