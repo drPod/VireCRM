@@ -221,6 +221,33 @@
     animation: hero-float 7s ease-in-out infinite;
     will-change: transform;
   }
+
+  /* Softer, slower aurora glow for marketing section backgrounds */
+  .section-aurora {
+    background: conic-gradient(
+      from 0deg at 50% 50%,
+      oklch(0.65 0.2 250 / 0.32),
+      oklch(0.7 0.18 290 / 0.26),
+      oklch(0.65 0.16 320 / 0.3),
+      oklch(0.7 0.18 220 / 0.26),
+      oklch(0.65 0.2 250 / 0.32)
+    );
+    animation: aurora-spin 28s linear infinite;
+    filter: blur(80px);
+  }
+
+  .section-aurora-reverse {
+    background: conic-gradient(
+      from 180deg at 50% 50%,
+      oklch(0.65 0.16 320 / 0.3),
+      oklch(0.7 0.18 220 / 0.26),
+      oklch(0.65 0.2 250 / 0.32),
+      oklch(0.7 0.18 290 / 0.26),
+      oklch(0.65 0.16 320 / 0.3)
+    );
+    animation: aurora-spin-reverse 32s linear infinite;
+    filter: blur(80px);
+  }
 }
 
 @keyframes aurora-spin {
@@ -235,6 +262,18 @@
   }
 }
 
+@keyframes aurora-spin-reverse {
+  0% {
+    transform: rotate(360deg) scale(1.05);
+  }
+  50% {
+    transform: rotate(180deg) scale(0.95);
+  }
+  100% {
+    transform: rotate(0deg) scale(1.05);
+  }
+}
+
 @keyframes hero-float {
   0%, 100% {
     transform: translateY(0px);
@@ -246,7 +285,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hero-aurora,
-  .hero-float {
+  .hero-float,
+  .section-aurora,
+  .section-aurora-reverse {
     animation: none;
   }
 }
