@@ -1,9 +1,40 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useRef } from "react";
 import heroImage from "@/assets/hero-dashboard.jpg";
 
 export function HeroSection() {
+  const imageWrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const el = imageWrapRef.current;
+    if (!el) return;
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      // Scroll-driven offset: image rises up to ~80px as the hero scrolls past.
+      const offset = Math.min(Math.max(window.scrollY * 0.18, 0), 80);
+      el.style.setProperty("--parallax-y", `${-offset}px`);
+    };
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
   return (
     <section className="relative overflow-hidden pt-32 pb-20">
       {/* Background glow */}
@@ -57,7 +88,11 @@ export function HeroSection() {
         </div>
 
         {/* Hero Image */}
-        <div className="relative mx-auto mt-16 max-w-5xl">
+        <div
+          ref={imageWrapRef}
+          className="relative mx-auto mt-16 max-w-5xl will-change-transform"
+          style={{ transform: "translate3d(0, var(--parallax-y, 0px), 0)" }}
+        >
           <div className="pointer-events-none absolute -inset-12 rounded-[2rem] hero-aurora opacity-70" />
           <div className="pointer-events-none absolute -inset-4 rounded-3xl bg-primary/10 blur-2xl" />
           <div className="relative overflow-hidden rounded-2xl border border-border shadow-2xl shadow-primary/15 hero-float">
