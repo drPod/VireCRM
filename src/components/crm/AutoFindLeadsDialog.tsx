@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Wand2,
   Loader2,
@@ -24,6 +25,7 @@ import { findLeadsFn, type SuggestedLead } from "@/functions/find-leads.function
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
+import { useAutoOutreachPreference } from "@/hooks/useAutoOutreachPreference";
 import { toast } from "sonner";
 
 interface AutoFindLeadsDialogProps {
