@@ -183,7 +183,6 @@ function PayoutsPage() {
   const markPaid = async (earningId: string) => {
     const { data, error } = await supabase.rpc("mark_earning_paid", {
       p_earning_id: earningId,
-      p_payment_reference: null,
     });
     if (error) {
       toast.error(error.message);

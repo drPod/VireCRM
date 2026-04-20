@@ -28,10 +28,13 @@ import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calcul
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
+import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
+import { Route as AppExpensesRouteImport } from './routes/_app.expenses'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
@@ -148,9 +151,19 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRevenueRoute = AppRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppReputationRoute = AppReputationRouteImport.update({
   id: '/reputation',
   path: '/reputation',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPayoutsRoute = AppPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMessagesRoute = AppMessagesRouteImport.update({
@@ -166,6 +179,11 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
 const AppInvoicesRoute = AppInvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExpensesRoute = AppExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEmailMarketingRoute = AppEmailMarketingRouteImport.update({
@@ -295,10 +313,13 @@ export interface FileRoutesByFullPath {
   '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
+  '/expenses': typeof AppExpensesRoute
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
+  '/payouts': typeof AppPayoutsRoute
   '/reputation': typeof AppReputationRoute
+  '/revenue': typeof AppRevenueRoute
   '/settings': typeof AppSettingsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -339,10 +360,13 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
+  '/expenses': typeof AppExpensesRoute
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
+  '/payouts': typeof AppPayoutsRoute
   '/reputation': typeof AppReputationRoute
+  '/revenue': typeof AppRevenueRoute
   '/settings': typeof AppSettingsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -385,10 +409,13 @@ export interface FileRoutesById {
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
+  '/_app/expenses': typeof AppExpensesRoute
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
+  '/_app/payouts': typeof AppPayoutsRoute
   '/_app/reputation': typeof AppReputationRoute
+  '/_app/revenue': typeof AppRevenueRoute
   '/_app/settings': typeof AppSettingsRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -431,10 +458,13 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/email-marketing'
+    | '/expenses'
     | '/invoices'
     | '/leads'
     | '/messages'
+    | '/payouts'
     | '/reputation'
+    | '/revenue'
     | '/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -475,10 +505,13 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/email-marketing'
+    | '/expenses'
     | '/invoices'
     | '/leads'
     | '/messages'
+    | '/payouts'
     | '/reputation'
+    | '/revenue'
     | '/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -520,10 +553,13 @@ export interface FileRouteTypes {
     | '/_app/clients'
     | '/_app/dashboard'
     | '/_app/email-marketing'
+    | '/_app/expenses'
     | '/_app/invoices'
     | '/_app/leads'
     | '/_app/messages'
+    | '/_app/payouts'
     | '/_app/reputation'
+    | '/_app/revenue'
     | '/_app/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -707,11 +743,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/revenue': {
+      id: '/_app/revenue'
+      path: '/revenue'
+      fullPath: '/revenue'
+      preLoaderRoute: typeof AppRevenueRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/reputation': {
       id: '/_app/reputation'
       path: '/reputation'
       fullPath: '/reputation'
       preLoaderRoute: typeof AppReputationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/payouts': {
+      id: '/_app/payouts'
+      path: '/payouts'
+      fullPath: '/payouts'
+      preLoaderRoute: typeof AppPayoutsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/messages': {
@@ -733,6 +783,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof AppInvoicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/expenses': {
+      id: '/_app/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof AppExpensesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/email-marketing': {
@@ -901,10 +958,13 @@ interface AppRouteChildren {
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
+  AppExpensesRoute: typeof AppExpensesRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
+  AppPayoutsRoute: typeof AppPayoutsRoute
   AppReputationRoute: typeof AppReputationRoute
+  AppRevenueRoute: typeof AppRevenueRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
   AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
@@ -919,10 +979,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppClientsRoute: AppClientsRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
+  AppExpensesRoute: AppExpensesRoute,
   AppInvoicesRoute: AppInvoicesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,
+  AppPayoutsRoute: AppPayoutsRoute,
   AppReputationRoute: AppReputationRoute,
+  AppRevenueRoute: AppRevenueRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
   AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
