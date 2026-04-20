@@ -48,6 +48,8 @@ function CalendarPage() {
   const { organization } = useAuth();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
