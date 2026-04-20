@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Button } from "@/components/ui/button";
-import { Terminal, Loader2, ArrowLeft } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Terminal, Loader2, ArrowLeft, Check, X } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { friendlyAuthError } from "@/lib/auth-errors";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
@@ -24,19 +26,26 @@ function ResetPasswordPage() {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const checks = useMemo(
+    () => ({
+      length: password.length >= 8,
+      match: password.length > 0 && password === confirmPassword,
+    }),
+    [password, confirmPassword],
+  );
+  const canSubmit = sessionReady && checks.length && checks.match && !loading;
+
   // Establish recovery session from URL (hash or query) on mount
   useEffect(() => {
     let mounted = true;
     const init = async () => {
       try {
-        // Supabase auto-parses the hash and fires PASSWORD_RECOVERY when type=recovery
         const { data: existing } = await supabase.auth.getSession();
         if (existing.session) {
           if (mounted) setSessionReady(true);
           return;
         }
 
-        // Newer recovery links use ?code=... (PKCE). Exchange it for a session.
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
         if (code) {
@@ -46,22 +55,18 @@ function ResetPasswordPage() {
           return;
         }
 
-        // If we got here with no session and no code, the link is invalid/expired
         if (mounted) {
           setSessionError(
-            "This reset link is invalid or has expired. Please request a new one."
+            "This reset link is invalid or has expired. Please request a new one.",
           );
         }
       } catch (err) {
         if (mounted) {
-          setSessionError(
-            err instanceof Error ? err.message : "Could not verify reset link"
-          );
+          setSessionError(friendlyAuthError(err, "Could not verify reset link"));
         }
       }
     };
 
-    // Listen for the PASSWORD_RECOVERY event (hash-based recovery links)
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
         setSessionReady(true);
@@ -79,18 +84,14 @@ function ResetPasswordPage() {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sessionReady) {
-      toast.error("Reset link not verified yet — please wait or request a new link");
+      toast.error("Reset link not verified yet — please wait or request a new one");
       return;
     }
-    if (!password || !confirmPassword) {
-      toast.error("Please fill in both fields");
+    if (!checks.length) {
+      toast.error("Password must be at least 8 characters");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-    if (password !== confirmPassword) {
+    if (!checks.match) {
       toast.error("Passwords do not match");
       return;
     }
@@ -98,10 +99,11 @@ function ResetPasswordPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast.success("Password updated! Redirecting to dashboard...");
-      setTimeout(() => navigate({ to: "/dashboard" }), 1500);
+      toast.success("Password updated — taking you in...");
+      // Snappier redirect, no artificial delay
+      navigate({ to: "/dashboard" });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to reset password");
+      toast.error(friendlyAuthError(err, "Failed to reset password"));
     } finally {
       setLoading(false);
     }
@@ -116,8 +118,8 @@ function ResetPasswordPage() {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
               <Terminal className="h-6 w-6 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Set New Password</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Enter your new password below</p>
+            <h1 className="text-2xl font-bold text-foreground">Set new password</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Choose something memorable but strong</p>
           </div>
 
           {sessionError && (
@@ -130,30 +132,46 @@ function ResetPasswordPage() {
           )}
 
           <form onSubmit={handleReset} className="space-y-4">
+            {/* Hidden username field helps password managers associate the new credentials */}
+            <input type="email" name="username" autoComplete="username" hidden readOnly value="" />
+
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">New Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
+              <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-foreground">New Password</label>
+              <PasswordInput
+                id="new-password"
+                name="new-password"
+                autoComplete="new-password"
+                required
+                placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={!sessionReady}
-                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                className="disabled:opacity-50"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Confirm Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
+              <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-foreground">Confirm Password</label>
+              <PasswordInput
+                id="confirm-password"
+                name="confirm-password"
+                autoComplete="new-password"
+                required
+                placeholder="Re-enter password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={!sessionReady}
-                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                className="disabled:opacity-50"
               />
             </div>
 
-            <Button type="submit" variant="command" className="w-full" disabled={loading || !sessionReady}>
+            {(password.length > 0 || confirmPassword.length > 0) && (
+              <ul className="space-y-1 text-xs">
+                <Requirement met={checks.length} label="At least 8 characters" />
+                <Requirement met={checks.match} label="Passwords match" />
+              </ul>
+            )}
+
+            <Button type="submit" variant="command" className="w-full" disabled={!canSubmit}>
               {(loading || (!sessionReady && !sessionError)) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!sessionReady && !sessionError ? "Verifying link..." : "Update Password"}
             </Button>
@@ -168,5 +186,14 @@ function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function Requirement({ met, label }: { met: boolean; label: string }) {
+  return (
+    <li className={`flex items-center gap-1.5 ${met ? "text-foreground" : "text-muted-foreground"}`}>
+      {met ? <Check className="h-3 w-3 text-primary" /> : <X className="h-3 w-3" />}
+      {label}
+    </li>
   );
 }
