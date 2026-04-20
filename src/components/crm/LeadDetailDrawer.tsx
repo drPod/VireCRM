@@ -526,6 +526,19 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           </div>
         )}
       </SheetContent>
+      {lead && (form.email.trim() || lead.email) ? (
+        <OutreachPreviewDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          lead={{
+            id: lead.id,
+            name: form.name.trim() || lead.name,
+            email: (form.email.trim() || lead.email) as string,
+            company: form.company.trim() || lead.company || null,
+          }}
+          onSent={handleSent}
+        />
+      ) : null}
     </Sheet>
   );
 }
