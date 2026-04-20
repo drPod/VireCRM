@@ -1,20 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DollarSign,
-  Plus,
-  Send,
   Clock,
   CheckCircle2,
   AlertCircle,
-  Download,
-  MoreHorizontal,
-  TrendingUp,
   CreditCard,
   FileText,
-  Link as LinkIcon,
+  Loader2,
+  ExternalLink,
+  TrendingUp,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/_app/invoices")({
   component: InvoicesPage,
@@ -26,195 +26,317 @@ export const Route = createFileRoute("/_app/invoices")({
   }),
 });
 
-const demoInvoices = [
-  {
-    id: "INV-001",
-    client: "TechCorp Solutions",
-    amount: "$3,500.00",
-    status: "paid" as const,
-    dueDate: "Apr 10, 2026",
-    paidDate: "Apr 8, 2026",
-    items: "CRM Setup + Growth Plan (3 months)",
-  },
-  {
-    id: "INV-002",
-    client: "Digital Growth Agency",
-    amount: "$849.00",
-    status: "paid" as const,
-    dueDate: "Apr 1, 2026",
-    paidDate: "Apr 1, 2026",
-    items: "White-Label Lease — Professional (Monthly)",
-  },
-  {
-    id: "INV-003",
-    client: "ScaleUp Inc",
-    amount: "$1,500.00",
-    status: "pending" as const,
-    dueDate: "Apr 20, 2026",
-    paidDate: null,
-    items: "Growth Plan Setup Fee",
-  },
-  {
-    id: "INV-004",
-    client: "Velocity Sales Co",
-    amount: "$10,000.00",
-    status: "pending" as const,
-    dueDate: "Apr 25, 2026",
-    paidDate: null,
-    items: "Custom CRM Build — Phase 1",
-  },
-  {
-    id: "INV-005",
-    client: "Nexus Marketing",
-    amount: "$197.00",
-    status: "overdue" as const,
-    dueDate: "Apr 5, 2026",
-    paidDate: null,
-    items: "Growth Plan (Monthly)",
-  },
-  {
-    id: "INV-006",
-    client: "Peak Performance Ltd",
-    amount: "$497.00",
-    status: "draft" as const,
-    dueDate: "—",
-    paidDate: null,
-    items: "Pro Plan (Monthly)",
-  },
-];
+interface Transaction {
+  id: string;
+  stripe_transaction_id: string | null;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  billed_at: string;
+  environment: string;
+}
 
-const statusConfig = {
-  paid: { variant: "default" as const, icon: CheckCircle2, color: "text-success" },
-  pending: { variant: "secondary" as const, icon: Clock, color: "text-warning" },
-  overdue: { variant: "destructive" as const, icon: AlertCircle, color: "text-destructive" },
-  draft: { variant: "outline" as const, icon: FileText, color: "text-muted-foreground" },
+const statusConfig: Record<
+  string,
+  { variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2; color: string; label: string }
+> = {
+  completed: { variant: "default", icon: CheckCircle2, color: "text-success", label: "paid" },
+  paid: { variant: "default", icon: CheckCircle2, color: "text-success", label: "paid" },
+  pending: { variant: "secondary", icon: Clock, color: "text-warning", label: "pending" },
+  failed: { variant: "destructive", icon: AlertCircle, color: "text-destructive", label: "failed" },
+  refunded: { variant: "outline", icon: FileText, color: "text-muted-foreground", label: "refunded" },
 };
 
+function formatMoney(cents: number, currency = "USD") {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
 function InvoicesPage() {
+  const { user } = useAuth();
+  const [txns, setTxns] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "paid" | "pending" | "failed">("all");
+
+  useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("id,stripe_transaction_id,amount_cents,currency,status,billed_at,environment")
+        .eq("user_id", user.id)
+        .order("billed_at", { ascending: false })
+        .limit(100);
+      if (cancelled) return;
+      if (error) {
+        console.warn("invoices load failed", error);
+        setTxns([]);
+      } else {
+        setTxns((data ?? []) as Transaction[]);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = monthStart;
+
+    let mtdRevenue = 0;
+    let lastMonthRevenue = 0;
+    let outstanding = 0;
+    let outstandingCount = 0;
+    let failed = 0;
+    let failedCount = 0;
+    let collected = 0;
+    let collectedCount = 0;
+
+    for (const t of txns) {
+      const billed = new Date(t.billed_at);
+      const isPaid = t.status === "completed" || t.status === "paid";
+      if (isPaid && billed >= monthStart) {
+        mtdRevenue += t.amount_cents;
+        collected += t.amount_cents;
+        collectedCount += 1;
+      }
+      if (isPaid && billed >= lastMonthStart && billed < lastMonthEnd) {
+        lastMonthRevenue += t.amount_cents;
+      }
+      if (t.status === "pending") {
+        outstanding += t.amount_cents;
+        outstandingCount += 1;
+      }
+      if (t.status === "failed") {
+        failed += t.amount_cents;
+        failedCount += 1;
+      }
+    }
+
+    const trend =
+      lastMonthRevenue > 0
+        ? ((mtdRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+        : null;
+
+    return {
+      mtdRevenue,
+      outstanding,
+      outstandingCount,
+      failed,
+      failedCount,
+      collected,
+      collectedCount,
+      trend,
+    };
+  }, [txns]);
+
+  const currency = txns[0]?.currency ?? "USD";
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return txns;
+    if (filter === "paid")
+      return txns.filter((t) => t.status === "completed" || t.status === "paid");
+    return txns.filter((t) => t.status === filter);
+  }, [txns, filter]);
+
   return (
     <div className="flex-1 overflow-auto p-6">
       <div className="mx-auto max-w-6xl">
-        {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Invoices & Payments</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create invoices, track payments, and send text-to-pay links
+              Live transactions from your subscription billing
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2">
-              <LinkIcon className="h-4 w-4" />
-              Payment Link
-            </Button>
-            <Button variant="command" className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Invoice
-            </Button>
+            <Link to="/billing">
+              <Button variant="outline" className="gap-2">
+                <CreditCard className="h-4 w-4" />
+                Manage billing
+              </Button>
+            </Link>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="mb-8 grid grid-cols-4 gap-4">
+        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">Revenue (MTD)</p>
             </div>
-            <p className="mt-1 text-2xl font-bold text-foreground">$16,543</p>
-            <div className="mt-1 flex items-center gap-1 text-xs text-success">
-              <TrendingUp className="h-3 w-3" /> +23.5% vs last month
-            </div>
+            <p className="mt-1 text-2xl font-bold text-foreground">
+              {formatMoney(stats.mtdRevenue, currency)}
+            </p>
+            {stats.trend !== null ? (
+              <div
+                className={`mt-1 flex items-center gap-1 text-xs ${stats.trend >= 0 ? "text-success" : "text-destructive"}`}
+              >
+                <TrendingUp className="h-3 w-3" />
+                {stats.trend >= 0 ? "+" : ""}
+                {stats.trend.toFixed(1)}% vs last month
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">No prior month data</p>
+            )}
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">Outstanding</p>
             </div>
-            <p className="mt-1 text-2xl font-bold text-warning">$11,697</p>
-            <p className="mt-1 text-xs text-muted-foreground">3 invoices pending</p>
+            <p className="mt-1 text-2xl font-bold text-warning">
+              {formatMoney(stats.outstanding, currency)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {stats.outstandingCount} pending
+            </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">Overdue</p>
+              <p className="text-xs text-muted-foreground">Failed</p>
             </div>
-            <p className="mt-1 text-2xl font-bold text-destructive">$197</p>
-            <p className="mt-1 text-xs text-muted-foreground">1 invoice overdue</p>
+            <p className="mt-1 text-2xl font-bold text-destructive">
+              {formatMoney(stats.failed, currency)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {stats.failedCount} failed
+            </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">Collected</p>
+              <p className="text-xs text-muted-foreground">Collected (MTD)</p>
             </div>
-            <p className="mt-1 text-2xl font-bold text-success">$4,349</p>
-            <p className="mt-1 text-xs text-muted-foreground">2 paid this month</p>
+            <p className="mt-1 text-2xl font-bold text-success">
+              {formatMoney(stats.collected, currency)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {stats.collectedCount} this month
+            </p>
           </div>
         </div>
 
-        {/* Invoice table */}
         <div className="rounded-xl border border-border bg-card">
           <div className="border-b border-border px-5 py-3 flex items-center justify-between">
-            <h2 className="font-semibold text-foreground">All Invoices</h2>
+            <h2 className="font-semibold text-foreground">Transactions</h2>
             <div className="flex gap-1">
-              <Button variant="ghost" size="sm" className="text-xs">All</Button>
-              <Button variant="ghost" size="sm" className="text-xs">Pending</Button>
-              <Button variant="ghost" size="sm" className="text-xs">Paid</Button>
-              <Button variant="ghost" size="sm" className="text-xs">Overdue</Button>
+              {(["all", "paid", "pending", "failed"] as const).map((f) => (
+                <Button
+                  key={f}
+                  variant={filter === f ? "secondary" : "ghost"}
+                  size="sm"
+                  className="text-xs capitalize"
+                  onClick={() => setFilter(f)}
+                >
+                  {f}
+                </Button>
+              ))}
             </div>
           </div>
 
-          <div className="divide-y divide-border">
-            {demoInvoices.map((invoice) => {
-              const config = statusConfig[invoice.status];
-              const StatusIcon = config.icon;
-              return (
-                <div
-                  key={invoice.id}
-                  className="group flex items-center justify-between px-5 py-4 transition-colors hover:bg-muted/30"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-muted-foreground">{invoice.id}</span>
-                        <span className="font-medium text-foreground">{invoice.client}</span>
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="px-5 py-16 text-center">
+              <FileText className="mx-auto h-10 w-10 text-muted-foreground/50" />
+              <p className="mt-3 text-sm font-medium text-foreground">
+                {txns.length === 0 ? "No transactions yet" : "No transactions match this filter"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {txns.length === 0
+                  ? "Once a subscription payment goes through, it'll show up here."
+                  : "Try a different filter."}
+              </p>
+              {txns.length === 0 && (
+                <Link to="/billing">
+                  <Button variant="outline" size="sm" className="mt-4 gap-1">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Go to billing
+                  </Button>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {filtered.map((txn) => {
+                const cfg = statusConfig[txn.status] ?? statusConfig.pending;
+                const StatusIcon = cfg.icon;
+                const ref =
+                  txn.stripe_transaction_id?.slice(-10).toUpperCase() ??
+                  txn.id.slice(0, 8).toUpperCase();
+                return (
+                  <div
+                    key={txn.id}
+                    className="group flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-muted/30"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <FileText className="h-5 w-5 text-primary" />
                       </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{invoice.items}</p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            #{ref}
+                          </span>
+                          <span className="font-medium text-foreground">
+                            Subscription payment
+                          </span>
+                          {txn.environment === "sandbox" && (
+                            <Badge variant="outline" className="text-[10px] uppercase">
+                              test
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {new Date(txn.billed_at).toLocaleString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <p className="font-semibold text-foreground">{invoice.amount}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {invoice.status === "paid" ? `Paid ${invoice.paidDate}` : `Due ${invoice.dueDate}`}
-                      </p>
-                    </div>
-                    <Badge variant={config.variant} className="gap-1 text-xs min-w-[80px] justify-center">
-                      <StatusIcon className="h-3 w-3" />
-                      {invoice.status}
-                    </Badge>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                      {invoice.status === "pending" && (
-                        <Button variant="outline" size="sm" className="gap-1 text-xs">
-                          <Send className="h-3 w-3" /> Remind
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                    <div className="flex items-center gap-6 shrink-0">
+                      <div className="text-right">
+                        <p className="font-semibold text-foreground">
+                          {formatMoney(txn.amount_cents, txn.currency)}
+                        </p>
+                        <p className="text-xs text-muted-foreground uppercase">
+                          {txn.currency}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={cfg.variant}
+                        className="gap-1 text-xs min-w-[80px] justify-center capitalize"
+                      >
+                        <StatusIcon className="h-3 w-3" />
+                        {cfg.label}
+                      </Badge>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
