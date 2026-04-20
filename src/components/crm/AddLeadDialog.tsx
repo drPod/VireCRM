@@ -13,13 +13,27 @@ const statusOptions = ["new", "contacted", "qualified", "negotiation", "won", "l
 
 interface AddLeadDialogProps {
   onLeadAdded?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
+export function AddLeadDialog({
+  onLeadAdded,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger,
+}: AddLeadDialogProps) {
   const { organization } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    controlledOnOpenChange?.(v);
+  };
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -81,12 +95,14 @@ export function AddLeadDialog({ onLeadAdded }: AddLeadDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="command" size="sm">
-          <Plus className="h-4 w-4" />
-          Add Lead
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="command" size="sm">
+            <Plus className="h-4 w-4" />
+            Add Lead
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>

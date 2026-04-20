@@ -144,13 +144,27 @@ function parseXLSX(buffer: ArrayBuffer): ParsedLead[] {
 
 interface ImportLeadsDialogProps {
   onLeadsImported?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
+export function ImportLeadsDialog({
+  onLeadsImported,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger,
+}: ImportLeadsDialogProps) {
   const { organization } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    controlledOnOpenChange?.(v);
+  };
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<ParsedLead[]>([]);
   const [loading, setLoading] = useState(false);
@@ -271,12 +285,14 @@ export function ImportLeadsDialog({ onLeadsImported }: ImportLeadsDialogProps) {
         if (!v) reset();
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Upload className="h-4 w-4" />
-          Import
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Import Leads</DialogTitle>
