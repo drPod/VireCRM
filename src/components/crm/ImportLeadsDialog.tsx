@@ -46,22 +46,6 @@ const VALID_STATUSES = ["new", "contacted", "qualified", "negotiation", "won", "
 /** Same RFC-5322-lite check used everywhere else in the app. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function parseCSV(text: string): ParsedLead[] {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) return [];
-
-  const headerLine = lines[0];
-  const headers = headerLine.split(",").map((h) => h.trim().toLowerCase().replace(/['"]/g, ""));
-
-  const nameIdx = headers.findIndex((h) => ["name", "full name", "fullname", "contact", "lead"].includes(h));
-  const emailIdx = headers.findIndex((h) => ["email", "e-mail", "email address"].includes(h));
-  const phoneIdx = headers.findIndex((h) => ["phone", "telephone", "tel", "mobile", "phone number"].includes(h));
-  const companyIdx = headers.findIndex((h) => ["company", "organization", "org", "business", "company name"].includes(h));
-  const statusIdx = headers.findIndex((h) => ["status", "stage", "lead status"].includes(h));
-  const scoreIdx = headers.findIndex((h) => ["score", "lead score", "rating"].includes(h));
-  const notesIdx = headers.findIndex((h) => ["notes", "note", "comments", "description"].includes(h));
-  const sourceIdx = headers.findIndex((h) => ["source", "lead source", "origin", "channel"].includes(h));
-
 function parseCSV(text: string): ParseOutcome {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) {
