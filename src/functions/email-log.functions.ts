@@ -148,23 +148,40 @@ export const listLeadEmailLogsFn = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await admin
       .from("email_send_log")
-      .select("id, message_id, template_name, recipient_email, status, error_message, created_at")
+      .select("id, message_id, template_name, recipient_email, status, error_message, created_at, metadata")
       .ilike("recipient_email", data.email)
       .order("created_at", { ascending: false })
       .limit(100);
 
     if (error) return [];
 
-    // Dedupe by message_id (most recent status wins)
-    const seen = new Set<string>();
-    const deduped: EmailLogEntry[] = [];
+    // Dedupe by message_id (most recent status wins) but merge subject/preview
+    // from any row in the same group so a "sent" row without metadata still
+    // gets the subject/preview from its earlier "pending" row.
+    const byKey = new Map<string, EmailLogEntry>();
+    const order: string[] = [];
     for (const row of rows ?? []) {
       const key = row.message_id ?? `__row:${row.id}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      deduped.push(row as EmailLogEntry);
-      if (deduped.length >= 50) break;
+      const meta = extractMeta((row as { metadata?: unknown }).metadata);
+      const existing = byKey.get(key);
+      if (!existing) {
+        byKey.set(key, {
+          id: row.id,
+          message_id: row.message_id,
+          template_name: row.template_name,
+          recipient_email: row.recipient_email,
+          status: row.status,
+          error_message: row.error_message,
+          created_at: row.created_at,
+          subject: meta.subject,
+          body_preview: meta.body_preview,
+        });
+        order.push(key);
+      } else {
+        if (!existing.subject && meta.subject) existing.subject = meta.subject;
+        if (!existing.body_preview && meta.body_preview) existing.body_preview = meta.body_preview;
+      }
     }
 
-    return deduped;
+    return order.slice(0, 50).map((k) => byKey.get(k)!);
   });
