@@ -1,4 +1,5 @@
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
