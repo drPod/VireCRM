@@ -137,7 +137,7 @@ function EmailMarketingPage() {
                 Workflows
               </Button>
             </Link>
-            <Link to="/campaigns">
+            <Link to="/campaigns" search={{ new: true }}>
               <Button variant="command" className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Campaign
@@ -200,7 +200,7 @@ function EmailMarketingPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   Create your first email campaign to start tracking performance.
                 </p>
-                <Link to="/campaigns">
+                <Link to="/campaigns" search={{ new: true }}>
                   <Button variant="command" size="sm" className="mt-4 gap-1">
                     <Plus className="h-3.5 w-3.5" />
                     Create campaign

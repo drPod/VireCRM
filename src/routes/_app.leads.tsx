@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LeadCard, type Lead } from "@/components/crm/LeadCard";
 import { AddLeadDialog } from "@/components/crm/AddLeadDialog";
 import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
@@ -10,12 +10,17 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-type LeadsSearch = { q?: string };
+type LeadsAction = "add" | "import";
+type LeadsSearch = { q?: string; action?: LeadsAction };
 
 export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
-  validateSearch: (search: Record<string, unknown>): LeadsSearch =>
-    typeof search.q === "string" && search.q.length > 0 ? { q: search.q } : {},
+  validateSearch: (search: Record<string, unknown>): LeadsSearch => {
+    const out: LeadsSearch = {};
+    if (typeof search.q === "string" && search.q.length > 0) out.q = search.q;
+    if (search.action === "add" || search.action === "import") out.action = search.action;
+    return out;
+  },
   head: () => ({
     meta: [
       { title: "Genesis — Leads" },
@@ -28,7 +33,8 @@ const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "w
 
 function LeadsPage() {
   const { organization } = useAuth();
-  const { q } = Route.useSearch();
+  const navigate = useNavigate();
+  const { q, action } = Route.useSearch();
   const [search, setSearch] = useState(q ?? "");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -37,11 +43,24 @@ function LeadsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
     if (q !== undefined) setSearch(q);
   }, [q]);
+
+  // Auto-open dialogs from ?action= and clear the param so refresh doesn't reopen.
+  useEffect(() => {
+    if (action === "add") {
+      setAddOpen(true);
+      navigate({ to: "/leads", search: (prev: LeadsSearch) => ({ ...prev, action: undefined }), replace: true });
+    } else if (action === "import") {
+      setImportOpen(true);
+      navigate({ to: "/leads", search: (prev: LeadsSearch) => ({ ...prev, action: undefined }), replace: true });
+    }
+  }, [action, navigate]);
 
   const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -104,8 +123,16 @@ function LeadsPage() {
         <div className="flex gap-2">
           <ExportLeadsButton leads={leads} />
           <AutoFindLeadsDialog onLeadsImported={handleLeadAdded} />
-          <ImportLeadsDialog onLeadsImported={handleLeadAdded} />
-          <AddLeadDialog onLeadAdded={handleLeadAdded} />
+          <ImportLeadsDialog
+            onLeadsImported={handleLeadAdded}
+            open={importOpen}
+            onOpenChange={setImportOpen}
+          />
+          <AddLeadDialog
+            onLeadAdded={handleLeadAdded}
+            open={addOpen}
+            onOpenChange={setAddOpen}
+          />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
