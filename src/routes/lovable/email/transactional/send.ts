@@ -65,6 +65,8 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         let idempotencyKey: string
         let messageId: string
         let templateData: Record<string, any> = {}
+        let fromName: string | null = null
+        let replyTo: string | null = null
         try {
           const body = await request.json()
           templateName = body.templateName || body.template_name
@@ -73,6 +75,17 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
           if (body.templateData && typeof body.templateData === 'object') {
             templateData = body.templateData
+          }
+          if (typeof body.fromName === 'string' && body.fromName.trim()) {
+            // Sanitize: strip any chars that would break the From header
+            fromName = body.fromName.trim().replace(/["<>\r\n]/g, '').slice(0, 100)
+          }
+          if (typeof body.replyTo === 'string' && body.replyTo.trim()) {
+            const candidate = body.replyTo.trim()
+            // Basic email shape check; ignore anything that doesn't look valid
+            if (/^[^\s<>@"]+@[^\s<>@"]+\.[^\s<>@"]+$/.test(candidate)) {
+              replyTo = candidate.toLowerCase()
+            }
           }
         } catch {
           return Response.json(
@@ -273,12 +286,13 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           status: 'pending',
         })
 
+        const fromDisplayName = fromName ?? SITE_NAME
         const { error: enqueueError } = await supabase.rpc('enqueue_email', {
           queue_name: 'transactional_emails',
           payload: {
             message_id: messageId,
             to: effectiveRecipient,
-            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+            from: `${fromDisplayName} <noreply@${FROM_DOMAIN}>`,
             sender_domain: SENDER_DOMAIN,
             subject: resolvedSubject,
             html,
@@ -287,6 +301,7 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             label: templateName,
             idempotency_key: idempotencyKey,
             unsubscribe_token: unsubscribeToken,
+            reply_to: replyTo ?? undefined,
             queued_at: new Date().toISOString(),
           },
         })
