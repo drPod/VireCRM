@@ -8,6 +8,7 @@ export interface DomainBranding {
   logo_url: string | null;
   primary_color: string | null;
   is_reseller: boolean;
+  support_email: string | null;
   verified: boolean;
 }
 
