@@ -185,6 +185,21 @@ function BillingPage() {
   const { subscription, hasAccess, inGrace, loading } = useSubscription(user?.id);
   const { openCheckout, CheckoutDialog } = useStripeCheckout();
   const autoOpenedRef = useRef(false);
+  const [showPlans, setShowPlans] = useState(false);
+
+  const handleSelectTier = useCallback(
+    (tier: PricingTier) => {
+      if (!tier.stripePriceId || !user?.email) return;
+      openCheckout({
+        mode: "price",
+        priceId: tier.stripePriceId,
+        customerEmail: user.email,
+        userId: user.id,
+        returnUrl: `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
+      });
+    },
+    [openCheckout, user],
+  );
 
   const isManual = subscription?.environment === "manual";
 
