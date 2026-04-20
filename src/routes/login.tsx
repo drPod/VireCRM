@@ -41,11 +41,17 @@ function LoginPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password,
       });
       if (error) throw error;
+      if (!data.session) {
+        // Defensive: should never happen on success, but guard so we never
+        // navigate to /dashboard without an active session (which would
+        // immediately bounce the user back here).
+        throw new Error("Sign-in did not return a session. Please try again.");
+      }
       toast.success("Welcome back!");
       navigate({ to: "/dashboard" });
     } catch (err: unknown) {
