@@ -28,7 +28,23 @@ interface ParsedLead {
   source?: string;
 }
 
+/** Per-row warning/error captured during parsing — surfaced to the user. */
+interface ParseIssue {
+  row: number; // 1-indexed, matches what the user sees in their spreadsheet
+  message: string;
+}
+
+interface ParseOutcome {
+  leads: ParsedLead[];
+  issues: ParseIssue[];
+  /** Hard error that prevented parsing the file at all (vs. per-row issues). */
+  fatal?: string;
+}
+
 const VALID_STATUSES = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
+
+/** Same RFC-5322-lite check used everywhere else in the app. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function parseCSV(text: string): ParsedLead[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
