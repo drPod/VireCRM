@@ -39,8 +39,19 @@ export function useAutoOutreach() {
         });
 
         if (result.sent > 0) {
-          toast.success(`Auto-outreach: ${result.sent} email${result.sent > 1 ? "s" : ""} sent!`, {
-            description: "AI-generated personalized emails were sent to your new leads.",
+          toast.success(
+            `Auto-outreach: ${result.sent} email${result.sent > 1 ? "s" : ""} sent!`,
+            {
+              description:
+                result.skipped > 0
+                  ? `${result.skipped} skipped — ${result.errors[0] ?? "see message log"}`
+                  : "AI-generated personalized emails were dispatched.",
+            }
+          );
+        } else if (result.skipped > 0) {
+          // Nothing went out at all — surface the first concrete reason.
+          toast.error("Auto-outreach: no emails sent", {
+            description: result.errors[0] ?? "All recipients were skipped.",
           });
         }
       } catch (err) {
