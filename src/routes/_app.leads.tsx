@@ -12,6 +12,9 @@ import { useAuth } from "@/components/auth/AuthProvider";
 
 export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Vireon — Leads" },
