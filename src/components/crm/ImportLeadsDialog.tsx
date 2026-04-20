@@ -62,20 +62,61 @@ function parseCSV(text: string): ParsedLead[] {
   const notesIdx = headers.findIndex((h) => ["notes", "note", "comments", "description"].includes(h));
   const sourceIdx = headers.findIndex((h) => ["source", "lead source", "origin", "channel"].includes(h));
 
-  if (nameIdx === -1) return [];
+function parseCSV(text: string): ParseOutcome {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) {
+    return { leads: [], issues: [], fatal: "File looks empty — need a header row plus at least one data row." };
+  }
+
+  const headerLine = lines[0];
+  const headers = headerLine.split(",").map((h) => h.trim().toLowerCase().replace(/['"]/g, ""));
+
+  const nameIdx = headers.findIndex((h) => ["name", "full name", "fullname", "contact", "lead"].includes(h));
+  const emailIdx = headers.findIndex((h) => ["email", "e-mail", "email address"].includes(h));
+  const phoneIdx = headers.findIndex((h) => ["phone", "telephone", "tel", "mobile", "phone number"].includes(h));
+  const companyIdx = headers.findIndex((h) => ["company", "organization", "org", "business", "company name"].includes(h));
+  const statusIdx = headers.findIndex((h) => ["status", "stage", "lead status"].includes(h));
+  const scoreIdx = headers.findIndex((h) => ["score", "lead score", "rating"].includes(h));
+  const notesIdx = headers.findIndex((h) => ["notes", "note", "comments", "description"].includes(h));
+  const sourceIdx = headers.findIndex((h) => ["source", "lead source", "origin", "channel"].includes(h));
+
+  if (nameIdx === -1) {
+    return {
+      leads: [],
+      issues: [],
+      fatal: `Missing "Name" column. Detected headers: ${headers.join(", ") || "(none)"}.`,
+    };
+  }
 
   const leads: ParsedLead[] = [];
+  const issues: ParseIssue[] = [];
+
   for (let i = 1; i < lines.length; i++) {
+    const rowNum = i + 1; // 1-indexed for the user (header is row 1)
     const values = parseCSVLine(lines[i]);
     const name = values[nameIdx]?.trim();
-    if (!name) continue;
+    if (!name) {
+      issues.push({ row: rowNum, message: "missing name" });
+      continue;
+    }
+
+    const rawEmail = emailIdx >= 0 ? values[emailIdx]?.trim() : undefined;
+    let email: string | undefined;
+    if (rawEmail) {
+      const normalized = rawEmail.toLowerCase();
+      if (!EMAIL_RE.test(normalized)) {
+        issues.push({ row: rowNum, message: `invalid email "${rawEmail}"` });
+      } else {
+        email = normalized;
+      }
+    }
 
     const statusRaw = statusIdx >= 0 ? values[statusIdx]?.trim().toLowerCase() : undefined;
     const scoreRaw = scoreIdx >= 0 ? parseInt(values[scoreIdx]?.trim(), 10) : undefined;
 
     leads.push({
       name,
-      email: emailIdx >= 0 ? values[emailIdx]?.trim() || undefined : undefined,
+      email,
       phone: phoneIdx >= 0 ? values[phoneIdx]?.trim() || undefined : undefined,
       company: companyIdx >= 0 ? values[companyIdx]?.trim() || undefined : undefined,
       status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
@@ -84,7 +125,7 @@ function parseCSV(text: string): ParsedLead[] {
       source: sourceIdx >= 0 ? values[sourceIdx]?.trim() || undefined : "csv_import",
     });
   }
-  return leads;
+  return { leads, issues };
 }
 
 function parseCSVLine(line: string): string[] {
