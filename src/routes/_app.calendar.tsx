@@ -332,6 +332,14 @@ function CalendarPage() {
           </div>
         </div>
       </div>
+      {organization?.id && (
+        <NewTaskDialog
+          open={newTaskOpen}
+          onOpenChange={setNewTaskOpen}
+          organizationId={organization.id}
+          onCreated={() => setReloadKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }
