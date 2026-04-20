@@ -11,6 +11,20 @@ export interface EmailLogEntry {
   status: string;
   error_message: string | null;
   created_at: string;
+  subject: string | null;
+  body_preview: string | null;
+}
+
+// Pull subject + preview out of the metadata jsonb. Both fields may live on
+// different rows for the same message_id (pending vs sent), so callers should
+// merge across rows when deduping.
+function extractMeta(metadata: unknown): { subject: string | null; body_preview: string | null } {
+  if (!metadata || typeof metadata !== "object") return { subject: null, body_preview: null };
+  const m = metadata as Record<string, unknown>;
+  const subject = typeof m.subject === "string" && m.subject.trim() ? m.subject : null;
+  const body_preview =
+    typeof m.body_preview === "string" && m.body_preview.trim() ? m.body_preview : null;
+  return { subject, body_preview };
 }
 
 export const listRecentEmailLogsFn = createServerFn({ method: "GET" })
