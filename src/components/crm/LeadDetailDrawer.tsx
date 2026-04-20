@@ -8,9 +8,10 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Trash2, Mail, MessageSquare, Clock } from "lucide-react";
+import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
@@ -45,7 +46,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [resending, setResending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { triggerOutreach } = useAutoOutreach();
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
@@ -193,6 +196,30 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     }
   };
 
+  const handleResendOutreach = async () => {
+    if (!lead) return;
+    const email = form.email.trim() || lead.email;
+    if (!email) {
+      toast.error("Add an email address first");
+      return;
+    }
+    setResending(true);
+    try {
+      await triggerOutreach([
+        {
+          id: lead.id,
+          name: form.name.trim() || lead.name,
+          email,
+          company: form.company.trim() || lead.company || null,
+        },
+      ]);
+      // triggerOutreach surfaces its own toast; refresh activity on close/reopen.
+      onUpdated();
+    } finally {
+      setResending(false);
+    }
+  };
+
   const inputClass =
     "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
 
@@ -334,7 +361,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-border">
+            <div className="flex items-center justify-between pt-4 border-t border-border gap-2 flex-wrap">
               <Button
                 variant={confirmDelete ? "destructive" : "outline"}
                 size="sm"
@@ -348,14 +375,34 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 )}
                 {confirmDelete ? "Confirm Delete" : "Delete"}
               </Button>
-              <Button variant="command" size="sm" onClick={handleSave} disabled={saving}>
-                {saving ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Save className="mr-1.5 h-3.5 w-3.5" />
-                )}
-                Save Changes
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResendOutreach}
+                  disabled={resending || !(form.email.trim() || lead.email)}
+                  title={
+                    form.email.trim() || lead.email
+                      ? "Generate and send a fresh AI outreach email to this lead"
+                      : "Add an email address to enable resend"
+                  }
+                >
+                  {resending ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Resend outreach
+                </Button>
+                <Button variant="command" size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Save Changes
+                </Button>
+              </div>
             </div>
 
             {confirmDelete && (
