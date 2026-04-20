@@ -49,6 +49,7 @@ interface AnalysisResult {
 
 export function AiAdvisorPanel() {
   const { organization, session } = useAuth();
+  const navigate = useNavigate();
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
