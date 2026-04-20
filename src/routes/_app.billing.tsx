@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,72 @@ import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { crmTiers, whiteLabelTiers, type PricingTier } from "@/components/marketing/PricingCards";
+import { Check, X } from "lucide-react";
 
 function findTierByPriceId(priceId: string): PricingTier | undefined {
   return [...crmTiers, ...whiteLabelTiers].find((t) => t.stripePriceId === priceId);
+}
+
+function InlinePlans({
+  onSelect,
+  currentPriceId,
+}: {
+  onSelect: (tier: PricingTier) => void;
+  currentPriceId?: string;
+}) {
+  const allTiers = [...crmTiers, ...whiteLabelTiers].filter((t) => t.stripePriceId);
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {allTiers.map((tier) => {
+        const isCurrent = tier.stripePriceId === currentPriceId;
+        return (
+          <div
+            key={tier.name}
+            className={`rounded-xl border p-5 flex flex-col ${
+              tier.highlighted
+                ? "border-primary/40 bg-primary/5"
+                : "border-border bg-card"
+            }`}
+          >
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <h3 className="text-base font-bold text-foreground">{tier.name}</h3>
+              {tier.badge && (
+                <Badge variant="secondary" className="text-[10px]">{tier.badge}</Badge>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{tier.description}</p>
+            <p className="mt-3 text-xl font-bold text-foreground">
+              {tier.price}
+              <span className="text-xs font-normal text-muted-foreground">{tier.period}</span>
+            </p>
+            <ul className="mt-3 space-y-1.5 flex-1">
+              {tier.features.slice(0, 5).map((f, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-xs">
+                  {f.included ? (
+                    <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                  ) : (
+                    <X className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 mt-0.5" />
+                  )}
+                  <span className={f.included ? "text-foreground" : "text-muted-foreground/60 line-through"}>
+                    {f.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              variant={tier.highlighted ? "command" : "outline"}
+              size="sm"
+              className="mt-4 w-full"
+              disabled={isCurrent}
+              onClick={() => onSelect(tier)}
+            >
+              {isCurrent ? "Current plan" : tier.cta}
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function BillingErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
@@ -122,6 +185,21 @@ function BillingPage() {
   const { subscription, hasAccess, inGrace, loading } = useSubscription(user?.id);
   const { openCheckout, CheckoutDialog } = useStripeCheckout();
   const autoOpenedRef = useRef(false);
+  const [showPlans, setShowPlans] = useState(false);
+
+  const handleSelectTier = useCallback(
+    (tier: PricingTier) => {
+      if (!tier.stripePriceId || !user?.email) return;
+      openCheckout({
+        mode: "price",
+        priceId: tier.stripePriceId,
+        customerEmail: user.email,
+        userId: user.id,
+        returnUrl: `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
+      });
+    },
+    [openCheckout, user],
+  );
 
   const isManual = subscription?.environment === "manual";
 
@@ -200,21 +278,21 @@ function BillingPage() {
           );
         })()}
 
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 flex items-start gap-3">
-          <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Choose a plan to get started</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Pick a plan on our pricing page — checkout opens right here in one click.
-            </p>
-            <div className="mt-3 flex gap-2">
-              <Link to="/pricing">
-                <Button variant="command" size="sm">View plans</Button>
-              </Link>
-              <Link to="/contact">
-                <Button variant="outline" size="sm">Talk to sales</Button>
-              </Link>
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
+          <div className="flex items-start gap-3 mb-4">
+            <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Choose a plan to get started</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Pick a plan below — checkout opens right here in one click.
+              </p>
             </div>
+          </div>
+          <InlinePlans onSelect={handleSelectTier} />
+          <div className="mt-4 flex justify-center">
+            <Link to="/contact">
+              <Button variant="outline" size="sm">Talk to sales</Button>
+            </Link>
           </div>
         </div>
         {CheckoutDialog}
@@ -314,19 +392,27 @@ function BillingPage() {
 
       {/* Upgrade / change plan — explicit CTA so users don't need to dig through Stripe portal */}
       {!isManual && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <p className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Want to upgrade?
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Compare every CRM and white-label plan side-by-side, then switch in one click.
-            </p>
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Want to upgrade?
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Compare every CRM and white-label plan side-by-side, then switch in one click.
+              </p>
+            </div>
+            <Button variant="command" size="sm" onClick={() => setShowPlans((v) => !v)}>
+              {showPlans ? "Hide plans" : "View all plans"}
+            </Button>
           </div>
-          <Link to="/pricing">
-            <Button variant="command" size="sm">View all plans</Button>
-          </Link>
+          {showPlans && (
+            <InlinePlans
+              onSelect={handleSelectTier}
+              currentPriceId={subscription.price_id}
+            />
+          )}
         </div>
       )}
 
