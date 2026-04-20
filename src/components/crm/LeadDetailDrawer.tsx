@@ -450,7 +450,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </p>
             )}
           </div>
-        ) : (
+        ) : activeTab === "activity" ? (
           <div className="pt-4">
             {loadingActivity ? (
               <div className="flex items-center justify-center py-8">
@@ -469,6 +469,24 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   <ActivityEntry key={`${item.type}-${item.id}`} item={item} />
                 ))}
               </div>
+            )}
+          </div>
+        ) : (
+          <div className="pt-4 space-y-2">
+            {!(form.email.trim() || lead.email) ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                Add an email address to see send history.
+              </div>
+            ) : loadingEmailLogs ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : emailLogs.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                No emails sent to this lead yet.
+              </div>
+            ) : (
+              emailLogs.map((log) => <EmailLogEntryRow key={log.id} log={log} />)
             )}
           </div>
         )}
