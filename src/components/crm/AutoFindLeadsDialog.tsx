@@ -57,16 +57,19 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   }, []);
 
   const handleFind = async () => {
-    if (!organization?.id || description.length < 10) return;
+    if (!organization?.id) return;
     setLoading(true);
     setError(null);
     setSuggestions([]);
 
     try {
+      const trimmed = description.trim();
       const result = await findLeads({
         data: {
           organizationId: organization.id,
-          businessDescription: description,
+          // Only send a description if the user actually typed one (≥10 chars).
+          // Otherwise the server falls back to a generic B2B prompt.
+          businessDescription: trimmed.length >= 10 ? trimmed : undefined,
           industry: industry || undefined,
           count,
         },
