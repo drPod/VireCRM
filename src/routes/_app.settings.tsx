@@ -2,8 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { WhiteLabelSettings } from "@/components/crm/WhiteLabelSettings";
 import { TeamMembers } from "@/components/crm/TeamMembers";
 import { EmailAuditLog } from "@/components/crm/EmailAuditLog";
+import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Palette, Mail } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
+
+const PLATFORM_ADMIN_EMAILS = ["solidsnake4ks@gmail.com"];
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -16,6 +20,11 @@ export const Route = createFileRoute("/_app/settings")({
 });
 
 function SettingsPage() {
+  const { user } = useAuth();
+  const isPlatformAdmin = PLATFORM_ADMIN_EMAILS.includes(
+    (user?.email ?? "").toLowerCase(),
+  );
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-6">
@@ -39,6 +48,11 @@ function SettingsPage() {
             <Mail className="h-4 w-4" />
             Emails
           </TabsTrigger>
+          {isPlatformAdmin && (
+            <TabsTrigger value="admin" className="gap-2">
+              👑 Admin
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="team">
@@ -52,6 +66,12 @@ function SettingsPage() {
         <TabsContent value="emails">
           <EmailAuditLog />
         </TabsContent>
+
+        {isPlatformAdmin && (
+          <TabsContent value="admin">
+            <PlatformAdminPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

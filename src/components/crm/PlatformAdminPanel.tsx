@@ -1,0 +1,155 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Crown, Loader2, ShieldCheck } from "lucide-react";
+
+// Hardcoded fallback list — must mirror FALLBACK_ADMINS in the edge function.
+// Update both if you change platform admins.
+const FALLBACK_ADMIN_EMAILS = ["solidsnake4ks@gmail.com"];
+
+const PLAN_OPTIONS = [
+  { value: "manual_enterprise", label: "Enterprise (manual)" },
+  { value: "manual_pro", label: "Pro (manual)" },
+  { value: "manual_growth", label: "Growth (manual)" },
+  { value: "manual_starter", label: "Starter (manual)" },
+];
+
+export function PlatformAdminPanel() {
+  const { user } = useAuth();
+  const [email, setEmail] = useState("");
+  const [plan, setPlan] = useState("manual_enterprise");
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [allowed, setAllowed] = useState<boolean>(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    // Client-side gate is purely cosmetic — the real check is in the edge function.
+    const callerEmail = (user?.email ?? "").toLowerCase();
+    setAllowed(FALLBACK_ADMIN_EMAILS.includes(callerEmail));
+    setChecking(false);
+  }, [user?.email]);
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!allowed) {
+    // Hidden entirely from non-admins so they don't even see the section exists.
+    return null;
+  }
+
+  async function handleGrant() {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed.includes("@")) {
+      toast.error("Enter a valid email");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("grant-manual-subscription", {
+        body: { email: trimmed, planLabel: plan, note: note.trim() || undefined },
+      });
+      if (error) {
+        toast.error(error.message ?? "Failed to grant subscription");
+        return;
+      }
+      if (data?.already_active) {
+        toast.info(`${trimmed} already has an active manual subscription`);
+      } else {
+        toast.success(`Granted ${plan.replace("manual_", "")} to ${trimmed}`);
+      }
+      setEmail("");
+      setNote("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Card className="border-primary/40">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Crown className="h-5 w-5 text-primary" />
+          <CardTitle>Platform Admin — Grant Manual Subscription</CardTitle>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Comp any user (by email) with a lifetime manual subscription. Bypasses
+          Stripe. Use for internal team, partners, or offline-sold accounts.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground flex items-start gap-2">
+          <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <span>
+            Visible only to platform admins. Server-side authorization is enforced
+            independently — even if this UI leaked, the action would still be denied.
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="grant-email">User email</Label>
+          <Input
+            id="grant-email"
+            type="email"
+            placeholder="user@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="grant-plan">Plan</Label>
+          <Select value={plan} onValueChange={setPlan} disabled={submitting}>
+            <SelectTrigger id="grant-plan">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PLAN_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="grant-note">Internal note (optional)</Label>
+          <Input
+            id="grant-note"
+            placeholder="e.g. Beta partner, lifetime deal Q4"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+
+        <Button onClick={handleGrant} disabled={submitting} className="w-full">
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Granting...
+            </>
+          ) : (
+            "Grant Manual Subscription"
+          )}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
