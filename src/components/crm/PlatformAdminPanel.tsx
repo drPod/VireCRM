@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Crown, Loader2, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { Crown, Loader2, RefreshCw, ShieldCheck, Trash2, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ManualSub {
@@ -42,6 +42,8 @@ export function PlatformAdminPanel() {
   const [checking, setChecking] = useState(true);
   const [subs, setSubs] = useState<ManualSub[] | null>(null);
   const [loadingSubs, setLoadingSubs] = useState(false);
+  const [revokeEmail, setRevokeEmail] = useState("");
+  const [revoking, setRevoking] = useState(false);
 
   const loadSubs = useCallback(async () => {
     setLoadingSubs(true);
@@ -109,6 +111,44 @@ export function PlatformAdminPanel() {
       toast.error(err instanceof Error ? err.message : "Unexpected error");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleRevoke() {
+    const trimmed = revokeEmail.trim().toLowerCase();
+    if (!trimmed.includes("@")) {
+      toast.error("Enter a valid email");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Revoke ALL active manual subscriptions for ${trimmed}? They'll lose access immediately.`,
+      )
+    ) {
+      return;
+    }
+
+    setRevoking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("revoke-manual-subscription", {
+        body: { email: trimmed },
+      });
+      if (error) {
+        toast.error(error.message ?? "Failed to revoke subscription");
+        return;
+      }
+      const count = (data?.revoked_count as number) ?? 0;
+      if (count === 0) {
+        toast.info(`No active manual subscriptions found for ${trimmed}`);
+      } else {
+        toast.success(`Revoked ${count} manual subscription${count === 1 ? "" : "s"} for ${trimmed}`);
+      }
+      setRevokeEmail("");
+      void loadSubs();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setRevoking(false);
     }
   }
 
@@ -181,6 +221,47 @@ export function PlatformAdminPanel() {
               </>
             ) : (
               "Grant Manual Subscription"
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5 text-destructive" />
+            <CardTitle>Revoke Manual Subscription</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Cancel all active manual subscriptions for an email. Stripe-paid
+            subscriptions are not affected.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="revoke-email">User email</Label>
+            <Input
+              id="revoke-email"
+              type="email"
+              placeholder="user@example.com"
+              value={revokeEmail}
+              onChange={(e) => setRevokeEmail(e.target.value)}
+              disabled={revoking}
+            />
+          </div>
+          <Button
+            onClick={handleRevoke}
+            disabled={revoking}
+            variant="destructive"
+            className="w-full"
+          >
+            {revoking ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Revoking...
+              </>
+            ) : (
+              "Revoke Manual Subscription"
             )}
           </Button>
         </CardContent>
