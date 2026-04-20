@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
+import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
@@ -47,9 +48,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [resending, setResending] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const { triggerOutreach } = useAutoOutreach();
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
@@ -223,27 +223,25 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     }
   };
 
-  const handleResendOutreach = async () => {
+  const handleOpenPreview = () => {
     if (!lead) return;
     const email = form.email.trim() || lead.email;
     if (!email) {
       toast.error("Add an email address first");
       return;
     }
-    setResending(true);
-    try {
-      await triggerOutreach([
-        {
-          id: lead.id,
-          name: form.name.trim() || lead.name,
-          email,
-          company: form.company.trim() || lead.company || null,
-        },
-      ]);
-      // triggerOutreach surfaces its own toast; refresh activity on close/reopen.
-      onUpdated();
-    } finally {
-      setResending(false);
+    setPreviewOpen(true);
+  };
+
+  const handleSent = () => {
+    // Refresh parent list (lead status may have moved to "contacted") and the
+    // activity tab so the new message shows up immediately.
+    onUpdated();
+    if (lead) {
+      void refreshEmailLogs();
+      // Re-fetch activities by reusing the lead-effect: trigger by setting lead state.
+      // Simpler: the parent's onUpdated will close & reopen flows; here we just
+      // trust the next drawer open to refetch. For now, optimistically nothing more.
     }
   };
 
@@ -268,19 +266,15 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               <Button
                 variant="command"
                 size="sm"
-                onClick={handleResendOutreach}
-                disabled={resending || !(form.email.trim() || lead.email)}
+                onClick={handleOpenPreview}
+                disabled={!(form.email.trim() || lead.email)}
                 title={
                   form.email.trim() || lead.email
-                    ? "Generate and send a fresh AI outreach email to this lead"
+                    ? "Preview an AI-generated outreach email before sending"
                     : "Add an email address to enable sending"
                 }
               >
-                {resending ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Send className="mr-1.5 h-3.5 w-3.5" />
-                )}
+                <Send className="mr-1.5 h-3.5 w-3.5" />
                 Send outreach
               </Button>
               {lastOutreachLabel && (
@@ -532,6 +526,19 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           </div>
         )}
       </SheetContent>
+      {lead && (form.email.trim() || lead.email) ? (
+        <OutreachPreviewDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          lead={{
+            id: lead.id,
+            name: form.name.trim() || lead.name,
+            email: (form.email.trim() || lead.email) as string,
+            company: form.company.trim() || lead.company || null,
+          }}
+          onSent={handleSent}
+        />
+      ) : null}
     </Sheet>
   );
 }
