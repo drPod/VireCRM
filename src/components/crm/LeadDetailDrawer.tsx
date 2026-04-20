@@ -266,19 +266,15 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               <Button
                 variant="command"
                 size="sm"
-                onClick={handleResendOutreach}
-                disabled={resending || !(form.email.trim() || lead.email)}
+                onClick={handleOpenPreview}
+                disabled={!(form.email.trim() || lead.email)}
                 title={
                   form.email.trim() || lead.email
-                    ? "Generate and send a fresh AI outreach email to this lead"
+                    ? "Preview an AI-generated outreach email before sending"
                     : "Add an email address to enable sending"
                 }
               >
-                {resending ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Send className="mr-1.5 h-3.5 w-3.5" />
-                )}
+                <Send className="mr-1.5 h-3.5 w-3.5" />
                 Send outreach
               </Button>
               {lastOutreachLabel && (
