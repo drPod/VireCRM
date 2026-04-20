@@ -201,6 +201,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               Report this issue
             </button>
           </div>
+          <SupportEmailLine />
         </div>
         <ReportIssueDialog
           open={reportOpen}
