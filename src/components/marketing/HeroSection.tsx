@@ -88,7 +88,11 @@ export function HeroSection() {
         </div>
 
         {/* Hero Image */}
-        <div className="relative mx-auto mt-16 max-w-5xl">
+        <div
+          ref={imageWrapRef}
+          className="relative mx-auto mt-16 max-w-5xl will-change-transform"
+          style={{ transform: "translate3d(0, var(--parallax-y, 0px), 0)" }}
+        >
           <div className="pointer-events-none absolute -inset-12 rounded-[2rem] hero-aurora opacity-70" />
           <div className="pointer-events-none absolute -inset-4 rounded-3xl bg-primary/10 blur-2xl" />
           <div className="relative overflow-hidden rounded-2xl border border-border shadow-2xl shadow-primary/15 hero-float">
