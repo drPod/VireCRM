@@ -271,7 +271,18 @@ export function AiAdvisorPanel() {
               )}
             </div>
 
-            <Button variant="command" className="mt-4 w-full gap-2">
+            <Button
+              variant="command"
+              className="mt-4 w-full gap-2"
+              onClick={() => {
+                const term =
+                  result.searchFilters.keywords[0] ||
+                  result.searchFilters.industries[0] ||
+                  result.searchFilters.job_titles[0] ||
+                  "";
+                navigate({ to: "/leads", search: { q: term } });
+              }}
+            >
               <Search className="h-4 w-4" />
               Search Leads with These Filters
             </Button>
