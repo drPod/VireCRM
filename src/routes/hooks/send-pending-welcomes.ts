@@ -204,12 +204,22 @@ export const Route = createFileRoute('/hooks/send-pending-welcomes')({
               status: 'pending',
             })
 
+            const branding = row.reseller_id
+              ? resellerBranding.get(row.reseller_id)
+              : undefined
+            const fromDisplayName =
+              branding?.brand_name?.trim() || row.brand_name || SITE_NAME
+            const safeFromName = fromDisplayName
+              .replace(/["<>\r\n]/g, '')
+              .slice(0, 100)
+            const replyTo = branding?.support_email?.trim().toLowerCase()
+
             const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
               queue_name: 'transactional_emails',
               payload: {
                 message_id: messageId,
                 to: row.recipient_email,
-                from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+                from: `${safeFromName} <noreply@${FROM_DOMAIN}>`,
                 sender_domain: SENDER_DOMAIN,
                 subject,
                 html,
@@ -218,6 +228,7 @@ export const Route = createFileRoute('/hooks/send-pending-welcomes')({
                 label: TEMPLATE_NAME,
                 idempotency_key: `welcome-${row.id}`,
                 unsubscribe_token: unsubscribeToken,
+                reply_to: replyTo || undefined,
                 queued_at: new Date().toISOString(),
               },
             })
