@@ -278,12 +278,19 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
         // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
 
+        // Build a short body preview from the plain-text render (collapse whitespace, cap length)
+        const bodyPreview = plainText
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 200)
+
         // Log pending BEFORE enqueue so we have a record even if enqueue crashes
         await supabase.from('email_send_log').insert({
           message_id: messageId,
           template_name: templateName,
           recipient_email: effectiveRecipient,
           status: 'pending',
+          metadata: { subject: resolvedSubject, body_preview: bodyPreview },
         })
 
         const fromDisplayName = fromName ?? SITE_NAME
@@ -295,6 +302,7 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             from: `${fromDisplayName} <noreply@${FROM_DOMAIN}>`,
             sender_domain: SENDER_DOMAIN,
             subject: resolvedSubject,
+            body_preview: bodyPreview,
             html,
             text: plainText,
             purpose: 'transactional',

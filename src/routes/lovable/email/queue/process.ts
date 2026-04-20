@@ -241,12 +241,16 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                 { apiKey, sendUrl: process.env.LOVABLE_SEND_URL }
               )
 
-              // Log success
+              // Log success — carry subject/preview through so the UI can render them
               await supabase.from('email_send_log').insert({
                 message_id: payload.message_id,
                 template_name: payload.label || queue,
                 recipient_email: payload.to,
                 status: 'sent',
+                metadata:
+                  payload.subject || payload.body_preview
+                    ? { subject: payload.subject, body_preview: payload.body_preview }
+                    : null,
               })
 
               // Delete from queue
