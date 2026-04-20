@@ -94,10 +94,14 @@ export function useSubscription(userId: string | null | undefined): Subscription
   }, [load]);
 
   // Realtime: react to webhook updates without a refresh.
+  // Use a unique channel name per mount to avoid "cannot add postgres_changes
+  // callbacks after subscribe()" errors under React StrictMode double-invoke
+  // or when the same userId remounts the hook.
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`sub_${userId}`)
+    const channelName = `sub_${userId}_${Math.random().toString(36).slice(2, 10)}`;
+    const channel = supabase.channel(channelName);
+    channel
       .on(
         "postgres_changes",
         {
