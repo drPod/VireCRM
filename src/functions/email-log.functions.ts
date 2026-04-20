@@ -72,3 +72,69 @@ export const listRecentEmailLogsFn = createServerFn({ method: "GET" })
 
     return deduped;
   });
+
+/**
+ * Fetch email logs for a single recipient. Available to any authenticated org
+ * member (not just owners) so reps can see send status on leads they manage.
+ * Verifies the recipient email belongs to a lead inside their org.
+ */
+export const listLeadEmailLogsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown): { email: string } => {
+    if (!input || typeof input !== "object") throw new Error("Invalid input");
+    const { email } = input as { email?: unknown };
+    if (typeof email !== "string" || !email.trim()) throw new Error("email required");
+    return { email: email.trim().toLowerCase() };
+  })
+  .handler(async ({ data, context }): Promise<EmailLogEntry[]> => {
+    const { supabase, userId } = context;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!profile) return [];
+
+    // Verify this email belongs to a lead in the caller's org (RLS enforced).
+    const { data: lead } = await supabase
+      .from("leads")
+      .select("id")
+      .ilike("email", data.email)
+      .eq("organization_id", profile.organization_id)
+      .limit(1)
+      .maybeSingle();
+
+    if (!lead) return [];
+
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [];
+
+    const admin = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: rows, error } = await admin
+      .from("email_send_log")
+      .select("id, message_id, template_name, recipient_email, status, error_message, created_at")
+      .ilike("recipient_email", data.email)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) return [];
+
+    // Dedupe by message_id (most recent status wins)
+    const seen = new Set<string>();
+    const deduped: EmailLogEntry[] = [];
+    for (const row of rows ?? []) {
+      const key = row.message_id ?? `__row:${row.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(row as EmailLogEntry);
+      if (deduped.length >= 50) break;
+    }
+
+    return deduped;
+  });
