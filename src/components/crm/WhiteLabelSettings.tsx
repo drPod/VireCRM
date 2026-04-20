@@ -332,6 +332,24 @@ export function WhiteLabelSettings() {
           )}
         </div>
 
+        {/* Support Email */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            <label className="text-sm font-medium text-foreground">Support Email</label>
+          </div>
+          <input
+            type="email"
+            value={supportEmail}
+            onChange={(e) => setSupportEmail(e.target.value)}
+            placeholder="support@yourdomain.com"
+            className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Your clients will see this address when reporting issues from the error screen on your branded domain. Leave blank to use the default Vireon support inbox.
+          </p>
+        </div>
+
         <Button variant="command" className="w-full" onClick={handleSave} disabled={saving}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save White-Label Settings
