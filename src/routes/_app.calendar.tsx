@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Link } from "@tanstack/react-router";
+import { NewTaskDialog } from "@/components/crm/NewTaskDialog";
 
 export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
