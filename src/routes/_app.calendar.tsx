@@ -261,11 +261,15 @@ function CalendarPage() {
                   <p className="text-xs text-muted-foreground">
                     No scheduled tasks{isCurrentMonth ? " today" : " this month"}.
                   </p>
-                  <Link to="/leads">
-                    <Button variant="ghost" size="sm" className="mt-2 text-xs">
-                      Schedule a follow-up
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 text-xs"
+                    onClick={() => setNewTaskOpen(true)}
+                    disabled={!organization?.id}
+                  >
+                    Schedule a follow-up
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
