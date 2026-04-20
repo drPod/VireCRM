@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Loader2,
   Infinity as InfinityIcon,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -308,6 +309,24 @@ function BillingPage() {
           <Button variant="command" size="sm" onClick={openCustomerPortal}>
             Open billing portal
           </Button>
+        </div>
+      )}
+
+      {/* Upgrade / change plan — explicit CTA so users don't need to dig through Stripe portal */}
+      {!isManual && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Want to upgrade?
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Compare every CRM and white-label plan side-by-side, then switch in one click.
+            </p>
+          </div>
+          <Link to="/pricing">
+            <Button variant="command" size="sm">View all plans</Button>
+          </Link>
         </div>
       )}
 

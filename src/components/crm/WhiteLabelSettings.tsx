@@ -1,4 +1,5 @@
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -337,8 +338,8 @@ export function WhiteLabelSettings() {
           <p className="mt-1 text-xs text-muted-foreground">
             White-labeling is available on the Enterprise plan. Customize your logo, colors, domain, and sell the CRM as your own.
           </p>
-          <Button variant="command" size="sm" className="mt-3">
-            Upgrade Now
+          <Button variant="command" size="sm" className="mt-3" asChild>
+            <Link to="/billing">Upgrade Now</Link>
           </Button>
         </div>
       )}
