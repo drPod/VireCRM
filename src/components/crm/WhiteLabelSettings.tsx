@@ -15,6 +15,7 @@ import {
   Copy,
   CheckCircle2,
   AlertCircle,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ type OrgWithDomain = {
   is_reseller?: boolean;
   domain_verification_token?: string;
   domain_verified_at?: string | null;
+  support_email?: string | null;
 };
 
 export function WhiteLabelSettings() {
@@ -33,6 +35,7 @@ export function WhiteLabelSettings() {
   const [primaryColor, setPrimaryColor] = useState(organization?.primary_color || "#3b82f6");
   const [logoUrl, setLogoUrl] = useState(organization?.logo_url || "");
   const [customDomain, setCustomDomain] = useState(organization?.custom_domain || "");
+  const [supportEmail, setSupportEmail] = useState(orgExt?.support_email || "");
   const initialIsReseller = !!orgExt?.is_reseller;
   const [isReseller, setIsReseller] = useState(initialIsReseller);
   const [saving, setSaving] = useState(false);
@@ -100,6 +103,11 @@ export function WhiteLabelSettings() {
 
   const handleSave = async () => {
     if (!organization?.id) return;
+    const trimmedSupport = supportEmail.trim();
+    if (trimmedSupport && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedSupport)) {
+      toast.error("Please enter a valid support email address");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("organizations")
@@ -108,7 +116,8 @@ export function WhiteLabelSettings() {
         primary_color: primaryColor,
         logo_url: logoUrl || null,
         custom_domain: customDomain || null,
-      })
+        support_email: trimmedSupport || null,
+      } as never)
       .eq("id", organization.id);
     setSaving(false);
     if (error) {
