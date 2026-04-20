@@ -1,9 +1,40 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useRef } from "react";
 import heroImage from "@/assets/hero-dashboard.jpg";
 
 export function HeroSection() {
+  const imageWrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const el = imageWrapRef.current;
+    if (!el) return;
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      // Scroll-driven offset: image rises up to ~80px as the hero scrolls past.
+      const offset = Math.min(Math.max(window.scrollY * 0.18, 0), 80);
+      el.style.setProperty("--parallax-y", `${-offset}px`);
+    };
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
   return (
     <section className="relative overflow-hidden pt-32 pb-20">
       {/* Background glow */}
