@@ -219,7 +219,11 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
     }
 
     // 2. Hand off to the transactional pipeline (same path as autoOutreachFn).
-    const sendRes = await fetch("/lovable/email/transactional/send", {
+    // Server-side fetch needs an absolute URL — derive the origin from the
+    // incoming request so this works in both preview and production.
+    const req = getRequest();
+    const origin = req ? new URL(req.url).origin : "";
+    const sendRes = await fetch(`${origin}/lovable/email/transactional/send`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
