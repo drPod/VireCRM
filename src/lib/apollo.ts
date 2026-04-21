@@ -170,3 +170,79 @@ export async function revealApolloEmail(
   const phone = matched.phone_numbers?.[0]?.sanitized_number ?? null;
   return { email, phone };
 }
+
+// ===== Saved-list endpoints =====
+// Apollo's saved-list feature lives under /v1/labels (lists are "labels" in their API).
+// To pull members of a list we filter people search by `label_ids`.
+
+export interface ApolloList {
+  id: string;
+  name: string;
+  /** Apollo doesn't always return a count; we treat undefined as "unknown". */
+  cached_count?: number;
+  created_at?: string;
+  modality?: string; // "contacts" | "accounts" — we only care about contacts
+}
+
+/** Fetch all saved lists (labels) on the workspace. Free, no credits burned. */
+export async function listApolloLists(apiKey: string): Promise<ApolloList[]> {
+  const res = await fetch(`${APOLLO_BASE}/labels`, {
+    method: "GET",
+    headers: { "X-Api-Key": apiKey, "Cache-Control": "no-cache" },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw makeApolloError(
+      `Apollo list fetch failed (${res.status}): ${text.slice(0, 200)}`,
+      res.status,
+    );
+  }
+  const data = (await res.json()) as { labels?: ApolloList[] };
+  // Filter to contact-type labels only (skip account lists which can't produce people)
+  return (data.labels ?? []).filter((l) => !l.modality || l.modality === "contacts");
+}
+
+/**
+ * Fetch contacts saved in a specific list. Paginated — Apollo caps per_page at 100.
+ * Does NOT reveal emails (use revealApolloEmail per-person for that).
+ */
+export async function getApolloListMembers(
+  apiKey: string,
+  labelId: string,
+  opts: { page?: number; perPage?: number } = {},
+): Promise<{ people: ApolloPerson[]; totalEntries: number; totalPages: number }> {
+  const body = {
+    label_ids: [labelId],
+    page: opts.page ?? 1,
+    per_page: Math.min(opts.perPage ?? 100, 100),
+  };
+
+  const res = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
+    method: "POST",
+    headers: {
+      "X-Api-Key": apiKey,
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw makeApolloError(
+      `Apollo list members fetch failed (${res.status}): ${text.slice(0, 200)}`,
+      res.status,
+    );
+  }
+
+  const data = (await res.json()) as {
+    people?: ApolloPerson[];
+    contacts?: ApolloPerson[];
+    pagination?: { total_entries?: number; total_pages?: number };
+  };
+  return {
+    people: [...(data.people ?? []), ...(data.contacts ?? [])],
+    totalEntries: data.pagination?.total_entries ?? 0,
+    totalPages: data.pagination?.total_pages ?? 1,
+  };
+}
