@@ -41,6 +41,21 @@ interface ParseOutcome {
   issues: ParseIssue[];
   /** Hard error that prevented parsing the file at all (vs. per-row issues). */
   fatal?: string;
+  /**
+   * Raw representation handed back when heuristic header detection fails.
+   * The caller can pass this to the AI mapper and re-emit leads.
+   */
+  raw?: RawSheet;
+}
+
+/** Sheet contents in a header-agnostic form, suitable for AI column mapping. */
+interface RawSheet {
+  /** Raw header strings as they appeared in row 1. May actually be data. */
+  headers: string[];
+  /** Each row is the same length as headers; missing cells are "". */
+  rows: string[][];
+  /** Sheet name (xlsx) or "csv" — used in fallback messaging. */
+  sheetName: string;
 }
 
 const VALID_STATUSES = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
@@ -48,70 +63,61 @@ const VALID_STATUSES = ["new", "contacted", "qualified", "negotiation", "won", "
 /** Same RFC-5322-lite check used everywhere else in the app. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const NAME_HEADERS = ["name", "full name", "fullname", "contact", "lead"];
+const EMAIL_HEADERS = ["email", "e-mail", "email address"];
+const PHONE_HEADERS = ["phone", "telephone", "tel", "mobile", "phone number"];
+const COMPANY_HEADERS = ["company", "organization", "org", "business", "company name"];
+const STATUS_HEADERS = ["status", "stage", "lead status"];
+const SCORE_HEADERS = ["score", "lead score", "rating"];
+const NOTES_HEADERS = ["notes", "note", "comments", "description"];
+const SOURCE_HEADERS = ["source", "lead source", "origin", "channel"];
+
+const normalizeHeader = (key: string) => key.trim().toLowerCase().replace(/['"]/g, "");
+
 function parseCSV(text: string): ParseOutcome {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) {
     return { leads: [], issues: [], fatal: "File looks empty — need a header row plus at least one data row." };
   }
 
-  const headerLine = lines[0];
-  const headers = headerLine.split(",").map((h) => h.trim().toLowerCase().replace(/['"]/g, ""));
+  const headers = parseCSVLine(lines[0]).map((h) => h.trim().replace(/^['"]|['"]$/g, ""));
+  const dataRows = lines.slice(1).map((l) => parseCSVLine(l));
+  const rawSheet: RawSheet = { headers, rows: dataRows, sheetName: "csv" };
 
-  const nameIdx = headers.findIndex((h) => ["name", "full name", "fullname", "contact", "lead"].includes(h));
-  const emailIdx = headers.findIndex((h) => ["email", "e-mail", "email address"].includes(h));
-  const phoneIdx = headers.findIndex((h) => ["phone", "telephone", "tel", "mobile", "phone number"].includes(h));
-  const companyIdx = headers.findIndex((h) => ["company", "organization", "org", "business", "company name"].includes(h));
-  const statusIdx = headers.findIndex((h) => ["status", "stage", "lead status"].includes(h));
-  const scoreIdx = headers.findIndex((h) => ["score", "lead score", "rating"].includes(h));
-  const notesIdx = headers.findIndex((h) => ["notes", "note", "comments", "description"].includes(h));
-  const sourceIdx = headers.findIndex((h) => ["source", "lead source", "origin", "channel"].includes(h));
+  const normalized = headers.map(normalizeHeader);
+  const nameIdx = normalized.findIndex((h) => NAME_HEADERS.includes(h));
 
   if (nameIdx === -1) {
+    // Hand off to the AI fallback — caller decides what to do.
     return {
       leads: [],
       issues: [],
+      raw: rawSheet,
       fatal: `Missing "Name" column. Detected headers: ${headers.join(", ") || "(none)"}.`,
     };
   }
 
-  const leads: ParsedLead[] = [];
-  const issues: ParseIssue[] = [];
+  const emailIdx = normalized.findIndex((h) => EMAIL_HEADERS.includes(h));
+  const phoneIdx = normalized.findIndex((h) => PHONE_HEADERS.includes(h));
+  const companyIdx = normalized.findIndex((h) => COMPANY_HEADERS.includes(h));
+  const statusIdx = normalized.findIndex((h) => STATUS_HEADERS.includes(h));
+  const scoreIdx = normalized.findIndex((h) => SCORE_HEADERS.includes(h));
+  const notesIdx = normalized.findIndex((h) => NOTES_HEADERS.includes(h));
+  const sourceIdx = normalized.findIndex((h) => SOURCE_HEADERS.includes(h));
 
-  for (let i = 1; i < lines.length; i++) {
-    const rowNum = i + 1; // 1-indexed for the user (header is row 1)
-    const values = parseCSVLine(lines[i]);
-    const name = values[nameIdx]?.trim();
-    if (!name) {
-      issues.push({ row: rowNum, message: "missing name" });
-      continue;
-    }
-
-    const rawEmail = emailIdx >= 0 ? values[emailIdx]?.trim() : undefined;
-    let email: string | undefined;
-    if (rawEmail) {
-      const normalized = rawEmail.toLowerCase();
-      if (!EMAIL_RE.test(normalized)) {
-        issues.push({ row: rowNum, message: `invalid email "${rawEmail}"` });
-      } else {
-        email = normalized;
-      }
-    }
-
-    const statusRaw = statusIdx >= 0 ? values[statusIdx]?.trim().toLowerCase() : undefined;
-    const scoreRaw = scoreIdx >= 0 ? parseInt(values[scoreIdx]?.trim(), 10) : undefined;
-
-    leads.push({
-      name,
-      email,
-      phone: phoneIdx >= 0 ? values[phoneIdx]?.trim() || undefined : undefined,
-      company: companyIdx >= 0 ? values[companyIdx]?.trim() || undefined : undefined,
-      status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
-      score: scoreRaw && !isNaN(scoreRaw) ? Math.min(100, Math.max(0, scoreRaw)) : 50,
-      notes: notesIdx >= 0 ? values[notesIdx]?.trim() || undefined : undefined,
-      source: sourceIdx >= 0 ? values[sourceIdx]?.trim() || undefined : "csv_import",
-    });
-  }
-  return { leads, issues };
+  return buildLeadsFromIndices({
+    rows: dataRows,
+    rowOffset: 2, // header is row 1, data starts row 2
+    nameIdx,
+    emailIdx,
+    phoneIdx,
+    companyIdx,
+    statusIdx,
+    scoreIdx,
+    notesIdx,
+    sourceIdx,
+    defaultSource: "csv_import",
+  });
 }
 
 function parseCSVLine(line: string): string[] {
@@ -157,46 +163,98 @@ function parseXLSX(buffer: ArrayBuffer): ParseOutcome {
   }
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) return { leads: [], issues: [], fatal: "Workbook has no sheets." };
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-    workbook.Sheets[sheetName],
-    { defval: "" }
-  );
-  if (rows.length === 0) {
+
+  // header:1 forces array-of-arrays output so we can deal with the raw grid
+  // even when the file has duplicated, missing, or "header-shaped" first row.
+  const aoa = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], {
+    header: 1,
+    defval: "",
+    blankrows: false,
+  });
+  if (aoa.length === 0) {
     return { leads: [], issues: [], fatal: `Sheet "${sheetName}" is empty.` };
   }
 
-  const normalize = (key: string) => key.trim().toLowerCase().replace(/['"]/g, "");
+  // Normalize to string[][] and pad to the widest row width.
+  const width = aoa.reduce((m, r) => Math.max(m, r.length), 0);
+  const grid: string[][] = aoa.map((row) => {
+    const out: string[] = [];
+    for (let i = 0; i < width; i++) {
+      const cell = row[i];
+      out.push(cell == null ? "" : String(cell));
+    }
+    return out;
+  });
 
-  // Validate that we have a name-ish header in row 1.
-  const firstRow = rows[0];
-  const headerKeys = Object.keys(firstRow).map(normalize);
-  const NAME_HEADERS = ["name", "full name", "fullname", "contact", "lead"];
-  if (!headerKeys.some((h) => NAME_HEADERS.includes(h))) {
+  const headers = grid[0];
+  const dataRows = grid.slice(1);
+  const rawSheet: RawSheet = { headers, rows: dataRows, sheetName };
+
+  const normalized = headers.map(normalizeHeader);
+  const nameIdx = normalized.findIndex((h) => NAME_HEADERS.includes(h));
+
+  if (nameIdx === -1) {
     return {
       leads: [],
       issues: [],
-      fatal: `Missing "Name" column in sheet "${sheetName}". Detected headers: ${headerKeys.join(", ")}.`,
+      raw: rawSheet,
+      fatal: `Missing "Name" column in sheet "${sheetName}". Detected headers: ${normalized.join(", ")}.`,
     };
   }
 
+  const emailIdx = normalized.findIndex((h) => EMAIL_HEADERS.includes(h));
+  const phoneIdx = normalized.findIndex((h) => PHONE_HEADERS.includes(h));
+  const companyIdx = normalized.findIndex((h) => COMPANY_HEADERS.includes(h));
+  const statusIdx = normalized.findIndex((h) => STATUS_HEADERS.includes(h));
+  const scoreIdx = normalized.findIndex((h) => SCORE_HEADERS.includes(h));
+  const notesIdx = normalized.findIndex((h) => NOTES_HEADERS.includes(h));
+  const sourceIdx = normalized.findIndex((h) => SOURCE_HEADERS.includes(h));
+
+  return buildLeadsFromIndices({
+    rows: dataRows,
+    rowOffset: 2,
+    nameIdx,
+    emailIdx,
+    phoneIdx,
+    companyIdx,
+    statusIdx,
+    scoreIdx,
+    notesIdx,
+    sourceIdx,
+    defaultSource: "xlsx_import",
+  });
+}
+
+interface IndexMap {
+  rows: string[][];
+  /** What real spreadsheet row number does rows[0] correspond to? (1-indexed for the user) */
+  rowOffset: number;
+  nameIdx: number;
+  emailIdx: number;
+  phoneIdx: number;
+  companyIdx: number;
+  statusIdx: number;
+  scoreIdx: number;
+  notesIdx: number;
+  sourceIdx: number;
+  defaultSource: string;
+}
+
+function buildLeadsFromIndices(m: IndexMap): ParseOutcome {
   const leads: ParsedLead[] = [];
   const issues: ParseIssue[] = [];
 
-  rows.forEach((row, idx) => {
-    const rowNum = idx + 2; // +2: header is row 1, data starts at row 2
-    const mapped: Record<string, string> = {};
-    for (const [key, val] of Object.entries(row)) {
-      mapped[normalize(key)] = String(val ?? "");
-    }
-
-    const name =
-      mapped["name"] || mapped["full name"] || mapped["fullname"] || mapped["contact"] || mapped["lead"];
-    if (!name?.trim()) {
-      issues.push({ row: rowNum, message: "missing name" });
+  m.rows.forEach((row, idx) => {
+    const rowNum = idx + m.rowOffset;
+    const name = m.nameIdx >= 0 ? (row[m.nameIdx] ?? "").toString().trim() : "";
+    if (!name) {
+      // Skip silently if the entire row is empty; otherwise log as an issue.
+      const allEmpty = row.every((c) => !c?.toString().trim());
+      if (!allEmpty) issues.push({ row: rowNum, message: "missing name" });
       return;
     }
 
-    const rawEmail = (mapped["email"] || mapped["e-mail"] || mapped["email address"] || "").trim();
+    const rawEmail = m.emailIdx >= 0 ? (row[m.emailIdx] ?? "").toString().trim() : "";
     let email: string | undefined;
     if (rawEmail) {
       const normalized = rawEmail.toLowerCase();
@@ -207,26 +265,68 @@ function parseXLSX(buffer: ArrayBuffer): ParseOutcome {
       }
     }
 
-    const phone = mapped["phone"] || mapped["telephone"] || mapped["tel"] || mapped["mobile"] || undefined;
-    const company = mapped["company"] || mapped["organization"] || mapped["org"] || mapped["business"] || undefined;
-    const statusRaw = (mapped["status"] || mapped["stage"] || "").toLowerCase();
-    const scoreRaw = parseInt(mapped["score"] || mapped["lead score"] || mapped["rating"] || "", 10);
+    const statusRaw =
+      m.statusIdx >= 0 ? (row[m.statusIdx] ?? "").toString().trim().toLowerCase() : "";
+    const scoreRaw =
+      m.scoreIdx >= 0 ? parseInt((row[m.scoreIdx] ?? "").toString().trim(), 10) : NaN;
 
     leads.push({
-      name: name.trim(),
+      name,
       email,
-      phone: phone?.trim() || undefined,
-      company: company?.trim() || undefined,
+      phone: m.phoneIdx >= 0 ? (row[m.phoneIdx] ?? "").toString().trim() || undefined : undefined,
+      company: m.companyIdx >= 0 ? (row[m.companyIdx] ?? "").toString().trim() || undefined : undefined,
       status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
       score: !isNaN(scoreRaw) ? Math.min(100, Math.max(0, scoreRaw)) : 50,
-      notes: (mapped["notes"] || mapped["note"] || mapped["comments"] || "").trim() || undefined,
-      source: (mapped["source"] || mapped["lead source"] || mapped["origin"] || "").trim() || "xlsx_import",
+      notes: m.notesIdx >= 0 ? (row[m.notesIdx] ?? "").toString().trim() || undefined : undefined,
+      source: m.sourceIdx >= 0 ? (row[m.sourceIdx] ?? "").toString().trim() || undefined : m.defaultSource,
     });
   });
 
   return { leads, issues };
 }
 
+/**
+ * Build leads using an AI-produced column mapping. Used when the heuristic
+ * header detection fails. If the AI says row 1 is actually data, we prepend
+ * it to the data rows.
+ */
+function buildLeadsFromAiMapping(raw: RawSheet, mapping: ImportColumnMapping): ParseOutcome {
+  // Resolve each canonical field's source -> column index.
+  const resolveIdx = (
+    src: { kind: "header"; key: string } | { kind: "index"; index: number } | null | undefined,
+  ): number => {
+    if (!src) return -1;
+    if (src.kind === "index") return src.index;
+    const norm = normalizeHeader(src.key);
+    return raw.headers.findIndex((h) => normalizeHeader(h) === norm);
+  };
+
+  const nameIdx = resolveIdx(mapping.fields.name);
+  if (nameIdx < 0) {
+    return {
+      leads: [],
+      issues: [],
+      fatal: `AI couldn't find a name column either. ${mapping.explanation}`,
+    };
+  }
+
+  const dataRows = mapping.rowOneIsData ? [raw.headers, ...raw.rows] : raw.rows;
+  const rowOffset = mapping.rowOneIsData ? 1 : 2;
+
+  return buildLeadsFromIndices({
+    rows: dataRows,
+    rowOffset,
+    nameIdx,
+    emailIdx: resolveIdx(mapping.fields.email),
+    phoneIdx: resolveIdx(mapping.fields.phone),
+    companyIdx: resolveIdx(mapping.fields.company),
+    statusIdx: resolveIdx(mapping.fields.status),
+    scoreIdx: -1, // AI mapper doesn't produce score yet
+    notesIdx: resolveIdx(mapping.fields.notes),
+    sourceIdx: resolveIdx(mapping.fields.source),
+    defaultSource: raw.sheetName === "csv" ? "csv_import" : "xlsx_import",
+  });
+}
 
 interface ImportLeadsDialogProps {
   onLeadsImported?: () => void;
