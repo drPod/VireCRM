@@ -16,15 +16,16 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const FALLBACK_ADMINS = ["solidsnake4ks@gmail.com"];
-
 function getAdminEmails(): string[] {
   const raw = Deno.env.get("PLATFORM_ADMIN_EMAILS") ?? "";
   const fromEnv = raw
     .split(",")
     .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-  return fromEnv.length > 0 ? fromEnv : FALLBACK_ADMINS.map((e) => e.toLowerCase());
+    .filter((s) => s.includes("@"));
+  if (fromEnv.length === 0) {
+    throw new Error("PLATFORM_ADMIN_EMAILS is not configured");
+  }
+  return fromEnv;
 }
 
 Deno.serve(async (req) => {
