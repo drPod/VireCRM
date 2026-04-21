@@ -10,7 +10,6 @@ import {
   GitBranch,
   Clock,
   Users,
-  CheckCircle2,
   AlertCircle,
   MessageSquare,
   Loader2,
