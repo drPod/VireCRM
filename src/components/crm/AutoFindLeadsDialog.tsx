@@ -208,7 +208,19 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const quotaPct =
     usage && usage.quota > 0 ? Math.min(100, Math.round((usage.used / usage.quota) * 100)) : 0;
   const showQuotaBar = !!(usage && !usage.hasByoKey && usage.quota < 999999);
-  const isAtCap = errorCode === "QUOTA_EXCEEDED";
+  // Pre-flight cap detection — block the API call before it even fires.
+  const outOfCredits = !!(usage && !usage.hasByoKey && usage.quota < 999999 && usage.remaining <= 0);
+  const wouldExceedCap = !!(usage && !usage.hasByoKey && usage.quota < 999999 && count > usage.remaining);
+  // Show the full upgrade panel when the server returned QUOTA_EXCEEDED OR
+  // the user already has zero credits left (no point letting them try).
+  const isAtCap = errorCode === "QUOTA_EXCEEDED" || outOfCredits;
+  // Build a friendly message when we're showing the upgrade panel due to
+  // pre-flight detection (no server error to display).
+  const capMessage =
+    error ||
+    (outOfCredits
+      ? `You've used all ${usage?.quota} of your monthly lead credits. Upgrade your plan for more, or add your own Apollo key for unlimited.`
+      : "You've hit your monthly cap.");
 
   return (
     <Dialog
