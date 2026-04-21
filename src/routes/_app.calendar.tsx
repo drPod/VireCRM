@@ -66,12 +66,7 @@ function CalendarPage() {
   const handleCompleteWithAi = async (taskId: string) => {
     setCompletingId(taskId);
     try {
-      const { supabase: sb } = await import("@/integrations/supabase/client");
-      const { data: sessionData } = await sb.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error("Your session expired. Please sign in again.");
       const result = await completeTask({
-        headers: { Authorization: `Bearer ${token}` },
         data: { taskId },
       });
 
