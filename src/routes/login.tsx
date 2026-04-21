@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Button } from "@/components/ui/button";
 import { Terminal, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
@@ -42,6 +42,37 @@ function LoginPage() {
   const { branding, isCustomDomain } = useDomainBranding();
 
   const returnTo = redirect ?? "/dashboard";
+
+  // When the OAuth provider sends the user back to /login (e.g. because the
+  // app's login URL was registered as the OAuth redirect_uri), the user lands
+  // here with an active session and no feedback — making it feel like login
+  // failed. Detect that case, show a clear success toast, and forward them on
+  // to their intended destination.
+  const oauthHandledRef = useRef(false);
+  useEffect(() => {
+    if (oauthHandledRef.current) return;
+    const url = new URL(window.location.href);
+    const looksLikeOAuthReturn =
+      url.hash.includes("access_token") ||
+      url.searchParams.has("code") ||
+      url.searchParams.has("provider_token");
+
+    const handle = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      oauthHandledRef.current = true;
+      if (looksLikeOAuthReturn) {
+        toast.success("Signed in with Google. Redirecting…");
+      } else {
+        toast.success("Already signed in. Redirecting…");
+      }
+      // Small delay so the toast is visible before the hard navigation.
+      setTimeout(() => {
+        window.location.href = returnTo;
+      }, 600);
+    };
+    void handle();
+  }, [returnTo]);
 
   const brandName = branding?.brand_name || "Genesis";
   const accentColor = branding?.primary_color;
@@ -107,6 +138,9 @@ function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    // Give the user immediate feedback before the OAuth redirect takes over —
+    // otherwise the page just blanks out and it feels like nothing happened.
+    toast.loading("Redirecting to Google…", { id: "google-oauth" });
     // CRITICAL: redirect_uri must point inside the app (not the marketing home
     // page). Honor ?redirect= so deep links survive the OAuth round trip;
     // default to /dashboard. Without this, OAuth lands on "/" — the public
@@ -115,11 +149,16 @@ function LoginPage() {
       redirect_uri: `${window.location.origin}${returnTo}`,
     });
     if (result.error) {
+      toast.dismiss("google-oauth");
       toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
       return;
     }
     if (result.redirected) return;
-    window.location.href = returnTo;
+    toast.dismiss("google-oauth");
+    toast.success("Signed in with Google. Redirecting…");
+    setTimeout(() => {
+      window.location.href = returnTo;
+    }, 400);
   };
 
   return (
