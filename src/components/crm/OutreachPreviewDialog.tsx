@@ -32,17 +32,10 @@ interface OutreachPreviewDialogProps {
 const inputClass =
   "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
 
-async function getAuthHeader(): Promise<Record<string, string>> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("You're not signed in. Please log in again.");
-  return { Authorization: `Bearer ${token}` };
-}
-
 export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: OutreachPreviewDialogProps) {
   const { organization } = useAuth();
-  const preview = useServerFn(previewOutreachFn);
-  const send = useServerFn(sendOutreachWithContentFn);
+  const preview = useAuthedServerFn(previewOutreachFn);
+  const send = useAuthedServerFn(sendOutreachWithContentFn);
 
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
