@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { z } from "zod";
 
 const outreachSchema = z.object({
@@ -76,8 +77,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       throw new Error("AI token limit reached. Upgrade your plan for more.");
     }
 
-    const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-    if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
+    if (!process.env.LOVABLE_API_KEY) throw new Error("AI service not configured");
 
     // Filter leads that have emails — no email = no outreach.
     const leadsWithEmail = data.leads.filter((l) => l.email);
@@ -101,79 +101,39 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     ).join("\n");
 
     // ----- 1. Generate copy in one AI call (cheaper + more consistent voice) -----
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional sales outreach copywriter for ${businessName}. Write personalized, concise cold outreach emails for each lead. Each email should:
+    const result = await callAiWithFallback<{ emails?: GeneratedEmail[] }>({
+      featureLabel: "Auto-outreach",
+      models: DEFAULT_TEXT_MODELS,
+      toolName: "generate_outreach",
+      toolDescription: "Generate personalized outreach emails for leads",
+      systemPrompt: `You are a professional sales outreach copywriter for ${businessName}. Write personalized, concise cold outreach emails for each lead. Each email should:
 - Be 3-5 sentences max
 - Reference the lead's company/role if available
 - Include a clear value proposition
 - End with a soft call-to-action (e.g., "Would you be open to a quick chat?")
 - Sound human and natural, NOT templated or salesy
-- Use the lead's first name
-
-Return ONLY valid JSON, no markdown.`,
-          },
-          {
-            role: "user",
-            content: `${businessCtx}\n\nGenerate personalized outreach emails for these leads:\n${leadsInfo}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_outreach",
-              description: "Generate personalized outreach emails for leads",
-              parameters: {
-                type: "object",
-                properties: {
-                  emails: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        lead_name: { type: "string" },
-                        subject: { type: "string", description: "Email subject line, max 60 chars" },
-                        body: { type: "string", description: "Email body text" },
-                      },
-                      required: ["lead_name", "subject", "body"],
-                    },
-                  },
-                },
-                required: ["emails"],
+- Use the lead's first name`,
+      userPrompt: `${businessCtx}\n\nGenerate personalized outreach emails for these leads:\n${leadsInfo}`,
+      toolSchema: {
+        type: "object",
+        properties: {
+          emails: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                lead_name: { type: "string" },
+                subject: { type: "string", description: "Email subject line, max 60 chars" },
+                body: { type: "string", description: "Email body text" },
               },
+              required: ["lead_name", "subject", "body"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "generate_outreach" } },
-      }),
+        },
+        required: ["emails"],
+      },
     });
 
-    if (!aiResponse.ok) {
-      const errBody = await aiResponse.text().catch(() => "");
-      console.error("auto-outreach gateway error", aiResponse.status, errBody.slice(0, 300));
-      if (aiResponse.status === 429) throw new Error("Rate limit reached. Try again shortly.");
-      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
-      throw new Error(`AI outreach generation failed (${aiResponse.status})`);
-    }
-
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      console.error("auto-outreach: no tool_calls", JSON.stringify(aiData).slice(0, 400));
-      throw new Error("AI did not return structured output. Try again.");
-    }
-
-    const result = JSON.parse(toolCall.function.arguments);
     const generatedEmails = (result.emails ?? []) as GeneratedEmail[];
 
     // ----- 2. Per-lead: insert message row + dispatch email + update lead.

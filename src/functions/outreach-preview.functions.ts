@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { z } from "zod";
 
 // =============================================================================
@@ -56,9 +57,6 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
       throw new Error("AI token limit reached. Upgrade your plan for more.");
     }
 
-    const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-    if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
-
     const businessName = org.brand_name || org.name;
     const businessCtx = data.businessContext
       ? `Business context: ${data.businessContext}`
@@ -67,69 +65,29 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
     const lead = data.lead;
     const leadInfo = `${lead.name}${lead.company ? ` at ${lead.company}` : ""}${lead.role ? ` (${lead.role})` : ""}${lead.score ? ` [score: ${lead.score}]` : ""}`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional sales outreach copywriter for ${businessName}. Write a personalized, concise cold outreach email. The email should:
+    const result = await callAiWithFallback<{ subject?: string; body?: string }>({
+      featureLabel: "Outreach preview",
+      models: DEFAULT_TEXT_MODELS,
+      toolName: "generate_outreach",
+      toolDescription: "Generate a personalized outreach email",
+      systemPrompt: `You are a professional sales outreach copywriter for ${businessName}. Write a personalized, concise cold outreach email. The email should:
 - Be 3-5 sentences max
 - Reference the lead's company/role if available
 - Include a clear value proposition
 - End with a soft call-to-action (e.g., "Would you be open to a quick chat?")
 - Sound human and natural, NOT templated or salesy
-- Use the lead's first name
-
-Return ONLY valid JSON, no markdown.`,
-          },
-          {
-            role: "user",
-            content: `${businessCtx}\n\nGenerate a personalized outreach email for this lead:\n- ${leadInfo}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_outreach",
-              description: "Generate a personalized outreach email",
-              parameters: {
-                type: "object",
-                properties: {
-                  subject: { type: "string", description: "Email subject line, max 60 chars" },
-                  body: { type: "string", description: "Email body text" },
-                },
-                required: ["subject", "body"],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "generate_outreach" } },
-      }),
+- Use the lead's first name`,
+      userPrompt: `${businessCtx}\n\nGenerate a personalized outreach email for this lead:\n- ${leadInfo}`,
+      toolSchema: {
+        type: "object",
+        properties: {
+          subject: { type: "string", description: "Email subject line, max 60 chars" },
+          body: { type: "string", description: "Email body text" },
+        },
+        required: ["subject", "body"],
+      },
     });
 
-    if (!aiResponse.ok) {
-      const errBody = await aiResponse.text().catch(() => "");
-      console.error("outreach-preview gateway error", aiResponse.status, errBody.slice(0, 300));
-      if (aiResponse.status === 429) throw new Error("Rate limit reached. Try again shortly.");
-      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
-      throw new Error(`AI outreach generation failed (${aiResponse.status})`);
-    }
-
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      console.error("outreach-preview: no tool_calls", JSON.stringify(aiData).slice(0, 400));
-      throw new Error("AI did not return structured output. Try again.");
-    }
-
-    const result = JSON.parse(toolCall.function.arguments) as { subject?: string; body?: string };
     if (!result.subject || !result.body) {
       throw new Error("AI returned an incomplete email");
     }
