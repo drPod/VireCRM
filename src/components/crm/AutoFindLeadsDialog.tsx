@@ -101,6 +101,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<ErrorCode>(null);
+  const [quotaResetAt, setQuotaResetAt] = useState<string | null>(null);
   const [imported, setImported] = useState(false);
   const [usage, setUsage] = useState<LeadUsage | null>(null);
 
@@ -126,6 +127,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
     setSelected(new Set());
     setError(null);
     setErrorCode(null);
+    setQuotaResetAt(null);
     setImported(false);
   }, []);
 
@@ -134,6 +136,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
     setLoading(true);
     setError(null);
     setErrorCode(null);
+    setQuotaResetAt(null);
     setSuggestions([]);
 
     try {
@@ -157,9 +160,12 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       }
     } catch (err: unknown) {
       const raw = err instanceof Error ? err.message : "Failed to find leads";
-      const { code, clean } = parseServerError(raw);
+      const { code, clean, meta } = parseServerError(raw);
       setError(clean);
       setErrorCode(code);
+      if (code === "QUOTA_EXCEEDED" && meta?.periodEnd) {
+        setQuotaResetAt(meta.periodEnd);
+      }
       void refreshUsage();
     } finally {
       setLoading(false);
