@@ -48,7 +48,12 @@ export const findLeadsFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof findLeadsSchema>) => findLeadsSchema.parse(input))
   .handler(async ({ data, context }): Promise<{
     leads: SuggestedLead[];
-    meta: { searched: number; revealed: number; provider: "apollo"; keySource: "byo" | "platform" };
+    meta: {
+      searched: number;
+      revealed: number;
+      provider: LeadProvider;
+      keySource: "byo" | "platform";
+    };
   }> => {
     const { supabase, userId } = context;
 
@@ -73,190 +78,346 @@ export const findLeadsFn = createServerFn({ method: "POST" })
       throw new Error("AI token limit reached. Upgrade your plan for more analyses.");
     }
 
-    // 3. Pick the Apollo key:
-    //    - BYO key on the org → use it, no platform quota check.
-    //    - Otherwise → fall back to platform key gated by monthly cap.
-    const { data: byoIntegration } = await supabaseAdmin
-      .from("org_integrations")
-      .select("api_key")
-      .eq("organization_id", data.organizationId)
-      .eq("provider", "apollo")
-      .maybeSingle();
-
-    let apolloKey: string | null = byoIntegration?.api_key ?? null;
-    let keySource: "byo" | "platform" = "byo";
-
-    if (!apolloKey) {
-      const platformKey = process.env.PLATFORM_APOLLO_API_KEY;
-      if (!platformKey) {
-        throw codedError(
-          "INTEGRATION_MISSING",
-          "No Apollo.io API key configured. Ask your organization owner to add one in Settings → Integrations.",
-        );
-      }
-
-      // Reserve quota upfront — refunded later if we don't use it all.
-      const { data: quotaCheck, error: quotaErr } = await supabaseAdmin.rpc(
-        "consume_platform_lead_quota",
-        { p_org_id: data.organizationId, p_count: data.count },
-      );
-      if (quotaErr) throw new Error(`Quota check failed: ${quotaErr.message}`);
-
-      const q = quotaCheck as {
-        ok: boolean;
-        error?: string;
-        used?: number;
-        quota?: number;
-        remaining?: number;
-      };
-      if (!q.ok) {
-        if (q.error === "quota_exceeded") {
-          // Compute the next reset (1st of next month, UTC) so the UI can tell
-          // the user exactly when retries will start succeeding again.
-          const now = new Date();
-          const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-
-          // Log the blocked attempt so owners can see how often they're hitting
-          // the cap and decide whether to upgrade or add a BYO key.
-          await supabaseAdmin.from("ai_call_log").insert({
-            organization_id: data.organizationId,
-            user_id: userId,
-            feature: "find_leads",
-            model: "apollo",
-            status: "quota_exceeded",
-            latency_ms: 0,
-            attempt_index: 0,
-            error_message: `Monthly lead quota reached (${q.used}/${q.quota})`,
-            metadata: {
-              requested_count: data.count,
-              used: q.used,
-              quota: q.quota,
-              period_end: periodEnd.toISOString(),
-              key_source: "platform",
-            },
-          });
-
-          throw codedError(
-            "QUOTA_EXCEEDED",
-            `You've used all ${q.quota} of your monthly lead credits. They reset on ${periodEnd.toISOString().slice(0, 10)}. Upgrade your plan for more, or add your own Apollo key for unlimited.`,
-            { used: q.used, quota: q.quota, periodEnd: periodEnd.toISOString() },
-          );
-        }
-        throw new Error(q.error || "Quota check failed");
-      }
-
-      apolloKey = platformKey;
-      keySource = "platform";
+    // 3. Dispatch by provider. Apollo supports the platform-quota fallback;
+    //    Hunter & Snov are BYO-only (per product decision — they're cheaper
+    //    domain-search providers, the org pays the vendor directly).
+    if (data.provider === "hunter" || data.provider === "snov") {
+      return runDomainSearchProvider(data, userId);
     }
 
-    // 4. Apollo search
-    const personTitles = data.persona ? [data.persona] : undefined;
-    const qOrganizationKeywordTags = data.industry ? [data.industry] : undefined;
-    const overFetch = Math.min(Math.ceil(data.count * 2), 50);
+    return runApolloProvider(data, userId);
+  });
 
-    let people;
-    try {
-      people = await searchApolloPeople(apolloKey, {
-        personTitles,
-        qOrganizationKeywordTags,
-        perPage: overFetch,
-        page: 1,
-      });
-    } catch (err) {
-      if (keySource === "platform") {
-        await refundPlatformQuota(data.organizationId, data.count);
+// ===== Apollo path (with platform-quota fallback) =====
+
+async function runApolloProvider(
+  data: z.infer<typeof findLeadsSchema>,
+  userId: string,
+): Promise<{
+  leads: SuggestedLead[];
+  meta: { searched: number; revealed: number; provider: LeadProvider; keySource: "byo" | "platform" };
+}> {
+  const { data: byoIntegration } = await supabaseAdmin
+    .from("org_integrations")
+    .select("api_key")
+    .eq("organization_id", data.organizationId)
+    .eq("provider", "apollo")
+    .maybeSingle();
+
+  let apolloKey: string | null = byoIntegration?.api_key ?? null;
+  let keySource: "byo" | "platform" = "byo";
+
+  if (!apolloKey) {
+    const platformKey = process.env.PLATFORM_APOLLO_API_KEY;
+    if (!platformKey) {
+      throw codedError(
+        "INTEGRATION_MISSING",
+        "No Apollo.io API key configured. Ask your organization owner to add one in Settings → Integrations.",
+      );
+    }
+
+    // Reserve quota upfront — refunded later if we don't use it all.
+    const { data: quotaCheck, error: quotaErr } = await supabaseAdmin.rpc(
+      "consume_platform_lead_quota",
+      { p_org_id: data.organizationId, p_count: data.count },
+    );
+    if (quotaErr) throw new Error(`Quota check failed: ${quotaErr.message}`);
+
+    const q = quotaCheck as {
+      ok: boolean;
+      error?: string;
+      used?: number;
+      quota?: number;
+      remaining?: number;
+    };
+    if (!q.ok) {
+      if (q.error === "quota_exceeded") {
+        const now = new Date();
+        const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+        await supabaseAdmin.from("ai_call_log").insert({
+          organization_id: data.organizationId,
+          user_id: userId,
+          feature: "find_leads",
+          model: "apollo",
+          status: "quota_exceeded",
+          latency_ms: 0,
+          attempt_index: 0,
+          error_message: `Monthly lead quota reached (${q.used}/${q.quota})`,
+          metadata: {
+            requested_count: data.count,
+            used: q.used,
+            quota: q.quota,
+            period_end: periodEnd.toISOString(),
+            key_source: "platform",
+          },
+        });
+
+        throw codedError(
+          "QUOTA_EXCEEDED",
+          `You've used all ${q.quota} of your monthly lead credits. They reset on ${periodEnd.toISOString().slice(0, 10)}. Upgrade your plan for more, or add your own Apollo key for unlimited.`,
+          { used: q.used, quota: q.quota, periodEnd: periodEnd.toISOString() },
+        );
       }
+      throw new Error(q.error || "Quota check failed");
+    }
+
+    apolloKey = platformKey;
+    keySource = "platform";
+  }
+
+  // 4. Apollo search
+  const personTitles = data.persona ? [data.persona] : undefined;
+  const qOrganizationKeywordTags = data.industry ? [data.industry] : undefined;
+  const overFetch = Math.min(Math.ceil(data.count * 2), 50);
+
+  let people;
+  try {
+    people = await searchApolloPeople(apolloKey, {
+      personTitles,
+      qOrganizationKeywordTags,
+      perPage: overFetch,
+      page: 1,
+    });
+  } catch (err) {
+    if (keySource === "platform") {
+      await refundPlatformQuota(data.organizationId, data.count);
+    }
+    const apErr = err as ApolloError;
+    if (apErr.isAuthError) {
+      if (keySource === "platform") {
+        throw codedError("PLATFORM_KEY_MISSING", "Platform Apollo key was rejected. Add your own Apollo key in Settings → Integrations to keep finding leads.");
+      }
+      throw new Error("Apollo rejected the API key. Update it in Settings → Integrations.");
+    }
+    if (apErr.isCreditError) {
+      if (keySource === "platform") {
+        throw codedError("PLATFORM_KEY_MISSING", "Platform Apollo workspace is temporarily out of credits. Add your own Apollo key in Settings → Integrations to keep finding leads.");
+      }
+      throw new Error("Your Apollo workspace is out of credits. Top up at apollo.io.");
+    }
+    throw new Error(apErr.message || "Apollo search failed.");
+  }
+
+  if (people.length === 0) {
+    if (keySource === "platform") {
+      await refundPlatformQuota(data.organizationId, data.count);
+    }
+    return { leads: [], meta: { searched: 0, revealed: 0, provider: "apollo", keySource } };
+  }
+
+  // 5. Reveal emails sequentially
+  const revealed: SuggestedLead[] = [];
+  let revealAttempts = 0;
+  for (const person of people) {
+    if (revealed.length >= data.count) break;
+    revealAttempts++;
+
+    let email: string | null = null;
+    let phone: string | null = null;
+    try {
+      const result = await revealApolloEmail(apolloKey, person);
+      email = result.email;
+      phone = result.phone;
+    } catch (err) {
       const apErr = err as ApolloError;
       if (apErr.isAuthError) {
         if (keySource === "platform") {
-          throw codedError("PLATFORM_KEY_MISSING", "Platform Apollo key was rejected. Add your own Apollo key in Settings → Integrations to keep finding leads.");
+          await refundPlatformQuota(data.organizationId, data.count - revealed.length);
+          throw codedError("PLATFORM_KEY_MISSING", "Platform Apollo key was revoked mid-search.");
         }
-        throw new Error("Apollo rejected the API key. Update it in Settings → Integrations.");
+        throw new Error("Apollo API key was revoked mid-search.");
       }
-      if (apErr.isCreditError) {
-        if (keySource === "platform") {
-          throw codedError("PLATFORM_KEY_MISSING", "Platform Apollo workspace is temporarily out of credits. Add your own Apollo key in Settings → Integrations to keep finding leads.");
-        }
-        throw new Error("Your Apollo workspace is out of credits. Top up at apollo.io.");
-      }
-      throw new Error(apErr.message || "Apollo search failed.");
+      if (apErr.isCreditError) break;
+      continue;
     }
 
-    if (people.length === 0) {
-      if (keySource === "platform") {
-        await refundPlatformQuota(data.organizationId, data.count);
-      }
-      return { leads: [], meta: { searched: 0, revealed: 0, provider: "apollo", keySource } };
-    }
+    if (!email) continue;
 
-    // 5. Reveal emails sequentially
-    const revealed: SuggestedLead[] = [];
-    let revealAttempts = 0;
-    for (const person of people) {
-      if (revealed.length >= data.count) break;
-      revealAttempts++;
+    const fullName =
+      person.name?.trim() ||
+      [person.first_name, person.last_name].filter(Boolean).join(" ").trim() ||
+      "Unknown";
+    const company = person.organization?.name?.trim() || "Unknown company";
+    const role = person.title?.trim() || "Unknown role";
+    const employees = person.organization?.estimated_num_employees ?? 0;
+    const score = Math.min(
+      100,
+      50 +
+        (employees > 50 ? 15 : employees > 10 ? 10 : 5) +
+        (person.title ? 10 : 0) +
+        (person.linkedin_url ? 10 : 0),
+    );
 
-      let email: string | null = null;
-      let phone: string | null = null;
-      try {
-        const result = await revealApolloEmail(apolloKey, person);
-        email = result.email;
-        phone = result.phone;
-      } catch (err) {
-        const apErr = err as ApolloError;
-        if (apErr.isAuthError) {
-          if (keySource === "platform") {
-            await refundPlatformQuota(data.organizationId, data.count - revealed.length);
-            throw codedError("PLATFORM_KEY_MISSING", "Platform Apollo key was revoked mid-search.");
-          }
-          throw new Error("Apollo API key was revoked mid-search.");
-        }
-        if (apErr.isCreditError) break;
-        continue;
-      }
+    revealed.push({
+      name: fullName.slice(0, 200),
+      email: email.slice(0, 255),
+      phone: phone?.slice(0, 50),
+      company: company.slice(0, 200),
+      role: role.slice(0, 200),
+      score,
+      reason: `Verified by Apollo · ${person.organization?.industry ?? "unknown industry"}${
+        employees ? ` · ~${employees} employees` : ""
+      }`,
+    });
+  }
 
-      if (!email) continue;
+  // 6. Refund any unused platform quota (we reserved data.count upfront).
+  if (keySource === "platform" && revealed.length < data.count) {
+    await refundPlatformQuota(data.organizationId, data.count - revealed.length);
+  }
 
-      const fullName =
-        person.name?.trim() ||
-        [person.first_name, person.last_name].filter(Boolean).join(" ").trim() ||
-        "Unknown";
-      const company = person.organization?.name?.trim() || "Unknown company";
-      const role = person.title?.trim() || "Unknown role";
-      const employees = person.organization?.estimated_num_employees ?? 0;
-      const score = Math.min(
-        100,
-        50 +
-          (employees > 50 ? 15 : employees > 10 ? 10 : 5) +
-          (person.title ? 10 : 0) +
-          (person.linkedin_url ? 10 : 0),
-      );
+  await supabaseAdmin.rpc("increment_ai_tokens", { p_org_id: data.organizationId });
 
-      revealed.push({
-        name: fullName.slice(0, 200),
-        email: email.slice(0, 255),
-        phone: phone?.slice(0, 50),
-        company: company.slice(0, 200),
-        role: role.slice(0, 200),
-        score,
-        reason: `Verified by Apollo · ${person.organization?.industry ?? "unknown industry"}${
-          employees ? ` · ~${employees} employees` : ""
-        }`,
+  return {
+    leads: revealed,
+    meta: { searched: people.length, revealed: revealAttempts, provider: "apollo", keySource },
+  };
+}
+
+// ===== Hunter / Snov path (domain-search, BYO-only) =====
+
+// Strip protocol/path from a user-entered domain.
+function normalizeDomain(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
+}
+
+async function runDomainSearchProvider(
+  data: z.infer<typeof findLeadsSchema>,
+  _userId: string,
+): Promise<{
+  leads: SuggestedLead[];
+  meta: { searched: number; revealed: number; provider: LeadProvider; keySource: "byo" | "platform" };
+}> {
+  const provider = data.provider as "hunter" | "snov";
+  const providerLabel = provider === "hunter" ? "Hunter.io" : "Snov.io";
+
+  if (!data.companyDomain) {
+    throw codedError(
+      "INTEGRATION_MISSING",
+      `${providerLabel} searches need a company domain (e.g. "stripe.com"). Add one and try again.`,
+    );
+  }
+  const domain = normalizeDomain(data.companyDomain);
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
+    throw new Error(`"${data.companyDomain}" doesn't look like a valid domain.`);
+  }
+
+  const { data: byoIntegration } = await supabaseAdmin
+    .from("org_integrations")
+    .select("api_key")
+    .eq("organization_id", data.organizationId)
+    .eq("provider", provider)
+    .maybeSingle();
+
+  if (!byoIntegration?.api_key) {
+    throw codedError(
+      "INTEGRATION_MISSING",
+      `No ${providerLabel} API key configured. Ask your organization owner to add one in Settings → Integrations.`,
+    );
+  }
+  const apiKey = byoIntegration.api_key;
+
+  // Run the domain search.
+  let companyName: string | undefined;
+  let foundEmails: Array<{
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    position: string | null;
+    confidence: number | null;
+  }> = [];
+  let totalSearched = 0;
+
+  try {
+    if (provider === "hunter") {
+      const result = await searchHunterDomain(apiKey, {
+        domain,
+        limit: Math.min(data.count * 2, 100),
       });
+      companyName = result.organization;
+      totalSearched = result.emails.length;
+      foundEmails = result.emails.map((e) => ({
+        email: e.value,
+        firstName: e.first_name ?? null,
+        lastName: e.last_name ?? null,
+        position: e.position ?? null,
+        confidence: e.confidence ?? null,
+      }));
+    } else {
+      const result = await searchSnovDomain(apiKey, {
+        domain,
+        limit: Math.min(data.count * 2, 100),
+        type: "personal",
+      });
+      companyName = result.companyName;
+      totalSearched = result.emails.length;
+      foundEmails = result.emails.map((e) => ({
+        email: e.email,
+        firstName: e.firstName ?? null,
+        lastName: e.lastName ?? null,
+        position: e.position ?? null,
+        // Snov reports a status string; map "valid" → 90, otherwise null.
+        confidence: e.status === "valid" ? 90 : null,
+      }));
     }
-
-    // 6. Refund any unused platform quota (we reserved data.count upfront).
-    if (keySource === "platform" && revealed.length < data.count) {
-      await refundPlatformQuota(data.organizationId, data.count - revealed.length);
+  } catch (err) {
+    const e = err as HunterError | SnovError;
+    if (e.isAuthError) {
+      throw new Error(`${providerLabel} rejected the API key. Update it in Settings → Integrations.`);
     }
+    if (e.isCreditError) {
+      throw new Error(`Your ${providerLabel} account is out of credits or rate-limited. Top up and retry.`);
+    }
+    throw new Error(e.message || `${providerLabel} search failed.`);
+  }
 
-    await supabaseAdmin.rpc("increment_ai_tokens", { p_org_id: data.organizationId });
+  // Optional persona filter — soft match against position.
+  const personaLc = data.persona?.toLowerCase().trim();
+  const filtered = personaLc
+    ? foundEmails.filter((e) => e.position?.toLowerCase().includes(personaLc))
+    : foundEmails;
 
+  const slice = filtered.slice(0, data.count);
+
+  const company = companyName?.trim() || domain;
+  const leads: SuggestedLead[] = slice.map((e) => {
+    const fullName =
+      [e.firstName, e.lastName].filter(Boolean).join(" ").trim() || e.email.split("@")[0];
+    const role = e.position?.trim() || "Unknown role";
+    const score = Math.min(
+      100,
+      50 + (e.confidence ?? 0) / 5 + (e.firstName ? 10 : 0) + (e.position ? 10 : 0),
+    );
     return {
-      leads: revealed,
-      meta: { searched: people.length, revealed: revealAttempts, provider: "apollo", keySource },
+      name: fullName.slice(0, 200),
+      email: e.email.slice(0, 255),
+      company: company.slice(0, 200),
+      role: role.slice(0, 200),
+      score: Math.round(score),
+      reason: `Verified by ${providerLabel} · ${company}${
+        e.confidence != null ? ` · ${e.confidence}% confidence` : ""
+      }`,
     };
   });
+
+  await supabaseAdmin.rpc("increment_ai_tokens", { p_org_id: data.organizationId });
+
+  return {
+    leads,
+    meta: {
+      searched: totalSearched,
+      revealed: leads.length,
+      provider,
+      keySource: "byo",
+    },
+  };
+}
 
 // Refund quota by decrementing directly — bypasses the consume function's cap check.
 async function refundPlatformQuota(orgId: string, count: number) {
