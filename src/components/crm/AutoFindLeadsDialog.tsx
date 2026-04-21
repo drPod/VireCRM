@@ -208,7 +208,19 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const quotaPct =
     usage && usage.quota > 0 ? Math.min(100, Math.round((usage.used / usage.quota) * 100)) : 0;
   const showQuotaBar = !!(usage && !usage.hasByoKey && usage.quota < 999999);
-  const isAtCap = errorCode === "QUOTA_EXCEEDED";
+  // Pre-flight cap detection — block the API call before it even fires.
+  const outOfCredits = !!(usage && !usage.hasByoKey && usage.quota < 999999 && usage.remaining <= 0);
+  const wouldExceedCap = !!(usage && !usage.hasByoKey && usage.quota < 999999 && count > usage.remaining);
+  // Show the full upgrade panel when the server returned QUOTA_EXCEEDED OR
+  // the user already has zero credits left (no point letting them try).
+  const isAtCap = errorCode === "QUOTA_EXCEEDED" || outOfCredits;
+  // Build a friendly message when we're showing the upgrade panel due to
+  // pre-flight detection (no server error to display).
+  const capMessage =
+    error ||
+    (outOfCredits
+      ? `You've used all ${usage?.quota} of your monthly lead credits. Upgrade your plan for more, or add your own Apollo key for unlimited.`
+      : "You've hit your monthly cap.");
 
   return (
     <Dialog
@@ -274,7 +286,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
                 You've hit your monthly cap
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm">
-                {error}
+                {capMessage}
               </p>
             </div>
             <div className="grid gap-2 pt-2">
@@ -394,9 +406,9 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
                   <option value={15}>15 leads</option>
                   <option value={20}>20 leads</option>
                 </select>
-                {showQuotaBar && count > usage!.remaining && usage!.remaining > 0 && (
+                {showQuotaBar && wouldExceedCap && usage!.remaining > 0 && (
                   <p className="mt-1 text-[11px] text-warning">
-                    Only {usage!.remaining} credits left this month — pick a smaller batch or upgrade.
+                    Only {usage!.remaining} credit{usage!.remaining === 1 ? "" : "s"} left this month — pick a smaller batch or upgrade.
                   </p>
                 )}
               </div>
@@ -421,16 +433,54 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
               </div>
             )}
 
+            {/* Hard pre-flight block — request would exceed remaining credits. */}
+            {wouldExceedCap && usage!.remaining > 0 && (
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2.5">
+                <div className="flex items-start gap-2 text-xs text-foreground">
+                  <Crown className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">
+                      This search needs {count} credits — you only have {usage!.remaining} left.
+                    </p>
+                    <p className="text-muted-foreground mt-0.5">
+                      Drop the batch size, upgrade your plan{isOwner ? ", or connect your own Apollo key" : ""}.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link to="/pricing" onClick={() => setOpen(false)}>
+                    <Button variant="command" size="sm" className="gap-1.5">
+                      <Crown className="h-3.5 w-3.5" />
+                      Upgrade plan
+                    </Button>
+                  </Link>
+                  {isOwner && (
+                    <Link to="/settings" onClick={() => setOpen(false)}>
+                      <Button variant="outline" size="sm" className="gap-1.5">
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Use my Apollo key
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+
             <Button
               variant="command"
               className="w-full gap-2"
               onClick={handleFind}
-              disabled={loading}
+              disabled={loading || wouldExceedCap}
             >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Discovering leads...
+                </>
+              ) : wouldExceedCap ? (
+                <>
+                  <Crown className="h-4 w-4" />
+                  Upgrade to search for {count} leads
                 </>
               ) : (
                 <>
