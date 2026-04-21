@@ -6,9 +6,11 @@ import {
   saveIntegrationFn,
   deleteIntegrationFn,
 } from "@/functions/integrations.functions";
+import { getLeadUsageFn, type LeadUsage } from "@/functions/find-leads.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   CheckCircle2,
   KeyRound,
@@ -16,7 +18,10 @@ import {
   ExternalLink,
   AlertTriangle,
   Trash2,
+  Zap,
+  Infinity as InfinityIcon,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export function IntegrationsSettings() {
@@ -26,6 +31,7 @@ export function IntegrationsSettings() {
   const getIntegration = useAuthedServerFn(getIntegrationFn);
   const saveIntegration = useAuthedServerFn(saveIntegrationFn);
   const deleteIntegration = useAuthedServerFn(deleteIntegrationFn);
+  const getLeadUsage = useAuthedServerFn(getLeadUsageFn);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,6 +42,7 @@ export function IntegrationsSettings() {
     maskedKey?: string;
     lastVerifiedAt?: string | null;
   }>({ configured: false });
+  const [usage, setUsage] = useState<LeadUsage | null>(null);
 
   const refresh = useCallback(async () => {
     if (!organization?.id || !isOwner) {
@@ -44,9 +51,12 @@ export function IntegrationsSettings() {
     }
     setLoading(true);
     try {
-      const result = await getIntegration({
-        data: { organizationId: organization.id, provider: "apollo" },
-      });
+      const [result, u] = await Promise.all([
+        getIntegration({
+          data: { organizationId: organization.id, provider: "apollo" },
+        }),
+        getLeadUsage({ data: { organizationId: organization.id } }).catch(() => null),
+      ]);
       if (result.configured) {
         setStatus({
           configured: true,
@@ -56,16 +66,26 @@ export function IntegrationsSettings() {
       } else {
         setStatus({ configured: false });
       }
+      setUsage(u);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [organization?.id, isOwner, getIntegration]);
+  }, [organization?.id, isOwner, getIntegration, getLeadUsage]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Derived quota display values
+  const isUnlimited = !!usage && usage.quota >= 999999;
+  const quotaPct =
+    usage && usage.quota > 0 && !isUnlimited
+      ? Math.min(100, Math.round((usage.used / usage.quota) * 100))
+      : 0;
+  const lowCredits = !!usage && !isUnlimited && usage.remaining > 0 && usage.remaining < 10;
+  const outOfCredits = !!usage && !isUnlimited && usage.remaining <= 0;
 
   const handleSave = async () => {
     if (!organization?.id || !apiKey.trim()) return;
