@@ -86,11 +86,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
 
     try {
       const trimmed = description.trim();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error("Your session expired. Please sign in again.");
       const result = await findLeads({
-        headers: { Authorization: `Bearer ${token}` },
         data: {
           organizationId: organization.id,
           businessDescription: trimmed.length >= 10 ? trimmed : undefined,
