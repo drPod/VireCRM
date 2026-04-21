@@ -83,7 +83,7 @@ export const saveIntegrationFn = createServerFn({ method: "POST" })
     await assertOwner(userId, data.organizationId);
 
     // Verify the key works BEFORE persisting — saves us from storing garbage.
-    const verify = await verifyApolloKey(data.apiKey);
+    const verify = await verifyKey(data.provider, data.apiKey);
     if (!verify.ok) {
       throw new Error(verify.reason);
     }
