@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import {
   Loader2,
   Infinity as InfinityIcon,
   Sparkles,
+  ArrowRight,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +21,57 @@ import { getStripeEnvironment } from "@/lib/stripe";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { crmTiers, whiteLabelTiers, type PricingTier } from "@/components/marketing/PricingCards";
 import { Check, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+/**
+ * Parse the leading dollar amount from a tier price string.
+ * Handles "$97", "$297–$497" (returns the lower bound), "Custom", "$14,000+".
+ * Returns null when no numeric price can be inferred (e.g. "Custom").
+ */
+function parsePriceToNumber(price: string): number | null {
+  const match = price.match(/\$\s*([\d,]+(?:\.\d+)?)/);
+  if (!match) return null;
+  const n = parseFloat(match[1].replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Estimate prorated charge today when switching from one monthly plan to another
+ * partway through a billing cycle. Stripe's actual proration is computed at the
+ * moment of the swap; this is a transparent client-side estimate so users aren't
+ * surprised by the next invoice.
+ *
+ * Formula: (newPrice - currentPrice) * (daysRemaining / cycleLength)
+ * Returns 0 when downgrading (Stripe issues a credit, no charge today).
+ */
+function estimateProration(args: {
+  currentPrice: number;
+  newPrice: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+}): { prorationToday: number; daysRemaining: number; cycleDays: number } | null {
+  const { currentPrice, newPrice, periodStart, periodEnd } = args;
+  if (!periodStart || !periodEnd) return null;
+  const start = new Date(periodStart).getTime();
+  const end = new Date(periodEnd).getTime();
+  const now = Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+  const cycleDays = Math.max(1, Math.round((end - start) / 86_400_000));
+  const daysRemaining = Math.max(0, Math.round((end - now) / 86_400_000));
+  const fraction = daysRemaining / cycleDays;
+  const delta = newPrice - currentPrice;
+  const prorationToday = delta > 0 ? +(delta * fraction).toFixed(2) : 0;
+  return { prorationToday, daysRemaining, cycleDays };
+}
 
 function findTierByPriceId(priceId: string): PricingTier | undefined {
   return [...crmTiers, ...whiteLabelTiers].find((t) => t.stripePriceId === priceId);
@@ -186,8 +240,11 @@ function BillingPage() {
   const { openCheckout, CheckoutDialog } = useStripeCheckout();
   const autoOpenedRef = useRef(false);
   const [showPlans, setShowPlans] = useState(false);
+  const [pendingTier, setPendingTier] = useState<PricingTier | null>(null);
 
-  const handleSelectTier = useCallback(
+  const isManual = subscription?.environment === "manual";
+
+  const launchCheckout = useCallback(
     (tier: PricingTier) => {
       if (!tier.stripePriceId || !user?.email) return;
       openCheckout({
@@ -201,7 +258,41 @@ function BillingPage() {
     [openCheckout, user],
   );
 
-  const isManual = subscription?.environment === "manual";
+  // When the user already has a paid subscription, intercept tier selection
+  // and show a confirmation dialog with price difference + proration estimate.
+  // First-time subscribers and manual/lifetime accounts skip the confirmation.
+  const handleSelectTier = useCallback(
+    (tier: PricingTier) => {
+      if (!tier.stripePriceId || !user?.email) return;
+      if (subscription && hasAccess && !isManual) {
+        setPendingTier(tier);
+        return;
+      }
+      launchCheckout(tier);
+    },
+    [launchCheckout, subscription, hasAccess, isManual, user],
+  );
+
+  const currentTier = useMemo(
+    () => (subscription?.price_id ? findTierByPriceId(subscription.price_id) : undefined),
+    [subscription?.price_id],
+  );
+
+  const switchSummary = useMemo(() => {
+    if (!pendingTier || !currentTier) return null;
+    const currentPrice = parsePriceToNumber(currentTier.price);
+    const newPrice = parsePriceToNumber(pendingTier.price);
+    if (currentPrice === null || newPrice === null) return null;
+    const direction: "upgrade" | "downgrade" | "same" =
+      newPrice > currentPrice ? "upgrade" : newPrice < currentPrice ? "downgrade" : "same";
+    const proration = estimateProration({
+      currentPrice,
+      newPrice,
+      periodStart: subscription?.current_period_start ?? null,
+      periodEnd: subscription?.current_period_end ?? null,
+    });
+    return { currentPrice, newPrice, direction, proration };
+  }, [pendingTier, currentTier, subscription]);
 
   // Auto-open Stripe checkout when ?plan=... is in the URL and user has no active subscription.
   // Waits for the auth session AND the user's email to fully load — important when arriving
@@ -429,6 +520,148 @@ function BillingPage() {
         </div>
       )}
       {CheckoutDialog}
+      <PlanSwitchConfirmDialog
+        pendingTier={pendingTier}
+        currentTier={currentTier}
+        switchSummary={switchSummary}
+        onCancel={() => setPendingTier(null)}
+        onConfirm={() => {
+          if (pendingTier) {
+            const t = pendingTier;
+            setPendingTier(null);
+            launchCheckout(t);
+          }
+        }}
+      />
     </div>
+  );
+}
+
+function PlanSwitchConfirmDialog({
+  pendingTier,
+  currentTier,
+  switchSummary,
+  onCancel,
+  onConfirm,
+}: {
+  pendingTier: PricingTier | null;
+  currentTier: PricingTier | undefined;
+  switchSummary: {
+    currentPrice: number;
+    newPrice: number;
+    direction: "upgrade" | "downgrade" | "same";
+    proration: { prorationToday: number; daysRemaining: number; cycleDays: number } | null;
+  } | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const open = !!pendingTier;
+  const isUpgrade = switchSummary?.direction === "upgrade";
+  const isDowngrade = switchSummary?.direction === "downgrade";
+  const delta = switchSummary ? switchSummary.newPrice - switchSummary.currentPrice : 0;
+  return (
+    <AlertDialog open={open} onOpenChange={(o) => !o && onCancel()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            {isUpgrade ? (
+              <TrendingUp className="h-5 w-5 text-primary" />
+            ) : isDowngrade ? (
+              <TrendingDown className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <Sparkles className="h-5 w-5 text-primary" />
+            )}
+            Confirm plan switch
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4 pt-2">
+              {/* From → To */}
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">From</p>
+                    <p className="font-medium text-foreground truncate">
+                      {currentTier?.name ?? "Current plan"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {currentTier?.price}
+                      {currentTier?.period}
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0 text-right">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">To</p>
+                    <p className="font-medium text-foreground truncate">{pendingTier?.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {pendingTier?.price}
+                      {pendingTier?.period}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price difference */}
+              {switchSummary && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Monthly difference</span>
+                    <span
+                      className={
+                        isUpgrade
+                          ? "font-semibold text-foreground"
+                          : isDowngrade
+                            ? "font-semibold text-muted-foreground"
+                            : "text-foreground"
+                      }
+                    >
+                      {delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta).toFixed(0)}/mo
+                    </span>
+                  </div>
+
+                  {/* Proration estimate */}
+                  {switchSummary.proration && isUpgrade && switchSummary.proration.prorationToday > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Charged today (prorated, {switchSummary.proration.daysRemaining} of{" "}
+                        {switchSummary.proration.cycleDays} days left)
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        ~${switchSummary.proration.prorationToday.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {isDowngrade && (
+                    <p className="text-xs text-muted-foreground">
+                      You'll receive a credit for the unused portion of your current plan, applied to
+                      your next invoice. No charge today.
+                    </p>
+                  )}
+
+                  {isUpgrade && (
+                    <p className="text-xs text-muted-foreground">
+                      Estimate based on your current billing cycle. Stripe calculates the exact
+                      proration at checkout.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {!switchSummary && (
+                <p className="text-xs text-muted-foreground">
+                  This plan has custom pricing — you'll see the exact amount in checkout.
+                </p>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>
+            {isUpgrade ? "Upgrade now" : isDowngrade ? "Switch plan" : "Continue"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
