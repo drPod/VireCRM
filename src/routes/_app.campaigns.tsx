@@ -255,12 +255,49 @@ function CampaignsPage() {
                 key={c.id}
                 className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
               >
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">{c.name}</h3>
-                  <Badge variant={statusVariants[c.status]} className="capitalize">
-                    {c.status}
-                  </Badge>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Zap className="h-4 w-4 text-primary shrink-0" />
+                    <h3 className="text-sm font-semibold text-foreground truncate">{c.name}</h3>
+                    <Badge variant={statusVariants[c.status]} className="capitalize">
+                      {c.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {c.status === "active" ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Pause"
+                        disabled={busyId === c.id}
+                        onClick={() => setCampaignStatus(c, "paused")}
+                      >
+                        <Pause className="h-4 w-4" />
+                      </Button>
+                    ) : c.status === "paused" || c.status === "draft" ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={c.status === "draft" ? "Activate" : "Resume"}
+                        disabled={busyId === c.id}
+                        onClick={() => setCampaignStatus(c, "active")}
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      title="Delete"
+                      disabled={busyId === c.id}
+                      onClick={() => setConfirmDelete(c)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 {c.objective && (
                   <p className="mt-1 text-xs text-muted-foreground">{c.objective}</p>
