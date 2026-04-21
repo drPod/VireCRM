@@ -9,13 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Send, Sparkles } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
   previewOutreachFn,
   sendOutreachWithContentFn,
 } from "@/functions/outreach-preview.functions";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface OutreachPreviewDialogProps {
