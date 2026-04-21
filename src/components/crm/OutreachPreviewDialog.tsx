@@ -9,13 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Send, Sparkles } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
   previewOutreachFn,
   sendOutreachWithContentFn,
 } from "@/functions/outreach-preview.functions";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface OutreachPreviewDialogProps {
@@ -33,17 +32,10 @@ interface OutreachPreviewDialogProps {
 const inputClass =
   "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
 
-async function getAuthHeader(): Promise<Record<string, string>> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("You're not signed in. Please log in again.");
-  return { Authorization: `Bearer ${token}` };
-}
-
 export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: OutreachPreviewDialogProps) {
   const { organization } = useAuth();
-  const preview = useServerFn(previewOutreachFn);
-  const send = useServerFn(sendOutreachWithContentFn);
+  const preview = useAuthedServerFn(previewOutreachFn);
+  const send = useAuthedServerFn(sendOutreachWithContentFn);
 
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
@@ -64,9 +56,7 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
 
     (async () => {
       try {
-        const headers = await getAuthHeader();
         const result = await preview({
-          headers,
           data: {
             organizationId: organization.id,
             lead: {
@@ -107,9 +97,7 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
     }
     setSending(true);
     try {
-      const headers = await getAuthHeader();
       const result = await send({
-        headers,
         data: {
           organizationId: organization.id,
           leadId: lead.id,

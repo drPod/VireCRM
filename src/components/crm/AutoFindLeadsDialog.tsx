@@ -20,7 +20,7 @@ import {
   Sparkles,
   CheckCircle2,
 } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { findLeadsFn, type SuggestedLead } from "@/functions/find-leads.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -69,7 +69,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState(false);
 
-  const findLeads = useServerFn(findLeadsFn);
+  const findLeads = useAuthedServerFn(findLeadsFn);
 
   const reset = useCallback(() => {
     setSuggestions([]);
@@ -86,11 +86,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
 
     try {
       const trimmed = description.trim();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error("Your session expired. Please sign in again.");
       const result = await findLeads({
-        headers: { Authorization: `Bearer ${token}` },
         data: {
           organizationId: organization.id,
           businessDescription: trimmed.length >= 10 ? trimmed : undefined,

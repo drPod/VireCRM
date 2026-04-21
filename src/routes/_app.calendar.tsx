@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Link } from "@tanstack/react-router";
 import { NewTaskDialog } from "@/components/crm/NewTaskDialog";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { completeTaskWithAiFn } from "@/functions/complete-task.functions";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { toast } from "sonner";
@@ -56,7 +56,7 @@ function CalendarPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
-  const completeTask = useServerFn(completeTaskWithAiFn);
+  const completeTask = useAuthedServerFn(completeTaskWithAiFn);
   const isOwner = role?.role === "owner";
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
@@ -66,12 +66,7 @@ function CalendarPage() {
   const handleCompleteWithAi = async (taskId: string) => {
     setCompletingId(taskId);
     try {
-      const { supabase: sb } = await import("@/integrations/supabase/client");
-      const { data: sessionData } = await sb.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error("Your session expired. Please sign in again.");
       const result = await completeTask({
-        headers: { Authorization: `Bearer ${token}` },
         data: { taskId },
       });
 
