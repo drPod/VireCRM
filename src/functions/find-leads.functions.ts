@@ -57,36 +57,78 @@ export const findLeadsFn = createServerFn({ method: "POST" })
     };
   }> => {
     const { supabase, userId } = context;
+    const startedAt = Date.now();
 
-    // 1. Org membership
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!profile || profile.organization_id !== data.organizationId) {
-      throw new Error("Unauthorized: not a member of this organization");
+    try {
+      // 1. Org membership
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!profile || profile.organization_id !== data.organizationId) {
+        throw new Error("Unauthorized: not a member of this organization");
+      }
+
+      // 2. Token budget (still applies — protects against runaway costs)
+      const { data: org } = await supabase
+        .from("organizations")
+        .select("ai_tokens_used, ai_tokens_limit")
+        .eq("id", data.organizationId)
+        .maybeSingle();
+      if (!org) throw new Error("Organization not found");
+      if (org.ai_tokens_used >= org.ai_tokens_limit) {
+        throw new Error("AI token limit reached. Upgrade your plan for more analyses.");
+      }
+
+      // 3. Dispatch by provider.
+      const result =
+        data.provider === "hunter" || data.provider === "snov"
+          ? await runDomainSearchProvider(data, userId)
+          : await runApolloProvider(data, userId);
+
+      await recordLeadSync({
+        organizationId: data.organizationId,
+        userId,
+        provider: result.meta.provider,
+        source: "auto_find_search",
+        status: result.leads.length > 0 ? "success" : "partial",
+        fetched: result.meta.searched,
+        revealed: result.leads.length,
+        noEmail: Math.max(0, result.meta.revealed - result.leads.length),
+        durationMs: Date.now() - startedAt,
+        metadata: {
+          requested_count: data.count,
+          industry: data.industry ?? null,
+          persona: data.persona ?? null,
+          company_domain: data.companyDomain ?? null,
+          key_source: result.meta.keySource,
+        },
+      });
+
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const codeMatch = message.match(/^\[([A-Z_]+)\]/);
+      const errorCode = codeMatch?.[1] ?? "UNKNOWN";
+      await recordLeadSync({
+        organizationId: data.organizationId,
+        userId,
+        provider: data.provider,
+        source: "auto_find_search",
+        status: errorCode === "QUOTA_EXCEEDED" ? "quota_exceeded" : "error",
+        durationMs: Date.now() - startedAt,
+        errorCode,
+        errorMessage: message.slice(0, 500),
+        metadata: {
+          requested_count: data.count,
+          industry: data.industry ?? null,
+          persona: data.persona ?? null,
+          company_domain: data.companyDomain ?? null,
+        },
+      });
+      throw err;
     }
-
-    // 2. Token budget (still applies — protects against runaway costs)
-    const { data: org } = await supabase
-      .from("organizations")
-      .select("ai_tokens_used, ai_tokens_limit")
-      .eq("id", data.organizationId)
-      .maybeSingle();
-    if (!org) throw new Error("Organization not found");
-    if (org.ai_tokens_used >= org.ai_tokens_limit) {
-      throw new Error("AI token limit reached. Upgrade your plan for more analyses.");
-    }
-
-    // 3. Dispatch by provider. Apollo supports the platform-quota fallback;
-    //    Hunter & Snov are BYO-only (per product decision — they're cheaper
-    //    domain-search providers, the org pays the vendor directly).
-    if (data.provider === "hunter" || data.provider === "snov") {
-      return runDomainSearchProvider(data, userId);
-    }
-
-    return runApolloProvider(data, userId);
   });
 
 // ===== Apollo path (with platform-quota fallback) =====
