@@ -6,6 +6,7 @@ import { searchApolloPeople, revealApolloEmail, type ApolloError } from "@/lib/a
 import { searchHunterDomain, type HunterError } from "@/lib/hunter";
 import { searchSnovDomain, type SnovError } from "@/lib/snov";
 import { z } from "zod";
+import { recordLeadSync } from "./_lead-sync-log";
 
 export type LeadProvider = "apollo" | "hunter" | "snov";
 

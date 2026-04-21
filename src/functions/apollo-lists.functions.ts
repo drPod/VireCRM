@@ -14,6 +14,7 @@ import {
   type ApolloPerson,
 } from "@/lib/apollo";
 import { z } from "zod";
+import { recordLeadSync } from "./_lead-sync-log";
 
 // Hard cap per import to protect against runaway Apollo cost (each lead = 1 credit).
 const MAX_IMPORT_PER_RUN = 200;
