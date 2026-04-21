@@ -113,16 +113,19 @@ Be specific and actionable. Each step should be something a CRM automation could
     });
 
     if (!aiResponse.ok) {
+      const errBody = await aiResponse.text().catch(() => "");
+      console.error("command gateway error", aiResponse.status, errBody.slice(0, 300));
       if (aiResponse.status === 429) throw new Error("Rate limit reached. Please try again shortly.");
-      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Please add funds.");
-      throw new Error("AI service error");
+      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
+      throw new Error(`AI service error (${aiResponse.status})`);
     }
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
-      throw new Error("AI did not return a valid plan");
+      console.error("command: no tool_calls", JSON.stringify(aiData).slice(0, 400));
+      throw new Error("AI did not return a valid plan. Try rephrasing.");
     }
 
     const plan: CommandPlan = JSON.parse(toolCall.function.arguments);
