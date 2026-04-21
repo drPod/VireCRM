@@ -85,6 +85,8 @@ function CampaignsPage() {
   const [name, setName] = useState("");
   const [objective, setObjective] = useState("");
   const [status, setStatus] = useState<CampaignStatus>("draft");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Campaign | null>(null);
 
   // Auto-open the create dialog when arriving with ?new=1, then strip the param.
   useEffect(() => {
