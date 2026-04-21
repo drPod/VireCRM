@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -543,7 +544,32 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   );
 }
 
+function htmlToPlainText(input: string): string {
+  if (!input) return "";
+  // Strip script/style blocks entirely
+  let s = input.replace(/<(script|style)[\s\S]*?<\/\1>/gi, "");
+  // Convert common block tags to newlines so paragraphs don't run together
+  s = s.replace(/<\/(p|div|h[1-6]|li|tr|br)\s*>/gi, "\n");
+  s = s.replace(/<br\s*\/?>/gi, "\n");
+  // Strip all remaining tags
+  s = s.replace(/<[^>]+>/g, "");
+  // Decode the most common HTML entities
+  s = s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+  // Collapse whitespace
+  s = s.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  return s;
+}
+
 function ActivityEntry({ item }: { item: ActivityItem }) {
+  const [expanded, setExpanded] = useState(false);
+
   const iconMap = {
     email: <Mail className="h-3.5 w-3.5" />,
     reply: <MessageSquare className="h-3.5 w-3.5" />,
@@ -572,6 +598,9 @@ function ActivityEntry({ item }: { item: ActivityItem }) {
   ) : null;
 
   const timeAgo = formatRelativeTime(item.date);
+  const plainContent = useMemo(() => htmlToPlainText(item.content || ""), [item.content]);
+  const isLong = plainContent.length > 180 || plainContent.includes("\n");
+  const canExpand = isLong && item.type === "email";
 
   return (
     <div className="relative pl-9 pb-4 group">
@@ -588,10 +617,33 @@ function ActivityEntry({ item }: { item: ActivityItem }) {
           <span className="text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo}</span>
         </div>
 
-        {item.content && (
-          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-            {item.content}
+        {plainContent && !expanded && (
+          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed whitespace-pre-wrap">
+            {plainContent}
           </p>
+        )}
+        {plainContent && expanded && (
+          <pre className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans bg-muted/40 rounded-md p-2 max-h-72 overflow-y-auto">
+            {plainContent}
+          </pre>
+        )}
+
+        {canExpand && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+          >
+            {expanded ? (
+              <>
+                <ChevronDown className="h-3 w-3" /> Hide full message
+              </>
+            ) : (
+              <>
+                <ChevronRight className="h-3 w-3" /> View full message
+              </>
+            )}
+          </button>
         )}
 
         <div className="flex items-center gap-1.5">
