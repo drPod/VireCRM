@@ -55,7 +55,7 @@ export function AiAdvisorPanel() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const analyzeBusiness = useServerFn(analyzeBusinessFn);
+  const analyzeBusiness = useAuthedServerFn(analyzeBusinessFn);
 
   const tokensRemaining = organization
     ? organization.ai_tokens_limit - organization.ai_tokens_used
