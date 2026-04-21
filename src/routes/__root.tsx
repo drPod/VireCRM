@@ -5,6 +5,7 @@ import { DomainBrandingProvider } from "@/components/auth/DomainBrandingProvider
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
 import { GlobalAuthErrorListener } from "@/components/GlobalAuthErrorListener";
 import { PageTransition } from "@/components/PageTransition";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 
@@ -74,6 +75,7 @@ function RootComponent() {
           <PageTransition>
             <Outlet />
           </PageTransition>
+          <Toaster />
         </AuthProvider>
       </DomainBrandingProvider>
     </GlobalErrorBoundary>
