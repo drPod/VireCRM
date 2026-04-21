@@ -16,7 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Star,
   MessageCircle,
-  Sparkles,
   Mail,
   Send,
   Loader2,
