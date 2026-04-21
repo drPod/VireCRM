@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Link } from "@tanstack/react-router";
 import { NewTaskDialog } from "@/components/crm/NewTaskDialog";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { completeTaskWithAiFn } from "@/functions/complete-task.functions";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { toast } from "sonner";
