@@ -278,7 +278,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
               </p>
             </div>
             <div className="grid gap-2 pt-2">
-              <Link to="/billing" onClick={() => setOpen(false)}>
+              <Link to="/pricing" onClick={() => setOpen(false)}>
                 <Button variant="command" className="w-full gap-2">
                   <Crown className="h-4 w-4" />
                   Upgrade plan for more credits
