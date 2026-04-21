@@ -14,12 +14,13 @@ export const analyzeBusinessFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Check org membership
+    // Check org membership — use maybeSingle so 0 rows returns null instead of
+    // throwing a PostgrestError that surfaces as "[object Object]" in the UI.
     const { data: profile } = await supabase
       .from("profiles")
       .select("organization_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (!profile || profile.organization_id !== data.organizationId) {
       throw new Error("Unauthorized: not a member of this organization");
@@ -30,7 +31,7 @@ export const analyzeBusinessFn = createServerFn({ method: "POST" })
       .from("organizations")
       .select("ai_tokens_used, ai_tokens_limit, plan")
       .eq("id", data.organizationId)
-      .single();
+      .maybeSingle();
 
     if (!org) throw new Error("Organization not found");
     if (org.ai_tokens_used >= org.ai_tokens_limit) {

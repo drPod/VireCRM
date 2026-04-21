@@ -10,7 +10,6 @@ import {
   GitBranch,
   Clock,
   Users,
-  CheckCircle2,
   AlertCircle,
   MessageSquare,
   Loader2,
@@ -97,13 +96,20 @@ function WorkflowsListPage() {
   };
 
   const toggleStatus = async (wf: Workflow) => {
+    // The execution engine isn't live yet — toggling status only changes the
+    // builder label so the user can mark which drafts are "ready". Be explicit
+    // about that so nobody assumes their workflow is firing on lead events.
     const next = wf.status === "active" ? "paused" : "active";
     const { error } = await supabase.from("workflows").update({ status: next }).eq("id", wf.id);
     if (error) {
       toast.error("Update failed: " + error.message);
       return;
     }
-    toast.success(next === "active" ? "Workflow activated" : "Workflow paused");
+    toast.success(
+      next === "active"
+        ? "Marked ready — execution engine launches soon"
+        : "Marked paused",
+    );
     void loadWorkflows();
   };
 
@@ -119,20 +125,21 @@ function WorkflowsListPage() {
   };
 
   const stats = {
-    active: workflows.filter((w) => w.status === "active").length,
-    enrolled: workflows.reduce((sum, w) => sum + w.enrolled_count, 0),
-    completed: workflows.reduce((sum, w) => sum + w.completed_count, 0),
+    drafts: workflows.filter((w) => w.status === "draft").length,
+    ready: workflows.filter((w) => w.status === "active").length,
+    paused: workflows.filter((w) => w.status === "paused").length,
+    total: workflows.length,
   };
 
   return (
     <div className="flex-1 overflow-auto p-6">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Workflows</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Automate multi-step sequences across email, tags, waits, and conditional branches
+              Design multi-step automations across email, tags, waits, and conditional branches
             </p>
           </div>
           <Button
@@ -145,17 +152,24 @@ function WorkflowsListPage() {
           </Button>
         </div>
 
+        {/* Honest banner — no execution engine yet */}
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <div className="text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">Builder preview.</span>{" "}
+            Design and save your workflows now. Triggers will start firing on real
+            lead events when the execution engine ships — your saved drafts will
+            switch on automatically.
+          </div>
+        </div>
+
         {/* Stats */}
         <div className="mb-8 grid grid-cols-4 gap-4">
           {[
-            { label: "Active Workflows", value: String(stats.active), color: "text-success" },
-            { label: "Total Enrolled", value: stats.enrolled.toLocaleString(), color: "text-primary" },
-            { label: "Completed", value: stats.completed.toLocaleString(), color: "text-foreground" },
-            {
-              label: "Conversion Rate",
-              value: stats.enrolled > 0 ? `${((stats.completed / stats.enrolled) * 100).toFixed(1)}%` : "—",
-              color: "text-warning",
-            },
+            { label: "Drafts", value: String(stats.drafts), color: "text-muted-foreground" },
+            { label: "Marked Ready", value: String(stats.ready), color: "text-success" },
+            { label: "Paused", value: String(stats.paused), color: "text-warning" },
+            { label: "Total", value: String(stats.total), color: "text-foreground" },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs text-muted-foreground">{stat.label}</p>
@@ -232,13 +246,7 @@ function WorkflowsListPage() {
                             <GitBranch className="h-3 w-3" /> {stepCount} {stepCount === 1 ? "step" : "steps"}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" /> {wf.enrolled_count.toLocaleString()} enrolled
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" /> {wf.completed_count.toLocaleString()} completed
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> Last run: {formatRelative(wf.last_run_at)}
+                            <Clock className="h-3 w-3" /> Updated {formatRelative(wf.updated_at)}
                           </span>
                         </div>
                       </div>
@@ -250,7 +258,7 @@ function WorkflowsListPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => toggleStatus(wf)}
-                          title={wf.status === "active" ? "Pause" : "Activate"}
+                          title={wf.status === "active" ? "Mark as paused" : "Mark as ready"}
                         >
                           {wf.status === "active" ? (
                             <Pause className="h-4 w-4" />

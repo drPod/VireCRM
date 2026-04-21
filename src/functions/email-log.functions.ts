@@ -50,13 +50,16 @@ export const listRecentEmailLogsFn = createServerFn({ method: "GET" })
       .maybeSingle();
 
     if (!roleRow) {
-      throw new Response("Forbidden: owner role required", { status: 403 });
+      // Throw a plain Error rather than a Response — TanStack server functions
+      // serialize Error.message into a friendly client-side error, while a raw
+      // Response surfaces as the dreaded "[object Response]" string.
+      throw new Error("Forbidden: owner role required to view email logs.");
     }
 
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Response("Email log unavailable", { status: 500 });
+      throw new Error("Email log unavailable: backend is missing credentials.");
     }
 
     const admin = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -72,7 +75,7 @@ export const listRecentEmailLogsFn = createServerFn({ method: "GET" })
       .limit(200);
 
     if (error) {
-      throw new Response(`Failed to load email log: ${error.message}`, { status: 500 });
+      throw new Error(`Failed to load email log: ${error.message}`);
     }
 
     const byKey = new Map<string, EmailLogEntry>();

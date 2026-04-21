@@ -26,12 +26,12 @@ export const executeCommandFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Get user's org for context
+    // Get user's org for context (maybeSingle for graceful 0-row handling)
     const { data: profile } = await supabase
       .from("profiles")
       .select("organization_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (!profile) {
       throw new Error("No organization found for user");

@@ -32,12 +32,12 @@ export const completeTaskWithAiFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<CompleteTaskResult> => {
     const { supabase, userId } = context;
 
-    // 1. Load task (RLS scopes to org)
+    // 1. Load task (RLS scopes to org) — maybeSingle to fail gracefully
     const { data: task, error: taskErr } = await supabase
       .from("tasks")
       .select("id, organization_id, title, description, lead_id, status, due_date, priority")
       .eq("id", data.taskId)
-      .single();
+      .maybeSingle();
 
     if (taskErr || !task) {
       throw new Error("Task not found or you don't have access to it.");
@@ -61,7 +61,7 @@ export const completeTaskWithAiFn = createServerFn({ method: "POST" })
       .from("organizations")
       .select("name, brand_name, support_email, ai_tokens_used, ai_tokens_limit")
       .eq("id", task.organization_id)
-      .single();
+      .maybeSingle();
 
     if (!org) throw new Error("Organization not found.");
     if (org.ai_tokens_used >= org.ai_tokens_limit) {
@@ -73,7 +73,7 @@ export const completeTaskWithAiFn = createServerFn({ method: "POST" })
       .from("profiles")
       .select("full_name")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     const senderName = ownerProfile?.full_name || "The team";
     const brandName = org.brand_name || org.name;
@@ -93,7 +93,7 @@ export const completeTaskWithAiFn = createServerFn({ method: "POST" })
         .from("leads")
         .select("id, name, email, company, status, notes")
         .eq("id", task.lead_id)
-        .single();
+        .maybeSingle();
       lead = leadRow ?? null;
     }
 
