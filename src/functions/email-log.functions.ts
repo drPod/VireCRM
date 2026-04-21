@@ -117,71 +117,87 @@ export const listLeadEmailLogsFn = createServerFn({ method: "GET" })
     return { email: email.trim().toLowerCase() };
   })
   .handler(async ({ data, context }): Promise<EmailLogEntry[]> => {
-    const { supabase, userId } = context;
+    try {
+      const { supabase, userId } = context;
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", userId)
-      .maybeSingle();
+      const { data: profile, error: profileErr } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    if (!profile) return [];
-
-    // Verify this email belongs to a lead in the caller's org (RLS enforced).
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("id")
-      .ilike("email", data.email)
-      .eq("organization_id", profile.organization_id)
-      .limit(1)
-      .maybeSingle();
-
-    if (!lead) return [];
-
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [];
-
-    const admin = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-
-    const { data: rows, error } = await admin
-      .from("email_send_log")
-      .select("id, message_id, template_name, recipient_email, status, error_message, created_at, metadata")
-      .ilike("recipient_email", data.email)
-      .order("created_at", { ascending: false })
-      .limit(100);
-
-    if (error) return [];
-
-    // Dedupe by message_id (most recent status wins) but merge subject/preview
-    // from any row in the same group so a "sent" row without metadata still
-    // gets the subject/preview from its earlier "pending" row.
-    const byKey = new Map<string, EmailLogEntry>();
-    const order: string[] = [];
-    for (const row of rows ?? []) {
-      const key = row.message_id ?? `__row:${row.id}`;
-      const meta = extractMeta((row as { metadata?: unknown }).metadata);
-      const existing = byKey.get(key);
-      if (!existing) {
-        byKey.set(key, {
-          id: row.id,
-          message_id: row.message_id,
-          template_name: row.template_name,
-          recipient_email: row.recipient_email,
-          status: row.status,
-          error_message: row.error_message,
-          created_at: row.created_at,
-          subject: meta.subject,
-          body_preview: meta.body_preview,
-        });
-        order.push(key);
-      } else {
-        if (!existing.subject && meta.subject) existing.subject = meta.subject;
-        if (!existing.body_preview && meta.body_preview) existing.body_preview = meta.body_preview;
+      if (profileErr) {
+        console.error("[listLeadEmailLogsFn] profile lookup failed:", profileErr.message);
+        return [];
       }
-    }
+      if (!profile) return [];
 
-    return order.slice(0, 50).map((k) => byKey.get(k)!);
+      // Verify this email belongs to a lead in the caller's org (RLS enforced).
+      const { data: lead, error: leadErr } = await supabase
+        .from("leads")
+        .select("id")
+        .ilike("email", data.email)
+        .eq("organization_id", profile.organization_id)
+        .limit(1)
+        .maybeSingle();
+
+      if (leadErr) {
+        console.error("[listLeadEmailLogsFn] lead lookup failed:", leadErr.message);
+        return [];
+      }
+      if (!lead) return [];
+
+      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        console.error("[listLeadEmailLogsFn] missing service role env");
+        return [];
+      }
+
+      const admin = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+
+      const { data: rows, error } = await admin
+        .from("email_send_log")
+        .select("id, message_id, template_name, recipient_email, status, error_message, created_at, metadata")
+        .ilike("recipient_email", data.email)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error("[listLeadEmailLogsFn] email_send_log query failed:", error.message);
+        return [];
+      }
+
+      const byKey = new Map<string, EmailLogEntry>();
+      const order: string[] = [];
+      for (const row of rows ?? []) {
+        const key = row.message_id ?? `__row:${row.id}`;
+        const meta = extractMeta((row as { metadata?: unknown }).metadata);
+        const existing = byKey.get(key);
+        if (!existing) {
+          byKey.set(key, {
+            id: row.id,
+            message_id: row.message_id,
+            template_name: row.template_name,
+            recipient_email: row.recipient_email,
+            status: row.status,
+            error_message: row.error_message,
+            created_at: row.created_at,
+            subject: meta.subject,
+            body_preview: meta.body_preview,
+          });
+          order.push(key);
+        } else {
+          if (!existing.subject && meta.subject) existing.subject = meta.subject;
+          if (!existing.body_preview && meta.body_preview) existing.body_preview = meta.body_preview;
+        }
+      }
+
+      return order.slice(0, 50).map((k) => byKey.get(k)!);
+    } catch (err) {
+      console.error("[listLeadEmailLogsFn] unexpected error:", err instanceof Error ? err.message : err);
+      return [];
+    }
   });
