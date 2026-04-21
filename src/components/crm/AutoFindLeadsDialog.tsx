@@ -90,6 +90,8 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [open, setOpen] = useState(false);
+  const [provider, setProvider] = useState<"apollo" | "hunter" | "snov">("apollo");
+  const [companyDomain, setCompanyDomain] = useState("");
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState("");
   const [industryChoice, setIndustryChoice] = useState<string>("");
