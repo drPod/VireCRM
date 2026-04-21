@@ -159,7 +159,16 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     }
     setLoadingEmailLogs(true);
     try {
-      const rows = await listLeadEmailLogsFn({ data: { email } });
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        setEmailLogs([]);
+        return;
+      }
+      const rows = await listLeadEmailLogsFn({
+        headers: { Authorization: `Bearer ${token}` },
+        data: { email },
+      });
       // Server functions can wrap responses in different shapes (array, { result }, { data }).
       // Defensively normalize so a non-array response never crashes the render.
       const list: EmailLogEntry[] = Array.isArray(rows)
