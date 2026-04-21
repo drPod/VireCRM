@@ -88,8 +88,12 @@ function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    // CRITICAL: redirect_uri must point at /dashboard, not the marketing home
+    // page. Using window.location.origin sends the user to "/" after Google
+    // completes, which is the public landing page — they end up signed in but
+    // on the marketing site and think login failed. Always land in the app.
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/dashboard`,
     });
     if (result.error) {
       toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
