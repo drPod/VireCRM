@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { z } from "zod";
@@ -38,7 +39,7 @@ interface OutreachResult {
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export const autoOutreachFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof outreachSchema>) => outreachSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachResult> => {
     const { supabase, userId } = context;
