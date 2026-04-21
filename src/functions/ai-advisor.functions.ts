@@ -66,6 +66,8 @@ export const analyzeBusinessFn = createServerFn({ method: "POST" })
     }>({
       featureLabel: "AI advisor",
       models: DEFAULT_TEXT_MODELS,
+      organizationId: data.organizationId,
+      userId,
       toolName: "analyze_business",
       toolDescription: "Analyze a business and return ICP, search filters, and strategic hook",
       systemPrompt: `You are a strategic sales advisor AI. Analyze the business description and produce an Ideal Customer Profile, search filters, and a compelling 2-3 sentence outreach hook. Return ONLY structured output via the provided tool.`,

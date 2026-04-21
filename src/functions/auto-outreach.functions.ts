@@ -104,6 +104,8 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     const result = await callAiWithFallback<{ emails?: GeneratedEmail[] }>({
       featureLabel: "Auto-outreach",
       models: DEFAULT_TEXT_MODELS,
+      organizationId: profile.organization_id,
+      userId,
       toolName: "generate_outreach",
       toolDescription: "Generate personalized outreach emails for leads",
       systemPrompt: `You are a professional sales outreach copywriter for ${businessName}. Write personalized, concise cold outreach emails for each lead. Each email should:

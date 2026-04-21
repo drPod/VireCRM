@@ -55,6 +55,51 @@ export type Database = {
           },
         ]
       }
+      ai_call_log: {
+        Row: {
+          attempt_index: number
+          created_at: string
+          error_message: string | null
+          feature: string
+          http_status: number | null
+          id: string
+          latency_ms: number
+          metadata: Json | null
+          model: string
+          organization_id: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          attempt_index?: number
+          created_at?: string
+          error_message?: string | null
+          feature: string
+          http_status?: number | null
+          id?: string
+          latency_ms?: number
+          metadata?: Json | null
+          model: string
+          organization_id?: string | null
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          attempt_index?: number
+          created_at?: string
+          error_message?: string | null
+          feature?: string
+          http_status?: number | null
+          id?: string
+          latency_ms?: number
+          metadata?: Json | null
+          model?: string
+          organization_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           created_at: string
