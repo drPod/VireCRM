@@ -609,7 +609,7 @@ export type Database = {
           id: string
           last_verified_at: string | null
           notes: string | null
-          organization_id: string
+          organization_id: string | null
           provider: string
           updated_at: string
         }
@@ -619,7 +619,7 @@ export type Database = {
           id?: string
           last_verified_at?: string | null
           notes?: string | null
-          organization_id: string
+          organization_id?: string | null
           provider: string
           updated_at?: string
         }
@@ -629,7 +629,7 @@ export type Database = {
           id?: string
           last_verified_at?: string | null
           notes?: string | null
-          organization_id?: string
+          organization_id?: string | null
           provider?: string
           updated_at?: string
         }
@@ -647,7 +647,10 @@ export type Database = {
           domain_verified_at: string | null
           id: string
           is_reseller: boolean
+          lead_period_start: string
+          leads_used_this_period: number
           logo_url: string | null
+          monthly_lead_quota: number
           name: string
           notes: string | null
           parent_organization_id: string | null
@@ -668,7 +671,10 @@ export type Database = {
           domain_verified_at?: string | null
           id?: string
           is_reseller?: boolean
+          lead_period_start?: string
+          leads_used_this_period?: number
           logo_url?: string | null
+          monthly_lead_quota?: number
           name: string
           notes?: string | null
           parent_organization_id?: string | null
@@ -689,7 +695,10 @@ export type Database = {
           domain_verified_at?: string | null
           id?: string
           is_reseller?: boolean
+          lead_period_start?: string
+          leads_used_this_period?: number
           logo_url?: string | null
+          monthly_lead_quota?: number
           name?: string
           notes?: string | null
           parent_organization_id?: string | null
@@ -1422,6 +1431,10 @@ export type Database = {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json
       }
+      consume_platform_lead_quota: {
+        Args: { p_count?: number; p_org_id: string }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1430,6 +1443,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_lead_usage: { Args: { p_org_id: string }; Returns: Json }
       get_org_by_domain: { Args: { p_hostname: string }; Returns: Json }
       get_reseller_branding: { Args: { p_slug: string }; Returns: Json }
       get_reseller_clients: {
@@ -1470,6 +1484,7 @@ export type Database = {
         Returns: boolean
       }
       increment_ai_tokens: { Args: { p_org_id: string }; Returns: undefined }
+      lead_quota_for_plan: { Args: { p_plan: string }; Returns: number }
       list_reseller_plans_public: {
         Args: { p_reseller_slug: string }
         Returns: {
