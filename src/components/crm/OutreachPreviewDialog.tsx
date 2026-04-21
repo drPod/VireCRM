@@ -56,9 +56,7 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
 
     (async () => {
       try {
-        const headers = await getAuthHeader();
         const result = await preview({
-          headers,
           data: {
             organizationId: organization.id,
             lead: {
