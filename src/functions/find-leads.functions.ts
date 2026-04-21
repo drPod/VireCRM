@@ -3,13 +3,20 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { searchApolloPeople, revealApolloEmail, type ApolloError } from "@/lib/apollo";
+import { searchHunterDomain, type HunterError } from "@/lib/hunter";
+import { searchSnovDomain, type SnovError } from "@/lib/snov";
 import { z } from "zod";
+
+export type LeadProvider = "apollo" | "hunter" | "snov";
 
 const findLeadsSchema = z.object({
   organizationId: z.string().uuid(),
+  provider: z.enum(["apollo", "hunter", "snov"]).default("apollo"),
   businessDescription: z.string().max(5000).optional(),
   industry: z.string().min(1).max(200).optional(),
   persona: z.string().min(1).max(200).optional(),
+  /** Required for hunter & snov (domain-search providers). */
+  companyDomain: z.string().min(3).max(253).optional(),
   count: z.number().min(1).max(20).default(10),
 });
 
