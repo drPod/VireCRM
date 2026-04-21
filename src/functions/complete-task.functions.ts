@@ -106,7 +106,7 @@ export const completeTaskWithAiFn = createServerFn({ method: "POST" })
     const draft = await callAiWithFallback<{ subject: string; body: string }>({
       featureLabel: "AI complete-task",
       models: DEFAULT_TEXT_MODELS,
-      organizationId: profile.organization_id,
+      organizationId: task.organization_id,
       userId,
       toolName: "draft_followup_email",
       toolDescription: "Draft a follow-up email for the task",
