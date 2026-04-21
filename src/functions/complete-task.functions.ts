@@ -99,68 +99,26 @@ export const completeTaskWithAiFn = createServerFn({ method: "POST" })
     }
 
     // 6. AI draft
-    const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-    if (!LOVABLE_API_KEY) throw new Error("AI service not configured.");
-
     const leadCtx = lead
       ? `Lead: ${lead.name}${lead.company ? ` at ${lead.company}` : ""}. Current status: ${lead.status}.${lead.notes ? ` Notes: ${lead.notes}` : ""}`
       : "No lead is linked to this task — write a generic but warm follow-up.";
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+    const draft = await callAiWithFallback<{ subject: string; body: string }>({
+      featureLabel: "AI complete-task",
+      models: DEFAULT_TEXT_MODELS,
+      toolName: "draft_followup_email",
+      toolDescription: "Draft a follow-up email for the task",
+      systemPrompt: `You are a sales assistant for ${brandName}. Draft a short, human, professional follow-up email that completes the task described. Keep it 3-5 sentences. Address the lead by first name when possible. Reference the task naturally. End with a soft call to action. Avoid templated sales clichés. Sign off as "${senderName}".`,
+      userPrompt: `Task title: ${task.title}\nTask description: ${task.description ?? "(none)"}\nPriority: ${task.priority}\n\n${leadCtx}`,
+      toolSchema: {
+        type: "object",
+        properties: {
+          subject: { type: "string", description: "Email subject, max 70 chars" },
+          body: { type: "string", description: "Email body in plain text" },
+        },
+        required: ["subject", "body"],
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a sales assistant for ${brandName}. Draft a short, human, professional follow-up email that completes the task described. Keep it 3-5 sentences. Address the lead by first name when possible. Reference the task naturally. End with a soft call to action. Avoid templated sales clichés. Sign off as "${senderName}".`,
-          },
-          {
-            role: "user",
-            content: `Task title: ${task.title}\nTask description: ${task.description ?? "(none)"}\nPriority: ${task.priority}\n\n${leadCtx}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "draft_followup_email",
-              description: "Draft a follow-up email for the task",
-              parameters: {
-                type: "object",
-                properties: {
-                  subject: { type: "string", description: "Email subject, max 70 chars" },
-                  body: { type: "string", description: "Email body in plain text" },
-                },
-                required: ["subject", "body"],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "draft_followup_email" } },
-      }),
     });
-
-    if (!aiResponse.ok) {
-      const errBody = await aiResponse.text().catch(() => "");
-      console.error("AI complete-task gateway error", aiResponse.status, errBody);
-      if (aiResponse.status === 429) throw new Error("AI rate limit reached. Try again in a moment.");
-      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
-      throw new Error(`AI draft failed (${aiResponse.status}).`);
-    }
-
-    const aiJson = await aiResponse.json();
-    const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      console.error("AI complete-task: no tool_calls", JSON.stringify(aiJson).slice(0, 400));
-      throw new Error("AI did not return a draft. Try again.");
-    }
-
-    const draft = JSON.parse(toolCall.function.arguments) as { subject: string; body: string };
 
     // 7. Save activity to messages (always — visible in lead drawer)
     if (lead) {
