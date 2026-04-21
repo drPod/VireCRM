@@ -428,6 +428,7 @@ function BillingPage() {
           </div>
         </div>
       )}
+      {CheckoutDialog}
     </div>
   );
 }
