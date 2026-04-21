@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { autoOutreachFn } from "@/functions/auto-outreach.functions";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface LeadForOutreach {
@@ -26,7 +27,15 @@ export function useAutoOutreach() {
       pendingRef.current = true;
 
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) {
+          toast.info("Auto-outreach skipped — please sign in again.");
+          return;
+        }
+
         const result = await outreach({
+          headers: { Authorization: `Bearer ${token}` },
           data: {
             organizationId: organization.id,
             leads: leadsWithEmail.map((l) => ({
@@ -69,3 +78,4 @@ export function useAutoOutreach() {
 
   return { triggerOutreach };
 }
+

@@ -86,7 +86,14 @@ function Dashboard() {
     setPlan(null);
 
     try {
-      const result = await execCommand({ data: { command } });
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your session expired. Please sign in again.");
+      const result = await execCommand({
+        headers: { Authorization: `Bearer ${token}` },
+        data: { command },
+      });
       setPlan(result);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Command failed";

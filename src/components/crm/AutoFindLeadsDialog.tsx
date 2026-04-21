@@ -86,11 +86,13 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
 
     try {
       const trimmed = description.trim();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your session expired. Please sign in again.");
       const result = await findLeads({
+        headers: { Authorization: `Bearer ${token}` },
         data: {
           organizationId: organization.id,
-          // Only send a description if the user actually typed one (≥10 chars).
-          // Otherwise the server falls back to a generic B2B prompt.
           businessDescription: trimmed.length >= 10 ? trimmed : undefined,
           industry: industry || undefined,
           persona: persona || undefined,
