@@ -45,10 +45,13 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     // Forward the caller's JWT to the internal /lovable/email/transactional/send
     // route — that route requires `Authorization: Bearer <user-jwt>` and we're
     // running server-side here so we have to re-attach it manually.
-    const incomingAuth = getRequest()?.headers.get("authorization") ?? null;
+    const req = getRequest();
+    const incomingAuth = req?.headers.get("authorization") ?? null;
     if (!incomingAuth) {
       throw new Error("Missing authorization header — cannot send emails");
     }
+    // Server-side fetch needs an absolute URL — derive origin from the request.
+    const origin = req ? new URL(req.url).origin : "";
 
     // Verify org membership
     const { data: profile } = await supabase
