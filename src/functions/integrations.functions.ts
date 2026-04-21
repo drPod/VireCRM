@@ -5,10 +5,23 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { verifyApolloKey } from "@/lib/apollo";
+import { verifyHunterKey } from "@/lib/hunter";
+import { verifySnovKey } from "@/lib/snov";
 import { z } from "zod";
 
-const SUPPORTED_PROVIDERS = ["apollo"] as const;
+const SUPPORTED_PROVIDERS = ["apollo", "hunter", "snov"] as const;
 type Provider = (typeof SUPPORTED_PROVIDERS)[number];
+
+async function verifyKey(provider: Provider, key: string) {
+  switch (provider) {
+    case "apollo":
+      return verifyApolloKey(key);
+    case "hunter":
+      return verifyHunterKey(key);
+    case "snov":
+      return verifySnovKey(key);
+  }
+}
 
 function maskKey(key: string): string {
   if (key.length <= 8) return "••••";
@@ -70,7 +83,7 @@ export const saveIntegrationFn = createServerFn({ method: "POST" })
     await assertOwner(userId, data.organizationId);
 
     // Verify the key works BEFORE persisting — saves us from storing garbage.
-    const verify = await verifyApolloKey(data.apiKey);
+    const verify = await verifyKey(data.provider, data.apiKey);
     if (!verify.ok) {
       throw new Error(verify.reason);
     }

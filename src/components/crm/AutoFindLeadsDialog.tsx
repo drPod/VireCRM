@@ -90,6 +90,8 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [open, setOpen] = useState(false);
+  const [provider, setProvider] = useState<"apollo" | "hunter" | "snov">("apollo");
+  const [companyDomain, setCompanyDomain] = useState("");
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState("");
   const [industryChoice, setIndustryChoice] = useState<string>("");
@@ -144,9 +146,11 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       const result = await findLeads({
         data: {
           organizationId: organization.id,
+          provider,
           businessDescription: trimmed.length >= 10 ? trimmed : undefined,
           industry: industry || undefined,
           persona: persona || undefined,
+          companyDomain: companyDomain.trim() || undefined,
           count,
         },
       });
@@ -374,17 +378,42 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
           <div className="space-y-4 pt-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">
-                What does your business do? <span className="text-muted-foreground font-normal">(optional)</span>
+                Lead source
               </label>
-              <textarea
-                className="w-full rounded-lg border border-input bg-input p-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
-                rows={3}
-                maxLength={5000}
-                placeholder="Leave blank for generic B2B leads, or describe your business for tailored results — e.g. cloud accounting software for SMBs."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
+              <select
+                className={inputClass}
+                value={provider}
+                onChange={(e) => setProvider(e.target.value as "apollo" | "hunter" | "snov")}
+              >
+                <option value="apollo">Apollo.io — search by title/industry (1 credit per lead)</option>
+                <option value="hunter">Hunter.io — emails by company domain (cheap)</option>
+                <option value="snov">Snov.io — emails by company domain (cheapest)</option>
+              </select>
+              {(provider === "hunter" || provider === "snov") && (
+                <input
+                  className={`${inputClass} mt-2 font-mono`}
+                  placeholder="Company domain — e.g. stripe.com"
+                  value={companyDomain}
+                  onChange={(e) => setCompanyDomain(e.target.value)}
+                  maxLength={253}
+                />
+              )}
             </div>
+            {provider === "apollo" && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  What does your business do? <span className="text-muted-foreground font-normal">(optional)</span>
+                </label>
+                <textarea
+                  className="w-full rounded-lg border border-input bg-input p-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
+                  rows={3}
+                  maxLength={5000}
+                  placeholder="Leave blank for generic B2B leads, or describe your business for tailored results — e.g. cloud accounting software for SMBs."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium text-foreground">
