@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import {
   Loader2,
   Infinity as InfinityIcon,
   Sparkles,
+  ArrowRight,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +21,57 @@ import { getStripeEnvironment } from "@/lib/stripe";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { crmTiers, whiteLabelTiers, type PricingTier } from "@/components/marketing/PricingCards";
 import { Check, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+/**
+ * Parse the leading dollar amount from a tier price string.
+ * Handles "$97", "$297–$497" (returns the lower bound), "Custom", "$14,000+".
+ * Returns null when no numeric price can be inferred (e.g. "Custom").
+ */
+function parsePriceToNumber(price: string): number | null {
+  const match = price.match(/\$\s*([\d,]+(?:\.\d+)?)/);
+  if (!match) return null;
+  const n = parseFloat(match[1].replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Estimate prorated charge today when switching from one monthly plan to another
+ * partway through a billing cycle. Stripe's actual proration is computed at the
+ * moment of the swap; this is a transparent client-side estimate so users aren't
+ * surprised by the next invoice.
+ *
+ * Formula: (newPrice - currentPrice) * (daysRemaining / cycleLength)
+ * Returns 0 when downgrading (Stripe issues a credit, no charge today).
+ */
+function estimateProration(args: {
+  currentPrice: number;
+  newPrice: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+}): { prorationToday: number; daysRemaining: number; cycleDays: number } | null {
+  const { currentPrice, newPrice, periodStart, periodEnd } = args;
+  if (!periodStart || !periodEnd) return null;
+  const start = new Date(periodStart).getTime();
+  const end = new Date(periodEnd).getTime();
+  const now = Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+  const cycleDays = Math.max(1, Math.round((end - start) / 86_400_000));
+  const daysRemaining = Math.max(0, Math.round((end - now) / 86_400_000));
+  const fraction = daysRemaining / cycleDays;
+  const delta = newPrice - currentPrice;
+  const prorationToday = delta > 0 ? +(delta * fraction).toFixed(2) : 0;
+  return { prorationToday, daysRemaining, cycleDays };
+}
 
 function findTierByPriceId(priceId: string): PricingTier | undefined {
   return [...crmTiers, ...whiteLabelTiers].find((t) => t.stripePriceId === priceId);
