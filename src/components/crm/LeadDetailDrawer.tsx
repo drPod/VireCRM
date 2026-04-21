@@ -704,11 +704,14 @@ function EmailLogEntryRow({ log }: { log: EmailLogEntry }) {
           {log.subject}
         </p>
       )}
-      {log.body_preview && (
-        <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
-          {log.body_preview}
-        </p>
-      )}
+      {log.body_preview && (() => {
+        const cleaned = htmlToPlainText(log.body_preview);
+        return cleaned ? (
+          <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 whitespace-pre-wrap">
+            {cleaned}
+          </p>
+        ) : null;
+      })()}
       <div className="flex items-center gap-1.5 flex-wrap">
         <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 capitalize ${colorClass}`}>
           {status}
