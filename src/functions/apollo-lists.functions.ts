@@ -125,189 +125,253 @@ export const importApolloListFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof importSchema>) => importSchema.parse(input))
   .handler(async ({ data, context }): Promise<ImportResult> => {
     const { supabase, userId } = context;
-    await assertOrgMember(supabase, userId, data.organizationId);
-    const apiKey = await getOrgApolloKey(data.organizationId);
+    const startedAt = Date.now();
 
-    // 1. Pull list members (paginate until we have enough)
-    const collected: ApolloPerson[] = [];
-    let page = 1;
-    while (collected.length < data.maxLeads) {
-      try {
-        const { people, totalPages } = await getApolloListMembers(apiKey, data.listId, {
-          page,
-          perPage: 100,
+    try {
+      await assertOrgMember(supabase, userId, data.organizationId);
+      const apiKey = await getOrgApolloKey(data.organizationId);
+
+      // 1. Pull list members (paginate until we have enough)
+      const collected: ApolloPerson[] = [];
+      let page = 1;
+      while (collected.length < data.maxLeads) {
+        try {
+          const { people, totalPages } = await getApolloListMembers(apiKey, data.listId, {
+            page,
+            perPage: 100,
+          });
+          if (people.length === 0) break;
+          collected.push(...people);
+          if (page >= totalPages) break;
+          page++;
+        } catch (err) {
+          const apErr = err as ApolloError;
+          if (apErr.isAuthError) {
+            throw codedError("AUTH", "Apollo rejected your API key during list fetch.");
+          }
+          throw new Error(apErr.message || "Failed to fetch list members.");
+        }
+      }
+
+      const slice = collected.slice(0, data.maxLeads);
+
+      if (slice.length === 0) {
+        const result = { fetched: collected.length, revealed: 0, inserted: 0, duplicates: 0, noEmail: 0 };
+        await recordLeadSync({
+          organizationId: data.organizationId,
+          userId,
+          provider: "apollo",
+          source: "apollo_list_import",
+          status: "success",
+          fetched: collected.length,
+          durationMs: Date.now() - startedAt,
+          metadata: { list_id: data.listId, list_name: data.listName, reason: "empty_list" },
         });
-        if (people.length === 0) break;
-        collected.push(...people);
-        if (page >= totalPages) break;
-        page++;
-      } catch (err) {
-        const apErr = err as ApolloError;
-        if (apErr.isAuthError) {
-          throw codedError("AUTH", "Apollo rejected your API key during list fetch.");
-        }
-        throw new Error(apErr.message || "Failed to fetch list members.");
+        return result;
       }
-    }
 
-    const slice = collected.slice(0, data.maxLeads);
-
-    if (slice.length === 0) {
-      return { fetched: collected.length, revealed: 0, inserted: 0, duplicates: 0, noEmail: 0 };
-    }
-
-    // 2. Reserve monthly platform quota upfront — one credit per planned reveal.
-    // Unused credits are refunded after reveals so the org isn't charged for skips.
-    const { data: quotaCheck, error: quotaErr } = await supabaseAdmin.rpc(
-      "consume_platform_lead_quota",
-      { p_org_id: data.organizationId, p_count: slice.length },
-    );
-    if (quotaErr) throw new Error(`Quota check failed: ${quotaErr.message}`);
-
-    const q = quotaCheck as {
-      ok: boolean;
-      error?: string;
-      used?: number;
-      quota?: number;
-      remaining?: number;
-    };
-    if (!q.ok) {
-      if (q.error === "quota_exceeded") {
-        const now = new Date();
-        const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-
-        await supabaseAdmin.from("ai_call_log").insert({
-          organization_id: data.organizationId,
-          user_id: userId,
-          feature: "apollo_list_import",
-          model: "apollo",
-          status: "quota_exceeded",
-          latency_ms: 0,
-          attempt_index: 0,
-          error_message: `Monthly lead quota reached (${q.used}/${q.quota})`,
-          metadata: {
-            requested_count: slice.length,
-            list_id: data.listId,
-            list_name: data.listName,
-            used: q.used,
-            quota: q.quota,
-            period_end: periodEnd.toISOString(),
-            key_source: "byo",
-          },
-        });
-
-        throw codedError(
-          "QUOTA_EXCEEDED",
-          `You've used all ${q.quota} of your monthly lead credits. They reset on ${periodEnd.toISOString().slice(0, 10)}. Upgrade your plan for more.`,
-          { used: q.used, quota: q.quota, periodEnd: periodEnd.toISOString() },
-        );
-      }
-      throw new Error(q.error || "Quota check failed");
-    }
-
-    // 3. Reveal emails sequentially. Each call burns 1 credit on the OWNER's Apollo workspace
-    // AND consumes 1 platform quota credit (already reserved above).
-    const enriched: Array<{ person: ApolloPerson; email: string; phone: string | null }> = [];
-    let creditExhausted = false;
-    for (const person of slice) {
-      try {
-        const { email, phone } = await revealApolloEmail(apiKey, person);
-        if (email) enriched.push({ person, email, phone });
-      } catch (err) {
-        const apErr = err as ApolloError;
-        if (apErr.isCreditError) {
-          creditExhausted = true;
-          break;
-        }
-        if (apErr.isAuthError) {
-          await refundPlatformQuota(data.organizationId, slice.length - enriched.length);
-          throw codedError("AUTH", "Apollo API key was revoked mid-import.");
-        }
-        // Non-fatal: skip this person and continue
-      }
-    }
-
-    // Refund any reserved quota we didn't actually use (skipped reveals, no email returned,
-    // or early credit-exhaustion). We keep 1 credit per successful reveal.
-    const unusedQuota = slice.length - enriched.length;
-    if (unusedQuota > 0) {
-      await refundPlatformQuota(data.organizationId, unusedQuota);
-    }
-
-    if (creditExhausted && enriched.length === 0) {
-      throw codedError(
-        "CREDITS",
-        "Your Apollo workspace ran out of email credits before any leads could be imported. Top up at apollo.io and retry.",
+      // 2. Reserve monthly platform quota upfront — one credit per planned reveal.
+      const { data: quotaCheck, error: quotaErr } = await supabaseAdmin.rpc(
+        "consume_platform_lead_quota",
+        { p_org_id: data.organizationId, p_count: slice.length },
       );
-    }
+      if (quotaErr) throw new Error(`Quota check failed: ${quotaErr.message}`);
 
-    if (enriched.length === 0) {
-      return {
-        fetched: collected.length,
-        revealed: 0,
-        inserted: 0,
-        duplicates: 0,
-        noEmail: slice.length,
+      const q = quotaCheck as {
+        ok: boolean;
+        error?: string;
+        used?: number;
+        quota?: number;
+        remaining?: number;
       };
-    }
+      if (!q.ok) {
+        if (q.error === "quota_exceeded") {
+          const now = new Date();
+          const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 
-    // 3. Dedupe against existing leads in this org by email (case-insensitive).
-    const emails = enriched.map((e) => e.email.toLowerCase());
-    const { data: existing } = await supabaseAdmin
-      .from("leads")
-      .select("email")
-      .eq("organization_id", data.organizationId)
-      .in("email", emails);
-    const existingSet = new Set((existing ?? []).map((r) => r.email?.toLowerCase()).filter(Boolean));
+          await supabaseAdmin.from("ai_call_log").insert({
+            organization_id: data.organizationId,
+            user_id: userId,
+            feature: "apollo_list_import",
+            model: "apollo",
+            status: "quota_exceeded",
+            latency_ms: 0,
+            attempt_index: 0,
+            error_message: `Monthly lead quota reached (${q.used}/${q.quota})`,
+            metadata: {
+              requested_count: slice.length,
+              list_id: data.listId,
+              list_name: data.listName,
+              used: q.used,
+              quota: q.quota,
+              period_end: periodEnd.toISOString(),
+              key_source: "byo",
+            },
+          });
 
-    const toInsert = enriched
-      .filter((e) => !existingSet.has(e.email.toLowerCase()))
-      .map(({ person, email, phone }) => {
-        const fullName =
-          person.name?.trim() ||
-          [person.first_name, person.last_name].filter(Boolean).join(" ").trim() ||
-          "Unknown";
-        const company = person.organization?.name?.trim() || "Unknown company";
-        const role = person.title?.trim() || "Unknown role";
-        const employees = person.organization?.estimated_num_employees ?? 0;
-        const score = Math.min(
-          100,
-          50 +
-            (employees > 50 ? 15 : employees > 10 ? 10 : 5) +
-            (person.title ? 10 : 0) +
-            (person.linkedin_url ? 10 : 0),
+          throw codedError(
+            "QUOTA_EXCEEDED",
+            `You've used all ${q.quota} of your monthly lead credits. They reset on ${periodEnd.toISOString().slice(0, 10)}. Upgrade your plan for more.`,
+            { used: q.used, quota: q.quota, periodEnd: periodEnd.toISOString() },
+          );
+        }
+        throw new Error(q.error || "Quota check failed");
+      }
+
+      // 3. Reveal emails sequentially.
+      const enriched: Array<{ person: ApolloPerson; email: string; phone: string | null }> = [];
+      let creditExhausted = false;
+      for (const person of slice) {
+        try {
+          const { email, phone } = await revealApolloEmail(apiKey, person);
+          if (email) enriched.push({ person, email, phone });
+        } catch (err) {
+          const apErr = err as ApolloError;
+          if (apErr.isCreditError) {
+            creditExhausted = true;
+            break;
+          }
+          if (apErr.isAuthError) {
+            await refundPlatformQuota(data.organizationId, slice.length - enriched.length);
+            throw codedError("AUTH", "Apollo API key was revoked mid-import.");
+          }
+          // Non-fatal: skip this person and continue
+        }
+      }
+
+      // Refund any reserved quota we didn't actually use.
+      const unusedQuota = slice.length - enriched.length;
+      if (unusedQuota > 0) {
+        await refundPlatformQuota(data.organizationId, unusedQuota);
+      }
+
+      if (creditExhausted && enriched.length === 0) {
+        throw codedError(
+          "CREDITS",
+          "Your Apollo workspace ran out of email credits before any leads could be imported. Top up at apollo.io and retry.",
         );
-        return {
-          organization_id: data.organizationId,
-          name: fullName.slice(0, 200),
-          email: email.slice(0, 255),
-          phone: phone?.slice(0, 50) ?? null,
-          company: company.slice(0, 200),
-          status: "new" as const,
-          score,
-          notes: `Role: ${role}\nImported from Apollo list: ${data.listName}${
-            person.organization?.industry ? `\nIndustry: ${person.organization.industry}` : ""
-          }${person.linkedin_url ? `\nLinkedIn: ${person.linkedin_url}` : ""}`,
-          source: `apollo_list:${data.listName}`.slice(0, 100),
+      }
+
+      if (enriched.length === 0) {
+        const result = {
+          fetched: collected.length,
+          revealed: 0,
+          inserted: 0,
+          duplicates: 0,
+          noEmail: slice.length,
         };
+        await recordLeadSync({
+          organizationId: data.organizationId,
+          userId,
+          provider: "apollo",
+          source: "apollo_list_import",
+          status: "partial",
+          fetched: collected.length,
+          revealed: 0,
+          noEmail: slice.length,
+          durationMs: Date.now() - startedAt,
+          metadata: { list_id: data.listId, list_name: data.listName, credit_exhausted: creditExhausted },
+        });
+        return result;
+      }
+
+      // 4. Dedupe against existing leads in this org by email (case-insensitive).
+      const emails = enriched.map((e) => e.email.toLowerCase());
+      const { data: existing } = await supabaseAdmin
+        .from("leads")
+        .select("email")
+        .eq("organization_id", data.organizationId)
+        .in("email", emails);
+      const existingSet = new Set((existing ?? []).map((r) => r.email?.toLowerCase()).filter(Boolean));
+
+      const toInsert = enriched
+        .filter((e) => !existingSet.has(e.email.toLowerCase()))
+        .map(({ person, email, phone }) => {
+          const fullName =
+            person.name?.trim() ||
+            [person.first_name, person.last_name].filter(Boolean).join(" ").trim() ||
+            "Unknown";
+          const company = person.organization?.name?.trim() || "Unknown company";
+          const role = person.title?.trim() || "Unknown role";
+          const employees = person.organization?.estimated_num_employees ?? 0;
+          const score = Math.min(
+            100,
+            50 +
+              (employees > 50 ? 15 : employees > 10 ? 10 : 5) +
+              (person.title ? 10 : 0) +
+              (person.linkedin_url ? 10 : 0),
+          );
+          return {
+            organization_id: data.organizationId,
+            name: fullName.slice(0, 200),
+            email: email.slice(0, 255),
+            phone: phone?.slice(0, 50) ?? null,
+            company: company.slice(0, 200),
+            status: "new" as const,
+            score,
+            notes: `Role: ${role}\nImported from Apollo list: ${data.listName}${
+              person.organization?.industry ? `\nIndustry: ${person.organization.industry}` : ""
+            }${person.linkedin_url ? `\nLinkedIn: ${person.linkedin_url}` : ""}`,
+            source: `apollo_list:${data.listName}`.slice(0, 100),
+          };
+        });
+
+      let inserted = 0;
+      if (toInsert.length > 0) {
+        const { error: insertErr, count } = await supabaseAdmin
+          .from("leads")
+          .insert(toInsert, { count: "exact" });
+        if (insertErr) {
+          throw new Error(`Failed to insert leads: ${insertErr.message}`);
+        }
+        inserted = count ?? toInsert.length;
+      }
+
+      const result: ImportResult = {
+        fetched: collected.length,
+        revealed: enriched.length,
+        inserted,
+        duplicates: enriched.length - toInsert.length,
+        noEmail: slice.length - enriched.length,
+      };
+
+      await recordLeadSync({
+        organizationId: data.organizationId,
+        userId,
+        provider: "apollo",
+        source: "apollo_list_import",
+        status: creditExhausted ? "partial" : "success",
+        fetched: result.fetched,
+        revealed: result.revealed,
+        inserted: result.inserted,
+        duplicates: result.duplicates,
+        noEmail: result.noEmail,
+        durationMs: Date.now() - startedAt,
+        metadata: {
+          list_id: data.listId,
+          list_name: data.listName,
+          max_leads: data.maxLeads,
+          credit_exhausted: creditExhausted,
+        },
       });
 
-    let inserted = 0;
-    if (toInsert.length > 0) {
-      const { error: insertErr, count } = await supabaseAdmin
-        .from("leads")
-        .insert(toInsert, { count: "exact" });
-      if (insertErr) {
-        throw new Error(`Failed to insert leads: ${insertErr.message}`);
-      }
-      inserted = count ?? toInsert.length;
+      return result;
+    } catch (err) {
+      // Log failure before rethrowing so the UI still surfaces the error.
+      const message = err instanceof Error ? err.message : String(err);
+      const codeMatch = message.match(/^\[([A-Z_]+)\]/);
+      const errorCode = codeMatch?.[1] ?? "UNKNOWN";
+      await recordLeadSync({
+        organizationId: data.organizationId,
+        userId,
+        provider: "apollo",
+        source: "apollo_list_import",
+        status: errorCode === "QUOTA_EXCEEDED" ? "quota_exceeded" : "error",
+        durationMs: Date.now() - startedAt,
+        errorCode,
+        errorMessage: message.slice(0, 500),
+        metadata: { list_id: data.listId, list_name: data.listName, max_leads: data.maxLeads },
+      });
+      throw err;
     }
-
-    return {
-      fetched: collected.length,
-      revealed: enriched.length,
-      inserted,
-      duplicates: enriched.length - toInsert.length,
-      noEmail: slice.length - enriched.length,
-    };
   });
