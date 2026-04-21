@@ -103,6 +103,15 @@ export async function callAiWithFallback<T = unknown>(
   for (let i = 0; i < opts.models.length; i++) {
     const model = opts.models[i];
     const isLast = i === opts.models.length - 1;
+    const startedAt = Date.now();
+
+    const baseLog = {
+      feature: label,
+      model,
+      attempt_index: i,
+      organization_id: opts.organizationId ?? null,
+      user_id: opts.userId ?? null,
+    };
 
     let response: Response;
     try {
@@ -135,19 +144,40 @@ export async function callAiWithFallback<T = unknown>(
       // Network blip — try next model.
       lastReason = err instanceof Error ? err.message : "network error";
       console.warn(`[${label}] gateway request failed on ${model}:`, lastReason);
+      logAiCall({
+        ...baseLog,
+        latency_ms: Date.now() - startedAt,
+        status: "network_error",
+        error_message: lastReason,
+      });
       if (isLast) break;
       continue;
     }
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
+      const latency_ms = Date.now() - startedAt;
       console.error(`[${label}] gateway error (${model})`, response.status, errBody.slice(0, 300));
 
       // Hard-stop errors — fallbacks won't help and we should surface immediately.
       if (response.status === 429) {
+        logAiCall({
+          ...baseLog,
+          latency_ms,
+          status: "hard_error",
+          http_status: 429,
+          error_message: "rate limited",
+        });
         throw new AiGatewayError("AI is rate-limited right now. Please wait ~30 seconds and try again.", 429);
       }
       if (response.status === 402) {
+        logAiCall({
+          ...baseLog,
+          latency_ms,
+          status: "hard_error",
+          http_status: 402,
+          error_message: "credits exhausted",
+        });
         throw new AiGatewayError(
           "AI credits exhausted on this workspace. Add credits in Settings → Workspace → Usage.",
           402,
@@ -156,6 +186,13 @@ export async function callAiWithFallback<T = unknown>(
       // 4xx other than the hard-stops are usually request-shape issues — not
       // recoverable by switching models. Throw on the first one.
       if (response.status >= 400 && response.status < 500) {
+        logAiCall({
+          ...baseLog,
+          latency_ms,
+          status: "hard_error",
+          http_status: response.status,
+          error_message: errBody.slice(0, 500) || `HTTP ${response.status}`,
+        });
         throw new AiGatewayError(
           `${label}: AI request rejected (${response.status})${errBody ? ` — ${errBody.slice(0, 200)}` : ""}`,
           response.status,
@@ -163,6 +200,13 @@ export async function callAiWithFallback<T = unknown>(
       }
 
       lastReason = `HTTP ${response.status}`;
+      logAiCall({
+        ...baseLog,
+        latency_ms,
+        status: isLast ? "error" : "fallback",
+        http_status: response.status,
+        error_message: errBody.slice(0, 500) || lastReason,
+      });
       if (isLast) break;
       continue; // 5xx → try next model
     }
@@ -173,6 +217,13 @@ export async function callAiWithFallback<T = unknown>(
     } catch {
       lastReason = "non-JSON gateway response";
       console.warn(`[${label}] non-JSON response from ${model}`);
+      logAiCall({
+        ...baseLog,
+        latency_ms: Date.now() - startedAt,
+        status: isLast ? "error" : "fallback",
+        http_status: response.status,
+        error_message: lastReason,
+      });
       if (isLast) break;
       continue;
     }
@@ -190,15 +241,36 @@ export async function callAiWithFallback<T = unknown>(
         `[${label}] no tool_calls from ${model}, snippet:`,
         JSON.stringify(parsed).slice(0, 300),
       );
+      logAiCall({
+        ...baseLog,
+        latency_ms: Date.now() - startedAt,
+        status: isLast ? "error" : "fallback",
+        http_status: response.status,
+        error_message: lastReason,
+      });
       if (isLast) break;
       continue;
     }
 
     try {
-      return JSON.parse(toolCallArgs) as T;
+      const result = JSON.parse(toolCallArgs) as T;
+      logAiCall({
+        ...baseLog,
+        latency_ms: Date.now() - startedAt,
+        status: "success",
+        http_status: response.status,
+      });
+      return result;
     } catch (err) {
       lastReason = `malformed JSON: ${err instanceof Error ? err.message : "parse error"}`;
       console.warn(`[${label}] JSON parse failed on ${model}:`, lastReason);
+      logAiCall({
+        ...baseLog,
+        latency_ms: Date.now() - startedAt,
+        status: isLast ? "error" : "fallback",
+        http_status: response.status,
+        error_message: lastReason,
+      });
       if (isLast) break;
       continue;
     }
