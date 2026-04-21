@@ -64,38 +64,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch profile
-      const { data: profileData } = await supabase
+      // Use maybeSingle() everywhere — .single() throws when 0 rows are found,
+      // which can leave the app in a half-loaded state where the user is signed
+      // in but profile/role/org are null forever. maybeSingle returns null
+      // instead so we can degrade gracefully.
+      const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
         .select("id, full_name, avatar_url, organization_id")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
+
+      if (profileErr) {
+        console.warn("AuthProvider: profile fetch failed", profileErr);
+        return;
+      }
 
       if (profileData) {
         setProfile(profileData);
 
-        // Fetch role
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role, organization_id")
-          .eq("user_id", userId)
-          .eq("organization_id", profileData.organization_id)
-          .single();
+        // Fetch role + organization in parallel — both depend on profile.
+        const [roleRes, orgRes] = await Promise.all([
+          supabase
+            .from("user_roles")
+            .select("role, organization_id")
+            .eq("user_id", userId)
+            .eq("organization_id", profileData.organization_id)
+            .maybeSingle(),
+          supabase
+            .from("organizations")
+            .select("*")
+            .eq("id", profileData.organization_id)
+            .maybeSingle(),
+        ]);
 
-        if (roleData) {
-          setRole(roleData as UserRole);
-        }
+        if (roleRes.data) setRole(roleRes.data as UserRole);
+        else if (roleRes.error) console.warn("AuthProvider: role fetch failed", roleRes.error);
 
-        // Fetch organization
-        const { data: orgData } = await supabase
-          .from("organizations")
-          .select("*")
-          .eq("id", profileData.organization_id)
-          .single();
-
-        if (orgData) {
-          setOrganization(orgData as Organization);
-        }
+        if (orgRes.data) setOrganization(orgRes.data as Organization);
+        else if (orgRes.error) console.warn("AuthProvider: org fetch failed", orgRes.error);
       }
     } catch (err) {
       console.error("Error fetching user data:", err);

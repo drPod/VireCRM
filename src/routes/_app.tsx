@@ -61,9 +61,12 @@ function AppLayout() {
   }, [hydrated, loading, user, navigate]);
 
   // Hard entitlement gate: redirect to /billing when no active sub.
+  // CRITICAL: only run AFTER user is known. If we redirect while user is still
+  // null (post-sign-in race), the user lands on /billing and thinks login broke.
   useEffect(() => {
     if (!hydrated) return;
-    if (loading || subLoading || !user) return;
+    if (loading || !user) return;
+    if (subLoading) return;
     if (hasAccess) return;
     if (FREE_PATHS.has(location.pathname)) return;
     navigate({ to: "/billing", search: { required: "1" } as never });
