@@ -520,6 +520,148 @@ function BillingPage() {
         </div>
       )}
       {CheckoutDialog}
+      <PlanSwitchConfirmDialog
+        pendingTier={pendingTier}
+        currentTier={currentTier}
+        switchSummary={switchSummary}
+        onCancel={() => setPendingTier(null)}
+        onConfirm={() => {
+          if (pendingTier) {
+            const t = pendingTier;
+            setPendingTier(null);
+            launchCheckout(t);
+          }
+        }}
+      />
     </div>
+  );
+}
+
+function PlanSwitchConfirmDialog({
+  pendingTier,
+  currentTier,
+  switchSummary,
+  onCancel,
+  onConfirm,
+}: {
+  pendingTier: PricingTier | null;
+  currentTier: PricingTier | undefined;
+  switchSummary: {
+    currentPrice: number;
+    newPrice: number;
+    direction: "upgrade" | "downgrade" | "same";
+    proration: { prorationToday: number; daysRemaining: number; cycleDays: number } | null;
+  } | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const open = !!pendingTier;
+  const isUpgrade = switchSummary?.direction === "upgrade";
+  const isDowngrade = switchSummary?.direction === "downgrade";
+  const delta = switchSummary ? switchSummary.newPrice - switchSummary.currentPrice : 0;
+  return (
+    <AlertDialog open={open} onOpenChange={(o) => !o && onCancel()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            {isUpgrade ? (
+              <TrendingUp className="h-5 w-5 text-primary" />
+            ) : isDowngrade ? (
+              <TrendingDown className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <Sparkles className="h-5 w-5 text-primary" />
+            )}
+            Confirm plan switch
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4 pt-2">
+              {/* From → To */}
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">From</p>
+                    <p className="font-medium text-foreground truncate">
+                      {currentTier?.name ?? "Current plan"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {currentTier?.price}
+                      {currentTier?.period}
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0 text-right">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">To</p>
+                    <p className="font-medium text-foreground truncate">{pendingTier?.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {pendingTier?.price}
+                      {pendingTier?.period}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price difference */}
+              {switchSummary && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Monthly difference</span>
+                    <span
+                      className={
+                        isUpgrade
+                          ? "font-semibold text-foreground"
+                          : isDowngrade
+                            ? "font-semibold text-muted-foreground"
+                            : "text-foreground"
+                      }
+                    >
+                      {delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta).toFixed(0)}/mo
+                    </span>
+                  </div>
+
+                  {/* Proration estimate */}
+                  {switchSummary.proration && isUpgrade && switchSummary.proration.prorationToday > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Charged today (prorated, {switchSummary.proration.daysRemaining} of{" "}
+                        {switchSummary.proration.cycleDays} days left)
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        ~${switchSummary.proration.prorationToday.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {isDowngrade && (
+                    <p className="text-xs text-muted-foreground">
+                      You'll receive a credit for the unused portion of your current plan, applied to
+                      your next invoice. No charge today.
+                    </p>
+                  )}
+
+                  {isUpgrade && (
+                    <p className="text-xs text-muted-foreground">
+                      Estimate based on your current billing cycle. Stripe calculates the exact
+                      proration at checkout.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {!switchSummary && (
+                <p className="text-xs text-muted-foreground">
+                  This plan has custom pricing — you'll see the exact amount in checkout.
+                </p>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>
+            {isUpgrade ? "Upgrade now" : isDowngrade ? "Switch plan" : "Continue"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
