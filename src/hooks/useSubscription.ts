@@ -50,8 +50,12 @@ export function useSubscription(userId: string | null | undefined): Subscription
 
   const load = useCallback(async () => {
     if (!userId) {
+      // Keep loading=true while userId is undetermined. This prevents the
+      // entitlement gate in _app.tsx from firing prematurely (with hasAccess=false)
+      // during the brief window after sign-in when AuthProvider hasn't yet
+      // propagated the new user. When userId is genuinely null/empty (signed
+      // out), _app.tsx's separate auth gate will redirect to /login.
       setSubscription(null);
-      setLoading(false);
       return;
     }
     setLoading(true);

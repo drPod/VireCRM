@@ -19,7 +19,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Zap, Plus, Users, Send, BarChart3, Loader2, LineChart } from "lucide-react";
+import { Zap, Plus, Users, Send, BarChart3, Loader2, LineChart, Play, Pause, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -75,6 +85,8 @@ function CampaignsPage() {
   const [name, setName] = useState("");
   const [objective, setObjective] = useState("");
   const [status, setStatus] = useState<CampaignStatus>("draft");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Campaign | null>(null);
 
   // Auto-open the create dialog when arriving with ?new=1, then strip the param.
   useEffect(() => {
@@ -155,6 +167,42 @@ function CampaignsPage() {
     await loadCampaigns(organization.id);
   };
 
+  const setCampaignStatus = async (c: Campaign, next: CampaignStatus) => {
+    if (!organization?.id) return;
+    setBusyId(c.id);
+    const { error } = await supabase
+      .from("campaigns")
+      .update({ status: next })
+      .eq("id", c.id)
+      .eq("organization_id", organization.id);
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || "Update failed");
+      return;
+    }
+    toast.success(next === "active" ? "Campaign resumed" : next === "paused" ? "Campaign paused" : "Campaign updated");
+    await loadCampaigns(organization.id);
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete || !organization?.id) return;
+    const c = confirmDelete;
+    setBusyId(c.id);
+    const { error } = await supabase
+      .from("campaigns")
+      .delete()
+      .eq("id", c.id)
+      .eq("organization_id", organization.id);
+    setBusyId(null);
+    setConfirmDelete(null);
+    if (error) {
+      toast.error(error.message || "Delete failed");
+      return;
+    }
+    toast.success("Campaign deleted");
+    await loadCampaigns(organization.id);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -207,12 +255,49 @@ function CampaignsPage() {
                 key={c.id}
                 className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
               >
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">{c.name}</h3>
-                  <Badge variant={statusVariants[c.status]} className="capitalize">
-                    {c.status}
-                  </Badge>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Zap className="h-4 w-4 text-primary shrink-0" />
+                    <h3 className="text-sm font-semibold text-foreground truncate">{c.name}</h3>
+                    <Badge variant={statusVariants[c.status]} className="capitalize">
+                      {c.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {c.status === "active" ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Pause"
+                        disabled={busyId === c.id}
+                        onClick={() => setCampaignStatus(c, "paused")}
+                      >
+                        <Pause className="h-4 w-4" />
+                      </Button>
+                    ) : c.status === "paused" || c.status === "draft" ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={c.status === "draft" ? "Activate" : "Resume"}
+                        disabled={busyId === c.id}
+                        onClick={() => setCampaignStatus(c, "active")}
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      title="Delete"
+                      disabled={busyId === c.id}
+                      onClick={() => setConfirmDelete(c)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 {c.objective && (
                   <p className="mt-1 text-xs text-muted-foreground">{c.objective}</p>
@@ -312,6 +397,21 @@ function CampaignsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{confirmDelete?.name}" will be permanently removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

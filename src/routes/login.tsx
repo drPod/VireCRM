@@ -52,6 +52,11 @@ function LoginPage() {
         // immediately bounce the user back here).
         throw new Error("Sign-in did not return a session. Please try again.");
       }
+      // CRITICAL: wait one tick so AuthProvider's onAuthStateChange listener
+      // can fire and fetch profile/role/org BEFORE _app.tsx mounts. Without
+      // this, _app.tsx mounts with user=null, the entitlement gate races, and
+      // the user is bounced to /billing?required=1 even though sign-in worked.
+      await new Promise((r) => setTimeout(r, 50));
       toast.success("Welcome back!");
       navigate({ to: "/dashboard" });
     } catch (err: unknown) {
