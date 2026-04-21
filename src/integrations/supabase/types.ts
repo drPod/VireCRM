@@ -480,6 +480,66 @@ export type Database = {
           },
         ]
       }
+      lead_sync_log: {
+        Row: {
+          created_at: string
+          duplicates: number
+          duration_ms: number
+          error_code: string | null
+          error_message: string | null
+          fetched: number
+          id: string
+          inserted: number
+          metadata: Json | null
+          no_email: number
+          organization_id: string
+          provider: string
+          revealed: number
+          source: string
+          status: string
+          updated: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duplicates?: number
+          duration_ms?: number
+          error_code?: string | null
+          error_message?: string | null
+          fetched?: number
+          id?: string
+          inserted?: number
+          metadata?: Json | null
+          no_email?: number
+          organization_id: string
+          provider: string
+          revealed?: number
+          source: string
+          status?: string
+          updated?: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duplicates?: number
+          duration_ms?: number
+          error_code?: string | null
+          error_message?: string | null
+          fetched?: number
+          id?: string
+          inserted?: number
+          metadata?: Json | null
+          no_email?: number
+          organization_id?: string
+          provider?: string
+          revealed?: number
+          source?: string
+          status?: string
+          updated?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           closed_at: string | null
