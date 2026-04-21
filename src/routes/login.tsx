@@ -10,8 +10,20 @@ import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { friendlyAuthError } from "@/lib/auth-errors";
 
+type LoginSearch = { redirect?: string };
+
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  validateSearch: (search: Record<string, unknown>): LoginSearch => {
+    const out: LoginSearch = {};
+    // Only accept in-app paths — reject absolute URLs / protocol-relative URLs
+    // so a crafted ?redirect=https://evil.example can't hijack the post-login
+    // navigation.
+    if (typeof search.redirect === "string" && search.redirect.startsWith("/") && !search.redirect.startsWith("//")) {
+      out.redirect = search.redirect;
+    }
+    return out;
+  },
   head: () => ({
     meta: [
       { title: "Sign In — Genesis" },
@@ -26,7 +38,10 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resetSending, setResetSending] = useState(false);
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
   const { branding, isCustomDomain } = useDomainBranding();
+
+  const returnTo = redirect ?? "/dashboard";
 
   const brandName = branding?.brand_name || "Genesis";
   const accentColor = branding?.primary_color;
