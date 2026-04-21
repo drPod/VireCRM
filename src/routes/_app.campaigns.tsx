@@ -167,6 +167,42 @@ function CampaignsPage() {
     await loadCampaigns(organization.id);
   };
 
+  const setCampaignStatus = async (c: Campaign, next: CampaignStatus) => {
+    if (!organization?.id) return;
+    setBusyId(c.id);
+    const { error } = await supabase
+      .from("campaigns")
+      .update({ status: next })
+      .eq("id", c.id)
+      .eq("organization_id", organization.id);
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || "Update failed");
+      return;
+    }
+    toast.success(next === "active" ? "Campaign resumed" : next === "paused" ? "Campaign paused" : "Campaign updated");
+    await loadCampaigns(organization.id);
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete || !organization?.id) return;
+    const c = confirmDelete;
+    setBusyId(c.id);
+    const { error } = await supabase
+      .from("campaigns")
+      .delete()
+      .eq("id", c.id)
+      .eq("organization_id", organization.id);
+    setBusyId(null);
+    setConfirmDelete(null);
+    if (error) {
+      toast.error(error.message || "Delete failed");
+      return;
+    }
+    toast.success("Campaign deleted");
+    await loadCampaigns(organization.id);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
