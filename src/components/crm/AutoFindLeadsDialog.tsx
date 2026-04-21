@@ -62,10 +62,26 @@ interface AutoFindLeadsDialogProps {
 type ErrorCode = "INTEGRATION_MISSING" | "QUOTA_EXCEEDED" | "PLATFORM_KEY_MISSING" | null;
 
 // Parse "[CODE] message::{json}" sentinel format from server fn errors.
-function parseServerError(msg: string): { code: ErrorCode; clean: string } {
+function parseServerError(msg: string): {
+  code: ErrorCode;
+  clean: string;
+  meta: { periodEnd?: string; used?: number; quota?: number } | null;
+} {
   const m = msg.match(/^\[(INTEGRATION_MISSING|QUOTA_EXCEEDED|PLATFORM_KEY_MISSING)\]\s*([\s\S]*?)(?:::(\{[\s\S]*\}))?$/);
-  if (!m) return { code: null, clean: msg };
-  return { code: m[1] as ErrorCode, clean: m[2] };
+  if (!m) return { code: null, clean: msg, meta: null };
+  let meta: { periodEnd?: string; used?: number; quota?: number } | null = null;
+  if (m[3]) {
+    try { meta = JSON.parse(m[3]); } catch { meta = null; }
+  }
+  return { code: m[1] as ErrorCode, clean: m[2], meta };
+}
+
+// Friendly date string for "credits reset on …".
+function formatResetDate(iso: string | undefined): string {
+  if (!iso) return "the 1st of next month";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "the 1st of next month";
+  return d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
 
 export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProps) {
