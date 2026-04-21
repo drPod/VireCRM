@@ -110,6 +110,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
 
   const findLeads = useAuthedServerFn(findLeadsFn);
   const getLeadUsage = useAuthedServerFn(getLeadUsageFn);
+  const recordImport = useAuthedServerFn(recordLeadImportFn);
 
   const refreshUsage = useCallback(async () => {
     if (!organization?.id) return;
@@ -197,6 +198,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const handleImport = async () => {
     if (!organization?.id || selected.size === 0) return;
     setImporting(true);
+    const importStartedAt = Date.now();
 
     const leadsToImport = suggestions
       .filter((_, i) => selected.has(i))
@@ -213,6 +215,19 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       }));
 
     const { error: insertError, data: inserted } = await supabase.from("leads").insert(leadsToImport).select("id, name, email, company");
+
+    // Record the import outcome to the sync log (best-effort, non-blocking).
+    void recordImport({
+      data: {
+        organizationId: organization.id,
+        provider,
+        fetched: leadsToImport.length,
+        inserted: inserted?.length ?? 0,
+        duplicates: 0,
+        durationMs: Date.now() - importStartedAt,
+        errorMessage: insertError?.message?.slice(0, 500),
+      },
+    }).catch((err) => console.warn("Failed to record sync log", err));
 
     if (insertError) {
       toast.error("Failed to import leads: " + insertError.message);
