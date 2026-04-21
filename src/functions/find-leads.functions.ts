@@ -521,3 +521,46 @@ export const getLeadUsageFn = createServerFn({ method: "POST" })
       hasByoKey: !!byo,
     };
   });
+
+// ----- Record the manual import step (called from AutoFindLeadsDialog after insert) -----
+const recordImportSchema = z.object({
+  organizationId: z.string().uuid(),
+  provider: z.enum(["apollo", "hunter", "snov"]),
+  fetched: z.number().int().min(0),
+  inserted: z.number().int().min(0),
+  duplicates: z.number().int().min(0).default(0),
+  durationMs: z.number().int().min(0).default(0),
+  errorMessage: z.string().max(500).optional(),
+});
+
+export const recordLeadImportFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof recordImportSchema>) => recordImportSchema.parse(input))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    const { supabase, userId } = context;
+
+    // Membership check — only org members can write a log entry for that org.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!profile || profile.organization_id !== data.organizationId) {
+      throw new Error("Unauthorized");
+    }
+
+    await recordLeadSync({
+      organizationId: data.organizationId,
+      userId,
+      provider: data.provider,
+      source: "auto_find_import",
+      status: data.errorMessage ? "error" : "success",
+      fetched: data.fetched,
+      inserted: data.inserted,
+      duplicates: data.duplicates,
+      durationMs: data.durationMs,
+      errorMessage: data.errorMessage ?? null,
+    });
+
+    return { ok: true };
+  });
