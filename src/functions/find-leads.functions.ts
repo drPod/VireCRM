@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { z } from "zod";
 
@@ -14,7 +15,7 @@ const findLeadsSchema = z.object({
 });
 
 export const findLeadsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof findLeadsSchema>) => findLeadsSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;

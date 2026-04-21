@@ -6,6 +6,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { z } from "zod";
@@ -28,7 +29,7 @@ interface CompleteTaskResult {
 }
 
 export const completeTaskWithAiFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof inputSchema>) => inputSchema.parse(input))
   .handler(async ({ data, context }): Promise<CompleteTaskResult> => {
     const { supabase, userId } = context;
