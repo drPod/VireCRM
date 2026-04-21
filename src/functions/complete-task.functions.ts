@@ -106,6 +106,8 @@ export const completeTaskWithAiFn = createServerFn({ method: "POST" })
     const draft = await callAiWithFallback<{ subject: string; body: string }>({
       featureLabel: "AI complete-task",
       models: DEFAULT_TEXT_MODELS,
+      organizationId: profile.organization_id,
+      userId,
       toolName: "draft_followup_email",
       toolDescription: "Draft a follow-up email for the task",
       systemPrompt: `You are a sales assistant for ${brandName}. Draft a short, human, professional follow-up email that completes the task described. Keep it 3-5 sentences. Address the lead by first name when possible. Reference the task naturally. End with a soft call to action. Avoid templated sales clichés. Sign off as "${senderName}".`,

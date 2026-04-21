@@ -52,6 +52,8 @@ export const executeCommandFn = createServerFn({ method: "POST" })
     const plan = await callAiWithFallback<CommandPlan>({
       featureLabel: "Command bar",
       models: DEFAULT_TEXT_MODELS,
+      organizationId: profile.organization_id,
+      userId,
       toolName: "analyze_command",
       toolDescription: "Break a CRM command into an actionable execution plan",
       systemPrompt: `You are an AI CRM command interpreter. The user's CRM has ${leadCount ?? 0} leads and ${campaignCount ?? 0} campaigns.

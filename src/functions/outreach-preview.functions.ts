@@ -68,6 +68,8 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
     const result = await callAiWithFallback<{ subject?: string; body?: string }>({
       featureLabel: "Outreach preview",
       models: DEFAULT_TEXT_MODELS,
+      organizationId: profile.organization_id,
+      userId,
       toolName: "generate_outreach",
       toolDescription: "Generate a personalized outreach email",
       systemPrompt: `You are a professional sales outreach copywriter for ${businessName}. Write a personalized, concise cold outreach email. The email should:
