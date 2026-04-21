@@ -1,6 +1,7 @@
 // Server functions for importing leads from saved Apollo.io lists.
-// Requires the org to have its OWN Apollo API key configured — this feature
-// does NOT consume the platform quota since list imports can be very large.
+// Requires the org to have its OWN Apollo API key configured. Each email
+// reveal also counts against the org's monthly platform lead quota — we
+// reserve quota upfront and refund any unused credits at the end.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
