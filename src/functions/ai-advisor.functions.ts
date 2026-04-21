@@ -39,9 +39,28 @@ export const analyzeBusinessFn = createServerFn({ method: "POST" })
       throw new Error("AI token limit reached. Upgrade your plan for more analyses.");
     }
 
+    interface AdvisorIcp {
+      title: string;
+      industry: string;
+      company_size: string;
+      revenue_range: string;
+      decision_maker: string;
+      pain_points: string[];
+      buying_signals: string[];
+    }
+    interface AdvisorSearchFilters {
+      industries: string[];
+      job_titles: string[];
+      company_size_min?: number;
+      company_size_max?: number;
+      revenue_min?: string;
+      revenue_max?: string;
+      keywords: string[];
+    }
+
     const result = await callAiWithFallback<{
-      icp: Record<string, unknown>;
-      search_filters: Record<string, unknown>;
+      icp: AdvisorIcp;
+      search_filters: AdvisorSearchFilters;
       strategic_hook: string;
     }>({
       featureLabel: "AI advisor",
