@@ -19,7 +19,9 @@ import {
   AlertTriangle,
   Sparkles,
   CheckCircle2,
+  Settings as SettingsIcon,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { findLeadsFn, type SuggestedLead } from "@/functions/find-leads.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +69,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const [suggestions, setSuggestions] = useState<SuggestedLead[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<"INTEGRATION_MISSING" | null>(null);
   const [imported, setImported] = useState(false);
 
   const findLeads = useAuthedServerFn(findLeadsFn);
@@ -75,6 +78,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
     setSuggestions([]);
     setSelected(new Set());
     setError(null);
+    setErrorCode(null);
     setImported(false);
   }, []);
 
@@ -82,6 +86,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
     if (!organization?.id) return;
     setLoading(true);
     setError(null);
+    setErrorCode(null);
     setSuggestions([]);
 
     try {
@@ -97,9 +102,21 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       });
       setSuggestions(result.leads);
       setSelected(new Set(result.leads.map((_, i) => i)));
+      if (result.leads.length === 0) {
+        setError(
+          "Apollo found matches but none had a verified email. Try broadening your filters (e.g. drop the persona or pick a wider industry).",
+        );
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to find leads";
       setError(msg);
+      // Server fn throws an Error with message containing "Settings → Integrations"
+      // when the org has no Apollo key — surface a CTA instead of a raw error.
+      if (msg.includes("No Apollo.io API key") || msg.includes("Apollo")) {
+        if (msg.includes("No Apollo.io API key")) {
+          setErrorCode("INTEGRATION_MISSING");
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -178,10 +195,11 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            AI Lead Discovery
+            Find Real Leads
           </DialogTitle>
           <DialogDescription>
-            Describe your business and AI will suggest ideal leads to pursue.
+            Pulls verified B2B contacts from Apollo.io's 275M+ database. Each lead uses 1
+            Apollo email credit.
           </DialogDescription>
         </DialogHeader>
 
@@ -286,9 +304,21 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                {error}
+              <div className="space-y-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
+                {errorCode === "INTEGRATION_MISSING" && (
+                  <Link
+                    to="/settings"
+                    onClick={() => setOpen(false)}
+                    className="ml-6 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                  >
+                    <SettingsIcon className="h-3 w-3" />
+                    Open Settings → Integrations
+                  </Link>
+                )}
               </div>
             )}
 
