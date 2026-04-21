@@ -1,6 +1,7 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportIssueDialog } from "@/components/ReportIssueDialog";
+import { handleAuthError } from "@/lib/server-fn-auth";
 
 const DEFAULT_SUPPORT_EMAIL = "support@vireonx.space";
 
@@ -129,6 +130,12 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // Auth failures from server-fn calls shouldn't render the crash screen —
+    // toast + redirect to /login instead, then clear the boundary state.
+    if (handleAuthError(error)) {
+      this.setState({ error: null, componentStack: null });
+      return;
+    }
     // eslint-disable-next-line no-console
     console.error("GlobalErrorBoundary caught:", error, info);
     this.setState({ componentStack: info.componentStack ?? null });

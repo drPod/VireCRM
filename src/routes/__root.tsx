@@ -3,7 +3,9 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WhiteLabelTheme } from "@/components/auth/WhiteLabelTheme";
 import { DomainBrandingProvider } from "@/components/auth/DomainBrandingProvider";
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
+import { GlobalAuthErrorListener } from "@/components/GlobalAuthErrorListener";
 import { PageTransition } from "@/components/PageTransition";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 
@@ -66,12 +68,14 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <GlobalErrorBoundary>
+      <GlobalAuthErrorListener />
       <DomainBrandingProvider>
         <AuthProvider>
           <WhiteLabelTheme />
           <PageTransition>
             <Outlet />
           </PageTransition>
+          <Toaster />
         </AuthProvider>
       </DomainBrandingProvider>
     </GlobalErrorBoundary>
