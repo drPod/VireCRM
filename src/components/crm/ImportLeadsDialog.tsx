@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { useAutoOutreachPreference } from "@/hooks/useAutoOutreachPreference";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { mapImportColumnsFn, type ImportColumnMapping } from "@/functions/import-mapping.functions";
 import { toast } from "sonner";
 
 interface ParsedLead {
