@@ -85,22 +85,51 @@ function InlinePlans({
   currentPriceId?: string;
 }) {
   const allTiers = [...crmTiers, ...whiteLabelTiers].filter((t) => t.stripePriceId);
+  const currentTier = currentPriceId
+    ? allTiers.find((t) => t.stripePriceId === currentPriceId)
+    : undefined;
+  const currentPrice = currentTier ? parsePriceToNumber(currentTier.price) : null;
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {allTiers.map((tier) => {
         const isCurrent = tier.stripePriceId === currentPriceId;
+        const tierPrice = parsePriceToNumber(tier.price);
+        // A "downgrade" is any plan priced below the current plan. We block
+        // it here because Stripe proration on a downgrade-mid-cycle is
+        // confusing (credit applied later, not refunded today). Users can
+        // still downgrade through the billing portal if they really want to.
+        const isDowngrade =
+          !isCurrent &&
+          currentPrice !== null &&
+          tierPrice !== null &&
+          tierPrice < currentPrice;
+
         return (
           <div
             key={tier.name}
-            className={`rounded-xl border p-5 flex flex-col ${
-              tier.highlighted
-                ? "border-primary/40 bg-primary/5"
-                : "border-border bg-card"
-            }`}
+            className={`relative rounded-xl border p-5 flex flex-col ${
+              isCurrent
+                ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                : tier.highlighted
+                  ? "border-primary/40 bg-primary/5"
+                  : "border-border bg-card"
+            } ${isDowngrade ? "opacity-60" : ""}`}
           >
+            {isCurrent && (
+              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                <Badge
+                  variant="default"
+                  className="text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-sm flex items-center gap-1"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Current
+                </Badge>
+              </div>
+            )}
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
               <h3 className="text-base font-bold text-foreground">{tier.name}</h3>
-              {tier.badge && (
+              {tier.badge && !isCurrent && (
                 <Badge variant="secondary" className="text-[10px]">{tier.badge}</Badge>
               )}
             </div>
@@ -124,13 +153,20 @@ function InlinePlans({
               ))}
             </ul>
             <Button
-              variant={tier.highlighted ? "command" : "outline"}
+              variant={isCurrent ? "outline" : tier.highlighted ? "command" : "outline"}
               size="sm"
               className="mt-4 w-full"
-              disabled={isCurrent}
+              disabled={isCurrent || isDowngrade}
               onClick={() => onSelect(tier)}
+              title={
+                isCurrent
+                  ? "This is your current plan"
+                  : isDowngrade
+                    ? "Downgrade via the billing portal"
+                    : undefined
+              }
             >
-              {isCurrent ? "Current plan" : tier.cta}
+              {isCurrent ? "Current plan" : isDowngrade ? "Downgrade in portal" : tier.cta}
             </Button>
           </div>
         );
