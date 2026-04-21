@@ -10,6 +10,13 @@ export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
+// Restrict the redirect target to safe in-app paths so a forged ?redirect=
+// param can't bounce a freshly-signed-in user to an external phishing page.
+function safeReturnTo(path: string): string {
+  if (!path.startsWith("/") || path.startsWith("//")) return "/dashboard";
+  return path;
+}
+
 // Routes inside /_app that are reachable WITHOUT an active subscription
 // (so users can pay, manage billing, or change settings even when blocked).
 const FREE_PATHS = new Set<string>(["/billing", "/settings"]);
@@ -52,13 +59,21 @@ function AppLayout() {
       const { data } = await supabase.auth.getSession();
       if (cancelled) return;
       if (!data.session) {
-        navigate({ to: "/login" });
+        // Preserve the path (and query) the user was trying to reach so /login
+        // can send them back after they sign in. Defaults to /dashboard.
+        const returnTo = safeReturnTo(
+          `${location.pathname}${location.search ?? ""}` || "/dashboard"
+        );
+        navigate({
+          to: "/login",
+          search: { redirect: returnTo } as never,
+        });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [hydrated, loading, user, navigate]);
+  }, [hydrated, loading, user, navigate, location.pathname, location.search]);
 
   // Hard entitlement gate: redirect to /billing when no active sub.
   // CRITICAL: only run AFTER user is known. If we redirect while user is still
