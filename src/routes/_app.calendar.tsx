@@ -66,7 +66,14 @@ function CalendarPage() {
   const handleCompleteWithAi = async (taskId: string) => {
     setCompletingId(taskId);
     try {
-      const result = await completeTask({ data: { taskId } });
+      const { supabase: sb } = await import("@/integrations/supabase/client");
+      const { data: sessionData } = await sb.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your session expired. Please sign in again.");
+      const result = await completeTask({
+        headers: { Authorization: `Bearer ${token}` },
+        data: { taskId },
+      });
 
       // If the lead has an email, fire the transactional send from the client
       // (the route validates the user's JWT, so it must originate here).
