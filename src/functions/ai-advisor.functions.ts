@@ -104,13 +104,14 @@ export const analyzeBusinessFn = createServerFn({ method: "POST" })
       },
     });
 
-    // Save analysis to database (using admin approach via the authenticated client)
+    // Save analysis to database. Cast to Json for the structured columns —
+    // our typed AdvisorIcp / AdvisorSearchFilters are JSON-compatible.
     await supabase.from("ai_analyses").insert({
       organization_id: data.organizationId,
       user_id: userId,
       business_description: data.businessDescription,
-      icp: result.icp,
-      search_filters: result.search_filters,
+      icp: result.icp as unknown as Json,
+      search_filters: result.search_filters as unknown as Json,
       strategic_hook: result.strategic_hook,
     });
 
