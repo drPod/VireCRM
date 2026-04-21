@@ -15,6 +15,7 @@ import {
   sendOutreachWithContentFn,
 } from "@/functions/outreach-preview.functions";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface OutreachPreviewDialogProps {
@@ -31,6 +32,13 @@ interface OutreachPreviewDialogProps {
 
 const inputClass =
   "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
+
+async function getAuthHeader(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("You're not signed in. Please log in again.");
+  return { Authorization: `Bearer ${token}` };
+}
 
 export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: OutreachPreviewDialogProps) {
   const { organization } = useAuth();
@@ -54,29 +62,35 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
     setSubject("");
     setBody("");
 
-    preview({
-      data: {
-        organizationId: organization.id,
-        lead: {
-          id: lead.id,
-          name: lead.name,
-          email: lead.email,
-          company: lead.company ?? null,
-        },
-      },
-    })
-      .then((result) => {
+    (async () => {
+      try {
+        const headers = await getAuthHeader();
+        const result = await preview({
+          headers,
+          data: {
+            organizationId: organization.id,
+            lead: {
+              id: lead.id,
+              name: lead.name,
+              email: lead.email,
+              company: lead.company ?? null,
+            },
+          },
+        });
         if (cancelled) return;
-        setSubject(result.subject);
-        setBody(result.body);
-      })
-      .catch((err) => {
+        setSubject(typeof result?.subject === "string" ? result.subject : "");
+        setBody(typeof result?.body === "string" ? result.body : "");
+      } catch (err) {
         if (cancelled) return;
-        setGenError(err instanceof Error ? err.message : "Failed to generate preview");
-      })
-      .finally(() => {
+        const msg =
+          err instanceof Error && err.message
+            ? err.message
+            : "Failed to generate preview. Please try again.";
+        setGenError(msg);
+      } finally {
         if (!cancelled) setGenerating(false);
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -85,23 +99,27 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
 
   const handleSend = async () => {
     if (!organization?.id) return;
-    if (!subject.trim() || !body.trim()) {
+    const safeSubject = (subject ?? "").trim();
+    const safeBody = (body ?? "").trim();
+    if (!safeSubject || !safeBody) {
       toast.error("Subject and body cannot be empty");
       return;
     }
     setSending(true);
     try {
+      const headers = await getAuthHeader();
       const result = await send({
+        headers,
         data: {
           organizationId: organization.id,
           leadId: lead.id,
           recipientEmail: lead.email,
-          subject: subject.trim(),
-          body: body.trim(),
+          subject: safeSubject,
+          body: safeBody,
         },
       });
 
-      if (result.success) {
+      if (result?.success) {
         toast.success("Outreach sent!", {
           description: `Email dispatched to ${lead.email}`,
         });
@@ -109,7 +127,7 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
         onOpenChange(false);
       } else {
         toast.error("Email not sent", {
-          description: result.reason ?? "The recipient was skipped.",
+          description: result?.reason ?? "The recipient was skipped.",
         });
       }
     } catch (err) {
@@ -120,6 +138,11 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
       setSending(false);
     }
   };
+
+  const subjectStr = subject ?? "";
+  const bodyStr = body ?? "";
+  const canSend =
+    !generating && !sending && !genError && subjectStr.trim().length > 0 && bodyStr.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={(next) => !sending && onOpenChange(next)}>
@@ -150,7 +173,7 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
               <label className="mb-1 block text-xs font-medium text-foreground">Subject</label>
               <input
                 className={inputClass}
-                value={subject}
+                value={subjectStr}
                 onChange={(e) => setSubject(e.target.value)}
                 disabled={sending}
                 maxLength={200}
@@ -162,13 +185,13 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
               <textarea
                 className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none font-mono leading-relaxed"
                 rows={10}
-                value={body}
+                value={bodyStr}
                 onChange={(e) => setBody(e.target.value)}
                 disabled={sending}
                 maxLength={10000}
               />
               <p className="mt-1 text-[10px] text-muted-foreground">
-                {body.length} characters · You can edit anything before sending.
+                {bodyStr.length} characters · You can edit anything before sending.
               </p>
             </div>
           </div>
@@ -187,7 +210,7 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
             variant="command"
             size="sm"
             onClick={handleSend}
-            disabled={generating || sending || !!genError || !subject.trim() || !body.trim()}
+            disabled={!canSend}
           >
             {sending ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
