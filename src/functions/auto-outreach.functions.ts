@@ -203,7 +203,7 @@ Return ONLY valid JSON, no markdown.`,
             subject: email.subject,
             content: email.body,
             type: "email",
-            status: "pending",
+            status: "draft",
           })
           .select("id")
           .single();
@@ -214,7 +214,7 @@ Return ONLY valid JSON, no markdown.`,
 
         // b) Hand off to the transactional email pipeline. We forward the
         // caller's JWT so the send route's auth check passes.
-        const sendRes = await fetch("/lovable/email/transactional/send", {
+        const sendRes = await fetch(`${origin}/lovable/email/transactional/send`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
