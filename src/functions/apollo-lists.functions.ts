@@ -151,7 +151,61 @@ export const importApolloListFn = createServerFn({ method: "POST" })
 
     const slice = collected.slice(0, data.maxLeads);
 
-    // 2. Reveal emails sequentially. Each call burns 1 credit on the OWNER's Apollo workspace.
+    if (slice.length === 0) {
+      return { fetched: collected.length, revealed: 0, inserted: 0, duplicates: 0, noEmail: 0 };
+    }
+
+    // 2. Reserve monthly platform quota upfront — one credit per planned reveal.
+    // Unused credits are refunded after reveals so the org isn't charged for skips.
+    const { data: quotaCheck, error: quotaErr } = await supabaseAdmin.rpc(
+      "consume_platform_lead_quota",
+      { p_org_id: data.organizationId, p_count: slice.length },
+    );
+    if (quotaErr) throw new Error(`Quota check failed: ${quotaErr.message}`);
+
+    const q = quotaCheck as {
+      ok: boolean;
+      error?: string;
+      used?: number;
+      quota?: number;
+      remaining?: number;
+    };
+    if (!q.ok) {
+      if (q.error === "quota_exceeded") {
+        const now = new Date();
+        const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+        await supabaseAdmin.from("ai_call_log").insert({
+          organization_id: data.organizationId,
+          user_id: userId,
+          feature: "apollo_list_import",
+          model: "apollo",
+          status: "quota_exceeded",
+          latency_ms: 0,
+          attempt_index: 0,
+          error_message: `Monthly lead quota reached (${q.used}/${q.quota})`,
+          metadata: {
+            requested_count: slice.length,
+            list_id: data.listId,
+            list_name: data.listName,
+            used: q.used,
+            quota: q.quota,
+            period_end: periodEnd.toISOString(),
+            key_source: "byo",
+          },
+        });
+
+        throw codedError(
+          "QUOTA_EXCEEDED",
+          `You've used all ${q.quota} of your monthly lead credits. They reset on ${periodEnd.toISOString().slice(0, 10)}. Upgrade your plan for more.`,
+          { used: q.used, quota: q.quota, periodEnd: periodEnd.toISOString() },
+        );
+      }
+      throw new Error(q.error || "Quota check failed");
+    }
+
+    // 3. Reveal emails sequentially. Each call burns 1 credit on the OWNER's Apollo workspace
+    // AND consumes 1 platform quota credit (already reserved above).
     const enriched: Array<{ person: ApolloPerson; email: string; phone: string | null }> = [];
     let creditExhausted = false;
     for (const person of slice) {
@@ -165,10 +219,18 @@ export const importApolloListFn = createServerFn({ method: "POST" })
           break;
         }
         if (apErr.isAuthError) {
+          await refundPlatformQuota(data.organizationId, slice.length - enriched.length);
           throw codedError("AUTH", "Apollo API key was revoked mid-import.");
         }
         // Non-fatal: skip this person and continue
       }
+    }
+
+    // Refund any reserved quota we didn't actually use (skipped reveals, no email returned,
+    // or early credit-exhaustion). We keep 1 credit per successful reveal.
+    const unusedQuota = slice.length - enriched.length;
+    if (unusedQuota > 0) {
+      await refundPlatformQuota(data.organizationId, unusedQuota);
     }
 
     if (creditExhausted && enriched.length === 0) {
