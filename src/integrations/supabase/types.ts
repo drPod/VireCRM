@@ -602,6 +602,39 @@ export type Database = {
           },
         ]
       }
+      org_integrations: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          last_verified_at: string | null
+          notes: string | null
+          organization_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          last_verified_at?: string | null
+          notes?: string | null
+          organization_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          last_verified_at?: string | null
+          notes?: string | null
+          organization_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           ai_tokens_limit: number
