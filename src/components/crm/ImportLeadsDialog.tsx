@@ -357,6 +357,10 @@ export function ImportLeadsDialog({
   const [loading, setLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [aiMapping, setAiMapping] = useState<boolean>(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
+  const mapColumns = useAuthedServerFn(mapImportColumnsFn);
 
   const reset = useCallback(() => {
     setFile(null);
@@ -364,12 +368,14 @@ export function ImportLeadsDialog({
     setIssues([]);
     setImportResult(null);
     setParseError(null);
+    setAiNote(null);
   }, []);
 
   const handleFile = useCallback(async (f: File) => {
     setParseError(null);
     setIssues([]);
     setImportResult(null);
+    setAiNote(null);
     setFile(f);
 
     try {
@@ -389,6 +395,43 @@ export function ImportLeadsDialog({
       } else {
         const text = await f.text();
         outcome = parseCSV(text);
+      }
+
+      // Heuristic header detection failed → try AI column mapping before giving up.
+      if (outcome.fatal && outcome.raw) {
+        setAiMapping(true);
+        try {
+          const mapping = await mapColumns({
+            data: {
+              headers: outcome.raw.headers.map((h) => String(h ?? "")),
+              sampleRows: outcome.raw.rows.slice(0, 5).map((r) => r.map((c) => String(c ?? ""))),
+            },
+          });
+          const aiOutcome = buildLeadsFromAiMapping(outcome.raw, mapping);
+          if (aiOutcome.fatal) {
+            setParseError(aiOutcome.fatal);
+            setParsed([]);
+            return;
+          }
+          if (aiOutcome.leads.length === 0) {
+            setParseError(`AI couldn't extract any leads from this file. ${mapping.explanation}`);
+            setParsed([]);
+            setIssues(aiOutcome.issues);
+            return;
+          }
+          setAiNote(`AI organized columns automatically — ${mapping.explanation}`);
+          setParsed(aiOutcome.leads);
+          setIssues(aiOutcome.issues);
+          return;
+        } catch (aiErr) {
+          // AI failed too — fall back to original error.
+          const aiMsg = aiErr instanceof Error ? aiErr.message : "AI mapping failed";
+          setParseError(`${outcome.fatal} (AI fallback also failed: ${aiMsg})`);
+          setParsed([]);
+          return;
+        } finally {
+          setAiMapping(false);
+        }
       }
 
       if (outcome.fatal) {
