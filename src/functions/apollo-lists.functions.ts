@@ -18,9 +18,26 @@ import { z } from "zod";
 // Hard cap per import to protect against runaway Apollo cost (each lead = 1 credit).
 const MAX_IMPORT_PER_RUN = 200;
 
-type ApolloErrorCode = "INTEGRATION_MISSING" | "AUTH" | "CREDITS";
-function codedError(code: ApolloErrorCode, msg: string): Error {
-  return new Error(`[${code}] ${msg}`);
+type ApolloErrorCode = "INTEGRATION_MISSING" | "AUTH" | "CREDITS" | "QUOTA_EXCEEDED";
+function codedError(code: ApolloErrorCode, msg: string, extra?: Record<string, unknown>): Error {
+  const e = new Error(`[${code}] ${msg}`);
+  if (extra) Object.assign(e, extra);
+  return e;
+}
+
+// Refund quota by decrementing directly — bypasses the consume function's cap check.
+async function refundPlatformQuota(orgId: string, count: number) {
+  if (count <= 0) return;
+  const { data } = await supabaseAdmin
+    .from("organizations")
+    .select("leads_used_this_period")
+    .eq("id", orgId)
+    .maybeSingle();
+  const current = data?.leads_used_this_period ?? 0;
+  await supabaseAdmin
+    .from("organizations")
+    .update({ leads_used_this_period: Math.max(0, current - count) })
+    .eq("id", orgId);
 }
 
 async function getOrgApolloKey(organizationId: string): Promise<string> {
