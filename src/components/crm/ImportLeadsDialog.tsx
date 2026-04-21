@@ -605,6 +605,20 @@ export function ImportLeadsDialog({
               Download CSV template
             </button>
 
+            {aiMapping && (
+              <div className="flex items-center gap-2 rounded-md bg-primary/10 p-3 text-sm text-primary">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>AI is organizing your spreadsheet columns…</span>
+              </div>
+            )}
+
+            {aiNote && !parseError && (
+              <div className="flex items-start gap-2 rounded-md bg-primary/10 p-3 text-xs text-primary">
+                <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <p>{aiNote}</p>
+              </div>
+            )}
+
             {parseError && (
               <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
