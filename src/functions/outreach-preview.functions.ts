@@ -209,7 +209,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
         subject: data.subject,
         content: data.body,
         type: "email",
-        status: "pending",
+        status: "draft",
       })
       .select("id")
       .single();
@@ -251,7 +251,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
     if (sendBody.success === false) {
       await supabase
         .from("messages")
-        .update({ status: "suppressed" })
+        .update({ status: "bounced" })
         .eq("id", inserted.id);
       return { success: false, reason: sendBody.reason || "suppressed" };
     }
