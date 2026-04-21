@@ -70,7 +70,6 @@ export function AiAdvisorPanel() {
 
     try {
       const data = await analyzeBusiness({
-        headers: { Authorization: `Bearer ${session.access_token}` },
         data: {
           businessDescription: description,
           organizationId: organization.id,
