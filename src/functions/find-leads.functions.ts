@@ -104,10 +104,35 @@ export const findLeadsFn = createServerFn({ method: "POST" })
       };
       if (!q.ok) {
         if (q.error === "quota_exceeded") {
+          // Compute the next reset (1st of next month, UTC) so the UI can tell
+          // the user exactly when retries will start succeeding again.
+          const now = new Date();
+          const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+
+          // Log the blocked attempt so owners can see how often they're hitting
+          // the cap and decide whether to upgrade or add a BYO key.
+          await supabaseAdmin.from("ai_call_log").insert({
+            organization_id: data.organizationId,
+            user_id: userId,
+            feature: "find_leads",
+            model: "apollo",
+            status: "quota_exceeded",
+            latency_ms: 0,
+            attempt_index: 0,
+            error_message: `Monthly lead quota reached (${q.used}/${q.quota})`,
+            metadata: {
+              requested_count: data.count,
+              used: q.used,
+              quota: q.quota,
+              period_end: periodEnd.toISOString(),
+              key_source: "platform",
+            },
+          });
+
           throw codedError(
             "QUOTA_EXCEEDED",
-            `You've used all ${q.quota} of your monthly lead credits. Upgrade your plan for more, or add your own Apollo key for unlimited.`,
-            { used: q.used, quota: q.quota },
+            `You've used all ${q.quota} of your monthly lead credits. They reset on ${periodEnd.toISOString().slice(0, 10)}. Upgrade your plan for more, or add your own Apollo key for unlimited.`,
+            { used: q.used, quota: q.quota, periodEnd: periodEnd.toISOString() },
           );
         }
         throw new Error(q.error || "Quota check failed");

@@ -62,10 +62,26 @@ interface AutoFindLeadsDialogProps {
 type ErrorCode = "INTEGRATION_MISSING" | "QUOTA_EXCEEDED" | "PLATFORM_KEY_MISSING" | null;
 
 // Parse "[CODE] message::{json}" sentinel format from server fn errors.
-function parseServerError(msg: string): { code: ErrorCode; clean: string } {
+function parseServerError(msg: string): {
+  code: ErrorCode;
+  clean: string;
+  meta: { periodEnd?: string; used?: number; quota?: number } | null;
+} {
   const m = msg.match(/^\[(INTEGRATION_MISSING|QUOTA_EXCEEDED|PLATFORM_KEY_MISSING)\]\s*([\s\S]*?)(?:::(\{[\s\S]*\}))?$/);
-  if (!m) return { code: null, clean: msg };
-  return { code: m[1] as ErrorCode, clean: m[2] };
+  if (!m) return { code: null, clean: msg, meta: null };
+  let meta: { periodEnd?: string; used?: number; quota?: number } | null = null;
+  if (m[3]) {
+    try { meta = JSON.parse(m[3]); } catch { meta = null; }
+  }
+  return { code: m[1] as ErrorCode, clean: m[2], meta };
+}
+
+// Friendly date string for "credits reset on …".
+function formatResetDate(iso: string | undefined): string {
+  if (!iso) return "the 1st of next month";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "the 1st of next month";
+  return d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
 
 export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProps) {
@@ -85,6 +101,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<ErrorCode>(null);
+  const [quotaResetAt, setQuotaResetAt] = useState<string | null>(null);
   const [imported, setImported] = useState(false);
   const [usage, setUsage] = useState<LeadUsage | null>(null);
 
@@ -110,6 +127,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
     setSelected(new Set());
     setError(null);
     setErrorCode(null);
+    setQuotaResetAt(null);
     setImported(false);
   }, []);
 
@@ -118,6 +136,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
     setLoading(true);
     setError(null);
     setErrorCode(null);
+    setQuotaResetAt(null);
     setSuggestions([]);
 
     try {
@@ -141,9 +160,12 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       }
     } catch (err: unknown) {
       const raw = err instanceof Error ? err.message : "Failed to find leads";
-      const { code, clean } = parseServerError(raw);
+      const { code, clean, meta } = parseServerError(raw);
       setError(clean);
       setErrorCode(code);
+      if (code === "QUOTA_EXCEEDED" && meta?.periodEnd) {
+        setQuotaResetAt(meta.periodEnd);
+      }
       void refreshUsage();
     } finally {
       setLoading(false);
@@ -276,43 +298,64 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
         )}
 
         {/* QUOTA EXCEEDED — replace whole content with upgrade prompt */}
-        {isAtCap ? (
-          <div className="space-y-4 py-4">
-            <div className="flex flex-col items-center text-center space-y-2">
-              <div className="rounded-full bg-warning/10 p-3">
-                <Crown className="h-6 w-6 text-warning" />
+        {isAtCap ? (() => {
+          // Use server-provided reset date when available; otherwise compute locally.
+          const resetIso = quotaResetAt
+            || (() => {
+                const n = new Date();
+                return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 1)).toISOString();
+              })();
+          const resetLabel = formatResetDate(resetIso);
+          return (
+            <div className="space-y-4 py-4">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="rounded-full bg-warning/10 p-3">
+                  <Crown className="h-6 w-6 text-warning" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground">
+                  You've hit your monthly cap
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  {capMessage}
+                </p>
               </div>
-              <h3 className="text-base font-semibold text-foreground">
-                You've hit your monthly cap
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                {capMessage}
-              </p>
-            </div>
-            <div className="grid gap-2 pt-2">
-              <Link to="/pricing" onClick={() => setOpen(false)}>
-                <Button variant="command" className="w-full gap-2">
-                  <Crown className="h-4 w-4" />
-                  Upgrade plan for more credits
-                </Button>
-              </Link>
-              {isOwner && (
-                <Link to="/settings" onClick={() => setOpen(false)}>
-                  <Button variant="outline" className="w-full gap-2">
-                    <KeyRound className="h-4 w-4" />
-                    Use my own Apollo key (unlimited)
+
+              {/* Explicit retry-window notice */}
+              <div className="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground flex items-start gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium">Searches are paused until {resetLabel}.</span>{" "}
+                  <span className="text-muted-foreground">
+                    Retrying before then will fail. Upgrade or add your own Apollo key to keep going now.
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-2 pt-1">
+                <Link to="/pricing" onClick={() => setOpen(false)}>
+                  <Button variant="command" className="w-full gap-2">
+                    <Crown className="h-4 w-4" />
+                    Upgrade plan for more credits
                   </Button>
                 </Link>
-              )}
-              <Button variant="ghost" size="sm" onClick={reset}>
-                Back
-              </Button>
+                {isOwner && (
+                  <Link to="/settings" onClick={() => setOpen(false)}>
+                    <Button variant="outline" className="w-full gap-2">
+                      <KeyRound className="h-4 w-4" />
+                      Use my own Apollo key (unlimited)
+                    </Button>
+                  </Link>
+                )}
+                <Button variant="ghost" size="sm" onClick={reset}>
+                  Back
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Credits reset on the 1st of every month.
+              </p>
             </div>
-            <p className="text-[11px] text-muted-foreground text-center">
-              Credits reset on the 1st of every month.
-            </p>
-          </div>
-        ) : imported ? (
+          );
+        })() : imported ? (
           <div className="space-y-4 py-6 text-center">
             <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
             <p className="text-sm font-medium text-foreground">
