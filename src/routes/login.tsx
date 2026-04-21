@@ -73,7 +73,11 @@ function LoginPage() {
       // the user is bounced to /billing?required=1 even though sign-in worked.
       await new Promise((r) => setTimeout(r, 50));
       toast.success("Welcome back!");
-      navigate({ to: "/dashboard" });
+      // Honor the ?redirect= param set by /_app's auth gate so the user lands
+      // back on the page they originally tried to visit. Use window.location
+      // instead of navigate() because returnTo may include search params that
+      // the typed router won't accept positionally.
+      window.location.href = returnTo;
     } catch (err: unknown) {
       toast.error(friendlyAuthError(err, "Login failed"));
     } finally {
@@ -103,19 +107,19 @@ function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    // CRITICAL: redirect_uri must point at /dashboard, not the marketing home
-    // page. Using window.location.origin sends the user to "/" after Google
-    // completes, which is the public landing page — they end up signed in but
-    // on the marketing site and think login failed. Always land in the app.
+    // CRITICAL: redirect_uri must point inside the app (not the marketing home
+    // page). Honor ?redirect= so deep links survive the OAuth round trip;
+    // default to /dashboard. Without this, OAuth lands on "/" — the public
+    // landing page — and the user thinks login failed.
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/dashboard`,
+      redirect_uri: `${window.location.origin}${returnTo}`,
     });
     if (result.error) {
       toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    window.location.href = returnTo;
   };
 
   return (
