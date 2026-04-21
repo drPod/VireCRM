@@ -390,9 +390,11 @@ function CalendarPage() {
             </div>
 
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-              <h3 className="text-sm font-semibold text-foreground">Booking links</h3>
+              <h3 className="text-sm font-semibold text-foreground">Per-lead scheduling</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Public booking pages are coming soon. For now, manage tasks per lead from the Leads view.
+                Manage follow-up tasks per lead from the Leads view. Use{" "}
+                <span className="font-semibold">Complete with AI</span> to draft
+                and send the follow-up email in one click.
               </p>
             </div>
           </div>

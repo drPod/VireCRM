@@ -319,11 +319,11 @@ function EmailMarketingPage() {
 
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
               <h3 className="text-sm font-semibold text-foreground">
-                Templates & deliverability
+                Send via campaigns &amp; workflows
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Reusable templates and inbox-deliverability scoring are rolling out next.
-                For now, send via campaigns and outreach workflows.
+                Build outreach sequences in Workflows, then attribute sends to a
+                Campaign here to track reply rate over time.
               </p>
               <Link to="/workflows">
                 <Button variant="outline" size="sm" className="mt-3 w-full gap-1 text-xs">

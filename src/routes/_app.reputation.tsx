@@ -274,16 +274,11 @@ function ReputationPage() {
             </div>
 
             <div className="rounded-xl border border-border bg-card p-5">
-              <h3 className="text-sm font-semibold text-foreground">Coming soon</h3>
+              <h3 className="text-sm font-semibold text-foreground">Tip</h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Native Google, Facebook and Trustpilot integrations to import
-                ratings, reply inline, and trigger requests automatically when a
-                deal closes.
+                Paste your Google, Trustpilot, or Facebook review URL in the
+                send dialog so customers can leave a rating in one click.
               </p>
-              <Badge variant="secondary" className="mt-3 gap-1 text-[10px]">
-                <Sparkles className="h-3 w-3" />
-                On the roadmap
-              </Badge>
             </div>
           </div>
         </div>
