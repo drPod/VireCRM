@@ -146,9 +146,11 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       const result = await findLeads({
         data: {
           organizationId: organization.id,
+          provider,
           businessDescription: trimmed.length >= 10 ? trimmed : undefined,
           industry: industry || undefined,
           persona: persona || undefined,
+          companyDomain: companyDomain.trim() || undefined,
           count,
         },
       });
