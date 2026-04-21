@@ -20,7 +20,7 @@ import { MetricCard } from "@/components/crm/MetricCard";
 import { ActivityFeed } from "@/components/crm/ActivityFeed";
 import { PipelineView } from "@/components/crm/PipelineView";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
