@@ -78,7 +78,7 @@ function Dashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [plan, setPlan] = useState<CommandPlan | null>(null);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
-  const execCommand = useServerFn(executeCommandFn);
+  const execCommand = useAuthedServerFn(executeCommandFn);
 
   const handleCommand = async (command: string) => {
     setIsProcessing(true);
@@ -86,12 +86,7 @@ function Dashboard() {
     setPlan(null);
 
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error("Your session expired. Please sign in again.");
       const result = await execCommand({
-        headers: { Authorization: `Bearer ${token}` },
         data: { command },
       });
       setPlan(result);
