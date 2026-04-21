@@ -115,15 +115,18 @@ Return ONLY valid JSON, no markdown.`,
     });
 
     if (!aiResponse.ok) {
+      const errBody = await aiResponse.text().catch(() => "");
+      console.error("outreach-preview gateway error", aiResponse.status, errBody.slice(0, 300));
       if (aiResponse.status === 429) throw new Error("Rate limit reached. Try again shortly.");
-      if (aiResponse.status === 402) throw new Error("AI credits exhausted.");
-      throw new Error("AI outreach generation failed");
+      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
+      throw new Error(`AI outreach generation failed (${aiResponse.status})`);
     }
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
-      throw new Error("AI did not return structured output");
+      console.error("outreach-preview: no tool_calls", JSON.stringify(aiData).slice(0, 400));
+      throw new Error("AI did not return structured output. Try again.");
     }
 
     const result = JSON.parse(toolCall.function.arguments) as { subject?: string; body?: string };
