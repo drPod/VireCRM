@@ -160,8 +160,18 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     setLoadingEmailLogs(true);
     try {
       const rows = await listLeadEmailLogsFn({ data: { email } });
-      setEmailLogs(rows ?? []);
-    } catch {
+      // Server functions can wrap responses in different shapes (array, { result }, { data }).
+      // Defensively normalize so a non-array response never crashes the render.
+      const list: EmailLogEntry[] = Array.isArray(rows)
+        ? rows
+        : Array.isArray((rows as { result?: unknown })?.result)
+          ? ((rows as { result: EmailLogEntry[] }).result)
+          : Array.isArray((rows as { data?: unknown })?.data)
+            ? ((rows as { data: EmailLogEntry[] }).data)
+            : [];
+      setEmailLogs(list);
+    } catch (err) {
+      console.error("[LeadDetailDrawer] Failed to load email logs:", err);
       setEmailLogs([]);
     } finally {
       setLoadingEmailLogs(false);
