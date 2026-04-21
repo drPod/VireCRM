@@ -57,9 +57,6 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
       throw new Error("AI token limit reached. Upgrade your plan for more.");
     }
 
-    const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-    if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
-
     const businessName = org.brand_name || org.name;
     const businessCtx = data.businessContext
       ? `Business context: ${data.businessContext}`
