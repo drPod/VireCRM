@@ -151,6 +151,84 @@ export function IntegrationsSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Monthly lead credits */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            <h3 className="text-base font-semibold text-foreground">Monthly Lead Credits</h3>
+            {status.configured ? (
+              <Badge variant="secondary" className="gap-1">
+                <KeyRound className="h-3 w-3 text-success" />
+                Your key — unlimited
+              </Badge>
+            ) : isUnlimited ? (
+              <Badge variant="secondary" className="gap-1">
+                <InfinityIcon className="h-3 w-3" />
+                Unlimited
+              </Badge>
+            ) : null}
+          </div>
+          {!status.configured && !isUnlimited && usage && (
+            <Link to="/pricing" className="text-xs text-primary hover:underline shrink-0">
+              Upgrade plan
+            </Link>
+          )}
+        </div>
+
+        {!usage ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : status.configured ? (
+          <p className="text-sm text-muted-foreground">
+            You're using your own Apollo API key, so platform credits don't apply.
+            Lead volume is billed directly by Apollo on your account.
+          </p>
+        ) : isUnlimited ? (
+          <p className="text-sm text-muted-foreground">
+            Your plan includes unlimited lead credits this month.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <div className="text-2xl font-semibold text-foreground tabular-nums">
+                  {usage.used}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">Used</div>
+              </div>
+              <div>
+                <div className="text-2xl font-semibold text-foreground tabular-nums">
+                  {usage.remaining}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">Remaining</div>
+              </div>
+              <div>
+                <div className="text-2xl font-semibold text-muted-foreground tabular-nums">
+                  {usage.quota}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">Monthly quota</div>
+              </div>
+            </div>
+            <Progress value={quotaPct} className="h-2" />
+            {outOfCredits ? (
+              <p className="text-xs text-destructive">
+                You've used all your credits this month. They reset on the 1st — or upgrade your plan, or add your own Apollo key below for unlimited.
+              </p>
+            ) : lowCredits ? (
+              <p className="text-xs text-warning">
+                Only {usage.remaining} credits left this month. Resets on the 1st.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Credits reset on the 1st of every month.
+              </p>
+            )}
+          </div>
+        )}
+      </Card>
+
       <Card className="p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
