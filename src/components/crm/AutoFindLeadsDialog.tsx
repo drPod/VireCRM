@@ -20,7 +20,7 @@ import {
   Sparkles,
   CheckCircle2,
 } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { findLeadsFn, type SuggestedLead } from "@/functions/find-leads.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
