@@ -240,8 +240,11 @@ function BillingPage() {
   const { openCheckout, CheckoutDialog } = useStripeCheckout();
   const autoOpenedRef = useRef(false);
   const [showPlans, setShowPlans] = useState(false);
+  const [pendingTier, setPendingTier] = useState<PricingTier | null>(null);
 
-  const handleSelectTier = useCallback(
+  const isManual = subscription?.environment === "manual";
+
+  const launchCheckout = useCallback(
     (tier: PricingTier) => {
       if (!tier.stripePriceId || !user?.email) return;
       openCheckout({
@@ -255,7 +258,41 @@ function BillingPage() {
     [openCheckout, user],
   );
 
-  const isManual = subscription?.environment === "manual";
+  // When the user already has a paid subscription, intercept tier selection
+  // and show a confirmation dialog with price difference + proration estimate.
+  // First-time subscribers and manual/lifetime accounts skip the confirmation.
+  const handleSelectTier = useCallback(
+    (tier: PricingTier) => {
+      if (!tier.stripePriceId || !user?.email) return;
+      if (subscription && hasAccess && !isManual) {
+        setPendingTier(tier);
+        return;
+      }
+      launchCheckout(tier);
+    },
+    [launchCheckout, subscription, hasAccess, isManual, user],
+  );
+
+  const currentTier = useMemo(
+    () => (subscription?.price_id ? findTierByPriceId(subscription.price_id) : undefined),
+    [subscription?.price_id],
+  );
+
+  const switchSummary = useMemo(() => {
+    if (!pendingTier || !currentTier) return null;
+    const currentPrice = parsePriceToNumber(currentTier.price);
+    const newPrice = parsePriceToNumber(pendingTier.price);
+    if (currentPrice === null || newPrice === null) return null;
+    const direction: "upgrade" | "downgrade" | "same" =
+      newPrice > currentPrice ? "upgrade" : newPrice < currentPrice ? "downgrade" : "same";
+    const proration = estimateProration({
+      currentPrice,
+      newPrice,
+      periodStart: subscription?.current_period_start ?? null,
+      periodEnd: subscription?.current_period_end ?? null,
+    });
+    return { currentPrice, newPrice, direction, proration };
+  }, [pendingTier, currentTier, subscription]);
 
   // Auto-open Stripe checkout when ?plan=... is in the URL and user has no active subscription.
   // Waits for the auth session AND the user's email to fully load — important when arriving
