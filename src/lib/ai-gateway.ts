@@ -17,6 +17,8 @@
  *   // args is the parsed JSON object from tool_calls[0].function.arguments
  */
 
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 export interface AiGatewayCallOptions {
@@ -35,6 +37,45 @@ export interface AiGatewayCallOptions {
   featureLabel?: string;
   /** Optional description for the tool — improves model adherence. */
   toolDescription?: string;
+  /** Organization the call is being made on behalf of (for log filtering). */
+  organizationId?: string | null;
+  /** User the call is being made on behalf of. */
+  userId?: string | null;
+}
+
+type LogStatus = "success" | "fallback" | "error" | "hard_error" | "network_error" | "no_tool_calls" | "malformed_json" | "non_json_response";
+
+function logAiCall(entry: {
+  feature: string;
+  model: string;
+  attempt_index: number;
+  latency_ms: number;
+  status: LogStatus;
+  http_status?: number | null;
+  error_message?: string | null;
+  organization_id?: string | null;
+  user_id?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata?: Record<string, any> | null;
+}) {
+  // Fire-and-forget — never block the AI response on telemetry.
+  void supabaseAdmin
+    .from("ai_call_log")
+    .insert({
+      feature: entry.feature,
+      model: entry.model,
+      attempt_index: entry.attempt_index,
+      latency_ms: entry.latency_ms,
+      status: entry.status,
+      http_status: entry.http_status ?? null,
+      error_message: entry.error_message ?? null,
+      organization_id: entry.organization_id ?? null,
+      user_id: entry.user_id ?? null,
+      metadata: entry.metadata ?? null,
+    })
+    .then(({ error }) => {
+      if (error) console.warn("[ai-gateway] failed to write ai_call_log:", error.message);
+    });
 }
 
 /**
