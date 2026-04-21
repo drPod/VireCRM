@@ -3,6 +3,7 @@ import { LeadCard, type Lead } from "@/components/crm/LeadCard";
 import { AddLeadDialog } from "@/components/crm/AddLeadDialog";
 import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
 import { AutoFindLeadsDialog } from "@/components/crm/AutoFindLeadsDialog";
+import { ImportApolloListDialog } from "@/components/crm/ImportApolloListDialog";
 import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
 import { Search, Loader2 } from "lucide-react";
@@ -122,6 +123,7 @@ function LeadsPage() {
         </div>
         <div className="flex gap-2">
           <ExportLeadsButton leads={leads} />
+          <ImportApolloListDialog onLeadsImported={handleLeadAdded} />
           <AutoFindLeadsDialog onLeadsImported={handleLeadAdded} />
           <ImportLeadsDialog
             onLeadsImported={handleLeadAdded}

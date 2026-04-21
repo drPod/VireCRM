@@ -1,0 +1,232 @@
+// Server functions for importing leads from saved Apollo.io lists.
+// Requires the org to have its OWN Apollo API key configured — this feature
+// does NOT consume the platform quota since list imports can be very large.
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  listApolloLists,
+  getApolloListMembers,
+  revealApolloEmail,
+  type ApolloError,
+  type ApolloPerson,
+} from "@/lib/apollo";
+import { z } from "zod";
+
+// Hard cap per import to protect against runaway Apollo cost (each lead = 1 credit).
+const MAX_IMPORT_PER_RUN = 200;
+
+type ApolloErrorCode = "INTEGRATION_MISSING" | "AUTH" | "CREDITS";
+function codedError(code: ApolloErrorCode, msg: string): Error {
+  return new Error(`[${code}] ${msg}`);
+}
+
+async function getOrgApolloKey(organizationId: string): Promise<string> {
+  const { data } = await supabaseAdmin
+    .from("org_integrations")
+    .select("api_key")
+    .eq("organization_id", organizationId)
+    .eq("provider", "apollo")
+    .maybeSingle();
+  if (!data?.api_key) {
+    throw codedError(
+      "INTEGRATION_MISSING",
+      "Saved-list import requires your own Apollo API key. Add one in Settings → Integrations.",
+    );
+  }
+  return data.api_key;
+}
+
+async function assertOrgMember(supabase: typeof supabaseAdmin, userId: string, orgId: string) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!profile || profile.organization_id !== orgId) {
+    throw new Error("Unauthorized: not a member of this organization");
+  }
+}
+
+// ----- LIST AVAILABLE APOLLO LISTS -----
+const listSchema = z.object({ organizationId: z.string().uuid() });
+
+export interface ApolloListSummary {
+  id: string;
+  name: string;
+  count: number | null;
+}
+
+export const listApolloListsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
+  .handler(async ({ data, context }): Promise<{ lists: ApolloListSummary[] }> => {
+    const { supabase, userId } = context;
+    await assertOrgMember(supabase, userId, data.organizationId);
+    const apiKey = await getOrgApolloKey(data.organizationId);
+
+    try {
+      const lists = await listApolloLists(apiKey);
+      return {
+        lists: lists.map((l) => ({
+          id: l.id,
+          name: l.name,
+          count: l.cached_count ?? null,
+        })),
+      };
+    } catch (err) {
+      const apErr = err as ApolloError;
+      if (apErr.isAuthError) {
+        throw codedError("AUTH", "Apollo rejected your API key. Update it in Settings → Integrations.");
+      }
+      throw new Error(apErr.message || "Failed to load Apollo lists.");
+    }
+  });
+
+// ----- IMPORT A LIST -----
+const importSchema = z.object({
+  organizationId: z.string().uuid(),
+  listId: z.string().min(1).max(100),
+  listName: z.string().min(1).max(200),
+  /** How many leads to pull this run (capped at MAX_IMPORT_PER_RUN). */
+  maxLeads: z.number().int().min(1).max(MAX_IMPORT_PER_RUN).default(50),
+});
+
+export interface ImportResult {
+  fetched: number;
+  revealed: number;
+  inserted: number;
+  duplicates: number;
+  noEmail: number;
+}
+
+export const importApolloListFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requireActiveSubscription])
+  .inputValidator((input: z.infer<typeof importSchema>) => importSchema.parse(input))
+  .handler(async ({ data, context }): Promise<ImportResult> => {
+    const { supabase, userId } = context;
+    await assertOrgMember(supabase, userId, data.organizationId);
+    const apiKey = await getOrgApolloKey(data.organizationId);
+
+    // 1. Pull list members (paginate until we have enough)
+    const collected: ApolloPerson[] = [];
+    let page = 1;
+    while (collected.length < data.maxLeads) {
+      try {
+        const { people, totalPages } = await getApolloListMembers(apiKey, data.listId, {
+          page,
+          perPage: 100,
+        });
+        if (people.length === 0) break;
+        collected.push(...people);
+        if (page >= totalPages) break;
+        page++;
+      } catch (err) {
+        const apErr = err as ApolloError;
+        if (apErr.isAuthError) {
+          throw codedError("AUTH", "Apollo rejected your API key during list fetch.");
+        }
+        throw new Error(apErr.message || "Failed to fetch list members.");
+      }
+    }
+
+    const slice = collected.slice(0, data.maxLeads);
+
+    // 2. Reveal emails sequentially. Each call burns 1 credit on the OWNER's Apollo workspace.
+    const enriched: Array<{ person: ApolloPerson; email: string; phone: string | null }> = [];
+    let creditExhausted = false;
+    for (const person of slice) {
+      try {
+        const { email, phone } = await revealApolloEmail(apiKey, person);
+        if (email) enriched.push({ person, email, phone });
+      } catch (err) {
+        const apErr = err as ApolloError;
+        if (apErr.isCreditError) {
+          creditExhausted = true;
+          break;
+        }
+        if (apErr.isAuthError) {
+          throw codedError("AUTH", "Apollo API key was revoked mid-import.");
+        }
+        // Non-fatal: skip this person and continue
+      }
+    }
+
+    if (creditExhausted && enriched.length === 0) {
+      throw codedError(
+        "CREDITS",
+        "Your Apollo workspace ran out of email credits before any leads could be imported. Top up at apollo.io and retry.",
+      );
+    }
+
+    if (enriched.length === 0) {
+      return {
+        fetched: collected.length,
+        revealed: 0,
+        inserted: 0,
+        duplicates: 0,
+        noEmail: slice.length,
+      };
+    }
+
+    // 3. Dedupe against existing leads in this org by email (case-insensitive).
+    const emails = enriched.map((e) => e.email.toLowerCase());
+    const { data: existing } = await supabaseAdmin
+      .from("leads")
+      .select("email")
+      .eq("organization_id", data.organizationId)
+      .in("email", emails);
+    const existingSet = new Set((existing ?? []).map((r) => r.email?.toLowerCase()).filter(Boolean));
+
+    const toInsert = enriched
+      .filter((e) => !existingSet.has(e.email.toLowerCase()))
+      .map(({ person, email, phone }) => {
+        const fullName =
+          person.name?.trim() ||
+          [person.first_name, person.last_name].filter(Boolean).join(" ").trim() ||
+          "Unknown";
+        const company = person.organization?.name?.trim() || "Unknown company";
+        const role = person.title?.trim() || "Unknown role";
+        const employees = person.organization?.estimated_num_employees ?? 0;
+        const score = Math.min(
+          100,
+          50 +
+            (employees > 50 ? 15 : employees > 10 ? 10 : 5) +
+            (person.title ? 10 : 0) +
+            (person.linkedin_url ? 10 : 0),
+        );
+        return {
+          organization_id: data.organizationId,
+          name: fullName.slice(0, 200),
+          email: email.slice(0, 255),
+          phone: phone?.slice(0, 50) ?? null,
+          company: company.slice(0, 200),
+          status: "new" as const,
+          score,
+          notes: `Role: ${role}\nImported from Apollo list: ${data.listName}${
+            person.organization?.industry ? `\nIndustry: ${person.organization.industry}` : ""
+          }${person.linkedin_url ? `\nLinkedIn: ${person.linkedin_url}` : ""}`,
+          source: `apollo_list:${data.listName}`.slice(0, 100),
+        };
+      });
+
+    let inserted = 0;
+    if (toInsert.length > 0) {
+      const { error: insertErr, count } = await supabaseAdmin
+        .from("leads")
+        .insert(toInsert, { count: "exact" });
+      if (insertErr) {
+        throw new Error(`Failed to insert leads: ${insertErr.message}`);
+      }
+      inserted = count ?? toInsert.length;
+    }
+
+    return {
+      fetched: collected.length,
+      revealed: enriched.length,
+      inserted,
+      duplicates: enriched.length - toInsert.length,
+      noEmail: slice.length - enriched.length,
+    };
+  });
