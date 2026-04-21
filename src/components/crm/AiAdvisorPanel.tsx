@@ -17,7 +17,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { analyzeBusinessFn } from "@/functions/ai-advisor.functions";
 import { toast } from "sonner";
 
