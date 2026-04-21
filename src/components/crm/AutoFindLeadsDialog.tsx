@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import {
   Wand2,
   Loader2,
@@ -20,18 +21,24 @@ import {
   Sparkles,
   CheckCircle2,
   Settings as SettingsIcon,
+  Crown,
+  KeyRound,
+  Zap,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
-import { findLeadsFn, type SuggestedLead } from "@/functions/find-leads.functions";
+import {
+  findLeadsFn,
+  getLeadUsageFn,
+  type SuggestedLead,
+  type LeadUsage,
+} from "@/functions/find-leads.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { useAutoOutreachPreference } from "@/hooks/useAutoOutreachPreference";
 import { toast } from "sonner";
 
-// Common industry presets — keep the list short so users can pick fast.
-// "Other" reveals a free-text input for anything not on the list.
 const INDUSTRY_PRESETS = [
   "SaaS",
   "E-commerce",
@@ -41,7 +48,6 @@ const INDUSTRY_PRESETS = [
   "Local Services",
 ] as const;
 
-// Common B2B buyer personas. "Any" lets AI pick varied roles.
 const PERSONA_PRESETS = [
   "Founder/CEO",
   "Head of Sales",
@@ -53,14 +59,23 @@ interface AutoFindLeadsDialogProps {
   onLeadsImported?: () => void;
 }
 
+type ErrorCode = "INTEGRATION_MISSING" | "QUOTA_EXCEEDED" | "PLATFORM_KEY_MISSING" | null;
+
+// Parse "[CODE] message::{json}" sentinel format from server fn errors.
+function parseServerError(msg: string): { code: ErrorCode; clean: string } {
+  const m = msg.match(/^\[(INTEGRATION_MISSING|QUOTA_EXCEEDED|PLATFORM_KEY_MISSING)\]\s*([\s\S]*?)(?:::(\{[\s\S]*\}))?$/);
+  if (!m) return { code: null, clean: msg };
+  return { code: m[1] as ErrorCode, clean: m[2] };
+}
+
 export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProps) {
-  const { organization } = useAuth();
+  const { organization, role } = useAuth();
+  const isOwner = role?.role === "owner";
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [industry, setIndustry] = useState("");
-  // "" = Any industry, preset name = picked from list, "__custom__" = free-text.
   const [industryChoice, setIndustryChoice] = useState<string>("");
   const [persona, setPersona] = useState<string>("");
   const [count, setCount] = useState(10);
@@ -69,10 +84,26 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const [suggestions, setSuggestions] = useState<SuggestedLead[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [errorCode, setErrorCode] = useState<"INTEGRATION_MISSING" | null>(null);
+  const [errorCode, setErrorCode] = useState<ErrorCode>(null);
   const [imported, setImported] = useState(false);
+  const [usage, setUsage] = useState<LeadUsage | null>(null);
 
   const findLeads = useAuthedServerFn(findLeadsFn);
+  const getLeadUsage = useAuthedServerFn(getLeadUsageFn);
+
+  const refreshUsage = useCallback(async () => {
+    if (!organization?.id) return;
+    try {
+      const u = await getLeadUsage({ data: { organizationId: organization.id } });
+      setUsage(u);
+    } catch (err) {
+      console.warn("Failed to load lead usage", err);
+    }
+  }, [organization?.id, getLeadUsage]);
+
+  useEffect(() => {
+    if (open) void refreshUsage();
+  }, [open, refreshUsage]);
 
   const reset = useCallback(() => {
     setSuggestions([]);
@@ -102,21 +133,18 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       });
       setSuggestions(result.leads);
       setSelected(new Set(result.leads.map((_, i) => i)));
+      void refreshUsage();
       if (result.leads.length === 0) {
         setError(
           "Apollo found matches but none had a verified email. Try broadening your filters (e.g. drop the persona or pick a wider industry).",
         );
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to find leads";
-      setError(msg);
-      // Server fn throws an Error with message containing "Settings → Integrations"
-      // when the org has no Apollo key — surface a CTA instead of a raw error.
-      if (msg.includes("No Apollo.io API key") || msg.includes("Apollo")) {
-        if (msg.includes("No Apollo.io API key")) {
-          setErrorCode("INTEGRATION_MISSING");
-        }
-      }
+      const raw = err instanceof Error ? err.message : "Failed to find leads";
+      const { code, clean } = parseServerError(raw);
+      setError(clean);
+      setErrorCode(code);
+      void refreshUsage();
     } finally {
       setLoading(false);
     }
@@ -166,7 +194,6 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
       setImported(true);
       onLeadsImported?.();
 
-      // Trigger auto-outreach in background — only when the user opted in.
       if (outreachEnabled && inserted && inserted.length > 0) {
         triggerOutreach(inserted);
       }
@@ -176,6 +203,12 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
 
   const inputClass =
     "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
+
+  // Quota progress percentage. Hidden when org has BYO key or unlimited.
+  const quotaPct =
+    usage && usage.quota > 0 ? Math.min(100, Math.round((usage.used / usage.quota) * 100)) : 0;
+  const showQuotaBar = !!(usage && !usage.hasByoKey && usage.quota < 999999);
+  const isAtCap = errorCode === "QUOTA_EXCEEDED";
 
   return (
     <Dialog
@@ -198,12 +231,76 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
             Find Real Leads
           </DialogTitle>
           <DialogDescription>
-            Pulls verified B2B contacts from Apollo.io's 275M+ database. Each lead uses 1
-            Apollo email credit.
+            Verified B2B contacts from Apollo's 275M+ database.
           </DialogDescription>
         </DialogHeader>
 
-        {imported ? (
+        {/* Quota / BYO status banner */}
+        {!imported && !isAtCap && showQuotaBar && (
+          <div className="rounded-lg border border-border bg-secondary/30 px-3 py-2.5 space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 font-medium text-foreground">
+                <Zap className="h-3.5 w-3.5 text-primary" />
+                Monthly lead credits
+              </div>
+              <span className="text-muted-foreground">
+                <span className="font-semibold text-foreground">{usage!.used}</span> / {usage!.quota}
+              </span>
+            </div>
+            <Progress value={quotaPct} className="h-1.5" />
+            {usage!.remaining < 10 && usage!.remaining > 0 && (
+              <p className="text-[11px] text-warning">
+                Only {usage!.remaining} credits left — they reset on the 1st.
+              </p>
+            )}
+          </div>
+        )}
+        {!imported && !isAtCap && usage?.hasByoKey && (
+          <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-xs">
+            <KeyRound className="h-3.5 w-3.5 text-success" />
+            <span className="text-foreground font-medium">Using your own Apollo key</span>
+            <span className="text-muted-foreground">— unlimited, billed by Apollo</span>
+          </div>
+        )}
+
+        {/* QUOTA EXCEEDED — replace whole content with upgrade prompt */}
+        {isAtCap ? (
+          <div className="space-y-4 py-4">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="rounded-full bg-warning/10 p-3">
+                <Crown className="h-6 w-6 text-warning" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">
+                You've hit your monthly cap
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                {error}
+              </p>
+            </div>
+            <div className="grid gap-2 pt-2">
+              <Link to="/pricing" onClick={() => setOpen(false)}>
+                <Button variant="command" className="w-full gap-2">
+                  <Crown className="h-4 w-4" />
+                  Upgrade plan for more credits
+                </Button>
+              </Link>
+              {isOwner && (
+                <Link to="/settings" onClick={() => setOpen(false)}>
+                  <Button variant="outline" className="w-full gap-2">
+                    <KeyRound className="h-4 w-4" />
+                    Use my own Apollo key (unlimited)
+                  </Button>
+                </Link>
+              )}
+              <Button variant="ghost" size="sm" onClick={reset}>
+                Back
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Credits reset on the 1st of every month.
+            </p>
+          </div>
+        ) : imported ? (
           <div className="space-y-4 py-6 text-center">
             <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
             <p className="text-sm font-medium text-foreground">
@@ -244,9 +341,6 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
                   onChange={(e) => {
                     const v = e.target.value;
                     setIndustryChoice(v);
-                    // Sync the value the server receives: blank for "Any",
-                    // the preset itself, or clear when switching to custom
-                    // so the free-text input starts empty.
                     if (v === "__custom__") {
                       setIndustry("");
                     } else {
@@ -300,6 +394,11 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
                   <option value={15}>15 leads</option>
                   <option value={20}>20 leads</option>
                 </select>
+                {showQuotaBar && count > usage!.remaining && usage!.remaining > 0 && (
+                  <p className="mt-1 text-[11px] text-warning">
+                    Only {usage!.remaining} credits left this month — pick a smaller batch or upgrade.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -309,7 +408,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
                   <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>
-                {errorCode === "INTEGRATION_MISSING" && (
+                {(errorCode === "INTEGRATION_MISSING" || errorCode === "PLATFORM_KEY_MISSING") && isOwner && (
                   <Link
                     to="/settings"
                     onClick={() => setOpen(false)}
@@ -336,14 +435,13 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
               ) : (
                 <>
                   <Wand2 className="h-4 w-4" />
-                  Find Leads with AI
+                  Find Leads
                 </>
               )}
             </Button>
           </div>
         ) : (
           <div className="space-y-4 pt-2">
-            {/* Select all */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                 <Checkbox
@@ -355,7 +453,6 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
               <Badge variant="info">{selected.size} selected</Badge>
             </div>
 
-            {/* Lead list */}
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {suggestions.map((lead, i) => (
                 <div
@@ -395,7 +492,6 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
               ))}
             </div>
 
-            {/* Auto-outreach toggle */}
             <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
               <label
                 htmlFor="auto-outreach-find"
@@ -414,7 +510,6 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
               />
             </div>
 
-            {/* Actions */}
             <div className="flex items-center justify-between pt-2 border-t border-border">
               <Button variant="outline" size="sm" onClick={reset}>
                 Start Over
