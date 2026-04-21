@@ -39,7 +39,7 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
       .from("profiles")
       .select("organization_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (!profile || profile.organization_id !== data.organizationId) {
       throw new Error("Unauthorized: not a member of this organization");
@@ -49,7 +49,7 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
       .from("organizations")
       .select("name, brand_name, ai_tokens_used, ai_tokens_limit")
       .eq("id", data.organizationId)
-      .single();
+      .maybeSingle();
 
     if (!org) throw new Error("Organization not found");
     if (org.ai_tokens_used >= org.ai_tokens_limit) {
@@ -174,7 +174,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       .from("profiles")
       .select("organization_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (!profile || profile.organization_id !== data.organizationId) {
       throw new Error("Unauthorized: not a member of this organization");
@@ -186,7 +186,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       .select("id, name, organization_id")
       .eq("id", data.leadId)
       .eq("organization_id", data.organizationId)
-      .single();
+      .maybeSingle();
 
     if (!lead) throw new Error("Lead not found");
 
@@ -194,7 +194,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       .from("organizations")
       .select("name, brand_name")
       .eq("id", data.organizationId)
-      .single();
+      .maybeSingle();
 
     if (!org) throw new Error("Organization not found");
     const businessName = org.brand_name || org.name;

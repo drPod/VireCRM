@@ -19,12 +19,12 @@ export const findLeadsFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Verify org membership
+    // Verify org membership — maybeSingle for graceful degradation
     const { data: profile } = await supabase
       .from("profiles")
       .select("organization_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (!profile || profile.organization_id !== data.organizationId) {
       throw new Error("Unauthorized: not a member of this organization");
@@ -35,7 +35,7 @@ export const findLeadsFn = createServerFn({ method: "POST" })
       .from("organizations")
       .select("ai_tokens_used, ai_tokens_limit, name")
       .eq("id", data.organizationId)
-      .single();
+      .maybeSingle();
 
     if (!org) throw new Error("Organization not found");
     if (org.ai_tokens_used >= org.ai_tokens_limit) {
