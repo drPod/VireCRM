@@ -69,7 +69,7 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState(false);
 
-  const findLeads = useServerFn(findLeadsFn);
+  const findLeads = useAuthedServerFn(findLeadsFn);
 
   const reset = useCallback(() => {
     setSuggestions([]);
