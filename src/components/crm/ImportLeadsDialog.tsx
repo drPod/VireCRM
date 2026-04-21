@@ -459,7 +459,7 @@ export function ImportLeadsDialog({
       );
       setParsed([]);
     }
-  }, []);
+  }, [mapColumns]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
