@@ -56,7 +56,7 @@ function CalendarPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
-  const completeTask = useServerFn(completeTaskWithAiFn);
+  const completeTask = useAuthedServerFn(completeTaskWithAiFn);
   const isOwner = role?.role === "owner";
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
