@@ -3,8 +3,9 @@ import { WhiteLabelSettings } from "@/components/crm/WhiteLabelSettings";
 import { TeamMembers } from "@/components/crm/TeamMembers";
 import { EmailAuditLog } from "@/components/crm/EmailAuditLog";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
+import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Palette, Mail } from "lucide-react";
+import { Users, Palette, Mail, Plug } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const PLATFORM_ADMIN_EMAILS = ["solidsnake4ks@gmail.com"];
@@ -48,6 +49,10 @@ function SettingsPage() {
             <Mail className="h-4 w-4" />
             Emails
           </TabsTrigger>
+          <TabsTrigger value="integrations" className="gap-2">
+            <Plug className="h-4 w-4" />
+            Integrations
+          </TabsTrigger>
           {isPlatformAdmin && (
             <TabsTrigger value="admin" className="gap-2">
               👑 Admin
@@ -65,6 +70,10 @@ function SettingsPage() {
 
         <TabsContent value="emails">
           <EmailAuditLog />
+        </TabsContent>
+
+        <TabsContent value="integrations">
+          <IntegrationsSettings />
         </TabsContent>
 
         {isPlatformAdmin && (

@@ -20,8 +20,8 @@ import {
 import { toast } from "sonner";
 
 export function IntegrationsSettings() {
-  const { organization, hasRole } = useAuth();
-  const isOwner = hasRole("owner");
+  const { organization, role } = useAuth();
+  const isOwner = role?.role === "owner";
 
   const getIntegration = useAuthedServerFn(getIntegrationFn);
   const saveIntegration = useAuthedServerFn(saveIntegrationFn);
