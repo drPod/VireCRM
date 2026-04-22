@@ -25,6 +25,13 @@ interface ConnectorStatusLike {
 export function deriveConnectorPrerequisites(
   meta: ConnectorMeta,
   status: ConnectorStatusLike | undefined,
+  /**
+   * Optional in-progress edits. When provided, each key overrides the
+   * corresponding saved value from `status.config` so the prerequisites
+   * panel reflects what the user is typing right now (not what's saved).
+   * Empty strings are treated as "user cleared this field".
+   */
+  configOverride?: Record<string, string> | null,
 ): Prerequisite[] {
   const out: Prerequisite[] = [];
 
