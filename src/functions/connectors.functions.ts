@@ -224,6 +224,16 @@ export const enableConnectorFn = createServerFn({ method: "POST" })
     const meta = getConnector(data.provider);
     if (!meta) throw new Error(`Unknown connector: ${data.provider}`);
 
+    // Detect whether this is a fresh connect or a re-enable so the activity
+    // log is more informative ("Connected" vs "Re-enabled").
+    const { data: existing } = await supabaseAdmin
+      .from("org_connectors")
+      .select("enabled")
+      .eq("organization_id", data.organizationId)
+      .eq("provider", data.provider)
+      .maybeSingle();
+    const isReEnable = !!existing && existing.enabled === false;
+
     const { error } = await supabaseAdmin
       .from("org_connectors")
       .upsert(
@@ -238,7 +248,22 @@ export const enableConnectorFn = createServerFn({ method: "POST" })
       );
     if (error) throw new Error(`Failed to enable: ${error.message}`);
 
-    return { ok: true, credentialPresent: !!process.env[meta.envVar] };
+    const credentialPresent = !!process.env[meta.envVar];
+
+    // Audit trail.
+    await recordConnectorActivity({
+      organizationId: data.organizationId,
+      userId: context.userId,
+      provider: data.provider,
+      direction: "outbound",
+      action: isReEnable ? "reconnect" : "connect",
+      status: "success",
+      summary: credentialPresent
+        ? `${isReEnable ? "Re-enabled" : "Enabled"} ${meta.name}; gateway credentials present.`
+        : `${isReEnable ? "Re-enabled" : "Enabled"} ${meta.name}; awaiting OAuth handshake.`,
+    });
+
+    return { ok: true, credentialPresent };
   });
 
 // ----- DISABLE -----
@@ -309,12 +334,32 @@ export const updateConnectorConfigFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertOwner(context.userId, data.organizationId);
 
+    const meta = getConnector(data.provider);
+
     const { error } = await supabaseAdmin
       .from("org_connectors")
       .update({ config: data.config as never })
       .eq("organization_id", data.organizationId)
       .eq("provider", data.provider);
     if (error) throw new Error(`Failed to update: ${error.message}`);
+
+    // Surface which keys changed (not values — they may contain emails or
+    // channel IDs the user wouldn't want pasted into a log line).
+    const changedKeys = Object.keys(data.config);
+    await recordConnectorActivity({
+      organizationId: data.organizationId,
+      userId: context.userId,
+      provider: data.provider,
+      direction: "outbound",
+      action: "config_update",
+      status: "success",
+      summary:
+        changedKeys.length > 0
+          ? `Updated ${meta?.name ?? data.provider} settings (${changedKeys.join(", ")}).`
+          : `Updated ${meta?.name ?? data.provider} settings.`,
+      payload: { fields: changedKeys },
+    });
+
     return { ok: true };
   });
 
@@ -334,13 +379,46 @@ export const testConnectorFn = createServerFn({ method: "POST" })
     if (!meta) throw new Error(`Unknown connector: ${data.provider}`);
 
     if (!process.env[meta.envVar]) {
-      return { ok: false as const, reason: "No credentials linked yet. Connect this provider first." };
+      const reason = "No credentials linked yet. Connect this provider first.";
+      await recordConnectorActivity({
+        organizationId: data.organizationId,
+        userId: context.userId,
+        provider: data.provider,
+        direction: "outbound",
+        action: "test",
+        status: "failed",
+        summary: `Test for ${meta.name} skipped — credentials missing.`,
+        errorMessage: reason,
+      });
+      return { ok: false as const, reason };
     }
 
     const v = await verifyConnectorCredentials(meta.envVar);
-    return v.ok
-      ? { ok: true as const, verifiedAt: new Date().toISOString() }
-      : { ok: false as const, reason: v.error ?? "Verification failed" };
+    if (v.ok) {
+      const verifiedAt = new Date().toISOString();
+      await recordConnectorActivity({
+        organizationId: data.organizationId,
+        userId: context.userId,
+        provider: data.provider,
+        direction: "outbound",
+        action: "test",
+        status: "success",
+        summary: `Verified ${meta.name} credentials.`,
+      });
+      return { ok: true as const, verifiedAt };
+    }
+    const reason = v.error ?? "Verification failed";
+    await recordConnectorActivity({
+      organizationId: data.organizationId,
+      userId: context.userId,
+      provider: data.provider,
+      direction: "outbound",
+      action: "test",
+      status: "failed",
+      summary: `${meta.name} verify failed.`,
+      errorMessage: reason,
+    });
+    return { ok: false as const, reason };
   });
 
 // ----- LIST ENABLED connectors (no owner check — used by the lead drawer) -----
@@ -374,4 +452,79 @@ export const listEnabledConnectorsFn = createServerFn({ method: "POST" })
           config: ((r.config as Record<string, string | number | boolean | null>) ?? {}),
         })),
     };
+  });
+
+// ----- LIST ACTIVITY: paginated audit feed for the Integrations → Activity tab.
+// Membership-checked (any org member can read) so non-owner reps can see what
+// outbound actions ran on their behalf without bothering an owner.
+const activitySchema = z.object({
+  organizationId: z.string().uuid(),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+export interface ConnectorActivityEntry {
+  id: string;
+  provider: string;
+  direction: "outbound" | "inbound";
+  action: string;
+  status: "success" | "failed" | "partial";
+  summary: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  /** Display name of whoever triggered the action, when available. */
+  actorName: string | null;
+}
+
+export const listConnectorActivityFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof activitySchema>) => activitySchema.parse(input))
+  .handler(async ({ data, context }) => {
+    // Membership check (org member, not just owner).
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (profile?.organization_id !== data.organizationId) {
+      throw new Error("Not a member of that organization.");
+    }
+
+    const limit = data.limit ?? 50;
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("connector_activity_log")
+      .select("id, provider, direction, action, status, summary, error_message, created_at, user_id")
+      .eq("organization_id", data.organizationId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw new Error(`Failed to load activity: ${error.message}`);
+
+    const userIds = Array.from(
+      new Set((rows ?? []).map((r) => r.user_id).filter((u): u is string => !!u)),
+    );
+    const nameByUserId = new Map<string, string>();
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      for (const p of profiles ?? []) {
+        if (p.full_name) nameByUserId.set(p.user_id, p.full_name);
+      }
+    }
+
+    const entries: ConnectorActivityEntry[] = (rows ?? []).map((r) => ({
+      id: r.id,
+      provider: r.provider,
+      direction: (r.direction as "outbound" | "inbound") ?? "outbound",
+      action: r.action,
+      status: (r.status as "success" | "failed" | "partial") ?? "success",
+      summary: r.summary,
+      errorMessage: r.error_message,
+      createdAt: r.created_at,
+      actorName: r.user_id ? nameByUserId.get(r.user_id) ?? null : null,
+    }));
+
+    return { entries };
   });
