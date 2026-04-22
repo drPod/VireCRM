@@ -419,6 +419,9 @@ function ConnectorRow({
   const [editing, setEditing] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [draftConfig, setDraftConfig] = useState<Record<string, string>>({});
+  // Tracks which fields the user has interacted with so on-blur validation
+  // doesn't shout at them while they're still typing the first character.
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const importHubspot = useAuthedServerFn(importHubspotContactsFn);
 
@@ -502,6 +505,9 @@ function ConnectorRow({
       seed[f.key] = v == null ? "" : String(v);
     }
     setDraftConfig(seed);
+    // Reset touched state — a fresh editor session shouldn't inherit blur
+    // history from a prior open/cancel cycle.
+    setTouchedFields({});
     setEditing(true);
   };
 
@@ -572,7 +578,14 @@ function ConnectorRow({
       </div>
 
       {!loading && (() => {
-        const prereqs = deriveConnectorPrerequisites(meta, status);
+        // While editing, feed the in-progress draft so the prerequisites
+        // panel updates live (e.g. "Send-from address is required" disappears
+        // the moment the user types a valid email — no save needed).
+        const prereqs = deriveConnectorPrerequisites(
+          meta,
+          status,
+          editing ? draftConfig : null,
+        );
         if (prereqs.length === 0) return null;
         return (
           <div className="mb-3">
