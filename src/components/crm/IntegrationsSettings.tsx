@@ -185,6 +185,7 @@ export function IntegrationsSettings() {
     apollo: { configured: false },
     hunter: { configured: false },
     snov: { configured: false },
+    sendgrid: { configured: false },
   });
   const [usage, setUsage] = useState<LeadUsage | null>(null);
 
@@ -195,19 +196,22 @@ export function IntegrationsSettings() {
     }
     setLoading(true);
     try {
-      const [apollo, hunter, snov, u] = await Promise.all([
+      const [apollo, hunter, snov, sendgrid, u] = await Promise.all([
         getIntegration({ data: { organizationId: organization.id, provider: "apollo" } }),
         getIntegration({ data: { organizationId: organization.id, provider: "hunter" } }),
         getIntegration({ data: { organizationId: organization.id, provider: "snov" } }),
+        getIntegration({ data: { organizationId: organization.id, provider: "sendgrid" } }),
         getLeadUsage({ data: { organizationId: organization.id } }).catch(() => null),
       ]);
 
-      const toStatus = (r: typeof apollo): ProviderStatus =>
+      type IntegrationResult = Awaited<ReturnType<typeof getIntegration>>;
+      const toStatus = (r: IntegrationResult): ProviderStatus =>
         r.configured
           ? {
               configured: true,
               maskedKey: r.maskedKey,
               lastVerifiedAt: r.lastVerifiedAt,
+              config: r.config,
             }
           : { configured: false };
 
@@ -215,6 +219,7 @@ export function IntegrationsSettings() {
         apollo: toStatus(apollo),
         hunter: toStatus(hunter),
         snov: toStatus(snov),
+        sendgrid: toStatus(sendgrid),
       });
       setUsage(u);
     } catch (err) {
