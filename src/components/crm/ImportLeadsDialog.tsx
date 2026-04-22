@@ -464,6 +464,14 @@ function buildLeadsFromAiMapping(raw: RawSheet, mapping: ImportColumnMapping): P
   const dataRows = mapping.rowOneIsData ? [raw.headers, ...raw.rows] : raw.rows;
   const rowOffset = mapping.rowOneIsData ? 1 : 2;
 
+  // AI mapper doesn't know about energy fields yet — fall back to heuristic
+  // header matching against the raw headers so we still capture them when
+  // present.
+  const normalizedRawHeaders = raw.headers.map((h) => normalizeHeader(String(h ?? "")));
+  const annualKwhIdx = normalizedRawHeaders.findIndex((h) => ANNUAL_KWH_HEADERS.includes(h));
+  const contractEndIdx = normalizedRawHeaders.findIndex((h) => CONTRACT_END_HEADERS.includes(h));
+  const supplierIdx = normalizedRawHeaders.findIndex((h) => SUPPLIER_HEADERS.includes(h));
+
   return buildLeadsFromIndices({
     rows: dataRows,
     rowOffset,
@@ -475,6 +483,9 @@ function buildLeadsFromAiMapping(raw: RawSheet, mapping: ImportColumnMapping): P
     scoreIdx: -1, // AI mapper doesn't produce score yet
     notesIdx: resolveIdx(mapping.fields.notes),
     sourceIdx: resolveIdx(mapping.fields.source),
+    annualKwhIdx,
+    contractEndIdx,
+    supplierIdx,
     defaultSource: raw.sheetName === "csv" ? "csv_import" : "xlsx_import",
   });
 }
