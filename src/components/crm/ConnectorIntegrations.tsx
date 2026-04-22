@@ -444,10 +444,44 @@ function ConnectorRow({
   // and for a short cooldown after, so impatient double-clicks coalesce.
   const testLock = useActionLock();
   const testing = testLock.loading;
+  // Latest Test result, surfaced inline next to the buttons. Seeded from
+  // the server's last verify state on mount so the panel isn't empty after
+  // a page refresh while a previous error/success is still meaningful.
+  const seedFromStatus = (): TestResult | null => {
+    if (status?.verified === true) {
+      return { ok: true, verifiedAt: status.enabledAt ?? new Date().toISOString() };
+    }
+    if (status?.verified === false && status.verifyError) {
+      return {
+        ok: false,
+        reason: status.verifyError,
+        verifiedAt: status.enabledAt ?? new Date().toISOString(),
+      };
+    }
+    return null;
+  };
+  const [testResult, setTestResult] = useState<TestResult | null>(seedFromStatus);
+
+  // Re-sync from status when the background poller updates verifyError /
+  // verified — but only if we don't have a fresher local Test result.
+  useEffect(() => {
+    const fromStatus = seedFromStatus();
+    if (!fromStatus) return;
+    setTestResult((prev) => {
+      if (!prev) return fromStatus;
+      // Keep the local result if it's newer than what the poller knows.
+      if (new Date(prev.verifiedAt).getTime() >= new Date(fromStatus.verifiedAt).getTime()) {
+        return prev;
+      }
+      return fromStatus;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.verified, status?.verifyError]);
 
   const handleTest = async () => {
     await testLock.run(async () => {
-      await onTest();
+      const res = await onTest();
+      setTestResult(res);
     });
   };
 
