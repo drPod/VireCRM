@@ -781,7 +781,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   };
 
   return (
-    <Card className="p-6">
+    <Card ref={cardRef} className="p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
