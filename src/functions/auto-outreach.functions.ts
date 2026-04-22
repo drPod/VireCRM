@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
+import { sendSendgridEmail } from "@/lib/sendgrid";
 import { z } from "zod";
 
 const outreachSchema = z.object({
@@ -66,10 +67,13 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       throw new Error("Unauthorized: not a member of this organization");
     }
 
-    // Get org info for context + token-budget enforcement
+    // Get org info for context + token-budget enforcement.
+    // `support_email` doubles as the org's business reply-to address — when
+    // set, recipient replies route to the user's inbox instead of disappearing
+    // into the platform default.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, ai_tokens_used, ai_tokens_limit")
+      .select("name, brand_name, support_email, ai_tokens_used, ai_tokens_limit")
       .eq("id", data.organizationId)
       .single();
 
@@ -79,6 +83,31 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     }
 
     if (!process.env.LOVABLE_API_KEY) throw new Error("AI service not configured");
+
+    // If the org has a verified BYO SendGrid key with a "from" address, route
+    // outreach through SendGrid so the email comes from the user's own
+    // verified domain (proper DKIM/SPF) rather than Lovable's shared sender.
+    // We import lazily to keep the cold-start cost off the no-SendGrid path.
+    const { data: sgRow } = await supabaseAdmin
+      .from("org_integrations")
+      .select("api_key, config")
+      .eq("organization_id", data.organizationId)
+      .eq("provider", "sendgrid")
+      .maybeSingle();
+
+    const sgConfig = (sgRow?.config ?? {}) as Record<string, unknown>;
+    const sgFromAddress =
+      (typeof sgConfig.defaultFromAddress === "string" && sgConfig.defaultFromAddress.trim()) ||
+      (typeof sgConfig.fromAddress === "string" && sgConfig.fromAddress.trim()) ||
+      null;
+    const useSendgrid = !!(sgRow?.api_key && sgFromAddress);
+
+    // Reply-To: business inbox if provided, otherwise the SendGrid from
+    // address (so replies still land somewhere the user owns).
+    const businessReplyTo =
+      (org.support_email && org.support_email.trim()) ||
+      (useSendgrid ? sgFromAddress : null) ||
+      null;
 
     // Filter leads that have emails — no email = no outreach.
     const leadsWithEmail = data.leads.filter((l) => l.email);
@@ -175,47 +204,75 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
           throw new Error(insertErr?.message || "Failed to save message");
         }
 
-        // b) Hand off to the transactional email pipeline. We forward the
-        // caller's JWT so the send route's auth check passes.
-        const sendRes = await fetch(`${origin}/lovable/email/transactional/send`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: incomingAuth,
-          },
-          body: JSON.stringify({
-            templateName: "outreach-email",
-            recipientEmail: lead.email,
-            // Idempotency key so a retry of this server fn won't duplicate-send.
-            idempotencyKey: `outreach-${inserted.id}`,
-            templateData: {
-              subject: email.subject,
-              body: email.body,
-              brandName: businessName,
+        // b) Send the email. Two paths:
+        //    1. SendGrid BYO — sender is the org's verified address, so the
+        //       recipient sees an email from the user's actual domain.
+        //    2. Lovable Email fallback — sent from the platform sender, but
+        //       Reply-To is set to the org's business email so replies still
+        //       route to the user's inbox.
+        if (useSendgrid && sgRow?.api_key && sgFromAddress) {
+          // Convert AI plain text to minimal HTML so line breaks survive.
+          const htmlBody = email.body
+            .split(/\n/)
+            .map((line) =>
+              line
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;"),
+            )
+            .join("<br/>");
+
+          await sendSendgridEmail({
+            apiKey: sgRow.api_key,
+            from: sgFromAddress,
+            to: lead.email,
+            subject: email.subject,
+            html: htmlBody,
+            replyTo: businessReplyTo ?? undefined,
+          });
+        } else {
+          // Hand off to the platform transactional email pipeline. Forward
+          // the caller's JWT so the send route's auth check passes.
+          const sendRes = await fetch(`${origin}/lovable/email/transactional/send`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: incomingAuth,
             },
-            fromName: businessName,
-          }),
-        });
+            body: JSON.stringify({
+              templateName: "outreach-email",
+              recipientEmail: lead.email,
+              idempotencyKey: `outreach-${inserted.id}`,
+              templateData: {
+                subject: email.subject,
+                body: email.body,
+                brandName: businessName,
+              },
+              fromName: businessName,
+              // Replies go to the user's business inbox if they've set one.
+              replyTo: businessReplyTo ?? undefined,
+            }),
+          });
 
-        if (!sendRes.ok) {
-          const detail = await sendRes.text().catch(() => "");
-          throw new Error(`Email pipeline rejected (${sendRes.status}): ${detail.slice(0, 120)}`);
-        }
+          if (!sendRes.ok) {
+            const detail = await sendRes.text().catch(() => "");
+            throw new Error(`Email pipeline rejected (${sendRes.status}): ${detail.slice(0, 120)}`);
+          }
 
-        const sendBody = (await sendRes.json().catch(() => ({}))) as {
-          success?: boolean;
-          reason?: string;
-        };
+          const sendBody = (await sendRes.json().catch(() => ({}))) as {
+            success?: boolean;
+            reason?: string;
+          };
 
-        if (sendBody.success === false) {
-          // e.g. recipient is on the suppression list — that's expected, not a crash.
-          await supabase
-            .from("messages")
-            .update({ status: "suppressed" })
-            .eq("id", inserted.id);
-          skipped++;
-          errors.push(`${lead.name}: ${sendBody.reason || "suppressed"}`);
-          continue;
+          if (sendBody.success === false) {
+            await supabase
+              .from("messages")
+              .update({ status: "suppressed" })
+              .eq("id", inserted.id);
+            skipped++;
+            errors.push(`${lead.name}: ${sendBody.reason || "suppressed"}`);
+            continue;
+          }
         }
 
         // c) Mark message sent + advance lead to "contacted" if still new.
