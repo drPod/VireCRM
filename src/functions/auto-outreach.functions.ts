@@ -3,8 +3,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
-import { sendSendgridEmail } from "@/lib/sendgrid";
-import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
+import {
+  deliverOutreachEmail,
+  loadOutreachDeliveryChannels,
+} from "@/lib/email/outreach-delivery";
 import { z } from "zod";
 
 const outreachSchema = z.object({
@@ -77,29 +79,11 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
 
     if (!process.env.LOVABLE_API_KEY) throw new Error("AI service not configured");
 
-    // If the org has a verified BYO SendGrid key with a "from" address, route
-    // outreach through SendGrid so the email comes from the user's own
-    // verified domain (proper DKIM/SPF) rather than Lovable's shared sender.
-    // We import lazily to keep the cold-start cost off the no-SendGrid path.
-    const { data: sgRow } = await supabaseAdmin
-      .from("org_integrations")
-      .select("api_key, config")
-      .eq("organization_id", data.organizationId)
-      .eq("provider", "sendgrid")
-      .maybeSingle();
-
-    const sgConfig = (sgRow?.config ?? {}) as Record<string, unknown>;
-    const sgFromAddress =
-      (typeof sgConfig.defaultFromAddress === "string" && sgConfig.defaultFromAddress.trim()) ||
-      (typeof sgConfig.fromAddress === "string" && sgConfig.fromAddress.trim()) ||
-      null;
-    const useSendgrid = !!(sgRow?.api_key && sgFromAddress);
-
-    // Reply-To: business inbox if provided, otherwise the SendGrid from
-    // address (so replies still land somewhere the user owns).
+    const deliveryChannels = await loadOutreachDeliveryChannels(data.organizationId);
     const businessReplyTo =
       (org.support_email && org.support_email.trim()) ||
-      (useSendgrid ? sgFromAddress : null) ||
+      deliveryChannels.sendgrid?.fromAddress ||
+      deliveryChannels.connectors[0]?.fromAddress ||
       null;
 
     // Filter leads that have emails — no email = no outreach.
@@ -197,64 +181,26 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
           throw new Error(insertErr?.message || "Failed to save message");
         }
 
-        // b) Send the email. Two paths:
-        //    1. SendGrid BYO — sender is the org's verified address, so the
-        //       recipient sees an email from the user's actual domain.
-        //    2. Lovable Email fallback — sent from the platform sender, but
-        //       Reply-To is set to the org's business email so replies still
-        //       route to the user's inbox.
-        if (useSendgrid && sgRow?.api_key && sgFromAddress) {
-          // Convert AI plain text to minimal HTML so line breaks survive.
-          const htmlBody = email.body
-            .split(/\n/)
-            .map((line) =>
-              line
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;"),
-            )
-            .join("<br/>");
+        const dispatch = await deliverOutreachEmail({
+          recipientEmail: lead.email,
+          subject: email.subject,
+          body: email.body,
+          brandName: businessName,
+          replyTo: businessReplyTo ?? undefined,
+          idempotencyKey: `outreach-${inserted.id}`,
+          channels: deliveryChannels,
+        });
 
-          await sendSendgridEmail({
-            apiKey: sgRow.api_key,
-            from: sgFromAddress,
-            to: lead.email,
-            subject: email.subject,
-            html: htmlBody,
-            replyTo: businessReplyTo ?? undefined,
-          });
-        } else {
-          // Hand off to the platform transactional email pipeline. We call the
-          // shared in-process dispatcher rather than fetching the public
-          // /lovable/email/transactional/send route, because a Worker calling
-          // its own public hostname creates a Cloudflare 522 self-loop.
-          const dispatch = await dispatchOutreachEmail({
-            templateName: "outreach-email",
-            recipientEmail: lead.email,
-            idempotencyKey: `outreach-${inserted.id}`,
-            templateData: {
-              subject: email.subject,
-              body: email.body,
-              brandName: businessName,
-            },
-            fromName: businessName,
-            // Replies go to the user's business inbox if they've set one.
-            replyTo: businessReplyTo ?? undefined,
-          });
-
-          if (!dispatch.success) {
-            await supabase
-              .from("messages")
-              .update({
-                status: dispatch.reason === "suppressed" ? "suppressed" : "failed",
-              })
-              .eq("id", inserted.id);
-            skipped++;
-            errors.push(
-              `${lead.name}: ${dispatch.reason === "suppressed" ? "suppressed" : dispatch.error || "send failed"}`,
-            );
-            continue;
-          }
+        if (!dispatch.success) {
+          await supabase
+            .from("messages")
+            .update({
+              status: dispatch.suppressed ? "suppressed" : "failed",
+            })
+            .eq("id", inserted.id);
+          skipped++;
+          errors.push(`${lead.name}: ${dispatch.reason}`);
+          continue;
         }
 
         // c) Mark message sent + advance lead to "contacted" if still new.
