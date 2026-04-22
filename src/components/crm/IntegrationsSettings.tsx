@@ -5,6 +5,7 @@ import {
   getIntegrationFn,
   saveIntegrationFn,
   deleteIntegrationFn,
+  testIntegrationFn,
 } from "@/functions/integrations.functions";
 import { getLeadUsageFn, type LeadUsage } from "@/functions/find-leads.functions";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ import {
   Trash2,
   Zap,
   Infinity as InfinityIcon,
+  Pencil,
+  Activity,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -90,6 +93,7 @@ export function IntegrationsSettings() {
   const getIntegration = useAuthedServerFn(getIntegrationFn);
   const saveIntegration = useAuthedServerFn(saveIntegrationFn);
   const deleteIntegration = useAuthedServerFn(deleteIntegrationFn);
+  const testIntegration = useAuthedServerFn(testIntegrationFn);
   const getLeadUsage = useAuthedServerFn(getLeadUsageFn);
 
   const [loading, setLoading] = useState(true);
@@ -175,6 +179,18 @@ export function IntegrationsSettings() {
       void refresh();
     },
     [organization?.id, deleteIntegration, refresh],
+  );
+
+  const handleTest = useCallback(
+    async (provider: Provider) => {
+      if (!organization?.id) return null;
+      const res = await testIntegration({
+        data: { organizationId: organization.id, provider },
+      });
+      void refresh();
+      return res;
+    },
+    [organization?.id, testIntegration, refresh],
   );
 
   if (!isOwner) {
@@ -295,6 +311,7 @@ export function IntegrationsSettings() {
           loading={loading}
           onSave={(key) => handleSave(cfg.id, key)}
           onRemove={() => handleRemove(cfg.id)}
+          onTest={() => handleTest(cfg.id)}
         />
       ))}
 
