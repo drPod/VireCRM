@@ -938,7 +938,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                   {settingsFields.map((f) => {
                     const ruleKey = `${config.id}.${f.key}`;
                     const rule = FIELD_RULES[ruleKey];
-                    const err = settingsErrors[f.key];
+                    const rawErr = settingsErrors[f.key];
+                    // Hide the inline error until the user blurs the field
+                    // — once touched, it re-validates live as they type.
+                    const err = touchedSettings[f.key] ? rawErr : null;
                     return (
                       <div key={f.key} className="space-y-1">
                         <label className="block text-[11px] font-medium text-foreground">
@@ -953,6 +956,11 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                           value={settingsDraft[f.key] ?? ""}
                           onChange={(e) =>
                             setSettingsDraft((prev) => ({ ...prev, [f.key]: e.target.value }))
+                          }
+                          onBlur={() =>
+                            setTouchedSettings((prev) =>
+                              prev[f.key] ? prev : { ...prev, [f.key]: true },
+                            )
                           }
                           placeholder={f.placeholder}
                           aria-invalid={err ? true : undefined}
