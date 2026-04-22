@@ -29,6 +29,16 @@ export type ConnectorCapability =
   | "create_doc"     // create a doc/file
   | "create_task";   // create a task/issue
 
+export interface ConnectorConfigField {
+  /** Key written to org_connectors.config jsonb. */
+  key: string;
+  /** Form label. */
+  label: string;
+  /** Placeholder + helper hint. */
+  placeholder?: string;
+  helper?: string;
+}
+
 export interface ConnectorMeta {
   /** Stable id used as the `provider` column in `org_connectors`. */
   id: string;
@@ -46,6 +56,8 @@ export interface ConnectorMeta {
   docsUrl: string;
   /** Status: "live" = action fns implemented; "beta" = enable-only for now. */
   status: "live" | "beta";
+  /** Optional editable config (default channel, mailbox, etc.). */
+  configFields?: ConnectorConfigField[];
 }
 
 export const CONNECTORS: ConnectorMeta[] = [
