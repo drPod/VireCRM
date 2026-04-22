@@ -44,6 +44,17 @@ interface ProviderConfig {
   connectedDescription: string;
   /** Confirmation prompt before removal. */
   removeConfirm: string;
+  /** Plain-English step-by-step setup guide. Shown as a numbered list. */
+  setupSteps: string[];
+  /** Two-field credentials? (e.g. Snov needs client_id + secret). */
+  twoFieldCredentials?: {
+    fieldOneLabel: string;
+    fieldOnePlaceholder: string;
+    fieldTwoLabel: string;
+    fieldTwoPlaceholder: string;
+    /** How the two are joined when sent to the server. */
+    joiner: string;
+  };
 }
 
 const PROVIDERS: ProviderConfig[] = [
@@ -53,10 +64,16 @@ const PROVIDERS: ProviderConfig[] = [
     description:
       "Powers Auto-Find Leads with real, verified B2B contacts from Apollo's 275M+ database. Each lead consumes 1 Apollo email credit.",
     docsUrl: "https://app.apollo.io/#/settings/integrations/api",
-    inputHint: "Paste your Apollo master API key",
+    inputHint: "Paste your Apollo API key here",
     connectedDescription: "Auto-Find Leads will now pull real verified contacts.",
     removeConfirm:
-      "Remove the Apollo API key? Auto-Find Leads will fall back to platform credits (or stop working if you have none).",
+      "Auto-Find Leads will fall back to platform credits, or stop working if you have none.",
+    setupSteps: [
+      'Click "Get API key" above — it opens Apollo in a new tab.',
+      "Sign in to your Apollo account (or create one — the free plan works).",
+      'On the API keys page, click "Create new key" and give it a name like "Genesis CRM".',
+      'Copy the long key that starts with letters and numbers, then paste it below and click "Connect".',
+    ],
   },
   {
     id: "hunter",
@@ -64,19 +81,38 @@ const PROVIDERS: ProviderConfig[] = [
     description:
       "Cheaper domain-search alternative. Find every public email at a company domain — great for outreach to specific accounts.",
     docsUrl: "https://hunter.io/api-keys",
-    inputHint: "Paste your Hunter API key",
+    inputHint: "Paste your Hunter API key here",
     connectedDescription: "Hunter.io is now selectable in Auto-Find Leads.",
-    removeConfirm: "Remove the Hunter.io API key? Domain searches via Hunter will stop working.",
+    removeConfirm: "Domain searches via Hunter will stop working.",
+    setupSteps: [
+      'Click "Get API key" above — it opens Hunter in a new tab.',
+      "Sign in (the free plan includes 25 searches per month).",
+      "You'll see your API key listed at the top of the page — copy it.",
+      'Paste it below and click "Connect".',
+    ],
   },
   {
     id: "snov",
     name: "Snov.io",
     description:
-      "Cheapest per-email provider. Domain search by company. Snov uses OAuth — paste your credentials joined with a colon (client_id:client_secret).",
+      "Cheapest per-email provider. Find emails by company domain. Best value if you're sending lots of outreach.",
     docsUrl: "https://app.snov.io/account#/api",
-    inputHint: "Paste your Snov credentials as client_id:client_secret",
+    inputHint: "Paste your Client ID",
     connectedDescription: "Snov.io is now selectable in Auto-Find Leads.",
-    removeConfirm: "Remove the Snov.io API key? Domain searches via Snov will stop working.",
+    removeConfirm: "Domain searches via Snov will stop working.",
+    setupSteps: [
+      'Click "Get API key" above — it opens Snov.io in a new tab.',
+      "Sign in to your Snov account.",
+      'On the API page you\'ll see two values: "User ID" and "Secret". Copy them both.',
+      "Paste them in the two boxes below and click \"Connect\". We'll handle the rest.",
+    ],
+    twoFieldCredentials: {
+      fieldOneLabel: "User ID (also called Client ID)",
+      fieldOnePlaceholder: "e.g. 1a2b3c4d5e6f7g8h9i0j",
+      fieldTwoLabel: "Secret",
+      fieldTwoPlaceholder: "e.g. abc123def456ghi789",
+      joiner: ":",
+    },
   },
 ];
 
