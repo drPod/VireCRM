@@ -125,11 +125,6 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<SendOutreachResult> => {
     const { supabase, userId } = context;
 
-    const incomingAuth = getRequest()?.headers.get("authorization") ?? null;
-    if (!incomingAuth) {
-      throw new Error("Missing authorization header — cannot send email");
-    }
-
     // Org membership check
     const { data: profile } = await supabase
       .from("profiles")
@@ -151,14 +146,16 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
 
     if (!lead) throw new Error("Lead not found");
 
+    // Pull org branding + reply-to (business inbox) in one shot.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name")
+      .select("name, brand_name, support_email")
       .eq("id", data.organizationId)
       .maybeSingle();
 
     if (!org) throw new Error("Organization not found");
     const businessName = org.brand_name || org.name;
+    const replyTo = org.support_email?.trim() || null;
 
     // 1. Persist the message row first (so we always have an audit trail
     // even if the send fails).
@@ -179,46 +176,34 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       throw new Error(insertErr?.message || "Failed to save message");
     }
 
-    // 2. Hand off to the transactional pipeline (same path as autoOutreachFn).
-    // Server-side fetch needs an absolute URL — derive the origin from the
-    // incoming request so this works in both preview and production.
-    const req = getRequest();
-    const origin = req ? new URL(req.url).origin : "";
-    const sendRes = await fetch(`${origin}/lovable/email/transactional/send`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: incomingAuth,
+    // 2. Dispatch in-process. Calling the public /lovable/email/transactional/send
+    // route via fetch from inside a server function creates a Cloudflare 522
+    // self-loop (the worker can't reach its own public hostname while still
+    // handling the inbound request), so we render + enqueue directly instead.
+    const result = await dispatchOutreachEmail({
+      templateName: "outreach-email",
+      recipientEmail: data.recipientEmail,
+      idempotencyKey: `outreach-${inserted.id}`,
+      templateData: {
+        subject: data.subject,
+        body: data.body,
+        brandName: businessName,
       },
-      body: JSON.stringify({
-        templateName: "outreach-email",
-        recipientEmail: data.recipientEmail,
-        idempotencyKey: `outreach-${inserted.id}`,
-        templateData: {
-          subject: data.subject,
-          body: data.body,
-          brandName: businessName,
-        },
-        fromName: businessName,
-      }),
+      fromName: businessName,
+      replyTo,
     });
 
-    if (!sendRes.ok) {
-      const detail = await sendRes.text().catch(() => "");
-      throw new Error(`Email pipeline rejected (${sendRes.status}): ${detail.slice(0, 120)}`);
-    }
-
-    const sendBody = (await sendRes.json().catch(() => ({}))) as {
-      success?: boolean;
-      reason?: string;
-    };
-
-    if (sendBody.success === false) {
+    if (!result.success) {
       await supabase
         .from("messages")
-        .update({ status: "bounced" })
+        .update({ status: result.reason === "suppressed" ? "bounced" : "failed" })
         .eq("id", inserted.id);
-      return { success: false, reason: sendBody.reason || "suppressed" };
+      return {
+        success: false,
+        reason: result.reason === "suppressed"
+          ? "Recipient is on the suppression list (previously unsubscribed or bounced)."
+          : result.error || "Failed to send email.",
+      };
     }
 
     // 3. Mark sent + advance lead to "contacted" if still new.
