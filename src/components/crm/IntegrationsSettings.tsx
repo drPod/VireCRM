@@ -571,7 +571,26 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
         description: err instanceof Error ? err.message : "Unknown error",
       });
     } finally {
-      setTesting(false);
+  };
+
+  const handleSaveSettings = async () => {
+    if (!settingsDirty) return;
+    setSavingSettings(true);
+    try {
+      // Convert to the shape expected by the server fn — empty strings become null.
+      const cfg: Record<string, string | null> = {};
+      for (const f of settingsFields) {
+        const v = (settingsDraft[f.key] ?? "").trim();
+        cfg[f.key] = v.length ? v : null;
+      }
+      await onSaveConfig(cfg);
+      toast.success(`${config.name} settings saved`);
+    } catch (err) {
+      toast.error("Couldn't save settings", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setSavingSettings(false);
     }
   };
 
