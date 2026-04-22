@@ -819,6 +819,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
             helper: f.helper,
           })),
           lastTest: testResult ? { ok: testResult.ok, reason: testResult.reason ?? undefined } : null,
+          // Live overlay so the panel reflects what the user is typing in
+          // the settings panel below (no save needed to clear "missing"
+          // or "invalid" entries).
+          configOverride: settingsFields.length > 0 ? settingsDraft : null,
         });
         if (prereqs.length === 0) return null;
         const focusKeyInput = () => {
