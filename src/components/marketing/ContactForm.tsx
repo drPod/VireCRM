@@ -5,7 +5,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, CheckCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export function ContactForm() {
@@ -18,6 +17,8 @@ export function ContactForm() {
     phone: "",
     budget: "",
     message: "",
+    // Honeypot — real users never see/fill this. Bots do.
+    website: "",
   });
 
   const handleChange = (field: string, value: string) => {
@@ -40,29 +41,33 @@ export function ContactForm() {
 
     setLoading(true);
     try {
-      // Insert as a lead with source "contact_form"
-      const { error } = await supabase.from("leads").insert({
-        name: form.name.trim().slice(0, 200),
-        email: form.email.trim().slice(0, 255),
-        company: form.company.trim().slice(0, 200) || null,
-        phone: form.phone.trim().slice(0, 50) || null,
-        notes: `Budget: ${form.budget || "Not specified"}\n\n${form.message.trim().slice(0, 2000)}`,
-        source: "contact_form",
-        status: "new",
-        // This will fail RLS since the visitor isn't authenticated,
-        // so we'll use a server function instead
-        organization_id: "00000000-0000-0000-0000-000000000000",
+      const res = await fetch("/api/public/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          company: form.company.trim() || null,
+          phone: form.phone.trim() || null,
+          budget: form.budget || null,
+          message: form.message.trim(),
+          website: form.website, // honeypot
+        }),
       });
 
-      if (error) {
-        // Expected: unauthenticated users can't insert via RLS.
-        // For now, just show success (in production, use a server function or edge function).
-        console.info("Contact form submitted (client-side insert blocked by RLS, expected):", error.message);
+      const body = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: string;
+      };
+
+      if (!res.ok || body.success === false) {
+        toast.error(body.error || "Something went wrong. Please try again.");
+        return;
       }
 
       setSubmitted(true);
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
