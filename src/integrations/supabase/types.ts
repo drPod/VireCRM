@@ -257,6 +257,66 @@ export type Database = {
           },
         ]
       }
+      connector_activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          direction: string
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          organization_id: string
+          payload: Json
+          provider: string
+          status: string
+          summary: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          direction: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id: string
+          payload?: Json
+          provider: string
+          status?: string
+          summary?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id?: string
+          payload?: Json
+          provider?: string
+          status?: string
+          summary?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connector_activity_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connector_activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -655,6 +715,47 @@ export type Database = {
           },
           {
             foreignKeyName: "messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_connectors: {
+        Row: {
+          config: Json
+          created_at: string
+          enabled: boolean
+          enabled_by: string | null
+          id: string
+          organization_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          enabled_by?: string | null
+          id?: string
+          organization_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          enabled_by?: string | null
+          id?: string
+          organization_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_connectors_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
