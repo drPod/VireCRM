@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Loader2, Sparkles, X } from "lucide-react";
+import { Plus, Loader2, Sparkles, X, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
@@ -49,6 +49,8 @@ export function AddLeadDialog({
   });
   // Custom user-defined fields appended to the lead notes/description.
   const [customFields, setCustomFields] = useState<Array<{ label: string; value: string }>>([]);
+  // Additional details (industry-specific + custom) hidden by default — not every CRM user sells energy.
+  const [showAdditional, setShowAdditional] = useState(false);
 
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -205,35 +207,6 @@ export function AddLeadDialog({
               />
             </div>
           </div>
-          <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Energy details
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Contract end date
-                </label>
-                <input
-                  type="date"
-                  className={inputClass}
-                  value={form.contract_end_date}
-                  onChange={(e) => update("contract_end_date", e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
-                  Current supplier
-                </label>
-                <input
-                  className={inputClass}
-                  placeholder="e.g. British Gas, EDF, Octopus"
-                  value={form.current_supplier}
-                  onChange={(e) => update("current_supplier", e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-foreground">Next Action</label>
             <input
@@ -244,16 +217,7 @@ export function AddLeadDialog({
             />
           </div>
           <div>
-            <div className="mb-1 flex items-center justify-between">
-              <label className="block text-xs font-medium text-foreground">Notes / description</label>
-              <button
-                type="button"
-                onClick={addCustomField}
-                className="text-[11px] font-medium text-primary hover:underline"
-              >
-                + Add field
-              </button>
-            </div>
+            <label className="mb-1 block text-xs font-medium text-foreground">Notes / description</label>
             <textarea
               className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
               rows={2}
@@ -261,35 +225,105 @@ export function AddLeadDialog({
               value={form.notes}
               onChange={(e) => update("notes", e.target.value)}
             />
-            {customFields.length > 0 && (
-              <div className="mt-2 space-y-2">
-                <p className="text-[11px] text-muted-foreground">
-                  Custom fields will be appended to the description.
-                </p>
-                {customFields.map((f, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <input
-                      className={`${inputClass} sm:max-w-[40%]`}
-                      placeholder="Field name (e.g. Annual kWh)"
-                      value={f.label}
-                      onChange={(e) => updateCustomField(idx, "label", e.target.value)}
-                    />
-                    <input
-                      className={inputClass}
-                      placeholder="Value"
-                      value={f.value}
-                      onChange={(e) => updateCustomField(idx, "value", e.target.value)}
-                    />
+          </div>
+
+          {/* Collapsible additional details — keeps the form clean for non-energy users. */}
+          <div className="rounded-lg border border-border bg-secondary/20">
+            <button
+              type="button"
+              onClick={() => setShowAdditional((v) => !v)}
+              className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/40 rounded-lg transition-colors"
+            >
+              <span className="flex items-center gap-1.5">
+                {showAdditional ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
+                Add additional lead details
+              </span>
+              <span className="text-[10px] font-normal text-muted-foreground">
+                Industry-specific & custom fields
+              </span>
+            </button>
+            {showAdditional && (
+              <div className="space-y-3 border-t border-border/60 px-3 py-3">
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Energy / utilities (optional)
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-foreground">
+                        Contract end date
+                      </label>
+                      <input
+                        type="date"
+                        className={inputClass}
+                        value={form.contract_end_date}
+                        onChange={(e) => update("contract_end_date", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-foreground">
+                        Current supplier
+                      </label>
+                      <input
+                        className={inputClass}
+                        placeholder="e.g. British Gas, EDF, Octopus"
+                        value={form.current_supplier}
+                        onChange={(e) => update("current_supplier", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Custom fields
+                    </p>
                     <button
                       type="button"
-                      onClick={() => removeCustomField(idx)}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
-                      aria-label="Remove field"
+                      onClick={addCustomField}
+                      className="text-[11px] font-medium text-primary hover:underline"
                     >
-                      <X className="h-3.5 w-3.5" />
+                      + Add field
                     </button>
                   </div>
-                ))}
+                  {customFields.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      Add any field your business needs (e.g. policy number, fleet size, deal size).
+                      Custom fields are appended to the description.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {customFields.map((f, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <input
+                            className={`${inputClass} sm:max-w-[40%]`}
+                            placeholder="Field name"
+                            value={f.label}
+                            onChange={(e) => updateCustomField(idx, "label", e.target.value)}
+                          />
+                          <input
+                            className={inputClass}
+                            placeholder="Value"
+                            value={f.value}
+                            onChange={(e) => updateCustomField(idx, "value", e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeCustomField(idx)}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
+                            aria-label="Remove field"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
