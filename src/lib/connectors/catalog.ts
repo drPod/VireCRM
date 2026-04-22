@@ -29,6 +29,16 @@ export type ConnectorCapability =
   | "create_doc"     // create a doc/file
   | "create_task";   // create a task/issue
 
+export interface ConnectorConfigField {
+  /** Key written to org_connectors.config jsonb. */
+  key: string;
+  /** Form label. */
+  label: string;
+  /** Placeholder + helper hint. */
+  placeholder?: string;
+  helper?: string;
+}
+
 export interface ConnectorMeta {
   /** Stable id used as the `provider` column in `org_connectors`. */
   id: string;
@@ -46,6 +56,8 @@ export interface ConnectorMeta {
   docsUrl: string;
   /** Status: "live" = action fns implemented; "beta" = enable-only for now. */
   status: "live" | "beta";
+  /** Optional editable config (default channel, mailbox, etc.). */
+  configFields?: ConnectorConfigField[];
 }
 
 export const CONNECTORS: ConnectorMeta[] = [
@@ -71,6 +83,14 @@ export const CONNECTORS: ConnectorMeta[] = [
     capabilities: ["send_email"],
     docsUrl: "https://learn.microsoft.com/en-us/graph/api/resources/mail-api-overview",
     status: "live",
+    configFields: [
+      {
+        key: "fromAddress",
+        label: "Send from address",
+        placeholder: "you@company.com",
+        helper: "The mailbox outreach emails will appear to come from.",
+      },
+    ],
   },
   {
     id: "google_calendar",
@@ -95,6 +115,14 @@ export const CONNECTORS: ConnectorMeta[] = [
     capabilities: ["send_message"],
     docsUrl: "https://api.slack.com",
     status: "live",
+    configFields: [
+      {
+        key: "defaultChannel",
+        label: "Default channel",
+        placeholder: "#sales",
+        helper: "Channel posts go to when nothing more specific is selected.",
+      },
+    ],
   },
   {
     id: "microsoft_teams",
@@ -106,6 +134,10 @@ export const CONNECTORS: ConnectorMeta[] = [
     capabilities: ["send_message"],
     docsUrl: "https://learn.microsoft.com/en-us/microsoftteams/platform/",
     status: "live",
+    configFields: [
+      { key: "teamId", label: "Team ID", placeholder: "00000000-…" },
+      { key: "channelId", label: "Channel ID", placeholder: "19:abc…@thread.tacv2" },
+    ],
   },
   {
     id: "twilio",
@@ -117,6 +149,14 @@ export const CONNECTORS: ConnectorMeta[] = [
     capabilities: ["send_sms"],
     docsUrl: "https://www.twilio.com/docs/sms",
     status: "live",
+    configFields: [
+      {
+        key: "fromNumber",
+        label: "Send-from phone number",
+        placeholder: "+15551234567",
+        helper: "Twilio number SMS will be sent from. E.164 format.",
+      },
+    ],
   },
 
   // ===== CRM / Data =====
@@ -130,6 +170,14 @@ export const CONNECTORS: ConnectorMeta[] = [
     capabilities: ["sync_contacts"],
     docsUrl: "https://developers.hubspot.com/docs/api/overview",
     status: "live",
+    configFields: [
+      {
+        key: "importLimit",
+        label: "Contacts per sync",
+        placeholder: "25",
+        helper: "Max contacts pulled in each manual sync. Default 25.",
+      },
+    ],
   },
 
   // ===== Productivity =====

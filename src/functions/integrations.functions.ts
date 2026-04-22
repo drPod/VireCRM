@@ -104,6 +104,42 @@ export const saveIntegrationFn = createServerFn({ method: "POST" })
     return { success: true, maskedKey: maskKey(data.apiKey) };
   });
 
+// ----- TEST: re-verify the stored key against the provider -----
+const testSchema = z.object({
+  organizationId: z.string().uuid(),
+  provider: z.enum(SUPPORTED_PROVIDERS),
+});
+
+export const testIntegrationFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof testSchema>) => testSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    await assertOwner(userId, data.organizationId);
+
+    const { data: row } = await supabaseAdmin
+      .from("org_integrations")
+      .select("api_key")
+      .eq("organization_id", data.organizationId)
+      .eq("provider", data.provider)
+      .maybeSingle();
+
+    if (!row) {
+      return { ok: false as const, reason: "Not configured" };
+    }
+
+    const verify = await verifyKey(data.provider, row.api_key);
+    if (verify.ok) {
+      await supabaseAdmin
+        .from("org_integrations")
+        .update({ last_verified_at: new Date().toISOString() })
+        .eq("organization_id", data.organizationId)
+        .eq("provider", data.provider);
+      return { ok: true as const, verifiedAt: new Date().toISOString() };
+    }
+    return { ok: false as const, reason: verify.reason };
+  });
+
 // ----- DELETE -----
 const deleteSchema = z.object({
   organizationId: z.string().uuid(),

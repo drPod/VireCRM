@@ -5,6 +5,7 @@ import {
   getIntegrationFn,
   saveIntegrationFn,
   deleteIntegrationFn,
+  testIntegrationFn,
 } from "@/functions/integrations.functions";
 import { getLeadUsageFn, type LeadUsage } from "@/functions/find-leads.functions";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ import {
   Trash2,
   Zap,
   Infinity as InfinityIcon,
+  Pencil,
+  Activity,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -90,6 +93,7 @@ export function IntegrationsSettings() {
   const getIntegration = useAuthedServerFn(getIntegrationFn);
   const saveIntegration = useAuthedServerFn(saveIntegrationFn);
   const deleteIntegration = useAuthedServerFn(deleteIntegrationFn);
+  const testIntegration = useAuthedServerFn(testIntegrationFn);
   const getLeadUsage = useAuthedServerFn(getLeadUsageFn);
 
   const [loading, setLoading] = useState(true);
@@ -175,6 +179,18 @@ export function IntegrationsSettings() {
       void refresh();
     },
     [organization?.id, deleteIntegration, refresh],
+  );
+
+  const handleTest = useCallback(
+    async (provider: Provider) => {
+      if (!organization?.id) return null;
+      const res = await testIntegration({
+        data: { organizationId: organization.id, provider },
+      });
+      void refresh();
+      return res;
+    },
+    [organization?.id, testIntegration, refresh],
   );
 
   if (!isOwner) {
@@ -295,6 +311,7 @@ export function IntegrationsSettings() {
           loading={loading}
           onSave={(key) => handleSave(cfg.id, key)}
           onRemove={() => handleRemove(cfg.id)}
+          onTest={() => handleTest(cfg.id)}
         />
       ))}
 
@@ -324,20 +341,30 @@ interface ProviderCardProps {
   loading: boolean;
   onSave: (apiKey: string) => Promise<void>;
   onRemove: () => Promise<void>;
+  onTest: () => Promise<{ ok: boolean; reason?: string; verifiedAt?: string } | null>;
 }
 
-function ProviderCard({ config, status, loading, onSave, onRemove }: ProviderCardProps) {
+function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: ProviderCardProps) {
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const verifiedLabel = status.lastVerifiedAt
+    ? `Verified ${formatRelative(status.lastVerifiedAt)}`
+    : null;
 
   const handleSave = async () => {
     if (apiKey.trim().length < 10) return;
     setSaving(true);
     try {
       await onSave(apiKey);
-      toast.success(`${config.name} connected`, { description: config.connectedDescription });
+      toast.success(`${config.name} ${editing ? "updated" : "connected"}`, {
+        description: editing ? "Your new key is verified and saved." : config.connectedDescription,
+      });
       setApiKey("");
+      setEditing(false);
     } catch (err) {
       toast.error("Couldn't save key", {
         description: err instanceof Error ? err.message : "Unknown error",
@@ -354,7 +381,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove }: ProviderCar
       await onRemove();
       toast.success(`${config.name} disconnected`);
     } catch (err) {
-      toast.error("Couldn't remove", {
+      toast.error("Couldn't disconnect", {
         description: err instanceof Error ? err.message : "Unknown error",
       });
     } finally {
@@ -362,11 +389,88 @@ function ProviderCard({ config, status, loading, onSave, onRemove }: ProviderCar
     }
   };
 
+  const handleTest = async () => {
+    setTesting(true);
+    try {
+      const res = await onTest();
+      if (res?.ok) {
+        toast.success(`${config.name} is working`, {
+          description: "Credentials verified successfully.",
+        });
+      } else {
+        toast.error(`${config.name} test failed`, {
+          description: res?.reason ?? "No response from provider.",
+        });
+      }
+    } catch (err) {
+      toast.error("Test failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  // Render the editor (used both for first-time connect and Edit on a configured row).
+  const renderEditor = () => (
+    <div className="space-y-3">
+      <label className="block text-xs font-medium text-foreground">
+        {config.name} API key
+      </label>
+      <input
+        type="password"
+        value={apiKey}
+        onChange={(e) => setApiKey(e.target.value)}
+        placeholder={config.inputHint}
+        className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring font-mono"
+        autoComplete="off"
+        spellCheck={false}
+        maxLength={500}
+      />
+      <div className="flex gap-2 flex-wrap">
+        <Button
+          variant="command"
+          size="sm"
+          onClick={handleSave}
+          disabled={saving || apiKey.trim().length < 10}
+        >
+          {saving ? (
+            <>
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              Verifying with {config.name}…
+            </>
+          ) : editing ? (
+            "Save new key"
+          ) : (
+            `Connect ${config.name}`
+          )}
+        </Button>
+        {editing && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setEditing(false);
+              setApiKey("");
+            }}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Your key is stored encrypted at rest and only ever used server-side. It is never exposed
+        to your team members or the browser.
+      </p>
+    </div>
+  );
+
   return (
     <Card className="p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-base font-semibold text-foreground">{config.name}</h3>
             {status.configured ? (
               <Badge variant="secondary" className="gap-1">
@@ -400,60 +504,56 @@ function ProviderCard({ config, status, loading, onSave, onRemove }: ProviderCar
               <KeyRound className="h-4 w-4 text-muted-foreground" />
               <code className="font-mono text-foreground">{status.maskedKey}</code>
             </div>
-            {status.lastVerifiedAt && (
-              <span className="text-xs text-muted-foreground">
-                Verified {new Date(status.lastVerifiedAt).toLocaleDateString()}
-              </span>
+            {verifiedLabel && (
+              <span className="text-xs text-muted-foreground">{verifiedLabel}</span>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleRemove} disabled={removing}>
-              {removing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="h-3.5 w-3.5" />
-              )}
-              Remove
-            </Button>
-          </div>
+
+          {editing ? (
+            renderEditor()
+          ) : (
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+                {testing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Activity className="h-3.5 w-3.5" />
+                )}
+                Test
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleRemove} disabled={removing}>
+                {removing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Disconnect
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="space-y-3">
-          <label className="block text-xs font-medium text-foreground">
-            {config.name} API key
-          </label>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={config.inputHint}
-            className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring font-mono"
-            autoComplete="off"
-            spellCheck={false}
-            maxLength={500}
-          />
-          <Button
-            variant="command"
-            size="sm"
-            onClick={handleSave}
-            disabled={saving || apiKey.trim().length < 10}
-            className="w-full sm:w-auto"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                Verifying with {config.name}…
-              </>
-            ) : (
-              `Connect ${config.name}`
-            )}
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Your key is stored encrypted at rest and only ever used server-side. It is never
-            exposed to your team members or the browser.
-          </p>
-        </div>
+        renderEditor()
       )}
     </Card>
   );
+}
+
+// Tiny relative-time formatter — keeps the card label compact ("5m ago", "yesterday").
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diffMs = Date.now() - then;
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day === 1) return "yesterday";
+  if (day < 7) return `${day}d ago`;
+  return new Date(iso).toLocaleDateString();
 }
