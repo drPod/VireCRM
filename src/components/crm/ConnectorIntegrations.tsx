@@ -411,7 +411,19 @@ function ConnectorRow({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* Inline "Send test email" — only for Gmail. SendGrid has its own
+          version on the BYO key card in IntegrationsSettings. */}
+      {meta.id === "gmail" && enabled && credentialPresent && !editing && (
+        <div className="mb-3">
+          <SendTestEmailControl
+            provider="gmail"
+            providerLabel="Gmail"
+            disabledReason={null}
+          />
+        </div>
+      )}
+
+
         <a
           href={meta.docsUrl}
           target="_blank"
