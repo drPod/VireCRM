@@ -214,17 +214,33 @@ interface ConnectorRowProps {
   loading: boolean;
   onEnable: () => Promise<void>;
   onDisable: () => Promise<void>;
+  onTest: () => Promise<void>;
+  onSaveConfig: (config: Record<string, string>) => Promise<void>;
   organizationId: string | null;
 }
 
-function ConnectorRow({ meta, status, loading, onEnable, onDisable, organizationId }: ConnectorRowProps) {
+function ConnectorRow({
+  meta,
+  status,
+  loading,
+  onEnable,
+  onDisable,
+  onTest,
+  onSaveConfig,
+  organizationId,
+}: ConnectorRowProps) {
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [draftConfig, setDraftConfig] = useState<Record<string, string>>({});
   const importHubspot = useAuthedServerFn(importHubspotContactsFn);
 
   const enabled = !!status?.enabled;
   const credentialPresent = !!status?.credentialPresent;
   const verified = status?.verified;
+  const hasConfigFields = (meta.configFields ?? []).length > 0;
 
   const handleClick = async (action: "enable" | "disable") => {
     setBusy(true);
@@ -233,6 +249,41 @@ function ConnectorRow({ meta, status, loading, onEnable, onDisable, organization
       else await onDisable();
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleTest = async () => {
+    setTesting(true);
+    try {
+      await onTest();
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const openEditor = () => {
+    // Seed draft from the saved config (cast values to strings for inputs).
+    const seed: Record<string, string> = {};
+    for (const f of meta.configFields ?? []) {
+      const v = status?.config?.[f.key];
+      seed[f.key] = v == null ? "" : String(v);
+    }
+    setDraftConfig(seed);
+    setEditing(true);
+  };
+
+  const handleSaveConfig = async () => {
+    setSavingConfig(true);
+    try {
+      await onSaveConfig(draftConfig);
+      toast.success(`${meta.name} settings saved`);
+      setEditing(false);
+    } catch (err) {
+      toast.error("Couldn't save settings", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setSavingConfig(false);
     }
   };
 
@@ -281,7 +332,44 @@ function ConnectorRow({ meta, status, loading, onEnable, onDisable, organization
         <p className="text-[11px] text-warning mb-2">{status.verifyError}</p>
       )}
 
-      <div className="flex items-center justify-between gap-2">
+      {/* Inline config editor */}
+      {enabled && editing && hasConfigFields && (
+        <div className="space-y-3 mb-3 p-3 rounded-md bg-secondary/30 border border-border">
+          {(meta.configFields ?? []).map((f) => (
+            <div key={f.key} className="space-y-1">
+              <label className="block text-[11px] font-medium text-foreground">{f.label}</label>
+              <input
+                value={draftConfig[f.key] ?? ""}
+                onChange={(e) =>
+                  setDraftConfig((prev) => ({ ...prev, [f.key]: e.target.value }))
+                }
+                placeholder={f.placeholder}
+                className="h-8 w-full rounded-md border border-input bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+                spellCheck={false}
+              />
+              {f.helper && (
+                <p className="text-[10px] text-muted-foreground">{f.helper}</p>
+              )}
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <Button
+              variant="command"
+              size="sm"
+              onClick={handleSaveConfig}
+              disabled={savingConfig}
+            >
+              {savingConfig ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Save
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={savingConfig}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <a
           href={meta.docsUrl}
           target="_blank"
@@ -294,7 +382,7 @@ function ConnectorRow({ meta, status, loading, onEnable, onDisable, organization
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         ) : enabled ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {meta.id === "hubspot" && organizationId && (
               <Button
                 variant="outline"
@@ -303,8 +391,18 @@ function ConnectorRow({ meta, status, loading, onEnable, onDisable, organization
                 onClick={async () => {
                   setSyncing(true);
                   try {
+                    const limitRaw = status?.config?.importLimit;
+                    const limit =
+                      typeof limitRaw === "string"
+                        ? parseInt(limitRaw, 10)
+                        : typeof limitRaw === "number"
+                          ? limitRaw
+                          : 25;
                     const res = await importHubspot({
-                      data: { organizationId, limit: 25 },
+                      data: {
+                        organizationId,
+                        limit: Number.isFinite(limit) && limit > 0 ? limit : 25,
+                      },
                     });
                     toast.success("HubSpot sync complete", {
                       description: `Imported ${res.inserted} new lead${res.inserted === 1 ? "" : "s"} (${res.skipped} skipped).`,
@@ -326,6 +424,20 @@ function ConnectorRow({ meta, status, loading, onEnable, onDisable, organization
                 Sync contacts
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+              {testing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Activity className="h-3.5 w-3.5" />
+              )}
+              Test
+            </Button>
+            {hasConfigFields && !editing && (
+              <Button variant="outline" size="sm" onClick={openEditor}>
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -333,7 +445,7 @@ function ConnectorRow({ meta, status, loading, onEnable, onDisable, organization
               disabled={busy}
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
-              Disable
+              Disconnect
             </Button>
           </div>
         ) : (
