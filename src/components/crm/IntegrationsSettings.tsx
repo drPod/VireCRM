@@ -284,6 +284,17 @@ export function IntegrationsSettings() {
     [organization?.id, testIntegration, refresh],
   );
 
+  const handleSaveConfig = useCallback(
+    async (provider: Provider, config: Record<string, string | number | boolean | null>) => {
+      if (!organization?.id) return;
+      await updateIntegrationConfig({
+        data: { organizationId: organization.id, provider, config },
+      });
+      void refresh();
+    },
+    [organization?.id, updateIntegrationConfig, refresh],
+  );
+
   if (!isOwner) {
     return (
       <Card className="p-6">
@@ -404,6 +415,7 @@ export function IntegrationsSettings() {
           onSave={(key) => handleSave(cfg.id, key)}
           onRemove={() => handleRemove(cfg.id)}
           onTest={() => handleTest(cfg.id)}
+          onSaveConfig={(c) => handleSaveConfig(cfg.id, c)}
         />
       ))}
 
@@ -434,9 +446,10 @@ interface ProviderCardProps {
   onSave: (apiKey: string) => Promise<void>;
   onRemove: () => Promise<void>;
   onTest: () => Promise<{ ok: boolean; reason?: string; verifiedAt?: string } | null>;
+  onSaveConfig: (config: Record<string, string | number | boolean | null>) => Promise<void>;
 }
 
-function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: ProviderCardProps) {
+function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSaveConfig }: ProviderCardProps) {
   const isTwoField = !!config.twoFieldCredentials;
   const [apiKey, setApiKey] = useState("");
   const [fieldOne, setFieldOne] = useState("");
