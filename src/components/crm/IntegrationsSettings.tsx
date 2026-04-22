@@ -825,9 +825,14 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                   ) : (
                     <Trash2 className="h-3.5 w-3.5" />
                   )}
-                  Disconnect
+                Disconnect
                 </Button>
               </div>
+              <TestResultPanel
+                result={testResult}
+                testing={testing}
+                providerLabel={config.name}
+              />
               {settingsFields.length > 0 && (
                 <div className="space-y-2 rounded-md border border-border bg-secondary/30 p-3">
                   {settingsFields.map((f) => (
