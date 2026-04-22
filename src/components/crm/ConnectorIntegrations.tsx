@@ -594,6 +594,13 @@ function ConnectorRow({
         </div>
       </div>
 
+      {/* Awaiting-auth helper — when the row is enabled but the gateway hasn't
+          injected credentials yet, surface a clear, copyable AI prompt so the
+          user knows exactly how to finish the OAuth handshake. */}
+      {!loading && enabled && !credentialPresent && (
+        <AwaitingAuthHelper providerLabel={meta.name} connectorId={meta.connectorId} />
+      )}
+
       {!loading && (() => {
         // While editing, feed the in-progress draft so the prerequisites
         // panel updates live (e.g. "Send-from address is required" disappears
