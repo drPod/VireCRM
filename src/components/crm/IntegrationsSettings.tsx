@@ -32,6 +32,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ConnectorIntegrations } from "./ConnectorIntegrations";
 import { SendTestEmailControl } from "./SendTestEmailControl";
+import { TestResultPanel, type TestResult } from "./TestResultPanel";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
@@ -464,6 +465,23 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   const [editing, setEditing] = useState(false);
   const [showStepsForFirstSetup, setShowStepsForFirstSetup] = useState(true);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  // Latest Test result, kept inline on the card until the next Test run replaces it.
+  const [testResult, setTestResult] = useState<TestResult | null>(() =>
+    status.lastVerifiedAt ? { ok: true, verifiedAt: status.lastVerifiedAt } : null,
+  );
+
+  // If the saved `lastVerifiedAt` changes (e.g. after refresh from another
+  // tab) and we don't already have a fresher local result, hydrate from it
+  // so the card shows the most recent known state on mount.
+  useEffect(() => {
+    if (!status.lastVerifiedAt) return;
+    setTestResult((prev) => {
+      if (prev && new Date(prev.verifiedAt).getTime() >= new Date(status.lastVerifiedAt!).getTime()) {
+        return prev;
+      }
+      return { ok: true, verifiedAt: status.lastVerifiedAt! };
+    });
+  }, [status.lastVerifiedAt]);
 
   // Non-secret settings draft (e.g. SendGrid's defaultFromAddress).
   const settingsFields = config.settingsFields ?? [];
@@ -558,21 +576,23 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
 
   const handleTest = async () => {
     await testLock.run(async () => {
+      const ranAt = new Date().toISOString();
       try {
         const res = await onTest();
         if (res?.ok) {
+          setTestResult({ ok: true, verifiedAt: res.verifiedAt ?? ranAt });
           toast.success(`${config.name} is working`, {
             description: "Credentials verified successfully.",
           });
         } else {
-          toast.error(`${config.name} test failed`, {
-            description: res?.reason ?? "No response from provider.",
-          });
+          const reason = res?.reason ?? "No response from provider.";
+          setTestResult({ ok: false, reason, verifiedAt: ranAt });
+          toast.error(`${config.name} test failed`, { description: reason });
         }
       } catch (err) {
-        toast.error("Test failed", {
-          description: err instanceof Error ? err.message : "Unknown error",
-        });
+        const reason = err instanceof Error ? err.message : "Unknown error";
+        setTestResult({ ok: false, reason, verifiedAt: ranAt });
+        toast.error("Test failed", { description: reason });
       }
     });
   };
@@ -805,9 +825,14 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                   ) : (
                     <Trash2 className="h-3.5 w-3.5" />
                   )}
-                  Disconnect
+                Disconnect
                 </Button>
               </div>
+              <TestResultPanel
+                result={testResult}
+                testing={testing}
+                providerLabel={config.name}
+              />
               {settingsFields.length > 0 && (
                 <div className="space-y-2 rounded-md border border-border bg-secondary/30 p-3">
                   {settingsFields.map((f) => (

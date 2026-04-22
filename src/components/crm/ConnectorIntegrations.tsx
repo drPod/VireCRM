@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SendTestEmailControl } from "./SendTestEmailControl";
+import { TestResultPanel, type TestResult } from "./TestResultPanel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -273,8 +274,11 @@ export function ConnectorIntegrations() {
   );
 
   const handleTest = useCallback(
-    async (provider: string, name: string) => {
-      if (!organization?.id) return;
+    async (provider: string, name: string): Promise<TestResult> => {
+      const ranAt = new Date().toISOString();
+      if (!organization?.id) {
+        return { ok: false, reason: "No organization context.", verifiedAt: ranAt };
+      }
       try {
         const res = await testConnector({
           data: { organizationId: organization.id, provider },
@@ -283,16 +287,17 @@ export function ConnectorIntegrations() {
           toast.success(`${name} is working`, {
             description: "Credentials verified successfully.",
           });
-        } else {
-          toast.error(`${name} test failed`, {
-            description: res.reason ?? "No response from gateway.",
-          });
+          void refresh();
+          return { ok: true, verifiedAt: ranAt };
         }
+        const reason = res.reason ?? "No response from gateway.";
+        toast.error(`${name} test failed`, { description: reason });
         void refresh();
+        return { ok: false, reason, verifiedAt: ranAt };
       } catch (err) {
-        toast.error("Test failed", {
-          description: err instanceof Error ? err.message : "Unknown error",
-        });
+        const reason = err instanceof Error ? err.message : "Unknown error";
+        toast.error("Test failed", { description: reason });
+        return { ok: false, reason, verifiedAt: ranAt };
       }
     },
     [organization?.id, testConnector, refresh],
@@ -384,7 +389,7 @@ interface ConnectorRowProps {
   loading: boolean;
   onEnable: () => Promise<void>;
   onDisable: () => Promise<void>;
-  onTest: () => Promise<void>;
+  onTest: () => Promise<TestResult>;
   onSaveConfig: (config: Record<string, string>) => Promise<void>;
   organizationId: string | null;
 }
@@ -439,10 +444,44 @@ function ConnectorRow({
   // and for a short cooldown after, so impatient double-clicks coalesce.
   const testLock = useActionLock();
   const testing = testLock.loading;
+  // Latest Test result, surfaced inline next to the buttons. Seeded from
+  // the server's last verify state on mount so the panel isn't empty after
+  // a page refresh while a previous error/success is still meaningful.
+  const seedFromStatus = (): TestResult | null => {
+    if (status?.verified === true) {
+      return { ok: true, verifiedAt: status.enabledAt ?? new Date().toISOString() };
+    }
+    if (status?.verified === false && status.verifyError) {
+      return {
+        ok: false,
+        reason: status.verifyError,
+        verifiedAt: status.enabledAt ?? new Date().toISOString(),
+      };
+    }
+    return null;
+  };
+  const [testResult, setTestResult] = useState<TestResult | null>(seedFromStatus);
+
+  // Re-sync from status when the background poller updates verifyError /
+  // verified — but only if we don't have a fresher local Test result.
+  useEffect(() => {
+    const fromStatus = seedFromStatus();
+    if (!fromStatus) return;
+    setTestResult((prev) => {
+      if (!prev) return fromStatus;
+      // Keep the local result if it's newer than what the poller knows.
+      if (new Date(prev.verifiedAt).getTime() >= new Date(fromStatus.verifiedAt).getTime()) {
+        return prev;
+      }
+      return fromStatus;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.verified, status?.verifyError]);
 
   const handleTest = async () => {
     await testLock.run(async () => {
-      await onTest();
+      const res = await onTest();
+      setTestResult(res);
     });
   };
 
@@ -521,8 +560,10 @@ function ConnectorRow({
         </div>
       </div>
 
-      {status?.verifyError && (
-        <p className="text-[11px] text-warning mb-2">{status.verifyError}</p>
+      {(testResult || testing) && (
+        <div className="mb-3">
+          <TestResultPanel result={testResult} testing={testing} providerLabel={meta.name} />
+        </div>
       )}
 
       {/* Inline config editor */}
