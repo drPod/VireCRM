@@ -15,6 +15,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useActionLock } from "@/hooks/useActionLock";
 import { sendTestEmailFn } from "@/functions/connector-actions.functions";
 import { CheckCircle2, AlertTriangle, Loader2, Send, X } from "lucide-react";
 
@@ -42,7 +43,10 @@ export function SendTestEmailControl({
 
   const [open, setOpen] = useState(false);
   const [to, setTo] = useState(user?.email ?? "");
-  const [sending, setSending] = useState(false);
+  // Single-flight lock — see useActionLock. Prevents a flurry of clicks on
+  // "Send" from launching multiple test emails in parallel.
+  const sendLock = useActionLock();
+  const sending = sendLock.loading;
   const [result, setResult] = useState<Result>({ kind: "idle" });
 
   const disabled = !!disabledReason;
@@ -60,24 +64,23 @@ export function SendTestEmailControl({
       return;
     }
 
-    setSending(true);
     setResult({ kind: "idle" });
-    try {
-      await sendTestEmail({
-        data: {
-          organizationId: organization.id,
-          provider,
-          to: trimmed,
-        },
-      });
-      setResult({ kind: "ok", to: trimmed });
-    } catch (err) {
-      const reason =
-        err instanceof Error ? err.message : `Couldn't send test email via ${providerLabel}.`;
-      setResult({ kind: "err", reason });
-    } finally {
-      setSending(false);
-    }
+    await sendLock.run(async () => {
+      try {
+        await sendTestEmail({
+          data: {
+            organizationId: organization.id,
+            provider,
+            to: trimmed,
+          },
+        });
+        setResult({ kind: "ok", to: trimmed });
+      } catch (err) {
+        const reason =
+          err instanceof Error ? err.message : `Couldn't send test email via ${providerLabel}.`;
+        setResult({ kind: "err", reason });
+      }
+    });
   };
 
   if (!open) {
