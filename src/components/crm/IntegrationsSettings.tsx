@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useActionLock } from "@/hooks/useActionLock";
 import {
   getIntegrationFn,
   saveIntegrationFn,
@@ -457,7 +458,9 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   const [fieldTwo, setFieldTwo] = useState("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const [testing, setTesting] = useState(false);
+  // Test button uses a single-flight lock — see useActionLock for rationale.
+  const testLock = useActionLock();
+  const testing = testLock.loading;
   const [editing, setEditing] = useState(false);
   const [showStepsForFirstSetup, setShowStepsForFirstSetup] = useState(true);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -554,25 +557,24 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   };
 
   const handleTest = async () => {
-    setTesting(true);
-    try {
-      const res = await onTest();
-      if (res?.ok) {
-        toast.success(`${config.name} is working`, {
-          description: "Credentials verified successfully.",
-        });
-      } else {
-        toast.error(`${config.name} test failed`, {
-          description: res?.reason ?? "No response from provider.",
+    await testLock.run(async () => {
+      try {
+        const res = await onTest();
+        if (res?.ok) {
+          toast.success(`${config.name} is working`, {
+            description: "Credentials verified successfully.",
+          });
+        } else {
+          toast.error(`${config.name} test failed`, {
+            description: res?.reason ?? "No response from provider.",
+          });
+        }
+      } catch (err) {
+        toast.error("Test failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
         });
       }
-    } catch (err) {
-      toast.error("Test failed", {
-        description: err instanceof Error ? err.message : "Unknown error",
-      });
-    } finally {
-      setTesting(false);
-    }
+    });
   };
 
   const handleSaveSettings = async () => {
@@ -774,7 +776,13 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
           ) : (
             <div className="space-y-3">
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTest}
+                  disabled={testLock.locked}
+                  aria-busy={testing}
+                >
                   {testing ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (

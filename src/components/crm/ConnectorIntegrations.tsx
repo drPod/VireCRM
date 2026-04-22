@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useActionLock } from "@/hooks/useActionLock";
 import {
   listConnectorsFn,
   enableConnectorFn,
@@ -399,7 +400,7 @@ function ConnectorRow({
   organizationId,
 }: ConnectorRowProps) {
   const [busy, setBusy] = useState(false);
-  const [testing, setTesting] = useState(false);
+  // `testing` is now derived from useActionLock below.
   const [syncing, setSyncing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
@@ -433,13 +434,16 @@ function ConnectorRow({
     }
   };
 
+  // Single-flight lock prevents repeated Test clicks from firing parallel
+  // verifications. The button stays disabled while a request is in flight
+  // and for a short cooldown after, so impatient double-clicks coalesce.
+  const testLock = useActionLock();
+  const testing = testLock.loading;
+
   const handleTest = async () => {
-    setTesting(true);
-    try {
+    await testLock.run(async () => {
       await onTest();
-    } finally {
-      setTesting(false);
-    }
+    });
   };
 
   const openEditor = () => {
@@ -625,7 +629,13 @@ function ConnectorRow({
                 Sync contacts
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTest}
+              disabled={testLock.locked}
+              aria-busy={testing}
+            >
               {testing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
