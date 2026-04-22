@@ -423,7 +423,7 @@ function ConnectorRow({
         </div>
       )}
 
-
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <a
           href={meta.docsUrl}
           target="_blank"
