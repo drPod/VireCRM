@@ -64,8 +64,8 @@ export const CONNECTORS: ConnectorMeta[] = [
   // ===== Email & Calendar =====
   {
     id: "gmail",
-    connectorId: "gmail",
-    envVar: "GMAIL_API_KEY",
+    connectorId: "google_mail",
+    envVar: "GOOGLE_MAIL_API_KEY",
     name: "Gmail",
     description: "Send outreach emails from your own Gmail account. Replies land in your inbox.",
     category: "email_calendar",
