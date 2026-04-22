@@ -12,7 +12,7 @@
  * workspace owner has linked it once. For dev/preview, owners can flip the
  * toggle directly to test wiring.
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
@@ -21,6 +21,7 @@ import {
   disableConnectorFn,
   testConnectorFn,
   updateConnectorConfigFn,
+  refreshConnectorStatusFn,
   type ConnectorStatus,
 } from "@/functions/connectors.functions";
 import { importHubspotContactsFn } from "@/functions/connector-actions.functions";
@@ -67,9 +68,13 @@ export function ConnectorIntegrations() {
   const disableConnector = useAuthedServerFn(disableConnectorFn);
   const testConnector = useAuthedServerFn(testConnectorFn);
   const updateConnectorConfig = useAuthedServerFn(updateConnectorConfigFn);
+  const refreshConnectorStatus = useAuthedServerFn(refreshConnectorStatusFn);
 
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState<Record<string, ConnectorStatus>>({});
+  // Tracks which providers we've already toasted "Connected" for, so the
+  // background poller doesn't re-toast on every successful refresh.
+  const toastedConnectedRef = useRef<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
     if (!organization?.id || !isOwner) {
@@ -82,6 +87,13 @@ export function ConnectorIntegrations() {
       const map: Record<string, ConnectorStatus> = {};
       for (const s of res.statuses) map[s.id] = s;
       setStatuses(map);
+      // Seed the "already toasted" set with anything that's currently
+      // connected, so the poller doesn't fire a toast on first load.
+      for (const s of res.statuses) {
+        if (s.enabled && s.credentialPresent && s.verified === true) {
+          toastedConnectedRef.current.add(s.id);
+        }
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -92,6 +104,98 @@ export function ConnectorIntegrations() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Background poller: any provider that's enabled but still missing its
+  // gateway credentials (or, for Gmail, missing the discovered connectedEmail)
+  // gets re-checked periodically. As soon as the gateway has injected the env
+  // var, the row will swap to "Connected" without a manual reload.
+  //
+  // Polling cadence: every 4s for the first minute, then every 12s, capped
+  // at 5 minutes total. We only poll while the page is visible — when the
+  // user switches tabs we pause to avoid wasted network calls.
+  useEffect(() => {
+    if (!organization?.id || !isOwner) return;
+
+    const pendingProviders = () =>
+      Object.values(statuses)
+        .filter((s) => {
+          if (!s.enabled) return false;
+          // Awaiting auth: enabled but the gateway env var hasn't appeared yet.
+          if (!s.credentialPresent) return true;
+          // Verify failed mid-flight — keep polling, the gateway may still be
+          // refreshing the token.
+          if (s.verified === false) return true;
+          // Gmail-specific: credentials are there but we haven't discovered
+          // the mailbox email yet. Worth one more refresh to populate it.
+          if (s.id === "gmail" && s.verified === true && !s.config?.connectedEmail) {
+            return true;
+          }
+          return false;
+        })
+        .map((s) => s.id);
+
+    if (pendingProviders().length === 0) return;
+
+    const startedAt = Date.now();
+    const MAX_DURATION_MS = 5 * 60 * 1000;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const tick = async () => {
+      if (cancelled) return;
+      if (document.hidden) {
+        // Page not visible — try again soon without hitting the network.
+        timer = setTimeout(tick, 4000);
+        return;
+      }
+      const providers = pendingProviders();
+      if (providers.length === 0 || Date.now() - startedAt > MAX_DURATION_MS) {
+        return;
+      }
+
+      await Promise.all(
+        providers.map(async (provider) => {
+          try {
+            const { status } = await refreshConnectorStatus({
+              data: { organizationId: organization.id, provider },
+            });
+            if (cancelled) return;
+            setStatuses((prev) => ({ ...prev, [provider]: status }));
+
+            // Surface a toast the first time a pending connector goes live.
+            const becameConnected =
+              status.enabled && status.credentialPresent && status.verified === true;
+            if (becameConnected && !toastedConnectedRef.current.has(provider)) {
+              toastedConnectedRef.current.add(provider);
+              const meta = CONNECTORS.find((c) => c.id === provider);
+              const email =
+                provider === "gmail" && typeof status.config?.connectedEmail === "string"
+                  ? (status.config.connectedEmail as string)
+                  : null;
+              toast.success(`${meta?.name ?? provider} connected`, {
+                description: email
+                  ? `Linked to ${email}. You can send and receive emails now.`
+                  : "Credentials are live and verified.",
+              });
+            }
+          } catch {
+            // Swallow — next tick will retry.
+          }
+        }),
+      );
+
+      const elapsed = Date.now() - startedAt;
+      const interval = elapsed < 60_000 ? 4000 : 12000;
+      timer = setTimeout(tick, interval);
+    };
+
+    timer = setTimeout(tick, 4000);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [organization?.id, isOwner, statuses, refreshConnectorStatus]);
 
   const handleEnable = useCallback(
     async (provider: string) => {
@@ -402,6 +506,14 @@ function ConnectorRow({
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
+          {enabled && typeof status?.config?.connectedEmail === "string" && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Linked to{" "}
+              <span className="font-medium text-foreground">
+                {String(status.config.connectedEmail)}
+              </span>
+            </p>
+          )}
         </div>
       </div>
 
