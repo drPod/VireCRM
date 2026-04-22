@@ -571,6 +571,8 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
         description: err instanceof Error ? err.message : "Unknown error",
       });
     } finally {
+      setTesting(false);
+    }
   };
 
   const handleSaveSettings = async () => {
