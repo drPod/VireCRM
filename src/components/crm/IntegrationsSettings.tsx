@@ -41,7 +41,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type Provider = "apollo" | "hunter" | "snov";
+type Provider = "apollo" | "hunter" | "snov" | "sendgrid";
+
+interface ProviderConfigField {
+  key: string;
+  label: string;
+  placeholder?: string;
+  helper?: string;
+}
 
 interface ProviderConfig {
   id: Provider;
@@ -67,6 +74,8 @@ interface ProviderConfig {
     /** How the two are joined when sent to the server. */
     joiner: string;
   };
+  /** Non-secret editable settings (stored in org_integrations.config). */
+  settingsFields?: ProviderConfigField[];
 }
 
 const PROVIDERS: ProviderConfig[] = [
