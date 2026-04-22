@@ -244,7 +244,16 @@ export function AddLeadDialog({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-foreground">Notes</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-xs font-medium text-foreground">Notes / description</label>
+              <button
+                type="button"
+                onClick={addCustomField}
+                className="text-[11px] font-medium text-primary hover:underline"
+              >
+                + Add field
+              </button>
+            </div>
             <textarea
               className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
               rows={2}
@@ -252,6 +261,37 @@ export function AddLeadDialog({
               value={form.notes}
               onChange={(e) => update("notes", e.target.value)}
             />
+            {customFields.length > 0 && (
+              <div className="mt-2 space-y-2">
+                <p className="text-[11px] text-muted-foreground">
+                  Custom fields will be appended to the description.
+                </p>
+                {customFields.map((f, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      className={`${inputClass} sm:max-w-[40%]`}
+                      placeholder="Field name (e.g. Annual kWh)"
+                      value={f.label}
+                      onChange={(e) => updateCustomField(idx, "label", e.target.value)}
+                    />
+                    <input
+                      className={inputClass}
+                      placeholder="Value"
+                      value={f.value}
+                      onChange={(e) => updateCustomField(idx, "value", e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCustomField(idx)}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
+                      aria-label="Remove field"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
             <label
