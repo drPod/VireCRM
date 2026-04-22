@@ -77,6 +77,44 @@ export async function callGateway<T = unknown>(opts: GatewayCallOptions): Promis
 }
 
 /**
+ * Best-effort revoke — tells the gateway to invalidate the OAuth token / cached
+ * credentials for this connection. Safe to call even if the connector doesn't
+ * implement revoke (we treat 404 / unsupported as success since there's nothing
+ * to revoke on our side).
+ *
+ * The actual underlying connection in the user's workspace is NOT deleted —
+ * that's a workspace-level action the user can take from Lovable settings.
+ * This call ensures any cached tokens at the gateway layer are dropped so the
+ * next call requires re-auth.
+ */
+export async function revokeConnectorCredentials(envVar: string): Promise<{ ok: boolean; error?: string }> {
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const connectorKey = process.env[envVar];
+  if (!lovableKey || !connectorKey) {
+    // No credentials present means there's nothing to revoke — treat as success.
+    return { ok: true };
+  }
+
+  try {
+    const res = await fetch(`${GATEWAY_BASE}/api/v1/revoke_credentials`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": connectorKey,
+      },
+    });
+    // 404 = endpoint not implemented for this connector; 200/204 = revoked.
+    if (res.ok || res.status === 404) {
+      return { ok: true };
+    }
+    const text = await res.text().catch(() => "");
+    return { ok: false, error: `HTTP ${res.status}${text ? `: ${text.slice(0, 200)}` : ""}` };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "network error" };
+  }
+}
+
+/**
  * Best-effort credentials check — used by the UI to display a "verified" badge
  * without actually performing a destructive action.
  */
