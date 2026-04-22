@@ -37,7 +37,7 @@ function getRetryAfterSeconds(error: unknown): number {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   queue: string,
   msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
@@ -236,21 +236,16 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                   idempotency_key: payload.idempotency_key,
                   unsubscribe_token: payload.unsubscribe_token,
                   message_id: payload.message_id,
-                  reply_to: payload.reply_to,
                 },
                 { apiKey, sendUrl: process.env.LOVABLE_SEND_URL }
               )
 
-              // Log success — carry subject/preview through so the UI can render them
+              // Log success
               await supabase.from('email_send_log').insert({
                 message_id: payload.message_id,
                 template_name: payload.label || queue,
                 recipient_email: payload.to,
                 status: 'sent',
-                metadata:
-                  payload.subject || payload.body_preview
-                    ? { subject: payload.subject, body_preview: payload.body_preview }
-                    : null,
               })
 
               // Delete from queue
