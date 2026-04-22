@@ -110,6 +110,23 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       `- ${l.name}${l.company ? ` at ${l.company}` : ""}${l.role ? ` (${l.role})` : ""}${l.score ? ` [score: ${l.score}]` : ""}`
     ).join("\n");
 
+    // ----- Pull the chosen template (or org default) and feed it to the AI
+    // as the structural base. The AI keeps the user's voice + key talking
+    // points but rewrites for natural per-lead personalization.
+    let templateBlock = "";
+    if (data.templateId !== undefined) {
+      const tQuery = supabase
+        .from("outreach_templates")
+        .select("subject, body")
+        .eq("organization_id", data.organizationId);
+      const { data: tpl } = data.templateId
+        ? await tQuery.eq("id", data.templateId).maybeSingle()
+        : await tQuery.eq("is_default", true).maybeSingle();
+      if (tpl) {
+        templateBlock = `\n\nUse this template as the structural base for every email — keep the user's voice, tone, structure, and key talking points; only personalize wording for each lead. Placeholders like {{first_name}}, {{company}}, {{role}} should be replaced with each lead's actual values:\n---\nSubject: ${tpl.subject}\n---\n${tpl.body}\n---`;
+      }
+    }
+
     // ----- 1. Generate copy in one AI call (cheaper + more consistent voice) -----
     const result = await callAiWithFallback<{ emails?: GeneratedEmail[] }>({
       featureLabel: "Auto-outreach",
@@ -124,8 +141,9 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
 - Include a clear value proposition
 - End with a soft call-to-action (e.g., "Would you be open to a quick chat?")
 - Sound human and natural, NOT templated or salesy
-- Use the lead's first name`,
-      userPrompt: `${businessCtx}\n\nGenerate personalized outreach emails for these leads:\n${leadsInfo}`,
+- Use the lead's first name
+- If a template is provided, follow its structure faithfully — only adjust wording for natural per-lead personalization`,
+      userPrompt: `${businessCtx}\n\nLeads:\n${leadsInfo}${templateBlock}`,
       toolSchema: {
         type: "object",
         properties: {
