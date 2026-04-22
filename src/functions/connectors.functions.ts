@@ -38,7 +38,7 @@ export interface ConnectorStatus {
   /** Result of a live verify_credentials ping (only populated when enabled). */
   verified: boolean | null;
   verifyError: string | null;
-  config: Record<string, unknown>;
+  config: Record<string, string | number | boolean | null>;
   enabledAt: string | null;
 }
 
@@ -53,11 +53,11 @@ export const listConnectorsFn = createServerFn({ method: "POST" })
       .select("provider, enabled, config, created_at")
       .eq("organization_id", data.organizationId);
 
-    const byId = new Map<string, { enabled: boolean; config: Record<string, unknown>; created_at: string }>();
+    const byId = new Map<string, { enabled: boolean; config: Record<string, string | number | boolean | null>; created_at: string }>();
     for (const r of rows ?? []) {
       byId.set(r.provider, {
         enabled: r.enabled,
-        config: (r.config as Record<string, unknown>) ?? {},
+        config: ((r.config as Record<string, string | number | boolean | null>) ?? {}),
         created_at: r.created_at,
       });
     }
@@ -194,7 +194,7 @@ export const listEnabledConnectorsFn = createServerFn({ method: "POST" })
         .filter((r) => !!process.env[getConnector(r.provider)?.envVar ?? ""])
         .map((r) => ({
           provider: r.provider,
-          config: (r.config as Record<string, unknown>) ?? {},
+          config: ((r.config as Record<string, string | number | boolean | null>) ?? {}),
         })),
     };
   });
