@@ -30,6 +30,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ConnectorIntegrations } from "./ConnectorIntegrations";
+import { SendTestEmailControl } from "./SendTestEmailControl";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
@@ -720,32 +721,46 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
               {renderEditor()}
             </>
           ) : (
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
-                {testing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Activity className="h-3.5 w-3.5" />
-                )}
-                Test
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setConfirmDisconnect(true)}
-                disabled={removing}
-              >
-                {removing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-                Disconnect
-              </Button>
+            <div className="space-y-3">
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+                  {testing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Activity className="h-3.5 w-3.5" />
+                  )}
+                  Test
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmDisconnect(true)}
+                  disabled={removing}
+                >
+                  {removing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                  Disconnect
+                </Button>
+              </div>
+              {config.id === "sendgrid" && (
+                <SendTestEmailControl
+                  provider="sendgrid"
+                  providerLabel="SendGrid"
+                  disabledReason={
+                    typeof status.config?.defaultFromAddress === "string" &&
+                    status.config.defaultFromAddress.trim().length > 0
+                      ? null
+                      : "Set a Send-from address below before sending a test."
+                  }
+                />
+              )}
             </div>
           )}
         </div>
