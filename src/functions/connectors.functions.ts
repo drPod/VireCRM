@@ -128,7 +128,7 @@ async function fetchGoogleConnectedEmail(
 
   const url =
     provider === "gmail"
-      ? "https://connector-gateway.lovable.dev/gmail/gmail/v1/users/me/profile"
+      ? "https://connector-gateway.lovable.dev/google_mail/gmail/v1/users/me/profile"
       : "https://connector-gateway.lovable.dev/google_calendar/oauth2/v2/userinfo";
 
   try {
