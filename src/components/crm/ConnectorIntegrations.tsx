@@ -118,18 +118,53 @@ export function ConnectorIntegrations() {
   const handleDisable = useCallback(
     async (provider: string, name: string) => {
       if (!organization?.id) return;
+      // Snapshot for rollback if the call fails.
+      const previous = statuses[provider];
+      // Optimistically reflect "disconnected" in the card immediately so the
+      // user gets instant feedback without waiting for the round-trip.
+      setStatuses((prev) => ({
+        ...prev,
+        [provider]: {
+          ...(prev[provider] ?? {
+            id: provider,
+            enabled: false,
+            credentialPresent: false,
+            verified: null,
+            verifyError: null,
+            config: {},
+            enabledAt: null,
+          }),
+          enabled: false,
+          verified: null,
+          verifyError: null,
+          config: {},
+        },
+      }));
       try {
-        await disableConnector({ data: { organizationId: organization.id, provider } });
-        toast.success(`${name} disconnected`);
+        const res = await disableConnector({ data: { organizationId: organization.id, provider } });
+        if (res.revoked) {
+          toast.success(`${name} disconnected`, {
+            description: "Access revoked. Reconnect any time to start again.",
+          });
+        } else {
+          toast.warning(`${name} disconnected`, {
+            description: `Local state cleared, but the provider revoke step reported: ${res.revokeError ?? "unknown error"}`,
+          });
+        }
+        // Re-sync from the server so credentialPresent / verified reflect reality.
         void refresh();
       } catch (err) {
+        // Roll back the optimistic update.
+        if (previous) {
+          setStatuses((prev) => ({ ...prev, [provider]: previous }));
+        }
         toast.error("Couldn't disconnect", {
           description: err instanceof Error ? err.message : "Unknown error",
         });
         throw err;
       }
     },
-    [organization?.id, disableConnector, refresh],
+    [organization?.id, disableConnector, refresh, statuses],
   );
 
   const handleTest = useCallback(
