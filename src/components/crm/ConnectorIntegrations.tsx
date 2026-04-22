@@ -128,9 +128,14 @@ export function ConnectorIntegrations() {
           // Verify failed mid-flight — keep polling, the gateway may still be
           // refreshing the token.
           if (s.verified === false) return true;
-          // Gmail-specific: credentials are there but we haven't discovered
-          // the mailbox email yet. Worth one more refresh to populate it.
-          if (s.id === "gmail" && s.verified === true && !s.config?.connectedEmail) {
+          // Google connectors: credentials are there but we haven't
+          // discovered the connected account email yet. Worth one more
+          // refresh to populate it.
+          if (
+            (s.id === "gmail" || s.id === "google_calendar") &&
+            s.verified === true &&
+            !s.config?.connectedEmail
+          ) {
             return true;
           }
           return false;
@@ -172,12 +177,13 @@ export function ConnectorIntegrations() {
               toastedConnectedRef.current.add(provider);
               const meta = CONNECTORS.find((c) => c.id === provider);
               const email =
-                provider === "gmail" && typeof status.config?.connectedEmail === "string"
+                (provider === "gmail" || provider === "google_calendar") &&
+                typeof status.config?.connectedEmail === "string"
                   ? (status.config.connectedEmail as string)
                   : null;
               toast.success(`${meta?.name ?? provider} connected`, {
                 description: email
-                  ? `Linked to ${email}. You can send and receive emails now.`
+                  ? `Connected as ${email}.`
                   : "Credentials are live and verified.",
               });
             }
@@ -550,14 +556,16 @@ function ConnectorRow({
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
-          {enabled && typeof status?.config?.connectedEmail === "string" && (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Linked to{" "}
-              <span className="font-medium text-foreground">
-                {String(status.config.connectedEmail)}
-              </span>
-            </p>
-          )}
+          {enabled &&
+            (meta.id === "gmail" || meta.id === "google_calendar") &&
+            typeof status?.config?.connectedEmail === "string" && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Connected as{" "}
+                <span className="font-medium text-foreground">
+                  {String(status.config.connectedEmail)}
+                </span>
+              </p>
+            )}
         </div>
       </div>
 
