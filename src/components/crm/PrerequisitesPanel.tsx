@@ -202,6 +202,31 @@ export function PrerequisitesPanel({
           );
         })}
       </ul>
+      {hasBlocking && verification && (verification.lastVerifiedAt || verification.failureReason) && (
+        <div className="mt-1 pt-2 border-t border-warning/20 text-[10.5px] text-muted-foreground space-y-0.5">
+          {verification.lastVerifiedAt && (
+            <div
+              className="flex items-center gap-1"
+              title={new Date(verification.lastVerifiedAt).toLocaleString()}
+            >
+              <Clock className="h-3 w-3 shrink-0" />
+              <span>
+                Last checked {formatRelative(verification.lastVerifiedAt)}
+                {verification.outcome === "ok"
+                  ? " — succeeded"
+                  : verification.outcome === "failed"
+                    ? " — failed"
+                    : ""}
+              </span>
+            </div>
+          )}
+          {verification.outcome === "failed" && verification.failureReason && (
+            <div className="text-foreground/80 break-words leading-snug">
+              <span className="font-medium">Cause:</span> {verification.failureReason}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
