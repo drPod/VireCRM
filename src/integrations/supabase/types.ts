@@ -766,6 +766,7 @@ export type Database = {
       org_integrations: {
         Row: {
           api_key: string
+          config: Json
           created_at: string
           id: string
           last_verified_at: string | null
@@ -776,6 +777,7 @@ export type Database = {
         }
         Insert: {
           api_key: string
+          config?: Json
           created_at?: string
           id?: string
           last_verified_at?: string | null
@@ -786,6 +788,7 @@ export type Database = {
         }
         Update: {
           api_key?: string
+          config?: Json
           created_at?: string
           id?: string
           last_verified_at?: string | null
