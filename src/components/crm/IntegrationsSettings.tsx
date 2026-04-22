@@ -37,6 +37,7 @@ import { IntegrationActivityLog } from "./IntegrationActivityLog";
 import { validateDraft, FIELD_RULES } from "@/lib/connectors/validation";
 import { deriveByoPrerequisites } from "@/lib/connectors/prerequisites";
 import { PrerequisitesPanel } from "./PrerequisitesPanel";
+import { VerifiedExplainer } from "./VerifiedExplainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -801,6 +802,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
             ) : (
               <Badge variant="outline">Not connected</Badge>
             )}
+            {/* Inline help — explains what "Verified" / "Connected" means
+                for a BYO key card (we called the provider directly with
+                the saved key and got a 200-class response). */}
+            <VerifiedExplainer variant="byo" providerLabel={config.name} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{config.description}</p>
         </div>
@@ -846,6 +851,20 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
             <PrerequisitesPanel
               prerequisites={prereqs}
               providerLabel={config.name}
+              verification={{
+                // Freshest test result beats the saved lastVerifiedAt.
+                lastVerifiedAt:
+                  testResult?.verifiedAt ?? status.lastVerifiedAt ?? null,
+                outcome: testResult
+                  ? testResult.ok
+                    ? "ok"
+                    : "failed"
+                  : status.lastVerifiedAt
+                    ? "ok"
+                    : "unknown",
+                failureReason:
+                  testResult && !testResult.ok ? (testResult.reason ?? null) : null,
+              }}
               onAction={async (p) => {
                 switch (p.actionId) {
                   case "focus-key-input":

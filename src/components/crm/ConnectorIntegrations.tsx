@@ -36,6 +36,7 @@ import {
 import { validateDraft, FIELD_RULES } from "@/lib/connectors/validation";
 import { deriveConnectorPrerequisites } from "@/lib/connectors/prerequisites";
 import { PrerequisitesPanel } from "./PrerequisitesPanel";
+import { VerifiedExplainer } from "./VerifiedExplainer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -562,6 +563,10 @@ function ConnectorRow({
             ) : (
               <Badge variant="outline" className="text-[10px]">Not connected</Badge>
             )}
+            {/* Inline help — explains what "Verified" / "Connected" actually
+                means for a one-click connector (gateway token refresh + a
+                successful provider call). */}
+            <VerifiedExplainer variant="connector" providerLabel={meta.name} />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
           {enabled &&
@@ -592,6 +597,27 @@ function ConnectorRow({
             <PrerequisitesPanel
               prerequisites={prereqs}
               providerLabel={meta.name}
+              verification={{
+                // Prefer the freshest signal: an in-memory test run beats the
+                // last server-known timestamp. enabledAt is the fallback so
+                // newly-enabled cards still show *something* useful.
+                lastVerifiedAt:
+                  testResult?.verifiedAt ?? status?.enabledAt ?? null,
+                outcome:
+                  testResult
+                    ? testResult.ok
+                      ? "ok"
+                      : "failed"
+                    : status?.verified === true
+                      ? "ok"
+                      : status?.verified === false
+                        ? "failed"
+                        : "unknown",
+                failureReason:
+                  testResult && !testResult.ok
+                    ? (testResult.reason ?? null)
+                    : (status?.verifyError ?? null),
+              }}
               onAction={async (p) => {
                 switch (p.actionId) {
                   case "connect":
