@@ -86,8 +86,12 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
         if (data?.notes) setForm((prev) => ({ ...prev, notes: data.notes ?? "" }));
         setLoadingNotes(false);
       });
+  }, [lead]);
 
-    // Fetch activity history
+  // Fetch activity history (re-runs on lead change OR when an action signals
+  // a refetch via activityRefetchKey, e.g. after sending an email).
+  useEffect(() => {
+    if (!lead) return;
     setLoadingActivity(true);
     Promise.all([
       supabase
