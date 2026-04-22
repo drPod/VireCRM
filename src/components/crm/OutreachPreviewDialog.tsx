@@ -114,12 +114,12 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
         onSent();
         onOpenChange(false);
       } else {
-        toast.error("Email not sent", {
+        toast.warning("Draft saved — send needs attention", {
           description: result?.reason ?? "The recipient was skipped.",
         });
       }
     } catch (err) {
-      toast.error("Failed to send outreach", {
+      toast.warning("Draft saved — send needs attention", {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
