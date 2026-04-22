@@ -50,6 +50,9 @@ import {
   Download,
   Activity,
   Pencil,
+  Copy,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SendTestEmailControl } from "./SendTestEmailControl";
