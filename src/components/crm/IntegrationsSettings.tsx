@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { ConnectorIntegrations } from "./ConnectorIntegrations";
+import { Separator } from "@/components/ui/separator";
 
 type Provider = "apollo" | "hunter" | "snov";
 
@@ -271,7 +273,20 @@ export function IntegrationsSettings() {
         )}
       </Card>
 
-      {/* One card per provider */}
+      {/* One-click connector integrations (Slack, Gmail, HubSpot, ...) */}
+      <ConnectorIntegrations />
+
+      <Separator />
+
+      <div>
+        <h3 className="text-base font-semibold text-foreground">Lead-source API keys</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Bring your own keys for the lead-discovery providers below. Each is billed directly by
+          the vendor and bypasses your platform monthly quota.
+        </p>
+      </div>
+
+      {/* One card per BYO provider */}
       {PROVIDERS.map((cfg) => (
         <ProviderCard
           key={cfg.id}
