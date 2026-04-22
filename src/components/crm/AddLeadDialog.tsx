@@ -44,6 +44,9 @@ export function AddLeadDialog({
     score: 50,
     next_action: "",
     notes: "",
+    annual_kwh: "" as string, // string in form, parsed on submit
+    contract_end_date: "" as string, // YYYY-MM-DD
+    current_supplier: "",
   });
 
   const update = (field: string, value: string | number) =>
@@ -60,6 +63,19 @@ export function AddLeadDialog({
       return;
     }
 
+    // Parse annual kWh — accept "12,000" / "12000 kWh" / blank.
+    let annualKwh: number | null = null;
+    const rawKwh = form.annual_kwh.trim();
+    if (rawKwh) {
+      const cleaned = rawKwh.replace(/[^\d.]/g, "");
+      const n = cleaned ? Math.round(Number(cleaned)) : NaN;
+      if (!Number.isFinite(n) || n < 0) {
+        toast.error("Annual kWh must be a positive number");
+        return;
+      }
+      annualKwh = n;
+    }
+
     setLoading(true);
     try {
       const { error, data: inserted } = await supabase.from("leads").insert({
@@ -72,10 +88,25 @@ export function AddLeadDialog({
         score: form.score,
         next_action: form.next_action.trim() || null,
         notes: form.notes.trim() || null,
+        annual_kwh: annualKwh,
+        contract_end_date: form.contract_end_date || null,
+        current_supplier: form.current_supplier.trim() || null,
       }).select("id, name, email, company");
       if (error) throw error;
       toast.success(`Lead "${form.name}" added!`);
-      setForm({ name: "", email: "", phone: "", company: "", status: "new", score: 50, next_action: "", notes: "" });
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        status: "new",
+        score: 50,
+        next_action: "",
+        notes: "",
+        annual_kwh: "",
+        contract_end_date: "",
+        current_supplier: "",
+      });
       setOpen(false);
       onLeadAdded?.();
 
@@ -170,6 +201,47 @@ export function AddLeadDialog({
                 value={form.score}
                 onChange={(e) => update("score", Number(e.target.value))}
               />
+            </div>
+          </div>
+          <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Energy details
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Annual kWh
+                </label>
+                <input
+                  inputMode="numeric"
+                  className={inputClass}
+                  placeholder="e.g. 120000"
+                  value={form.annual_kwh}
+                  onChange={(e) => update("annual_kwh", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Contract end date
+                </label>
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={form.contract_end_date}
+                  onChange={(e) => update("contract_end_date", e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Current supplier
+                </label>
+                <input
+                  className={inputClass}
+                  placeholder="e.g. British Gas, EDF, Octopus"
+                  value={form.current_supplier}
+                  onChange={(e) => update("current_supplier", e.target.value)}
+                />
+              </div>
             </div>
           </div>
           <div>
