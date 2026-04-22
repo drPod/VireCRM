@@ -34,6 +34,8 @@ import {
   type ConnectorMeta,
 } from "@/lib/connectors/catalog";
 import { validateDraft, FIELD_RULES } from "@/lib/connectors/validation";
+import { deriveConnectorPrerequisites } from "@/lib/connectors/prerequisites";
+import { PrerequisitesPanel } from "./PrerequisitesPanel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -568,6 +570,16 @@ function ConnectorRow({
             )}
         </div>
       </div>
+
+      {!loading && (() => {
+        const prereqs = deriveConnectorPrerequisites(meta, status);
+        if (prereqs.length === 0) return null;
+        return (
+          <div className="mb-3">
+            <PrerequisitesPanel prerequisites={prereqs} providerLabel={meta.name} />
+          </div>
+        );
+      })()}
 
       {(testResult || testing) && (
         <div className="mb-3">

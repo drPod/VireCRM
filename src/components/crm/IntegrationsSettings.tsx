@@ -35,6 +35,8 @@ import { SendTestEmailControl } from "./SendTestEmailControl";
 import { TestResultPanel, type TestResult } from "./TestResultPanel";
 import { IntegrationActivityLog } from "./IntegrationActivityLog";
 import { validateDraft, FIELD_RULES } from "@/lib/connectors/validation";
+import { deriveByoPrerequisites } from "@/lib/connectors/prerequisites";
+import { PrerequisitesPanel } from "./PrerequisitesPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -797,6 +799,27 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
           Get API key <ExternalLink className="h-3 w-3" />
         </a>
       </div>
+
+      {!loading && (() => {
+        const prereqs = deriveByoPrerequisites({
+          providerId: config.id,
+          providerName: config.name,
+          docsUrl: config.docsUrl,
+          status,
+          settingsFields: settingsFields.map((f) => ({
+            key: f.key,
+            label: f.label,
+            helper: f.helper,
+          })),
+          lastTest: testResult ? { ok: testResult.ok, reason: testResult.reason ?? undefined } : null,
+        });
+        if (prereqs.length === 0) return null;
+        return (
+          <div className="mb-4">
+            <PrerequisitesPanel prerequisites={prereqs} providerLabel={config.name} />
+          </div>
+        );
+      })()}
 
       {loading ? (
         <div className="flex items-center justify-center py-6">
