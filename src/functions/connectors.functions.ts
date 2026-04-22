@@ -166,6 +166,31 @@ export const updateConnectorConfigFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ----- TEST: live verify_credentials ping -----
+const testSchema = z.object({
+  organizationId: z.string().uuid(),
+  provider: z.enum(VALID_PROVIDERS),
+});
+
+export const testConnectorFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof testSchema>) => testSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertOwner(context.userId, data.organizationId);
+
+    const meta = getConnector(data.provider);
+    if (!meta) throw new Error(`Unknown connector: ${data.provider}`);
+
+    if (!process.env[meta.envVar]) {
+      return { ok: false as const, reason: "No credentials linked yet. Connect this provider first." };
+    }
+
+    const v = await verifyConnectorCredentials(meta.envVar);
+    return v.ok
+      ? { ok: true as const, verifiedAt: new Date().toISOString() }
+      : { ok: false as const, reason: v.error ?? "Verification failed" };
+  });
+
 // ----- LIST ENABLED connectors (no owner check — used by the lead drawer) -----
 const enabledSchema = z.object({ organizationId: z.string().uuid() });
 
