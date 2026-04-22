@@ -46,6 +46,7 @@ import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
 import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiPublicContactRouteImport } from './routes/api/public/contact'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
@@ -242,6 +243,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicContactRoute = ApiPublicContactRouteImport.update({
+  id: '/api/public/contact',
+  path: '/api/public/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppWorkflowsWorkflowIdRoute = AppWorkflowsWorkflowIdRouteImport.update({
   id: '/workflows/$workflowId',
   path: '/workflows/$workflowId',
@@ -335,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
+  '/api/public/contact': typeof ApiPublicContactRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
@@ -383,6 +390,7 @@ export interface FileRoutesByTo {
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
+  '/api/public/contact': typeof ApiPublicContactRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
@@ -433,6 +441,7 @@ export interface FileRoutesById {
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
+  '/api/public/contact': typeof ApiPublicContactRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
@@ -483,6 +492,7 @@ export interface FileRouteTypes {
     | '/clients/payouts'
     | '/clients/plans'
     | '/workflows/$workflowId'
+    | '/api/public/contact'
     | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/workflows/'
@@ -531,6 +541,7 @@ export interface FileRouteTypes {
     | '/clients/payouts'
     | '/clients/plans'
     | '/workflows/$workflowId'
+    | '/api/public/contact'
     | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/workflows'
@@ -580,6 +591,7 @@ export interface FileRouteTypes {
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
     | '/_app/workflows/$workflowId'
+    | '/api/public/contact'
     | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
@@ -610,6 +622,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
   HooksSendPendingWelcomesRoute: typeof HooksSendPendingWelcomesRoute
+  ApiPublicContactRoute: typeof ApiPublicContactRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -881,6 +894,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/contact': {
+      id: '/api/public/contact'
+      path: '/api/public/contact'
+      fullPath: '/api/public/contact'
+      preLoaderRoute: typeof ApiPublicContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/workflows/$workflowId': {
       id: '/_app/workflows/$workflowId'
       path: '/workflows/$workflowId'
@@ -1043,6 +1063,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
   HooksSendPendingWelcomesRoute: HooksSendPendingWelcomesRoute,
+  ApiPublicContactRoute: ApiPublicContactRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,

@@ -1,0 +1,223 @@
+/**
+ * Public contact-form intake. Anyone on the marketing site can POST here
+ * without auth. Validates input, applies a basic IP rate-limit, then
+ * pre-renders the `contact-inquiry` template and drops it on the
+ * transactional email queue. The dispatcher (process-email-queue) sends it.
+ */
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createFileRoute } from '@tanstack/react-router'
+import * as React from 'react'
+import { render } from '@react-email/components'
+import { z } from 'zod'
+import { TEMPLATES } from '@/lib/email-templates/registry'
+
+type AdminClient = SupabaseClient<any, any, any, any, any>
+
+const SENDER_DOMAIN = 'notify.vireonx.space'
+const FROM_DOMAIN = 'vireonx.space'
+const FROM_DISPLAY_NAME = 'Genesis Contact Form'
+
+const ContactSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(200),
+  email: z.string().trim().email('Invalid email').max(255).toLowerCase(),
+  company: z.string().trim().max(200).optional().nullable(),
+  phone: z.string().trim().max(50).optional().nullable(),
+  budget: z.string().trim().max(50).optional().nullable(),
+  message: z.string().trim().min(1, 'Message is required').max(4000),
+  // Honeypot — real users leave it empty. Bots fill it in.
+  website: z.string().max(0).optional().nullable(),
+})
+
+function generateToken(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+function jsonError(message: string, status: number) {
+  return Response.json({ success: false, error: message }, { status })
+}
+
+export const Route = createFileRoute('/api/public/contact')({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+        if (!supabaseUrl || !supabaseServiceKey) {
+          console.error('contact: missing supabase env vars')
+          return jsonError('Server not configured', 500)
+        }
+
+        // Parse + validate body
+        let payload: z.infer<typeof ContactSchema>
+        try {
+          const raw = await request.json()
+          payload = ContactSchema.parse(raw)
+        } catch (err) {
+          const detail =
+            err instanceof z.ZodError
+              ? err.issues.map((i) => i.message).join(', ')
+              : 'Invalid request'
+          return jsonError(detail, 400)
+        }
+
+        // Honeypot tripped — pretend success but drop silently.
+        if (payload.website && payload.website.length > 0) {
+          return Response.json({ success: true })
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseServiceKey) as AdminClient
+
+        // Best-effort lightweight per-IP rate limit: max 5 submissions / 10 min.
+        const ip =
+          request.headers.get('cf-connecting-ip') ??
+          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+          'unknown'
+
+        if (ip !== 'unknown') {
+          const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+          const { count } = await supabase
+            .from('email_send_log')
+            .select('id', { count: 'exact', head: true })
+            .eq('template_name', 'contact-inquiry')
+            .gte('created_at', tenMinAgo)
+            .ilike('error_message', `%ip:${ip}%`)
+          if ((count ?? 0) >= 5) {
+            return jsonError('Too many submissions — please try again shortly.', 429)
+          }
+        }
+
+        // Resolve template (recipient is hard-locked via template.to)
+        const template = TEMPLATES['contact-inquiry']
+        if (!template || !template.to) {
+          console.error('contact: template missing or has no fixed recipient')
+          return jsonError('Email template misconfigured', 500)
+        }
+        const recipient = template.to
+
+        // Skip if owner inbox is on the suppression list (very unlikely).
+        const { data: suppressed } = await supabase
+          .from('suppressed_emails')
+          .select('id')
+          .eq('email', recipient.toLowerCase())
+          .maybeSingle()
+
+        if (suppressed) {
+          console.warn('contact: owner inbox is suppressed', { recipient })
+          // Surface a non-leaky error to the visitor.
+          return jsonError('We could not deliver your message right now.', 500)
+        }
+
+        // Reuse-or-create unsubscribe token (required by enqueue contract,
+        // even though the recipient is the site owner).
+        let unsubscribeToken: string
+        const { data: existingToken } = await supabase
+          .from('email_unsubscribe_tokens')
+          .select('token, used_at')
+          .eq('email', recipient.toLowerCase())
+          .maybeSingle()
+
+        if (existingToken && !existingToken.used_at) {
+          unsubscribeToken = existingToken.token
+        } else {
+          unsubscribeToken = generateToken()
+          await supabase
+            .from('email_unsubscribe_tokens')
+            .upsert(
+              { token: unsubscribeToken, email: recipient.toLowerCase() } as any,
+              { onConflict: 'email', ignoreDuplicates: true }
+            )
+          const { data: stored } = await supabase
+            .from('email_unsubscribe_tokens')
+            .select('token')
+            .eq('email', recipient.toLowerCase())
+            .maybeSingle()
+          unsubscribeToken = stored?.token ?? unsubscribeToken
+        }
+
+        // Render React Email template -> HTML + plain text
+        const templateData = {
+          name: payload.name,
+          email: payload.email,
+          company: payload.company || null,
+          phone: payload.phone || null,
+          budget: payload.budget || null,
+          message: payload.message,
+        }
+        const element = React.createElement(template.component, templateData)
+        const html = await render(element)
+        const plainText = await render(element, { plainText: true })
+        const subject =
+          typeof template.subject === 'function'
+            ? template.subject(templateData)
+            : template.subject
+
+        const messageId = crypto.randomUUID()
+        const idempotencyKey = `contact-${messageId}`
+
+        // Stamp the log row with the IP so the rate limiter above can see it.
+        await supabase.from('email_send_log').insert({
+          message_id: messageId,
+          template_name: 'contact-inquiry',
+          recipient_email: recipient,
+          status: 'pending',
+          metadata: {
+            subject,
+            body_preview: plainText.replace(/\s+/g, ' ').trim().slice(0, 200),
+            visitor_email: payload.email,
+          },
+          error_message: `ip:${ip}`,
+        } as any)
+
+        const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
+          queue_name: 'transactional_emails',
+          payload: {
+            message_id: messageId,
+            to: recipient,
+            from: `${FROM_DISPLAY_NAME} <noreply@${FROM_DOMAIN}>`,
+            sender_domain: SENDER_DOMAIN,
+            subject,
+            body_preview: plainText.slice(0, 200),
+            html,
+            text: plainText,
+            purpose: 'transactional',
+            label: 'contact-inquiry',
+            idempotency_key: idempotencyKey,
+            unsubscribe_token: unsubscribeToken,
+            // Replies route back to the visitor.
+            reply_to: payload.email,
+            queued_at: new Date().toISOString(),
+          },
+        } as any)
+
+        if (enqueueErr) {
+          console.error('contact: enqueue failed', enqueueErr)
+          await supabase.from('email_send_log').insert({
+            message_id: messageId,
+            template_name: 'contact-inquiry',
+            recipient_email: recipient,
+            status: 'failed',
+            error_message: 'Failed to enqueue contact inquiry',
+          } as any)
+          return jsonError('We could not deliver your message right now.', 500)
+        }
+
+        return Response.json({ success: true })
+      },
+
+      OPTIONS: async () =>
+        new Response(null, {
+          status: 204,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          },
+        }),
+    },
+  },
+})

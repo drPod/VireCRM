@@ -1,6 +1,10 @@
 import { sendLovableEmail } from '@lovable.dev/email-js'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
+
+// Untyped admin client — this dispatcher does cross-cutting writes against
+// service-role-only tables, so we sidestep the generated Database types here.
+type AdminClient = SupabaseClient<any, any, any, any, any>
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -37,9 +41,9 @@ function getRetryAfterSeconds(error: unknown): number {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: any,
+  supabase: AdminClient,
   queue: string,
-  msg: { msg_id: number; message: Record<string, unknown> },
+  msg: { msg_id: number; message: Record<string, any> },
   reason: string
 ): Promise<void> {
   const payload = msg.message
@@ -49,13 +53,13 @@ async function moveToDlq(
     recipient_email: payload.to,
     status: 'dlq',
     error_message: reason,
-  })
+  } as any)
   const { error } = await supabase.rpc('move_to_dlq', {
     source_queue: queue,
     dlq_name: `${queue}_dlq`,
     message_id: msg.msg_id,
     payload,
-  })
+  } as any)
   if (error) {
     console.error('Failed to move message to DLQ', { queue, msg_id: msg.msg_id, reason, error })
   }
@@ -89,7 +93,7 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
           return Response.json({ error: 'Forbidden' }, { status: 403 })
         }
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        const supabase = createClient(supabaseUrl, supabaseServiceKey) as AdminClient
 
         // 1. Check rate-limit cooldown and read queue config
         const { data: state } = await supabase
@@ -236,21 +240,16 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                   idempotency_key: payload.idempotency_key,
                   unsubscribe_token: payload.unsubscribe_token,
                   message_id: payload.message_id,
-                  reply_to: payload.reply_to,
                 },
                 { apiKey, sendUrl: process.env.LOVABLE_SEND_URL }
               )
 
-              // Log success — carry subject/preview through so the UI can render them
+              // Log success
               await supabase.from('email_send_log').insert({
                 message_id: payload.message_id,
                 template_name: payload.label || queue,
                 recipient_email: payload.to,
                 status: 'sent',
-                metadata:
-                  payload.subject || payload.body_preview
-                    ? { subject: payload.subject, body_preview: payload.body_preview }
-                    : null,
               })
 
               // Delete from queue
