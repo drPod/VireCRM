@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
+import { LeadConnectorActions } from "./LeadConnectorActions";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
@@ -283,20 +284,28 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               <SheetDescription>Edit lead information and view activity history.</SheetDescription>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
-              <Button
-                variant="command"
-                size="sm"
-                onClick={handleOpenPreview}
-                disabled={!(form.email.trim() || lead.email)}
-                title={
-                  form.email.trim() || lead.email
-                    ? "Preview an AI-generated outreach email before sending"
-                    : "Add an email address to enable sending"
-                }
-              >
-                <Send className="mr-1.5 h-3.5 w-3.5" />
-                Send outreach
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="command"
+                  size="sm"
+                  onClick={handleOpenPreview}
+                  disabled={!(form.email.trim() || lead.email)}
+                  title={
+                    form.email.trim() || lead.email
+                      ? "Preview an AI-generated outreach email before sending"
+                      : "Add an email address to enable sending"
+                  }
+                >
+                  <Send className="mr-1.5 h-3.5 w-3.5" />
+                  Send outreach
+                </Button>
+                <LeadConnectorActions
+                  leadId={lead.id}
+                  leadName={form.name || lead.name}
+                  leadEmail={form.email.trim() || lead.email || null}
+                  leadPhone={form.phone.trim() || lead.phone || null}
+                />
+              </div>
               {lastOutreachLabel && (
                 <span
                   className="flex items-center gap-1 text-[10px] text-muted-foreground"
