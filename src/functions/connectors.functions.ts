@@ -11,7 +11,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CONNECTORS, getConnector } from "@/lib/connectors/catalog";
-import { verifyConnectorCredentials } from "@/lib/connectors/gateway";
+import { verifyConnectorCredentials, revokeConnectorCredentials } from "@/lib/connectors/gateway";
+import { recordConnectorActivity } from "./_connector-log";
 import { z } from "zod";
 
 const VALID_PROVIDERS = CONNECTORS.map((c) => c.id) as [string, ...string[]];
