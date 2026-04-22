@@ -532,6 +532,12 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
     return (settingsDraft[f.key] ?? "") !== savedStr;
   });
 
+  const { errors: settingsErrors, valid: settingsValid } = validateDraft(
+    config.id,
+    settingsFields,
+    settingsDraft,
+  );
+
   const verifiedLabel = status.lastVerifiedAt
     ? `Verified ${formatRelative(status.lastVerifiedAt)}`
     : null;
