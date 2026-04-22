@@ -33,6 +33,8 @@ import { toast } from "sonner";
 import { ConnectorIntegrations } from "./ConnectorIntegrations";
 import { SendTestEmailControl } from "./SendTestEmailControl";
 import { TestResultPanel, type TestResult } from "./TestResultPanel";
+import { IntegrationActivityLog } from "./IntegrationActivityLog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
