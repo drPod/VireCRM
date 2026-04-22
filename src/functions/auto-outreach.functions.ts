@@ -1,10 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { sendSendgridEmail } from "@/lib/sendgrid";
+import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
 import { z } from "zod";
 
 const outreachSchema = z.object({
@@ -45,16 +45,9 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<OutreachResult> => {
     const { supabase, userId } = context;
 
-    // Forward the caller's JWT to the internal /lovable/email/transactional/send
-    // route — that route requires `Authorization: Bearer <user-jwt>` and we're
-    // running server-side here so we have to re-attach it manually.
-    const req = getRequest();
-    const incomingAuth = req?.headers.get("authorization") ?? null;
-    if (!incomingAuth) {
-      throw new Error("Missing authorization header — cannot send emails");
-    }
-    // Server-side fetch needs an absolute URL — derive origin from the request.
-    const origin = req ? new URL(req.url).origin : "";
+    // Outreach delivery now happens entirely in-process (see
+    // dispatchOutreachEmail). We no longer call our own public send route via
+    // fetch, so there's no JWT to forward and no origin to derive.
 
     // Verify org membership
     const { data: profile } = await supabase
@@ -231,46 +224,35 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
             replyTo: businessReplyTo ?? undefined,
           });
         } else {
-          // Hand off to the platform transactional email pipeline. Forward
-          // the caller's JWT so the send route's auth check passes.
-          const sendRes = await fetch(`${origin}/lovable/email/transactional/send`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: incomingAuth,
+          // Hand off to the platform transactional email pipeline. We call the
+          // shared in-process dispatcher rather than fetching the public
+          // /lovable/email/transactional/send route, because a Worker calling
+          // its own public hostname creates a Cloudflare 522 self-loop.
+          const dispatch = await dispatchOutreachEmail({
+            templateName: "outreach-email",
+            recipientEmail: lead.email,
+            idempotencyKey: `outreach-${inserted.id}`,
+            templateData: {
+              subject: email.subject,
+              body: email.body,
+              brandName: businessName,
             },
-            body: JSON.stringify({
-              templateName: "outreach-email",
-              recipientEmail: lead.email,
-              idempotencyKey: `outreach-${inserted.id}`,
-              templateData: {
-                subject: email.subject,
-                body: email.body,
-                brandName: businessName,
-              },
-              fromName: businessName,
-              // Replies go to the user's business inbox if they've set one.
-              replyTo: businessReplyTo ?? undefined,
-            }),
+            fromName: businessName,
+            // Replies go to the user's business inbox if they've set one.
+            replyTo: businessReplyTo ?? undefined,
           });
 
-          if (!sendRes.ok) {
-            const detail = await sendRes.text().catch(() => "");
-            throw new Error(`Email pipeline rejected (${sendRes.status}): ${detail.slice(0, 120)}`);
-          }
-
-          const sendBody = (await sendRes.json().catch(() => ({}))) as {
-            success?: boolean;
-            reason?: string;
-          };
-
-          if (sendBody.success === false) {
+          if (!dispatch.success) {
             await supabase
               .from("messages")
-              .update({ status: "suppressed" })
+              .update({
+                status: dispatch.reason === "suppressed" ? "suppressed" : "failed",
+              })
               .eq("id", inserted.id);
             skipped++;
-            errors.push(`${lead.name}: ${sendBody.reason || "suppressed"}`);
+            errors.push(
+              `${lead.name}: ${dispatch.reason === "suppressed" ? "suppressed" : dispatch.error || "send failed"}`,
+            );
             continue;
           }
         }
