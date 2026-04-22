@@ -462,9 +462,39 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   const [showStepsForFirstSetup, setShowStepsForFirstSetup] = useState(true);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
+  // Non-secret settings draft (e.g. SendGrid's defaultFromAddress).
+  const settingsFields = config.settingsFields ?? [];
+  const [settingsDraft, setSettingsDraft] = useState<Record<string, string>>(() => {
+    const seed: Record<string, string> = {};
+    for (const f of settingsFields) {
+      const v = status.config?.[f.key];
+      seed[f.key] = v == null ? "" : String(v);
+    }
+    return seed;
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Reseed the settings draft whenever the saved config changes (e.g. after refresh).
+  useEffect(() => {
+    const seed: Record<string, string> = {};
+    for (const f of settingsFields) {
+      const v = status.config?.[f.key];
+      seed[f.key] = v == null ? "" : String(v);
+    }
+    setSettingsDraft(seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status.config, config.id]);
+
+  const settingsDirty = settingsFields.some((f) => {
+    const saved = status.config?.[f.key];
+    const savedStr = saved == null ? "" : String(saved);
+    return (settingsDraft[f.key] ?? "") !== savedStr;
+  });
+
   const verifiedLabel = status.lastVerifiedAt
     ? `Verified ${formatRelative(status.lastVerifiedAt)}`
     : null;
+
 
   // What the user actually submits — single field or joined two fields.
   const submitValue = (): string => {
