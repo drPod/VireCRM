@@ -54,6 +54,8 @@ export function ConnectorIntegrations() {
   const listConnectors = useAuthedServerFn(listConnectorsFn);
   const enableConnector = useAuthedServerFn(enableConnectorFn);
   const disableConnector = useAuthedServerFn(disableConnectorFn);
+  const testConnector = useAuthedServerFn(testConnectorFn);
+  const updateConnectorConfig = useAuthedServerFn(updateConnectorConfigFn);
 
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState<Record<string, ConnectorStatus>>({});
