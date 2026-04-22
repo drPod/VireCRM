@@ -140,7 +140,13 @@ export function SendTestEmailControl({
           spellCheck={false}
           disabled={sending}
         />
-        <Button variant="command" size="sm" onClick={handleSend} disabled={sending || disabled}>
+        <Button
+          variant="command"
+          size="sm"
+          onClick={handleSend}
+          disabled={sendLock.locked || disabled}
+          aria-busy={sending}
+        >
           {sending ? (
             <>
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
