@@ -12,7 +12,7 @@
  * workspace owner has linked it once. For dev/preview, owners can flip the
  * toggle directly to test wiring.
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
@@ -21,6 +21,7 @@ import {
   disableConnectorFn,
   testConnectorFn,
   updateConnectorConfigFn,
+  refreshConnectorStatusFn,
   type ConnectorStatus,
 } from "@/functions/connectors.functions";
 import { importHubspotContactsFn } from "@/functions/connector-actions.functions";
