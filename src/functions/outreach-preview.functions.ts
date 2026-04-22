@@ -7,6 +7,7 @@ import {
   deliverOutreachEmail,
   loadOutreachDeliveryChannels,
 } from "@/lib/email/outreach-delivery";
+import { fillTemplateTokens } from "@/lib/outreach/template-fill";
 import { z } from "zod";
 
 // =============================================================================
@@ -26,6 +27,9 @@ const previewSchema = z.object({
     score: z.number().min(0).max(100).optional().nullable(),
   }),
   businessContext: z.string().min(1).max(5000).optional(),
+  /** Optional template the AI should personalize. When omitted we fall back
+   * to the org's default template (if any), or generate from scratch. */
+  templateId: z.string().uuid().optional().nullable(),
 });
 
 export interface OutreachPreview {
