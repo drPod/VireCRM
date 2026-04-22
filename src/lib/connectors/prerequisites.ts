@@ -25,6 +25,13 @@ interface ConnectorStatusLike {
 export function deriveConnectorPrerequisites(
   meta: ConnectorMeta,
   status: ConnectorStatusLike | undefined,
+  /**
+   * Optional in-progress edits. When provided, each key overrides the
+   * corresponding saved value from `status.config` so the prerequisites
+   * panel reflects what the user is typing right now (not what's saved).
+   * Empty strings are treated as "user cleared this field".
+   */
+  configOverride?: Record<string, string> | null,
 ): Prerequisite[] {
   const out: Prerequisite[] = [];
 
@@ -72,6 +79,11 @@ export function deriveConnectorPrerequisites(
   if (fields.length > 0) {
     const draft: Record<string, string> = {};
     for (const f of fields) {
+      // Prefer the in-progress override (even an empty string means "cleared").
+      if (configOverride && Object.prototype.hasOwnProperty.call(configOverride, f.key)) {
+        draft[f.key] = configOverride[f.key] ?? "";
+        continue;
+      }
       const v = status.config?.[f.key];
       draft[f.key] = v == null ? "" : String(v);
     }
@@ -143,8 +155,15 @@ export function deriveByoPrerequisites(args: {
    * a failed verification even before the saved status is updated.
    */
   lastTest?: { ok: boolean; reason?: string } | null;
+  /**
+   * Optional in-progress edits for the settings draft. When provided, each
+   * key overrides the saved value so the prereqs panel updates live as the
+   * user types. Empty strings count as "user cleared this field".
+   */
+  configOverride?: Record<string, string> | null;
 }): Prerequisite[] {
-  const { providerId, providerName, docsUrl, status, settingsFields, lastTest } = args;
+  const { providerId, providerName, docsUrl, status, settingsFields, lastTest, configOverride } =
+    args;
   const out: Prerequisite[] = [];
 
   if (!status.configured) {
@@ -176,6 +195,10 @@ export function deriveByoPrerequisites(args: {
   if (settingsFields.length > 0) {
     const draft: Record<string, string> = {};
     for (const f of settingsFields) {
+      if (configOverride && Object.prototype.hasOwnProperty.call(configOverride, f.key)) {
+        draft[f.key] = configOverride[f.key] ?? "";
+        continue;
+      }
       const v = status.config?.[f.key];
       draft[f.key] = v == null ? "" : String(v);
     }

@@ -419,6 +419,9 @@ function ConnectorRow({
   const [editing, setEditing] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [draftConfig, setDraftConfig] = useState<Record<string, string>>({});
+  // Tracks which fields the user has interacted with so on-blur validation
+  // doesn't shout at them while they're still typing the first character.
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const importHubspot = useAuthedServerFn(importHubspotContactsFn);
 
@@ -502,6 +505,9 @@ function ConnectorRow({
       seed[f.key] = v == null ? "" : String(v);
     }
     setDraftConfig(seed);
+    // Reset touched state — a fresh editor session shouldn't inherit blur
+    // history from a prior open/cancel cycle.
+    setTouchedFields({});
     setEditing(true);
   };
 
@@ -572,7 +578,14 @@ function ConnectorRow({
       </div>
 
       {!loading && (() => {
-        const prereqs = deriveConnectorPrerequisites(meta, status);
+        // While editing, feed the in-progress draft so the prerequisites
+        // panel updates live (e.g. "Send-from address is required" disappears
+        // the moment the user types a valid email — no save needed).
+        const prereqs = deriveConnectorPrerequisites(
+          meta,
+          status,
+          editing ? draftConfig : null,
+        );
         if (prereqs.length === 0) return null;
         return (
           <div className="mb-3">
@@ -629,7 +642,11 @@ function ConnectorRow({
           {(meta.configFields ?? []).map((f) => {
             const ruleKey = `${meta.id}.${f.key}`;
             const rule = FIELD_RULES[ruleKey];
-            const err = fieldErrors[f.key];
+            const rawErr = fieldErrors[f.key];
+            // Only surface the inline error after the user has blurred the
+            // field at least once — keeps the UI quiet while they type the
+            // first character, but updates instantly on subsequent edits.
+            const err = touchedFields[f.key] ? rawErr : null;
             return (
               <div key={f.key} className="space-y-1">
                 <label className="block text-[11px] font-medium text-foreground">
@@ -644,6 +661,11 @@ function ConnectorRow({
                   value={draftConfig[f.key] ?? ""}
                   onChange={(e) =>
                     setDraftConfig((prev) => ({ ...prev, [f.key]: e.target.value }))
+                  }
+                  onBlur={() =>
+                    setTouchedFields((prev) =>
+                      prev[f.key] ? prev : { ...prev, [f.key]: true },
+                    )
                   }
                   placeholder={f.placeholder}
                   aria-invalid={err ? true : undefined}

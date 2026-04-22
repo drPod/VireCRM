@@ -521,6 +521,9 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
     return seed;
   });
   const [savingSettings, setSavingSettings] = useState(false);
+  // Tracks which settings inputs have been blurred — controls whether the
+  // inline format error renders (we stay quiet until the user moves on).
+  const [touchedSettings, setTouchedSettings] = useState<Record<string, boolean>>({});
 
   // Reseed the settings draft whenever the saved config changes (e.g. after refresh).
   useEffect(() => {
@@ -530,6 +533,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
       seed[f.key] = v == null ? "" : String(v);
     }
     setSettingsDraft(seed);
+    // A fresh sync from the server is effectively a clean slate — clear
+    // the blur history so we don't keep yelling about a field the server
+    // just confirmed as valid.
+    setTouchedSettings({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.config, config.id]);
 
@@ -819,6 +826,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
             helper: f.helper,
           })),
           lastTest: testResult ? { ok: testResult.ok, reason: testResult.reason ?? undefined } : null,
+          // Live overlay so the panel reflects what the user is typing in
+          // the settings panel below (no save needed to clear "missing"
+          // or "invalid" entries).
+          configOverride: settingsFields.length > 0 ? settingsDraft : null,
         });
         if (prereqs.length === 0) return null;
         const focusKeyInput = () => {
@@ -931,7 +942,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                   {settingsFields.map((f) => {
                     const ruleKey = `${config.id}.${f.key}`;
                     const rule = FIELD_RULES[ruleKey];
-                    const err = settingsErrors[f.key];
+                    const rawErr = settingsErrors[f.key];
+                    // Hide the inline error until the user blurs the field
+                    // — once touched, it re-validates live as they type.
+                    const err = touchedSettings[f.key] ? rawErr : null;
                     return (
                       <div key={f.key} className="space-y-1">
                         <label className="block text-[11px] font-medium text-foreground">
@@ -946,6 +960,11 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                           value={settingsDraft[f.key] ?? ""}
                           onChange={(e) =>
                             setSettingsDraft((prev) => ({ ...prev, [f.key]: e.target.value }))
+                          }
+                          onBlur={() =>
+                            setTouchedSettings((prev) =>
+                              prev[f.key] ? prev : { ...prev, [f.key]: true },
+                            )
                           }
                           placeholder={f.placeholder}
                           aria-invalid={err ? true : undefined}
