@@ -811,7 +811,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
             label: f.label,
             helper: f.helper,
           })),
-          lastTest: testResult ? { ok: testResult.ok, reason: testResult.reason } : null,
+          lastTest: testResult ? { ok: testResult.ok, reason: testResult.reason ?? undefined } : null,
         });
         if (prereqs.length === 0) return null;
         return (
