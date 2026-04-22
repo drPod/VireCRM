@@ -346,6 +346,53 @@ export function PricingCards() {
           ))}
         </div>
       </div>
+
+      {/* Lead-finder pricing & BYO API key disclosure */}
+      <div className="rounded-2xl border border-warning/30 bg-warning/5 p-6">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning/15">
+            <Key className="h-4 w-4 text-warning" />
+          </div>
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                Auto Find Leads — Bring Your Own API Key
+                <Badge variant="warning" className="text-[10px]">Required</Badge>
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                Lead discovery (Apollo, Hunter, Snov, and other providers) is <strong>not included</strong> in any
+                plan. These are third-party data services with their own pricing — you must sign up directly with
+                each provider and connect your own API key inside the CRM's Integrations settings.
+              </p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-border/60 bg-card/50 p-3">
+                <p className="text-xs font-medium text-foreground">Apollo.io</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Free tier available · Paid plans from ~$49/mo</p>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-card/50 p-3">
+                <p className="text-xs font-medium text-foreground">Hunter.io</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Free tier available · Paid plans from ~$34/mo</p>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-card/50 p-3">
+                <p className="text-xs font-medium text-foreground">Snov.io</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Free tier available · Paid plans from ~$39/mo</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3">
+              <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Pricing shown is indicative and set by each provider — check their site for current rates. We never
+                charge or mark up usage; your API key is billed directly by the provider. The CRM only orchestrates
+                the searches and imports the results into your pipeline.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {CheckoutDialog}
     </div>
   );
