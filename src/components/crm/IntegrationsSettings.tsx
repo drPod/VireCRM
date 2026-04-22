@@ -533,6 +533,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
       seed[f.key] = v == null ? "" : String(v);
     }
     setSettingsDraft(seed);
+    // A fresh sync from the server is effectively a clean slate — clear
+    // the blur history so we don't keep yelling about a field the server
+    // just confirmed as valid.
+    setTouchedSettings({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.config, config.id]);
 
