@@ -104,6 +104,9 @@ function LeadsPage() {
             score: l.score ?? 0,
             nextAction: l.next_action ?? undefined,
             lastContact: l.last_contact ?? undefined,
+            annualKwh: l.annual_kwh ?? null,
+            contractEndDate: l.contract_end_date ?? null,
+            currentSupplier: l.current_supplier ?? null,
           }))
         );
         setTotalCount(count ?? data.length);

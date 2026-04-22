@@ -47,6 +47,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     score: 50,
     next_action: "",
     notes: "",
+    annual_kwh: "" as string,
+    contract_end_date: "" as string,
+    current_supplier: "",
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -74,16 +77,34 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       score: lead.score,
       next_action: lead.nextAction || "",
       notes: "",
+      annual_kwh:
+        typeof lead.annualKwh === "number" && lead.annualKwh >= 0
+          ? String(lead.annualKwh)
+          : "",
+      contract_end_date: lead.contractEndDate ?? "",
+      current_supplier: lead.currentSupplier ?? "",
     });
 
+    // Fetch the full notes + energy fields (the list view doesn't include notes).
     setLoadingNotes(true);
     supabase
       .from("leads")
-      .select("notes")
+      .select("notes, annual_kwh, contract_end_date, current_supplier")
       .eq("id", lead.id)
       .single()
       .then(({ data }) => {
-        if (data?.notes) setForm((prev) => ({ ...prev, notes: data.notes ?? "" }));
+        if (data) {
+          setForm((prev) => ({
+            ...prev,
+            notes: data.notes ?? "",
+            annual_kwh:
+              typeof data.annual_kwh === "number" && data.annual_kwh >= 0
+                ? String(data.annual_kwh)
+                : prev.annual_kwh,
+            contract_end_date: data.contract_end_date ?? prev.contract_end_date,
+            current_supplier: data.current_supplier ?? prev.current_supplier,
+          }));
+        }
         setLoadingNotes(false);
       });
   }, [lead]);
@@ -206,6 +227,20 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       toast.error("Name is required");
       return;
     }
+
+    // Parse annual kWh — accept blank, "12,000", "12000 kWh".
+    let annualKwh: number | null = null;
+    const rawKwh = form.annual_kwh.trim();
+    if (rawKwh) {
+      const cleaned = rawKwh.replace(/[^\d.]/g, "");
+      const n = cleaned ? Math.round(Number(cleaned)) : NaN;
+      if (!Number.isFinite(n) || n < 0) {
+        toast.error("Annual kWh must be a positive number");
+        return;
+      }
+      annualKwh = n;
+    }
+
     setSaving(true);
     const { error } = await supabase
       .from("leads")
@@ -218,6 +253,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
         score: form.score,
         next_action: form.next_action.trim() || null,
         notes: form.notes.trim() || null,
+        annual_kwh: annualKwh,
+        contract_end_date: form.contract_end_date || null,
+        current_supplier: form.current_supplier.trim() || null,
       })
       .eq("id", lead.id);
 
@@ -436,6 +474,48 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   value={form.score}
                   onChange={(e) => update("score", Number(e.target.value))}
                 />
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Energy details
+              </p>
+              <div className="grid gap-3 grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Annual kWh
+                  </label>
+                  <input
+                    inputMode="numeric"
+                    className={inputClass}
+                    value={form.annual_kwh}
+                    onChange={(e) => update("annual_kwh", e.target.value)}
+                    placeholder="e.g. 120000"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Contract end date
+                  </label>
+                  <input
+                    type="date"
+                    className={inputClass}
+                    value={form.contract_end_date}
+                    onChange={(e) => update("contract_end_date", e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Current supplier
+                  </label>
+                  <input
+                    className={inputClass}
+                    value={form.current_supplier}
+                    onChange={(e) => update("current_supplier", e.target.value)}
+                    placeholder="e.g. British Gas, EDF, Octopus"
+                  />
+                </div>
               </div>
             </div>
 

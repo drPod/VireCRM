@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Calendar } from "lucide-react";
+import { Mail, Phone, Calendar, Zap, Building2, CalendarClock } from "lucide-react";
 
 export interface Lead {
   id: string;
@@ -11,6 +11,12 @@ export interface Lead {
   score: number;
   lastContact?: string;
   nextAction?: string;
+  /** Yearly electricity usage in kilowatt-hours. Energy-broker workflow. */
+  annualKwh?: number | null;
+  /** When the lead's current energy contract ends (ISO date, YYYY-MM-DD). */
+  contractEndDate?: string | null;
+  /** Lead's current energy supplier (e.g. "British Gas"). */
+  currentSupplier?: string | null;
 }
 
 const statusConfig: Record<Lead["status"], { label: string; variant: "default" | "secondary" | "success" | "warning" | "info" | "destructive" }> = {
@@ -66,6 +72,24 @@ export function LeadCard({ lead, onClick }: { lead: Lead; onClick?: () => void }
             <span>{lead.phone}</span>
           </div>
         )}
+        {lead.currentSupplier && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Building2 className="h-3 w-3" />
+            <span className="truncate">{lead.currentSupplier}</span>
+          </div>
+        )}
+        {typeof lead.annualKwh === "number" && lead.annualKwh > 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Zap className="h-3 w-3" />
+            <span>{lead.annualKwh.toLocaleString()} kWh / yr</span>
+          </div>
+        )}
+        {lead.contractEndDate && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <CalendarClock className="h-3 w-3" />
+            <span>Contract ends {formatContractDate(lead.contractEndDate)}</span>
+          </div>
+        )}
         {lead.nextAction && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
@@ -80,4 +104,15 @@ export function LeadCard({ lead, onClick }: { lead: Lead; onClick?: () => void }
       </div>
     </div>
   );
+}
+
+/**
+ * Format an ISO date (YYYY-MM-DD) as a short, locale-friendly contract end
+ * label. Falls back to the raw string if parsing fails so we never show
+ * "Invalid Date" on the card.
+ */
+function formatContractDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
