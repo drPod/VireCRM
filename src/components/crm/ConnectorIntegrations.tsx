@@ -121,6 +121,43 @@ export function ConnectorIntegrations() {
     [organization?.id, disableConnector, refresh],
   );
 
+  const handleTest = useCallback(
+    async (provider: string, name: string) => {
+      if (!organization?.id) return;
+      try {
+        const res = await testConnector({
+          data: { organizationId: organization.id, provider },
+        });
+        if (res.ok) {
+          toast.success(`${name} is working`, {
+            description: "Credentials verified successfully.",
+          });
+        } else {
+          toast.error(`${name} test failed`, {
+            description: res.reason ?? "No response from gateway.",
+          });
+        }
+        void refresh();
+      } catch (err) {
+        toast.error("Test failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+    [organization?.id, testConnector, refresh],
+  );
+
+  const handleSaveConfig = useCallback(
+    async (provider: string, config: Record<string, string>) => {
+      if (!organization?.id) return;
+      await updateConnectorConfig({
+        data: { organizationId: organization.id, provider, config },
+      });
+      void refresh();
+    },
+    [organization?.id, updateConnectorConfig, refresh],
+  );
+
   if (!isOwner) return null; // Owner-only — the BYO section already renders the "owners only" card.
 
   const grouped: Record<ConnectorCategory, ConnectorMeta[]> = {
@@ -159,6 +196,8 @@ export function ConnectorIntegrations() {
                 loading={loading}
                 onEnable={() => handleEnable(meta.id)}
                 onDisable={() => handleDisable(meta.id, meta.name)}
+                onTest={() => handleTest(meta.id, meta.name)}
+                onSaveConfig={(config) => handleSaveConfig(meta.id, config)}
                 organizationId={organization?.id ?? null}
               />
             ))}
