@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SendTestEmailControl } from "./SendTestEmailControl";
+import { TestResultPanel, type TestResult } from "./TestResultPanel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -273,8 +274,11 @@ export function ConnectorIntegrations() {
   );
 
   const handleTest = useCallback(
-    async (provider: string, name: string) => {
-      if (!organization?.id) return;
+    async (provider: string, name: string): Promise<TestResult> => {
+      const ranAt = new Date().toISOString();
+      if (!organization?.id) {
+        return { ok: false, reason: "No organization context.", verifiedAt: ranAt };
+      }
       try {
         const res = await testConnector({
           data: { organizationId: organization.id, provider },
@@ -283,16 +287,17 @@ export function ConnectorIntegrations() {
           toast.success(`${name} is working`, {
             description: "Credentials verified successfully.",
           });
-        } else {
-          toast.error(`${name} test failed`, {
-            description: res.reason ?? "No response from gateway.",
-          });
+          void refresh();
+          return { ok: true, verifiedAt: ranAt };
         }
+        const reason = res.reason ?? "No response from gateway.";
+        toast.error(`${name} test failed`, { description: reason });
         void refresh();
+        return { ok: false, reason, verifiedAt: ranAt };
       } catch (err) {
-        toast.error("Test failed", {
-          description: err instanceof Error ? err.message : "Unknown error",
-        });
+        const reason = err instanceof Error ? err.message : "Unknown error";
+        toast.error("Test failed", { description: reason });
+        return { ok: false, reason, verifiedAt: ranAt };
       }
     },
     [organization?.id, testConnector, refresh],
@@ -384,7 +389,7 @@ interface ConnectorRowProps {
   loading: boolean;
   onEnable: () => Promise<void>;
   onDisable: () => Promise<void>;
-  onTest: () => Promise<void>;
+  onTest: () => Promise<TestResult>;
   onSaveConfig: (config: Record<string, string>) => Promise<void>;
   organizationId: string | null;
 }
