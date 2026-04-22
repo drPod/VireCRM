@@ -165,7 +165,20 @@ export function ContactForm() {
         />
       </div>
 
-      <Button type="submit" variant="command" size="lg" className="w-full gap-2" disabled={loading}>
+      {/* Honeypot — visually hidden, off-screen, not focusable. Bots fill it; humans don't. */}
+      <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", top: "auto", width: 1, height: 1, overflow: "hidden" }}>
+        <label htmlFor="website">Website (leave blank)</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={form.website}
+          onChange={(e) => handleChange("website", e.target.value)}
+        />
+      </div>
+
         {loading ? "Sending…" : "Send Inquiry"}
         <Send className="h-4 w-4" />
       </Button>
