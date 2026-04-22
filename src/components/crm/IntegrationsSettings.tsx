@@ -6,6 +6,7 @@ import {
   saveIntegrationFn,
   deleteIntegrationFn,
   testIntegrationFn,
+  updateIntegrationConfigFn,
 } from "@/functions/integrations.functions";
 import { getLeadUsageFn, type LeadUsage } from "@/functions/find-leads.functions";
 import { Button } from "@/components/ui/button";
