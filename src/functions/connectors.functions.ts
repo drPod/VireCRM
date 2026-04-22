@@ -91,6 +91,123 @@ export const listConnectorsFn = createServerFn({ method: "POST" })
     return { statuses };
   });
 
+// ----- REFRESH a single connector's status (used by background polling).
+// This is intentionally lightweight — it does NOT require owner role (any
+// org member can trigger a refresh from the UI), and it performs a live
+// gateway verify + (for Gmail) a connected-email discovery, then persists
+// any newly-learned config back to org_connectors.
+//
+// Why this exists: after a user completes the OAuth handshake in a popup,
+// the gateway eventually injects the API key as an env var. There's no
+// push notification — we have to poll. Returning the fresh ConnectorStatus
+// lets the UI swap from "Awaiting auth" → "Connected" without a manual
+// page reload.
+const refreshSchema = z.object({
+  organizationId: z.string().uuid(),
+  provider: z.enum(VALID_PROVIDERS),
+});
+
+/**
+ * Best-effort fetch of the Gmail account email associated with the linked
+ * connection. Returns null on any failure — the caller treats null as
+ * "couldn't discover yet, try again later".
+ */
+async function fetchGmailConnectedEmail(envVar: string): Promise<string | null> {
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const connectorKey = process.env[envVar];
+  if (!lovableKey || !connectorKey) return null;
+  try {
+    const res = await fetch(
+      "https://connector-gateway.lovable.dev/gmail/gmail/v1/users/me/profile",
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": connectorKey,
+        },
+      },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { emailAddress?: string };
+    return typeof data.emailAddress === "string" ? data.emailAddress : null;
+  } catch {
+    return null;
+  }
+}
+
+export const refreshConnectorStatusFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof refreshSchema>) => refreshSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    // Membership check (not owner-restricted — see comment above).
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (profile?.organization_id !== data.organizationId) {
+      throw new Error("Not a member of that organization.");
+    }
+
+    const meta = getConnector(data.provider);
+    if (!meta) throw new Error(`Unknown connector: ${data.provider}`);
+
+    const { data: row } = await supabaseAdmin
+      .from("org_connectors")
+      .select("provider, enabled, config, created_at")
+      .eq("organization_id", data.organizationId)
+      .eq("provider", data.provider)
+      .maybeSingle();
+
+    const credentialPresent = !!process.env[meta.envVar];
+    let verified: boolean | null = null;
+    let verifyError: string | null = null;
+    let config: Record<string, string | number | boolean | null> =
+      ((row?.config as Record<string, string | number | boolean | null>) ?? {});
+
+    if (row?.enabled && credentialPresent) {
+      const v = await verifyConnectorCredentials(meta.envVar);
+      verified = v.ok;
+      verifyError = v.ok ? null : v.error ?? null;
+
+      // For Gmail, opportunistically discover and cache the connected
+      // mailbox email. Only fetch when we don't already have it, so we
+      // don't hammer the gateway on every poll.
+      if (v.ok && data.provider === "gmail" && !config.connectedEmail) {
+        const email = await fetchGmailConnectedEmail(meta.envVar);
+        if (email) {
+          const nextConfig = {
+            ...config,
+            connectedEmail: email,
+            // Seed the user-facing "from address" if they haven't set one yet —
+            // it's almost always the same as the connected mailbox.
+            fromAddress:
+              typeof config.fromAddress === "string" && config.fromAddress.length > 0
+                ? config.fromAddress
+                : email,
+          };
+          await supabaseAdmin
+            .from("org_connectors")
+            .update({ config: nextConfig as never })
+            .eq("organization_id", data.organizationId)
+            .eq("provider", data.provider);
+          config = nextConfig;
+        }
+      }
+    }
+
+    const status: ConnectorStatus = {
+      id: meta.id,
+      enabled: !!row?.enabled,
+      credentialPresent,
+      verified,
+      verifyError,
+      config,
+      enabledAt: row?.created_at ?? null,
+    };
+    return { status };
+  });
+
 // ----- ENABLE / UPSERT -----
 const enableSchema = z.object({
   organizationId: z.string().uuid(),
