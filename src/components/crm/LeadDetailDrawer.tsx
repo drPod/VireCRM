@@ -58,6 +58,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>([]);
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
+  const [activityRefetchKey, setActivityRefetchKey] = useState(0);
 
   useEffect(() => {
     if (!lead) return;
@@ -85,8 +86,12 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
         if (data?.notes) setForm((prev) => ({ ...prev, notes: data.notes ?? "" }));
         setLoadingNotes(false);
       });
+  }, [lead]);
 
-    // Fetch activity history
+  // Fetch activity history (re-runs on lead change OR when an action signals
+  // a refetch via activityRefetchKey, e.g. after sending an email).
+  useEffect(() => {
+    if (!lead) return;
     setLoadingActivity(true);
     Promise.all([
       supabase
@@ -148,7 +153,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       setActivities(items);
       setLoadingActivity(false);
     });
-  }, [lead]);
+  }, [lead, activityRefetchKey]);
 
   // Fetch email send log when the Emails tab is opened (refetch on email change too)
   const refreshEmailLogs = useCallback(async () => {
@@ -256,13 +261,11 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
 
   const handleSent = () => {
     // Refresh parent list (lead status may have moved to "contacted") and the
-    // activity tab so the new message shows up immediately.
+    // drawer's tabs so the new message + send-log entry show up immediately.
     onUpdated();
     if (lead) {
       void refreshEmailLogs();
-      // Re-fetch activities by reusing the lead-effect: trigger by setting lead state.
-      // Simpler: the parent's onUpdated will close & reopen flows; here we just
-      // trust the next drawer open to refetch. For now, optimistically nothing more.
+      setActivityRefetchKey((k) => k + 1);
     }
   };
 
@@ -304,6 +307,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   leadName={form.name || lead.name}
                   leadEmail={form.email.trim() || lead.email || null}
                   leadPhone={form.phone.trim() || lead.phone || null}
+                  onActed={handleSent}
                 />
               </div>
               {lastOutreachLabel && (

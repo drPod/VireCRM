@@ -1,10 +1,11 @@
 /**
- * Lead drawer "More actions" menu — auto-populates with the org's enabled
- * connector actions (Slack, Teams, SMS, Linear, ...).
+ * Lead drawer actions — auto-populates with the org's enabled connector
+ * actions (Send email via Gmail / Outlook / SendGrid, Slack, Teams, SMS, Linear).
  *
- * Each action opens a tiny prompt dialog tailored to the provider, then
- * fires the corresponding server fn. Failures surface as toasts and are
- * recorded in `connector_activity_log` server-side.
+ * Each action opens a tiny prompt dialog tailored to the provider, then fires
+ * the corresponding server fn. Failures surface as toasts and are recorded in
+ * `connector_activity_log` server-side. Successful email sends also write to
+ * the `messages` table so they appear in the lead's Activity feed.
  */
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -14,8 +15,12 @@ import {
   sendSlackMessageFn,
   sendTwilioSmsFn,
   sendOutlookEmailFn,
+  sendGmailFn,
+  sendSendgridLeadEmailFn,
   createLinearIssueFn,
   sendTeamsMessageFn,
+  listLeadEmailProvidersFn,
+  type LeadEmailProvider,
 } from "@/functions/connector-actions.functions";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +39,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreHorizontal, MessageSquare, Send, Smartphone, Mail, ListPlus, Loader2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  MessageSquare,
+  Send,
+  Smartphone,
+  Mail,
+  ListPlus,
+  Loader2,
+  ChevronDown,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface LeadConnectorActionsProps {
@@ -42,27 +56,53 @@ interface LeadConnectorActionsProps {
   leadName: string;
   leadEmail: string | null;
   leadPhone: string | null;
+  /** Called after a successful action so the parent can refresh activity. */
+  onActed?: () => void;
+}
+
+interface DialogField {
+  key: string;
+  label: string;
+  placeholder?: string;
+  defaultValue?: string;
+  multiline?: boolean;
 }
 
 interface DialogState {
   provider: string;
-  fields: Array<{ key: string; label: string; placeholder?: string; defaultValue?: string; multiline?: boolean }>;
+  fields: DialogField[];
   title: string;
   description: string;
   submitLabel: string;
   onSubmit: (values: Record<string, string>) => Promise<void>;
 }
 
-export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }: LeadConnectorActionsProps) {
+const PROVIDER_LABELS: Record<string, string> = {
+  gmail: "Gmail",
+  microsoft_outlook: "Outlook",
+  sendgrid: "SendGrid",
+};
+
+export function LeadConnectorActions({
+  leadId,
+  leadName,
+  leadEmail,
+  leadPhone,
+  onActed,
+}: LeadConnectorActionsProps) {
   const { organization } = useAuth();
   const listEnabled = useAuthedServerFn(listEnabledConnectorsFn);
+  const listEmailProviders = useAuthedServerFn(listLeadEmailProvidersFn);
   const sendSlack = useAuthedServerFn(sendSlackMessageFn);
   const sendSms = useAuthedServerFn(sendTwilioSmsFn);
-  const sendEmail = useAuthedServerFn(sendOutlookEmailFn);
+  const sendOutlook = useAuthedServerFn(sendOutlookEmailFn);
+  const sendGmail = useAuthedServerFn(sendGmailFn);
+  const sendSendgrid = useAuthedServerFn(sendSendgridLeadEmailFn);
   const createIssue = useAuthedServerFn(createLinearIssueFn);
   const sendTeams = useAuthedServerFn(sendTeamsMessageFn);
 
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
+  const [emailProviders, setEmailProviders] = useState<LeadEmailProvider[]>([]);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [busy, setBusy] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -72,7 +112,10 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
     listEnabled({ data: { organizationId: organization.id } })
       .then((res) => setEnabled(new Set(res.enabled.map((e) => e.provider))))
       .catch(() => setEnabled(new Set()));
-  }, [organization?.id, listEnabled]);
+    listEmailProviders({ data: { organizationId: organization.id } })
+      .then((res) => setEmailProviders(res.providers ?? []))
+      .catch(() => setEmailProviders([]));
+  }, [organization?.id, listEnabled, listEmailProviders]);
 
   const openDialog = (state: DialogState) => {
     const init: Record<string, string> = {};
@@ -88,6 +131,7 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
       await dialog.onSubmit(values);
       toast.success("Done");
       setDialog(null);
+      onActed?.();
     } catch (err) {
       toast.error("Action failed", {
         description: err instanceof Error ? err.message : "Unknown error",
@@ -95,14 +139,76 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
     } finally {
       setBusy(false);
     }
-  }, [dialog, values]);
+  }, [dialog, values, onActed]);
 
-  if (!organization?.id || enabled.size === 0) return null;
+  // Open the email-compose dialog for a chosen provider.
+  const openEmailDialog = useCallback(
+    (p: LeadEmailProvider) => {
+      if (!organization?.id || !leadEmail) return;
 
-  const actions: Array<{ key: string; label: string; icon: React.ReactNode; onClick: () => void }> = [];
+      const providerLabel = PROVIDER_LABELS[p.provider] ?? p.label;
+      const fields: DialogField[] = [
+        { key: "to", label: "To", defaultValue: leadEmail },
+        {
+          key: "fromAddress",
+          label: "From",
+          defaultValue: p.defaultFromAddress ?? "",
+          placeholder:
+            p.provider === "sendgrid"
+              ? "you@yourdomain.com (must be a verified sender)"
+              : "you@example.com (optional)",
+        },
+        { key: "subject", label: "Subject" },
+        { key: "body", label: "Body", multiline: true },
+      ];
+
+      openDialog({
+        provider: p.provider,
+        title: `Send email via ${providerLabel}`,
+        description: `Send a quick email to ${leadEmail}.`,
+        submitLabel: `Send via ${providerLabel}`,
+        fields,
+        onSubmit: async (v) => {
+          const payload = {
+            organizationId: organization.id,
+            leadId,
+            to: v.to.trim(),
+            subject: v.subject.trim(),
+            body: v.body,
+            ...(v.fromAddress?.trim() ? { fromAddress: v.fromAddress.trim() } : {}),
+          };
+          if (p.provider === "gmail") {
+            await sendGmail({ data: payload });
+          } else if (p.provider === "microsoft_outlook") {
+            // Outlook fn doesn't accept fromAddress — strip it before sending.
+            const { fromAddress: _drop, ...rest } = payload as typeof payload & {
+              fromAddress?: string;
+            };
+            void _drop;
+            await sendOutlook({ data: rest });
+          } else if (p.provider === "sendgrid") {
+            await sendSendgrid({ data: payload });
+          } else {
+            throw new Error(`Unknown email provider: ${p.provider}`);
+          }
+        },
+      });
+    },
+    [organization?.id, leadId, leadEmail, sendGmail, sendOutlook, sendSendgrid],
+  );
+
+  if (!organization?.id) return null;
+
+  // ===== Build the "More actions" list (chat / SMS / tasks) =====
+  const moreActions: Array<{
+    key: string;
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+  }> = [];
 
   if (enabled.has("slack")) {
-    actions.push({
+    moreActions.push({
       key: "slack",
       label: "Notify Slack channel",
       icon: <MessageSquare className="h-3.5 w-3.5" />,
@@ -136,7 +242,7 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
   }
 
   if (enabled.has("microsoft_teams")) {
-    actions.push({
+    moreActions.push({
       key: "teams",
       label: "Post to Teams",
       icon: <Send className="h-3.5 w-3.5" />,
@@ -172,7 +278,7 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
   }
 
   if (enabled.has("twilio") && leadPhone) {
-    actions.push({
+    moreActions.push({
       key: "twilio",
       label: "Send SMS",
       icon: <Smartphone className="h-3.5 w-3.5" />,
@@ -202,39 +308,8 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
     });
   }
 
-  if (enabled.has("microsoft_outlook") && leadEmail) {
-    actions.push({
-      key: "outlook",
-      label: "Send via Outlook",
-      icon: <Mail className="h-3.5 w-3.5" />,
-      onClick: () =>
-        openDialog({
-          provider: "microsoft_outlook",
-          title: "Send email via Outlook",
-          description: `Send a quick email to ${leadEmail}.`,
-          submitLabel: "Send",
-          fields: [
-            { key: "to", label: "To", defaultValue: leadEmail ?? "" },
-            { key: "subject", label: "Subject" },
-            { key: "body", label: "Body", multiline: true },
-          ],
-          onSubmit: async (v) => {
-            await sendEmail({
-              data: {
-                organizationId: organization.id,
-                leadId,
-                to: v.to,
-                subject: v.subject,
-                body: v.body,
-              },
-            });
-          },
-        }),
-    });
-  }
-
   if (enabled.has("linear")) {
-    actions.push({
+    moreActions.push({
       key: "linear",
       label: "Create Linear issue",
       icon: <ListPlus className="h-3.5 w-3.5" />,
@@ -264,29 +339,80 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
     });
   }
 
-  if (actions.length === 0) return null;
+  // Email picker is rendered as its own button so it's discoverable. Only show
+  // when we have at least one email provider AND the lead has an address.
+  const showEmailPicker = emailProviders.length > 0 && !!leadEmail;
+
+  if (moreActions.length === 0 && !showEmailPicker) return null;
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" title="More integrations">
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel className="text-[11px]">Connected integrations</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {actions.map((a) => (
-            <DropdownMenuItem key={a.key} onClick={a.onClick} className="gap-2 text-xs">
-              {a.icon}
-              {a.label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Send email — single-button shortcut OR provider picker dropdown */}
+      {showEmailPicker && emailProviders.length === 1 && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => openEmailDialog(emailProviders[0])}
+          title={`Send email via ${PROVIDER_LABELS[emailProviders[0].provider] ?? emailProviders[0].label}`}
+        >
+          <Mail className="mr-1.5 h-3.5 w-3.5" />
+          Email
+        </Button>
+      )}
 
-      <Dialog open={!!dialog} onOpenChange={(o) => !o && setDialog(null)}>
+      {showEmailPicker && emailProviders.length > 1 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" title="Send email via…">
+              <Mail className="mr-1 h-3.5 w-3.5" />
+              Email
+              <ChevronDown className="ml-0.5 h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel className="text-[11px]">Send email via</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {emailProviders.map((p) => (
+              <DropdownMenuItem
+                key={p.provider}
+                onClick={() => openEmailDialog(p)}
+                className="gap-2 text-xs"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                <span className="flex-1">{PROVIDER_LABELS[p.provider] ?? p.label}</span>
+                {p.defaultFromAddress && (
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[110px]">
+                    {p.defaultFromAddress}
+                  </span>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      {/* Other actions menu (chat, SMS, tasks) */}
+      {moreActions.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" title="More integrations">
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel className="text-[11px]">Connected integrations</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {moreActions.map((a) => (
+              <DropdownMenuItem key={a.key} onClick={a.onClick} className="gap-2 text-xs">
+                {a.icon}
+                {a.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      <Dialog open={!!dialog} onOpenChange={(o) => !o && !busy && setDialog(null)}>
         <DialogContent className="sm:max-w-md">
           {dialog && (
             <>
@@ -298,21 +424,27 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
               <div className="space-y-3 py-2">
                 {dialog.fields.map((f) => (
                   <div key={f.key}>
-                    <label className="mb-1 block text-xs font-medium text-foreground">{f.label}</label>
+                    <label className="mb-1 block text-xs font-medium text-foreground">
+                      {f.label}
+                    </label>
                     {f.multiline ? (
                       <textarea
                         className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
-                        rows={4}
+                        rows={6}
                         placeholder={f.placeholder}
                         value={values[f.key] ?? ""}
-                        onChange={(e) => setValues((p) => ({ ...p, [f.key]: e.target.value }))}
+                        onChange={(e) =>
+                          setValues((p) => ({ ...p, [f.key]: e.target.value }))
+                        }
                       />
                     ) : (
                       <input
                         className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
                         placeholder={f.placeholder}
                         value={values[f.key] ?? ""}
-                        onChange={(e) => setValues((p) => ({ ...p, [f.key]: e.target.value }))}
+                        onChange={(e) =>
+                          setValues((p) => ({ ...p, [f.key]: e.target.value }))
+                        }
                       />
                     )}
                   </div>
@@ -320,7 +452,12 @@ export function LeadConnectorActions({ leadId, leadName, leadEmail, leadPhone }:
               </div>
 
               <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setDialog(null)} disabled={busy}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDialog(null)}
+                  disabled={busy}
+                >
                   Cancel
                 </Button>
                 <Button variant="command" size="sm" onClick={handleSubmit} disabled={busy}>
