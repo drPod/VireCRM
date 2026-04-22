@@ -433,13 +433,16 @@ function ConnectorRow({
     }
   };
 
+  // Single-flight lock prevents repeated Test clicks from firing parallel
+  // verifications. The button stays disabled while a request is in flight
+  // and for a short cooldown after, so impatient double-clicks coalesce.
+  const testLock = useActionLock();
+  const testing = testLock.loading;
+
   const handleTest = async () => {
-    setTesting(true);
-    try {
+    await testLock.run(async () => {
       await onTest();
-    } finally {
-      setTesting(false);
-    }
+    });
   };
 
   const openEditor = () => {
