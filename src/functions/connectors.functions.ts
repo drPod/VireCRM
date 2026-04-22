@@ -108,28 +108,41 @@ const refreshSchema = z.object({
 });
 
 /**
- * Best-effort fetch of the Gmail account email associated with the linked
- * connection. Returns null on any failure — the caller treats null as
- * "couldn't discover yet, try again later".
+ * Best-effort fetch of the connected Google account email for a Google-family
+ * connector (Gmail, Google Calendar, etc.). Returns null on any failure — the
+ * caller treats null as "couldn't discover yet, try again later".
+ *
+ * - Gmail uses the dedicated profile endpoint which returns the mailbox.
+ * - Google Calendar (and other Google connectors that don't expose a mailbox
+ *   endpoint) fall back to the standard OAuth2 userinfo endpoint, which works
+ *   as long as the OAuth scope includes `email` / `profile` — both of which
+ *   the gateway requests by default.
  */
-async function fetchGmailConnectedEmail(envVar: string): Promise<string | null> {
+async function fetchGoogleConnectedEmail(
+  provider: "gmail" | "google_calendar",
+  envVar: string,
+): Promise<string | null> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const connectorKey = process.env[envVar];
   if (!lovableKey || !connectorKey) return null;
+
+  const url =
+    provider === "gmail"
+      ? "https://connector-gateway.lovable.dev/gmail/gmail/v1/users/me/profile"
+      : "https://connector-gateway.lovable.dev/google_calendar/oauth2/v2/userinfo";
+
   try {
-    const res = await fetch(
-      "https://connector-gateway.lovable.dev/gmail/gmail/v1/users/me/profile",
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": connectorKey,
-        },
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": connectorKey,
       },
-    );
+    });
     if (!res.ok) return null;
-    const data = (await res.json()) as { emailAddress?: string };
-    return typeof data.emailAddress === "string" ? data.emailAddress : null;
+    const data = (await res.json()) as { emailAddress?: string; email?: string };
+    const email = data.emailAddress ?? data.email;
+    return typeof email === "string" && email.length > 0 ? email : null;
   } catch {
     return null;
   }
@@ -170,22 +183,29 @@ export const refreshConnectorStatusFn = createServerFn({ method: "POST" })
       verified = v.ok;
       verifyError = v.ok ? null : v.error ?? null;
 
-      // For Gmail, opportunistically discover and cache the connected
-      // mailbox email. Only fetch when we don't already have it, so we
-      // don't hammer the gateway on every poll.
-      if (v.ok && data.provider === "gmail" && !config.connectedEmail) {
-        const email = await fetchGmailConnectedEmail(meta.envVar);
+      // For Google connectors, opportunistically discover and cache the
+      // connected account email. Only fetch when we don't already have it,
+      // so we don't hammer the gateway on every poll.
+      if (
+        v.ok &&
+        (data.provider === "gmail" || data.provider === "google_calendar") &&
+        !config.connectedEmail
+      ) {
+        const email = await fetchGoogleConnectedEmail(data.provider, meta.envVar);
         if (email) {
-          const nextConfig = {
+          const nextConfig: Record<string, string | number | boolean | null> = {
             ...config,
             connectedEmail: email,
-            // Seed the user-facing "from address" if they haven't set one yet —
-            // it's almost always the same as the connected mailbox.
-            fromAddress:
-              typeof config.fromAddress === "string" && config.fromAddress.length > 0
-                ? config.fromAddress
-                : email,
           };
+          // Gmail-only: seed the user-facing "from address" if they haven't
+          // set one yet — it's almost always the same as the connected
+          // mailbox. Calendar has no equivalent field.
+          if (
+            data.provider === "gmail" &&
+            !(typeof config.fromAddress === "string" && config.fromAddress.length > 0)
+          ) {
+            nextConfig.fromAddress = email;
+          }
           await supabaseAdmin
             .from("org_connectors")
             .update({ config: nextConfig as never })
