@@ -800,6 +800,43 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                   Disconnect
                 </Button>
               </div>
+              {settingsFields.length > 0 && (
+                <div className="space-y-2 rounded-md border border-border bg-secondary/30 p-3">
+                  {settingsFields.map((f) => (
+                    <div key={f.key} className="space-y-1">
+                      <label className="block text-[11px] font-medium text-foreground">
+                        {f.label}
+                      </label>
+                      <input
+                        value={settingsDraft[f.key] ?? ""}
+                        onChange={(e) =>
+                          setSettingsDraft((prev) => ({ ...prev, [f.key]: e.target.value }))
+                        }
+                        placeholder={f.placeholder}
+                        className="h-8 w-full rounded-md border border-input bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+                        spellCheck={false}
+                        disabled={savingSettings}
+                      />
+                      {f.helper && (
+                        <p className="text-[10px] text-muted-foreground">{f.helper}</p>
+                      )}
+                    </div>
+                  ))}
+                  {settingsDirty && (
+                    <Button
+                      variant="command"
+                      size="sm"
+                      onClick={handleSaveSettings}
+                      disabled={savingSettings}
+                    >
+                      {savingSettings ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : null}
+                      Save settings
+                    </Button>
+                  )}
+                </div>
+              )}
               {config.id === "sendgrid" && (
                 <SendTestEmailControl
                   provider="sendgrid"
@@ -808,7 +845,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                     typeof status.config?.defaultFromAddress === "string" &&
                     status.config.defaultFromAddress.trim().length > 0
                       ? null
-                      : "Set a Send-from address below before sending a test."
+                      : "Set a Send-from address above and save before sending a test."
                   }
                 />
               )}
