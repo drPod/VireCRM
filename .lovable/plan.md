@@ -1,171 +1,84 @@
 
-## Critical issues found
 
-- Sign-in is fragile: auth state, profile/role loading, and subscription gating are split across `login.tsx`, `AuthProvider.tsx`, `_app.tsx`, and `useSubscription.ts`, so a successful login can still feel broken.
-- Auth data loading assumes perfect single-row data (`.single()` calls for profile/role/org) and does not fail gracefully.
-- Several CRM areas are only partially operational:
-  - Workflows can be created/edited but there is no execution path in the codebase.
-  - Campaigns can be created, but lifecycle controls are minimal and analytics are partly inferred rather than truly attributed.
-  - Email Marketing, Calendar, and Reputation contain “coming soon”/placeholder guidance that should not be exposed at launch.
-- Some server functions still return raw thrown errors or rely on inconsistent response shapes.
-- Platform admin visibility is gated by a hardcoded email list in the UI instead of backend-backed config.
-- Multiple pages rely on optimistic assumptions without a launch-grade fallback path.
+## Goal
 
-## Implementation plan
+Turn the existing Settings → Integrations tab into a complete management page where you can **Add, Edit, Test, and Disconnect** every CRM integration — both BYO API-key providers (Apollo, Hunter, Snov) and one-click connectors (Slack, Outlook, Teams, Twilio, HubSpot, Linear, etc.).
 
-### 1) Fix sign-in/sign-up/auth first
-- Stabilize `AuthProvider` so profile, role, and organization fetches are resilient and do not silently leave the app in a broken post-login state.
-- Make login redirect deterministic:
-  - successful password login -> authenticated app route
-  - confirmed but unsubscribed user -> billing with a clear reason
-  - unconfirmed user -> confirm-email flow
-- Remove race conditions between `login.tsx`, `_app.tsx`, and `useSubscription.ts`.
-- Unify post-auth navigation for password login, Google login, signup, invite acceptance, and reset-password completion.
-- Add safe handling for missing role/org rows so users do not get trapped behind a blank loading shell.
+## What's missing today
 
-### 2) Harden the launch-critical server functions
-- Review and normalize all CRM server functions so they either:
-  - return typed safe payloads for recoverable failures, or
-  - throw clear user-facing errors for non-recoverable failures.
-- Apply the same hardening pattern across:
-  - `ai-advisor.functions.ts`
-  - `find-leads.functions.ts`
-  - `auto-outreach.functions.ts`
-  - `outreach-preview.functions.ts`
-  - `command.functions.ts`
-  - `complete-task.functions.ts`
-  - `email-log.functions.ts`
-  - `support-ticket.functions.ts`
-- Remove any remaining raw `Response`-style failures that can surface as `[object Response]` in the UI.
+| Integration type | Add | Edit | Test | Disconnect |
+|---|---|---|---|---|
+| BYO (Apollo/Hunter/Snov) | yes | **no** (must remove first) | **no** | yes |
+| Connectors (Slack/HubSpot/…) | partial (no real OAuth trigger) | **no** (config like default Slack channel can't be changed) | **no** (only auto-verify on load) | yes |
 
-### 3) Make Leads + Pipeline fully operable
-- Ensure all lead actions are fully wired and refresh the UI correctly:
-  - create lead
-  - import leads
-  - AI find leads
-  - edit lead
-  - delete lead
-  - send outreach
-  - activity timeline refresh
-  - email log refresh
-- Make pipeline cards open the lead drawer consistently and keep drag/drop status changes synced with lead details.
-- Keep HTML-stripped previews consistent between Activity and Emails tabs.
-- Add inline error states where data loads can fail, instead of silent empty states.
+We'll close every "no" above and unify the look so each card has the same four actions.
 
-### 4) Make Clients + Billing + Payouts production-safe
-- Audit and harden:
-  - create client account
-  - auto-email credentials
-  - reset client password
-  - reseller plans CRUD
-  - client signup link copy
-  - payout mark-paid flow
-  - CSV exports
-  - manual subscription/admin flows
-- Move platform-admin gating away from the hardcoded UI list and align it with backend configuration.
-- Ensure client creation and password reset always leave the operator with a usable fallback if email delivery fails.
+## What you'll see
 
-### 5) Make Campaigns + Email Marketing operable
-- Upgrade Campaigns from “create and view only” into a usable lifecycle:
-  - edit campaign
-  - pause/resume
-  - delete
-  - refresh counts after changes
-- Remove or replace any launch-time placeholder content in Email Marketing.
-- Stop showing functionality that is not actually implemented.
-- Ensure campaign analytics only shows metrics the system can truly support; where attribution is not real, either implement proper attribution or remove the misleading metric.
+```text
+Settings → Integrations
+────────────────────────────────────────────
+[ Monthly Lead Credits card — unchanged    ]
 
-### 6) Make Workflows honest and operable
-- Resolve the biggest gap in the CRM:
-  - either implement a minimal execution engine for the currently supported triggers/actions
-  - or temporarily ship workflows as a draft builder only and disable “active” behavior until execution exists
-- For launch readiness, the safer path is:
-  - keep create/edit/save/delete working
-  - disable misleading “active/enrolled/completed/last run” behavior unless backed by real execution
-  - remove false runtime signals from the list page
-- If execution is implemented in this pass, support only the current defined nodes:
-  - triggers: lead created, status changed, message received
-  - actions: send email, add tag, wait, branch
+[ One-click integrations  (Slack, Outlook, …) ]
+  ┌─ Slack ───────────────── Connected ───┐
+  │  Default channel: #sales              │
+  │  Verified 2m ago                      │
+  │  [ Test ]  [ Edit ]  [ Disconnect ]   │
+  └───────────────────────────────────────┘
 
-### 7) Clean Settings + Team + White-label
-- Ensure Team management is fully operational end-to-end:
-  - invite
-  - copy invite link
-  - cancel invite
-  - change role
-  - remove member
-- Ensure White-label settings save and refresh reliably:
-  - brand name
-  - color
-  - logo
-  - custom domain
-  - support email
-  - reseller toggle
-- Harden Email Audit Log to use the same defensive normalization/error handling as lead email logs.
+[ Lead-source API keys  (Apollo, Hunter, Snov) ]
+  ┌─ Apollo.io ────────────── Connected ──┐
+  │  Key: apol••••a91f                    │
+  │  Verified yesterday                   │
+  │  [ Test ]  [ Edit ]  [ Disconnect ]   │
+  └───────────────────────────────────────┘
+```
 
-### 8) Remove launch-risk UI
-- Strip or hide any UI that implies a working feature when the backend/runtime path is missing.
-- Priority removals/hardening:
-  - “coming soon” launch blockers in Email Marketing / Calendar / Reputation
-  - misleading workflow runtime controls if no executor is implemented
-  - any dead or placeholder CTA in CRM routes
+Every card now exposes the same four primary actions. "Edit" opens a small inline editor (new key / new config); "Test" pings the provider live and shows a success or error toast; "Disconnect" asks for confirmation before removing.
 
-### 9) Deep QA pass before release
-- Run a full end-to-end launch checklist in this order:
-  1. Sign up
-  2. Confirm email
-  3. Sign in
-  4. Reset password
-  5. Billing access / unsubscribed gating
-  6. Leads CRUD
-  7. Outreach preview + send
-  8. Activity / Emails tabs
-  9. Pipeline drag/drop
-  10. Team invites / role changes
-  11. White-label save flow
-  12. Clients create / reset password
-  13. Campaign create/edit/pause/delete
-  14. Email Marketing route
-  15. Workflow create/edit/save/delete
-  16. Payouts / expenses / invoices / revenue / analytics
-- Check console/runtime errors after each area and fix any hidden failures before moving on.
+## Per-action behaviour
 
-## Technical details
+- **Add (Connect)**
+  - BYO: paste key → server verifies live with the provider → saved (existing flow, kept as-is).
+  - Connector: button now actually triggers the Lovable Connector OAuth flow for the provider (today it just marks the row enabled). After the popup closes we re-verify.
 
-- Primary auth files:
-  - `src/components/auth/AuthProvider.tsx`
-  - `src/routes/login.tsx`
-  - `src/routes/signup.tsx`
-  - `src/routes/reset-password.tsx`
-  - `src/routes/confirm-email.tsx`
-  - `src/routes/_app.tsx`
-  - `src/hooks/useSubscription.ts`
-- Primary CRM files:
-  - `src/routes/_app.leads.tsx`
-  - `src/components/crm/LeadDetailDrawer.tsx`
-  - `src/components/crm/PipelineView.tsx`
-  - `src/routes/_app.clients.tsx`
-  - `src/routes/_app.billing.tsx`
-  - `src/routes/_app.payouts.tsx`
-  - `src/routes/_app.campaigns.tsx`
-  - `src/routes/_app.email-marketing.tsx`
-  - `src/routes/_app.workflows.index.tsx`
-  - `src/routes/_app.workflows.$workflowId.tsx`
-  - `src/routes/_app.settings.tsx`
-  - `src/components/crm/TeamMembers.tsx`
-  - `src/components/crm/WhiteLabelSettings.tsx`
-  - `src/components/crm/EmailAuditLog.tsx`
-- Server function hardening targets:
-  - `src/functions/*.functions.ts`
-  - `src/routes/lovable/email/transactional/send.ts`
-  - `src/routes/lovable/email/queue/process.ts`
+- **Edit**
+  - BYO: "Edit" reveals the password input pre-filled empty; entering a new key replaces the old one (re-verified before saving).
+  - Connector: opens a small form for that connector's config — e.g. Slack default channel, Outlook from-address, Twilio from-number, HubSpot import limit. Saved via the existing `updateConnectorConfigFn`.
 
-## Launch sequencing
+- **Test**
+  - BYO: server hits the same lightweight verify endpoint used at save time (`/auth/health` for Apollo, `/v2/account` for Hunter, OAuth token for Snov) and updates `last_verified_at`.
+  - Connector: calls the gateway's `/api/v1/verify_credentials` endpoint and refreshes the badge/error.
+  - Either way the result shows as a toast plus a "Verified just now" / "Failed: …" line on the card.
 
-1. Auth and post-login gating
-2. Leads/outreach/email logs
-3. Clients/billing/payouts
-4. Campaigns/email marketing
-5. Workflows
-6. Settings/team/white-label
-7. Full end-to-end verification and console cleanup
+- **Disconnect**
+  - BYO: existing delete flow, with a clearer confirm dialog ("This will stop Auto-Find Leads via Apollo…").
+  - Connector: existing disable + (new) call the disconnect helper so the gateway connection is cleanly released, not just marked `enabled=false`.
+
+## Technical changes
+
+1. **New server functions**
+   - `testIntegrationFn` (BYO) — re-runs `verifyApolloKey` / `verifyHunterKey` / `verifySnovKey` against the stored key and updates `last_verified_at`.
+   - `testConnectorFn` (connector) — wraps `verifyConnectorCredentials` so the UI can trigger it on demand instead of only at list time.
+   - `updateIntegrationKeyFn` (BYO) — same as save, but explicit "edit" semantics (verify → upsert → return new masked key).
+
+2. **Refactor `IntegrationsSettings.tsx`**
+   - `ProviderCard` gains `Test` + `Edit` buttons and an inline edit panel.
+   - Status badge becomes "Connected · Verified 5m ago" or "Failed verification" with the provider's error.
+
+3. **Refactor `ConnectorIntegrations.tsx` → `ConnectorRow`**
+   - Adds `Test` and `Edit` buttons (Edit opens a per-connector config drawer).
+   - Connect button now calls a small client helper that opens the Lovable Connector OAuth flow for `meta.connectorId`, then calls `enableConnectorFn` on success.
+   - Per-connector config schemas (Slack: `defaultChannel`; Outlook: `fromAddress`; Twilio: `fromNumber`; HubSpot: `importLimit`; others: none) drive what the Edit form renders.
+
+4. **No DB migrations** — `org_integrations` and `org_connectors` already store everything we need (`api_key`, `last_verified_at`, `config jsonb`, `enabled`).
+
+5. **Owner-only guard** is unchanged — every new server function calls `assertOwner` first.
+
+## Out of scope
+
+- Adding more providers beyond what's already in the catalog.
+- Per-user (vs per-org) connections.
+- Two-way sync schedules — this PR is just settings management.
+
