@@ -11,7 +11,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CONNECTORS, getConnector } from "@/lib/connectors/catalog";
-import { verifyConnectorCredentials } from "@/lib/connectors/gateway";
+import { verifyConnectorCredentials, revokeConnectorCredentials } from "@/lib/connectors/gateway";
+import { recordConnectorActivity } from "./_connector-log";
 import { z } from "zod";
 
 const VALID_PROVIDERS = CONNECTORS.map((c) => c.id) as [string, ...string[]];
@@ -135,13 +136,47 @@ export const disableConnectorFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertOwner(context.userId, data.organizationId);
 
+    const meta = getConnector(data.provider);
+    if (!meta) throw new Error(`Unknown connector: ${data.provider}`);
+
+    // 1. Best-effort revoke against the gateway so cached OAuth tokens are
+    //    invalidated. We don't fail the whole disconnect if revoke errors —
+    //    the user clearly wants this thing off, and the local state is the
+    //    source of truth for whether we'll attempt to use it.
+    const revoke = await revokeConnectorCredentials(meta.envVar);
+
+    // 2. Flip enabled=false AND clear cached gateway-derived config (e.g.
+    //    connectedEmail, fromAddress, calendar IDs). Owner-set preferences
+    //    are stored in the same jsonb but it's safer to wipe them on
+    //    disconnect — they'll be re-collected when the user reconnects, and
+    //    leaving stale values around (e.g. an old "send from" address) leads
+    //    to confusing failures next time.
     const { error } = await supabaseAdmin
       .from("org_connectors")
-      .update({ enabled: false })
+      .update({ enabled: false, config: {} as never })
       .eq("organization_id", data.organizationId)
       .eq("provider", data.provider);
     if (error) throw new Error(`Failed to disable: ${error.message}`);
-    return { ok: true };
+
+    // 3. Audit trail.
+    await recordConnectorActivity({
+      organizationId: data.organizationId,
+      userId: context.userId,
+      provider: data.provider,
+      direction: "outbound",
+      action: "disconnect",
+      status: revoke.ok ? "success" : "partial",
+      summary: revoke.ok
+        ? `Disconnected ${meta.name}; gateway credentials revoked.`
+        : `Disconnected ${meta.name} locally; gateway revoke failed.`,
+      errorMessage: revoke.ok ? null : revoke.error ?? null,
+    });
+
+    return {
+      ok: true,
+      revoked: revoke.ok,
+      revokeError: revoke.ok ? null : revoke.error ?? null,
+    };
   });
 
 // ----- UPDATE CONFIG (default channel, mailbox, team id, etc.) -----
