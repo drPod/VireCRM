@@ -4,8 +4,9 @@ import { TeamMembers } from "@/components/crm/TeamMembers";
 import { EmailAuditLog } from "@/components/crm/EmailAuditLog";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
+import { OutreachTemplatesManager } from "@/components/crm/OutreachTemplatesManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Palette, Mail, Plug } from "lucide-react";
+import { Users, Palette, Mail, Plug, FileText } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const PLATFORM_ADMIN_EMAILS = ["solidsnake4ks@gmail.com"];
@@ -49,6 +50,10 @@ function SettingsPage() {
             <Mail className="h-4 w-4" />
             Emails
           </TabsTrigger>
+          <TabsTrigger value="outreach" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Outreach
+          </TabsTrigger>
           <TabsTrigger value="integrations" className="gap-2">
             <Plug className="h-4 w-4" />
             Integrations
@@ -70,6 +75,10 @@ function SettingsPage() {
 
         <TabsContent value="emails">
           <EmailAuditLog />
+        </TabsContent>
+
+        <TabsContent value="outreach">
+          <OutreachTemplatesManager />
         </TabsContent>
 
         <TabsContent value="integrations">

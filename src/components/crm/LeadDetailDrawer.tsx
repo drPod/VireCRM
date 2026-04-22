@@ -648,6 +648,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
             name: form.name.trim() || lead.name,
             email: (form.email.trim() || lead.email) as string,
             company: form.company.trim() || lead.company || null,
+            role: (lead as { role?: string | null }).role ?? null,
           }}
           onSent={handleSent}
         />

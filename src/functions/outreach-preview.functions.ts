@@ -7,6 +7,7 @@ import {
   deliverOutreachEmail,
   loadOutreachDeliveryChannels,
 } from "@/lib/email/outreach-delivery";
+import { fillTemplateTokens } from "@/lib/outreach/template-fill";
 import { z } from "zod";
 
 // =============================================================================
@@ -26,6 +27,9 @@ const previewSchema = z.object({
     score: z.number().min(0).max(100).optional().nullable(),
   }),
   businessContext: z.string().min(1).max(5000).optional(),
+  /** Optional template the AI should personalize. When omitted we fall back
+   * to the org's default template (if any), or generate from scratch. */
+  templateId: z.string().uuid().optional().nullable(),
 });
 
 export interface OutreachPreview {
@@ -69,6 +73,39 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
     const lead = data.lead;
     const leadInfo = `${lead.name}${lead.company ? ` at ${lead.company}` : ""}${lead.role ? ` (${lead.role})` : ""}${lead.score ? ` [score: ${lead.score}]` : ""}`;
 
+    // ----- Pull the chosen template (or default) so the AI personalizes from
+    // a base the user wrote, instead of generating raw cold copy. We always
+    // pre-fill the placeholder tokens so the AI sees realistic example text.
+    let templateBlock = "";
+    let templateSubject: string | null = null;
+    let templateBody: string | null = null;
+    if (data.templateId !== undefined) {
+      const tQuery = supabase
+        .from("outreach_templates")
+        .select("subject, body")
+        .eq("organization_id", data.organizationId);
+      const { data: tpl } = data.templateId
+        ? await tQuery.eq("id", data.templateId).maybeSingle()
+        : await tQuery.eq("is_default", true).maybeSingle();
+      if (tpl) {
+        templateSubject = fillTemplateTokens(tpl.subject, {
+          name: lead.name,
+          email: lead.email,
+          company: lead.company,
+          role: lead.role,
+          businessName,
+        });
+        templateBody = fillTemplateTokens(tpl.body, {
+          name: lead.name,
+          email: lead.email,
+          company: lead.company,
+          role: lead.role,
+          businessName,
+        });
+        templateBlock = `\n\nUse this template as the structural base — keep the user's voice, tone, and key talking points, but personalize the wording for the lead and tighten anything that reads stiff:\n---\nSubject: ${templateSubject}\n---\n${templateBody}\n---`;
+      }
+    }
+
     const result = await callAiWithFallback<{ subject?: string; body?: string }>({
       featureLabel: "Outreach preview",
       models: DEFAULT_TEXT_MODELS,
@@ -82,8 +119,9 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
 - Include a clear value proposition
 - End with a soft call-to-action (e.g., "Would you be open to a quick chat?")
 - Sound human and natural, NOT templated or salesy
-- Use the lead's first name`,
-      userPrompt: `${businessCtx}\n\nGenerate a personalized outreach email for this lead:\n- ${leadInfo}`,
+- Use the lead's first name
+- If a template is provided, follow its structure and core message faithfully — only adjust wording for natural personalization`,
+      userPrompt: `${businessCtx}\n\nLead:\n- ${leadInfo}${templateBlock}`,
       toolSchema: {
         type: "object",
         properties: {
