@@ -477,6 +477,48 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </div>
             </div>
 
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Energy details
+              </p>
+              <div className="grid gap-3 grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Annual kWh
+                  </label>
+                  <input
+                    inputMode="numeric"
+                    className={inputClass}
+                    value={form.annual_kwh}
+                    onChange={(e) => update("annual_kwh", e.target.value)}
+                    placeholder="e.g. 120000"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Contract end date
+                  </label>
+                  <input
+                    type="date"
+                    className={inputClass}
+                    value={form.contract_end_date}
+                    onChange={(e) => update("contract_end_date", e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Current supplier
+                  </label>
+                  <input
+                    className={inputClass}
+                    value={form.current_supplier}
+                    onChange={(e) => update("current_supplier", e.target.value)}
+                    placeholder="e.g. British Gas, EDF, Octopus"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">Next Action</label>
               <input
