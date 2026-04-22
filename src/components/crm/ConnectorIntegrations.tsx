@@ -482,7 +482,7 @@ function ConnectorRow({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleClick("disable")}
+              onClick={() => setConfirmDisconnect(true)}
               disabled={busy}
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
@@ -493,7 +493,7 @@ function ConnectorRow({
           <Button
             variant="command"
             size="sm"
-            onClick={() => handleClick("enable")}
+            onClick={handleEnable}
             disabled={busy}
           >
             {busy ? (
@@ -505,6 +505,31 @@ function ConnectorRow({
           </Button>
         )}
       </div>
+
+      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect {meta.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Outbound actions through {meta.name} will stop working until you reconnect. Your
+              {meta.name} account itself isn't touched — you can reconnect any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Keep connected</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisable} disabled={busy}>
+              {busy ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Disconnecting…
+                </>
+              ) : (
+                "Yes, disconnect"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
