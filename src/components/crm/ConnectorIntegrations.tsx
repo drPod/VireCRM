@@ -629,7 +629,13 @@ function ConnectorRow({
                 Sync contacts
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTest}
+              disabled={testLock.locked}
+              aria-busy={testing}
+            >
               {testing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
