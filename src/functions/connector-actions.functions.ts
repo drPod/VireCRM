@@ -302,6 +302,14 @@ export const sendOutlookEmailFn = createServerFn({ method: "POST" })
         payload: { subject: data.subject },
       });
 
+      await logLeadEmail({
+        organizationId: data.organizationId,
+        leadId: data.leadId,
+        subject: data.subject,
+        body: data.body,
+        provider: "microsoft_outlook",
+      });
+
       return { ok: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
