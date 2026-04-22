@@ -79,6 +79,11 @@ export function deriveConnectorPrerequisites(
   if (fields.length > 0) {
     const draft: Record<string, string> = {};
     for (const f of fields) {
+      // Prefer the in-progress override (even an empty string means "cleared").
+      if (configOverride && Object.prototype.hasOwnProperty.call(configOverride, f.key)) {
+        draft[f.key] = configOverride[f.key] ?? "";
+        continue;
+      }
       const v = status.config?.[f.key];
       draft[f.key] = v == null ? "" : String(v);
     }
