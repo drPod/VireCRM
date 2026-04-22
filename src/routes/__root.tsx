@@ -43,6 +43,8 @@ export const Route = createRootRoute({
       { property: "og:description", content: "Genesis is the AI-powered CRM that follows up, nurtures, and closes your leads automatically — so your business sells 24/7." },
       { name: "twitter:title", content: "Genesis — Autonomous AI CRM that closes leads for you" },
       { name: "twitter:description", content: "Genesis is the AI-powered CRM that follows up, nurtures, and closes your leads automatically — so your business sells 24/7." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/15ea577c-62f7-41c1-93f9-133ceb6165c1" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/15ea577c-62f7-41c1-93f9-133ceb6165c1" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
