@@ -560,8 +560,10 @@ function ConnectorRow({
         </div>
       </div>
 
-      {status?.verifyError && (
-        <p className="text-[11px] text-warning mb-2">{status.verifyError}</p>
+      {(testResult || testing) && (
+        <div className="mb-3">
+          <TestResultPanel result={testResult} testing={testing} providerLabel={meta.name} />
+        </div>
       )}
 
       {/* Inline config editor */}
