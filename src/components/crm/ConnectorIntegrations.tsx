@@ -46,6 +46,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SendTestEmailControl } from "./SendTestEmailControl";
 import {
   AlertDialog,
   AlertDialogAction,
