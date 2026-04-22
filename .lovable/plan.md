@@ -2,101 +2,118 @@
 
 ## Goal
 
-Make Gmail, Google Calendar, Twilio, and SendGrid first-class integrations users can link from Settings → Integrations and use directly from a lead.
+Make the **Connect** buttons on Gmail and Google Calendar in Settings → Integrations actually launch a real Google OAuth sign-in popup, instead of just flipping an "enabled" flag and waiting for someone to magically link credentials.
 
-## Current state
+## Why this is needed
 
-- **Twilio** — already live (Connect/Test/Edit/Disconnect + `sendTwilioSmsFn`). No work needed.
-- **Gmail** — in catalog as `beta` (enable-only). No send action.
-- **Google Calendar** — in catalog as `beta` (enable-only). No scheduling action.
-- **SendGrid** — not present at all. Not available as a Lovable Connector → must be a BYO API-key provider, like Apollo / Hunter / Snov.
+Today the Connect button on Gmail / Google Calendar:
+1. Calls `enableConnectorFn` → writes `enabled = true` to `org_connectors`.
+2. Checks if `GMAIL_API_KEY` / `GOOGLE_CALENDAR_API_KEY` already exists in the runtime env.
+3. If not (the normal case for end-users), shows **"Awaiting auth"** with no way forward.
 
-## What you'll see
+There is no actual OAuth pop-up. The Lovable Connector Gateway holds Google tokens, but nothing in the app asks the user to sign in with Google.
+
+## What you'll see after this change
 
 ```text
-Settings → Integrations
-─────────────────────────────────────────────
-[ One-click integrations ]
-  Email & Calendar
-   ┌─ Gmail ───────────────── Connected ─┐
-   │ Send-from address: you@company.com  │
-   │ [ Send test email ] [ Test ] [ Edit ] [ Disconnect ]
-   └─────────────────────────────────────┘
-   ┌─ Google Calendar ─────── Connected ─┐
-   │ Default meeting length: 30 min      │
-   │ Time zone: America/Chicago          │
-   │ [ Test ] [ Edit ] [ Disconnect ]    │
-   └─────────────────────────────────────┘
-   ┌─ Microsoft Outlook ─── (existing)   │
-
-  Communication
-   ┌─ Twilio SMS ─────────── (existing) ─┐
-
-[ Lead-source & email API keys ]
-   ┌─ SendGrid ──────────── Connected ───┐
-   │ Key: SG.x••••a1f2                   │
-   │ Verified just now                   │
-   │ [ Test ] [ Edit ] [ Disconnect ]    │
-   └─────────────────────────────────────┘
+Settings → Integrations → Gmail card
+   [ Connect Gmail ]      ← click
+       │
+       ▼
+   Google sign-in popup opens (accounts.google.com)
+   • Pick the Google account you want to send from
+   • Approve "Send email on your behalf" + "See your email address"
+       │
+       ▼
+   Popup closes, card flips to:
+       Connected ✓   you@gmail.com
+       [ Send test email ]  [ Test ]  [ Edit ]  [ Disconnect ]
 ```
 
-On a lead drawer:
-- "Send email" now offers **Gmail / Outlook / SendGrid** (whichever are connected).
-- "Schedule meeting" now opens a small dialog (date, time, duration, invite the lead's email) and creates a Google Calendar event.
+Same flow for **Google Calendar** (scopes: read/write events on calendars you own).
 
-## What gets built
+If the user is **not the workspace owner**, the card still shows "Ask your owner to connect this" — owner-only restriction is unchanged.
 
-### 1. Catalog updates (`src/lib/connectors/catalog.ts`)
+## How it works (technical)
 
-- **Gmail** → `status: "live"`, add `configFields: [{ key: "fromAddress", label: "Send from address", placeholder: "you@gmail.com" }]`, description tightened to "Send outreach emails from your Gmail account."
-- **Google Calendar** → `status: "live"`, add `configFields`:
-  - `defaultDurationMinutes` (default 30)
-  - `timeZone` (default "UTC", helper text suggests browser TZ)
-  - `defaultCalendarId` (optional, default "primary")
-- No catalog change for SendGrid (it lives in the BYO section, not the connector catalog).
+### 1. Wire the existing `Connect` button to the managed OAuth flow
 
-### 2. New connector action handlers (`src/functions/connector-actions.functions.ts`)
+Lovable already provides a managed OAuth broker at `/~oauth/initiate` for the connectors in our catalog. Replace the current `handleEnable` for Google providers in `src/components/crm/ConnectorIntegrations.tsx`:
 
-- **`sendGmailFn`** — POST to `/gmail/v1/users/me/messages/send` with a base64url-encoded RFC 2822 message (`From`, `To`, `Subject`, `Content-Type: text/html`, body). Logs to `connector_activity_log` like the Outlook handler.
-- **`scheduleGoogleCalendarEventFn`** — POST to `/calendar/v3/calendars/{calendarId}/events` with `summary`, `description`, `start.dateTime`, `end.dateTime`, `timeZone`, `attendees: [{ email }]`, `sendUpdates=all` so the lead gets the invite email. Returns the new event's `htmlLink`.
+- For `gmail` and `google_calendar`, opening `Connect` does:
+  1. POST to a new server fn `startConnectorOAuthFn({ provider })` which returns an authorization URL built against `https://oauth.lovable.app/initiate?connector_id=gmail&org_id=…&return_to=…`.
+  2. Open that URL in a centered popup window (`window.open(url, "lovable-oauth", "width=520,height=720")`).
+  3. Poll `listConnectorsFn` every 2s for up to 90s. When the gateway reports `credentialPresent && verified`, close the popup and flip the card to **Connected**.
+- Other connectors (Slack, HubSpot, etc.) keep the existing flow.
 
-Both follow the existing `assertMemberAndConnector` → `callGateway` → `recordConnectorActivity` pattern.
+### 2. New server function — `startConnectorOAuthFn`
 
-### 3. SendGrid as a BYO provider
+In `src/functions/connectors.functions.ts`. Owner-only. Inputs: `organizationId`, `provider`. Returns:
 
-SendGrid is not a Lovable Connector. It joins the existing BYO flow used by Apollo/Hunter/Snov.
+```ts
+{ authorizeUrl: string }
+```
 
-- **`src/lib/sendgrid.ts`** — small client:
-  - `verifySendgridKey(key)` → `GET https://api.sendgrid.com/v3/scopes` with `Authorization: Bearer <key>`. 200 = ok; 401 = "Invalid SendGrid API key"; otherwise pass through error.
-  - `sendSendgridEmail({ key, from, to, subject, html })` → `POST https://api.sendgrid.com/v3/mail/send`.
-- **`src/functions/integrations.functions.ts`**:
-  - Extend `SUPPORTED_PROVIDERS` to include `"sendgrid"` and route it through `verifySendgridKey` in `verifyKey()`. Existing get/save/test/delete server fns automatically gain SendGrid support — no new fns needed.
-- **`src/functions/connector-actions.functions.ts`**:
-  - `sendSendgridEmailFn` — looks up the org's stored SendGrid key from `org_integrations`, calls `sendSendgridEmail`, logs activity. Requires a "from address" passed in (or stored on the integration row's existing column — see Edit UI below).
-- **`src/components/crm/IntegrationsSettings.tsx`** — add a `ProviderConfig` row for SendGrid:
-  - Setup steps: 1) Sign in to SendGrid, 2) Settings → API Keys → Create API Key (Full Access or Mail Send), 3) Verify a sender domain or single sender, 4) Paste key here.
-  - Single field input (`SG.…`).
-  - Config field (stored alongside the masked key UI as part of the Edit panel) for `defaultFromAddress`.
+Builds the URL using:
+- `LOVABLE_API_KEY` (already in secrets) for broker auth header preflight,
+- `connectorId` from the catalog,
+- `state` = signed JWT containing `{ orgId, provider, nonce, exp }` so the callback can be validated,
+- `redirect_uri` = `${publicAppUrl}/integrations/oauth/callback`.
 
-### 4. Lead drawer wiring (`src/components/crm/LeadConnectorActions.tsx`)
+### 3. New callback route — `/integrations/oauth/callback`
 
-- **Send email**: detect which of `gmail`, `microsoft_outlook`, `sendgrid` are connected. Show a dropdown to pick provider, then the existing email composer. Submit calls the matching server fn.
-- **Schedule meeting** (new button, only shown if `google_calendar` is connected):
-  - Small dialog: date, start time, duration (prefilled from config), notes.
-  - Calls `scheduleGoogleCalendarEventFn` with the lead's email as attendee.
-  - On success: toast with "Open in Calendar" link.
+`src/routes/integrations.oauth.callback.tsx` — minimal page that:
+- Reads `?status=success|error&provider=…` from the broker redirect,
+- Posts a `window.opener.postMessage({ type: "lovable-oauth", provider, ok })` then `window.close()`,
+- If opened directly (no opener), shows a friendly "You can close this tab" screen.
 
-### 5. Quiet fix
+The parent (Settings page) listens for that `postMessage` to short-circuit polling.
 
-Address the runtime "Cannot convert object to primitive value" error surfaced in the preview while doing the catalog/UI edits.
+### 4. New server function — `recordOAuthCallbackFn` (exchange + persist)
 
-## Out of scope
+POST endpoint hit by the broker (or by the callback route after the broker redirects back). Validates the `state` JWT, asks the gateway `/api/v1/connections` for the freshly created connection, and:
+- Upserts `org_connectors { provider, enabled: true, config: { connectedAccount: <email> } }`.
+- Stores the connected account email in `config.connectedEmail` so the card can display "Connected as you@gmail.com".
+- Pre-fills `config.fromAddress` (Gmail) or `config.timeZone` (Calendar) with sane defaults.
 
-- Inbound sync (Gmail thread pulls, Calendar busy/free reads).
-- SendGrid templates / dynamic data.
-- Per-user (vs per-org) Gmail accounts.
+### 5. Status enrichment
+
+Update `ConnectorStatus` returned by `listConnectorsFn` to include:
+
+```ts
+connectedEmail?: string | null
+```
+
+So the UI can show "Connected as <email>" under each Google card. Pulled from `org_connectors.config.connectedEmail`.
+
+### 6. Disconnect
+
+`disableConnectorFn` already exists. Extend it for Google providers to also call the gateway's `DELETE /api/v1/connections/{id}` so revoking in our app actually revokes the token in Google. If the gateway call fails (e.g. token already expired), still flip `enabled = false` locally and toast a soft warning.
+
+### 7. UX polish on the cards (Gmail / Calendar only)
+
+- Replace the generic "Connect" button with **"Connect Gmail"** / **"Connect Google Calendar"** with the Google "G" mark on the left.
+- After connection, show **Connected as you@gmail.com** under the title.
+- A subtitle line: *"We'll only ask for permission to send email and read the address you're sending as. You can revoke access in your Google account at any time → myaccount.google.com/permissions"*.
+- A small **"Send test email"** button on the Gmail card that fires `sendGmailFn` to the connected address itself, so users can verify in one click without opening a lead.
+
+## OAuth scopes requested
+
+| Provider | Scopes |
+|---|---|
+| Gmail | `gmail.send`, `userinfo.email` |
+| Google Calendar | `calendar.events`, `userinfo.email` |
+
+These are the minimum needed for the existing `sendGmailFn` and `scheduleGoogleCalendarEventFn` handlers.
 
 ## DB changes
 
-None. Gmail/Calendar config goes in `org_connectors.config` (already jsonb). SendGrid uses the existing `org_integrations` table; the `defaultFromAddress` is stored in a small jsonb column the row already has, or — if not — in a new nullable `config jsonb` column added via migration during implementation.
+None required. `org_connectors.config` (jsonb) already stores arbitrary keys — `connectedEmail` slots in alongside `fromAddress`, `timeZone`, etc.
+
+## Out of scope
+
+- Per-user (vs per-org) Gmail accounts — still one shared connection per org.
+- Google Workspace domain-wide delegation.
+- Refresh-token rotation handling (gateway does this).
+- Inbound Gmail / Calendar sync.
 
