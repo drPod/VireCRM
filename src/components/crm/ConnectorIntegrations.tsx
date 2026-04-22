@@ -360,11 +360,20 @@ export function ConnectorIntegrations() {
               )}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Connect tools your team already uses — no API keys to copy or paste. Just click
-              <span className="font-medium text-foreground"> Connect </span>
-              on any card below and sign in to that service when prompted. We handle the
-              technical setup automatically.
+              Connect tools your team already uses — no API keys to copy or paste.
             </p>
+            <ol className="mt-2 space-y-1 text-xs text-muted-foreground list-decimal pl-4">
+              <li>
+                Click <span className="font-medium text-foreground">Connect</span> on any card to enable it for your workspace.
+              </li>
+              <li>
+                A sign-in window for that provider will open — finish the sign-in to authorize access. The card flips to
+                <span className="font-medium text-foreground"> Connected </span> automatically (usually within a few seconds).
+              </li>
+              <li>
+                If a window doesn't open, use the <span className="font-medium text-foreground">"Ask AI to finish setup"</span> button on the card to copy a ready-made prompt for your AI assistant.
+              </li>
+            </ol>
           </div>
         </div>
       </div>
