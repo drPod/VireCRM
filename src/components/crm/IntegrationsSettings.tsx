@@ -179,7 +179,7 @@ export function IntegrationsSettings() {
   const saveIntegration = useAuthedServerFn(saveIntegrationFn);
   const deleteIntegration = useAuthedServerFn(deleteIntegrationFn);
   const testIntegration = useAuthedServerFn(testIntegrationFn);
-  const getLeadUsage = useAuthedServerFn(getLeadUsageFn);
+  const updateIntegrationConfig = useAuthedServerFn(updateIntegrationConfigFn);
 
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState<Record<Provider, ProviderStatus>>({
