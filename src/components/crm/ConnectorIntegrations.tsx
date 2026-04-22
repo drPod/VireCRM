@@ -46,6 +46,16 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function ConnectorIntegrations() {
   const { organization, role } = useAuth();
@@ -254,6 +264,7 @@ function ConnectorRow({
   const [editing, setEditing] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [draftConfig, setDraftConfig] = useState<Record<string, string>>({});
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const importHubspot = useAuthedServerFn(importHubspotContactsFn);
 
   const enabled = !!status?.enabled;
@@ -261,11 +272,22 @@ function ConnectorRow({
   const verified = status?.verified;
   const hasConfigFields = (meta.configFields ?? []).length > 0;
 
-  const handleClick = async (action: "enable" | "disable") => {
+  const handleEnable = async () => {
     setBusy(true);
     try {
-      if (action === "enable") await onEnable();
-      else await onDisable();
+      await onEnable();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDisable = async () => {
+    setBusy(true);
+    try {
+      await onDisable();
+      setConfirmDisconnect(false);
+    } catch {
+      // toast already shown upstream
     } finally {
       setBusy(false);
     }
