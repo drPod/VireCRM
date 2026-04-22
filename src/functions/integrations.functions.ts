@@ -65,12 +65,13 @@ export const getIntegrationFn = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!row) return { configured: false as const };
+    const cfg = (row.config ?? {}) as Record<string, string | number | boolean | null>;
     return {
       configured: true as const,
       maskedKey: maskKey(row.api_key),
       lastVerifiedAt: row.last_verified_at,
       updatedAt: row.updated_at,
-      config: (row.config as Record<string, unknown>) ?? {},
+      config: cfg,
     };
   });
 
