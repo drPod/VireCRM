@@ -624,7 +624,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   };
 
   const handleSaveSettings = async () => {
-    if (!settingsDirty) return;
+    if (!settingsDirty || !settingsValid) return;
     setSavingSettings(true);
     try {
       // Convert to the shape expected by the server fn — empty strings become null.
