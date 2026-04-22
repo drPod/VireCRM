@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Loader2, Sparkles } from "lucide-react";
+import { Plus, Loader2, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
@@ -44,13 +44,21 @@ export function AddLeadDialog({
     score: 50,
     next_action: "",
     notes: "",
-    annual_kwh: "" as string, // string in form, parsed on submit
     contract_end_date: "" as string, // YYYY-MM-DD
     current_supplier: "",
   });
+  // Custom user-defined fields appended to the lead notes/description.
+  const [customFields, setCustomFields] = useState<Array<{ label: string; value: string }>>([]);
 
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const addCustomField = () =>
+    setCustomFields((prev) => [...prev, { label: "", value: "" }]);
+  const updateCustomField = (idx: number, key: "label" | "value", v: string) =>
+    setCustomFields((prev) => prev.map((f, i) => (i === idx ? { ...f, [key]: v } : f)));
+  const removeCustomField = (idx: number) =>
+    setCustomFields((prev) => prev.filter((_, i) => i !== idx));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,18 +71,13 @@ export function AddLeadDialog({
       return;
     }
 
-    // Parse annual kWh — accept "12,000" / "12000 kWh" / blank.
-    let annualKwh: number | null = null;
-    const rawKwh = form.annual_kwh.trim();
-    if (rawKwh) {
-      const cleaned = rawKwh.replace(/[^\d.]/g, "");
-      const n = cleaned ? Math.round(Number(cleaned)) : NaN;
-      if (!Number.isFinite(n) || n < 0) {
-        toast.error("Annual kWh must be a positive number");
-        return;
-      }
-      annualKwh = n;
-    }
+    // Compose notes with any custom fields appended as "Label: value" lines.
+    const customLines = customFields
+      .map((f) => ({ label: f.label.trim(), value: f.value.trim() }))
+      .filter((f) => f.label || f.value)
+      .map((f) => `${f.label || "Field"}: ${f.value}`)
+      .join("\n");
+    const composedNotes = [form.notes.trim(), customLines].filter(Boolean).join("\n\n") || null;
 
     setLoading(true);
     try {
@@ -87,8 +90,7 @@ export function AddLeadDialog({
         status: form.status,
         score: form.score,
         next_action: form.next_action.trim() || null,
-        notes: form.notes.trim() || null,
-        annual_kwh: annualKwh,
+        notes: composedNotes,
         contract_end_date: form.contract_end_date || null,
         current_supplier: form.current_supplier.trim() || null,
       }).select("id, name, email, company");
@@ -103,10 +105,10 @@ export function AddLeadDialog({
         score: 50,
         next_action: "",
         notes: "",
-        annual_kwh: "",
         contract_end_date: "",
         current_supplier: "",
       });
+      setCustomFields([]);
       setOpen(false);
       onLeadAdded?.();
 
@@ -210,18 +212,6 @@ export function AddLeadDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium text-foreground">
-                  Annual kWh
-                </label>
-                <input
-                  inputMode="numeric"
-                  className={inputClass}
-                  placeholder="e.g. 120000"
-                  value={form.annual_kwh}
-                  onChange={(e) => update("annual_kwh", e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">
                   Contract end date
                 </label>
                 <input
@@ -231,7 +221,7 @@ export function AddLeadDialog({
                   onChange={(e) => update("contract_end_date", e.target.value)}
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <label className="mb-1 block text-xs font-medium text-foreground">
                   Current supplier
                 </label>
