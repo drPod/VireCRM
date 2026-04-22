@@ -67,11 +67,19 @@ export const CONNECTORS: ConnectorMeta[] = [
     connectorId: "gmail",
     envVar: "GMAIL_API_KEY",
     name: "Gmail",
-    description: "Send tracked outreach emails from your Google account and pull replies.",
+    description: "Send outreach emails from your own Gmail account. Replies land in your inbox.",
     category: "email_calendar",
     capabilities: ["send_email"],
     docsUrl: "https://developers.google.com/gmail/api",
-    status: "beta",
+    status: "live",
+    configFields: [
+      {
+        key: "fromAddress",
+        label: "Send from address",
+        placeholder: "you@gmail.com",
+        helper: "The Gmail address outreach emails will appear to come from. Usually your own.",
+      },
+    ],
   },
   {
     id: "microsoft_outlook",
@@ -97,11 +105,31 @@ export const CONNECTORS: ConnectorMeta[] = [
     connectorId: "google_calendar",
     envVar: "GOOGLE_CALENDAR_API_KEY",
     name: "Google Calendar",
-    description: "Schedule meetings with leads directly from the lead drawer.",
+    description: "Book meetings with leads in one click — they get a Calendar invite by email.",
     category: "email_calendar",
     capabilities: ["schedule_event"],
     docsUrl: "https://developers.google.com/calendar",
-    status: "beta",
+    status: "live",
+    configFields: [
+      {
+        key: "defaultDurationMinutes",
+        label: "Default meeting length (minutes)",
+        placeholder: "30",
+        helper: "Pre-fills the duration when you schedule a meeting.",
+      },
+      {
+        key: "timeZone",
+        label: "Time zone",
+        placeholder: "America/Chicago",
+        helper: "IANA time zone, e.g. America/New_York or Europe/London.",
+      },
+      {
+        key: "defaultCalendarId",
+        label: "Calendar ID (optional)",
+        placeholder: "primary",
+        helper: "Leave as 'primary' for your main calendar, or paste a calendar ID.",
+      },
+    ],
   },
 
   // ===== Communication =====
