@@ -27,7 +27,7 @@ export async function recordConnectorActivity(input: ConnectorLogInput): Promise
       status: input.status ?? "success",
       summary: input.summary ?? null,
       error_message: input.errorMessage ?? null,
-      payload: input.payload ?? {},
+      payload: (input.payload ?? {}) as never,
     });
   } catch (err) {
     // eslint-disable-next-line no-console
