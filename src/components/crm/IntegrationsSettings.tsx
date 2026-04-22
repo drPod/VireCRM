@@ -30,6 +30,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ConnectorIntegrations } from "./ConnectorIntegrations";
+import { SendTestEmailControl } from "./SendTestEmailControl";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
@@ -461,9 +462,39 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   const [showStepsForFirstSetup, setShowStepsForFirstSetup] = useState(true);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
+  // Non-secret settings draft (e.g. SendGrid's defaultFromAddress).
+  const settingsFields = config.settingsFields ?? [];
+  const [settingsDraft, setSettingsDraft] = useState<Record<string, string>>(() => {
+    const seed: Record<string, string> = {};
+    for (const f of settingsFields) {
+      const v = status.config?.[f.key];
+      seed[f.key] = v == null ? "" : String(v);
+    }
+    return seed;
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Reseed the settings draft whenever the saved config changes (e.g. after refresh).
+  useEffect(() => {
+    const seed: Record<string, string> = {};
+    for (const f of settingsFields) {
+      const v = status.config?.[f.key];
+      seed[f.key] = v == null ? "" : String(v);
+    }
+    setSettingsDraft(seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status.config, config.id]);
+
+  const settingsDirty = settingsFields.some((f) => {
+    const saved = status.config?.[f.key];
+    const savedStr = saved == null ? "" : String(saved);
+    return (settingsDraft[f.key] ?? "") !== savedStr;
+  });
+
   const verifiedLabel = status.lastVerifiedAt
     ? `Verified ${formatRelative(status.lastVerifiedAt)}`
     : null;
+
 
   // What the user actually submits — single field or joined two fields.
   const submitValue = (): string => {
@@ -541,6 +572,27 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
       });
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!settingsDirty) return;
+    setSavingSettings(true);
+    try {
+      // Convert to the shape expected by the server fn — empty strings become null.
+      const cfg: Record<string, string | null> = {};
+      for (const f of settingsFields) {
+        const v = (settingsDraft[f.key] ?? "").trim();
+        cfg[f.key] = v.length ? v : null;
+      }
+      await onSaveConfig(cfg);
+      toast.success(`${config.name} settings saved`);
+    } catch (err) {
+      toast.error("Couldn't save settings", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -720,32 +772,83 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
               {renderEditor()}
             </>
           ) : (
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
-                {testing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Activity className="h-3.5 w-3.5" />
-                )}
-                Test
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setConfirmDisconnect(true)}
-                disabled={removing}
-              >
-                {removing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-                Disconnect
-              </Button>
+            <div className="space-y-3">
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
+                  {testing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Activity className="h-3.5 w-3.5" />
+                  )}
+                  Test
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmDisconnect(true)}
+                  disabled={removing}
+                >
+                  {removing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                  Disconnect
+                </Button>
+              </div>
+              {settingsFields.length > 0 && (
+                <div className="space-y-2 rounded-md border border-border bg-secondary/30 p-3">
+                  {settingsFields.map((f) => (
+                    <div key={f.key} className="space-y-1">
+                      <label className="block text-[11px] font-medium text-foreground">
+                        {f.label}
+                      </label>
+                      <input
+                        value={settingsDraft[f.key] ?? ""}
+                        onChange={(e) =>
+                          setSettingsDraft((prev) => ({ ...prev, [f.key]: e.target.value }))
+                        }
+                        placeholder={f.placeholder}
+                        className="h-8 w-full rounded-md border border-input bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+                        spellCheck={false}
+                        disabled={savingSettings}
+                      />
+                      {f.helper && (
+                        <p className="text-[10px] text-muted-foreground">{f.helper}</p>
+                      )}
+                    </div>
+                  ))}
+                  {settingsDirty && (
+                    <Button
+                      variant="command"
+                      size="sm"
+                      onClick={handleSaveSettings}
+                      disabled={savingSettings}
+                    >
+                      {savingSettings ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : null}
+                      Save settings
+                    </Button>
+                  )}
+                </div>
+              )}
+              {config.id === "sendgrid" && (
+                <SendTestEmailControl
+                  provider="sendgrid"
+                  providerLabel="SendGrid"
+                  disabledReason={
+                    typeof status.config?.defaultFromAddress === "string" &&
+                    status.config.defaultFromAddress.trim().length > 0
+                      ? null
+                      : "Set a Send-from address above and save before sending a test."
+                  }
+                />
+              )}
             </div>
           )}
         </div>

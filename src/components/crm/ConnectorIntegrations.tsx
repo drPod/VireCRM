@@ -46,6 +46,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SendTestEmailControl } from "./SendTestEmailControl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -407,6 +408,18 @@ function ConnectorRow({
               Cancel
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Inline "Send test email" — only for Gmail. SendGrid has its own
+          version on the BYO key card in IntegrationsSettings. */}
+      {meta.id === "gmail" && enabled && credentialPresent && !editing && (
+        <div className="mb-3">
+          <SendTestEmailControl
+            provider="gmail"
+            providerLabel="Gmail"
+            disabledReason={null}
+          />
         </div>
       )}
 
