@@ -33,6 +33,7 @@ import {
   type ConnectorCategory,
   type ConnectorMeta,
 } from "@/lib/connectors/catalog";
+import { validateDraft, FIELD_RULES } from "@/lib/connectors/validation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
