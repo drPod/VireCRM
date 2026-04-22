@@ -304,6 +304,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   leadName={form.name || lead.name}
                   leadEmail={form.email.trim() || lead.email || null}
                   leadPhone={form.phone.trim() || lead.phone || null}
+                  onActed={handleSent}
                 />
               </div>
               {lastOutreachLabel && (
