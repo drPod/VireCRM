@@ -506,6 +506,14 @@ function ConnectorRow({
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
+          {enabled && typeof status?.config?.connectedEmail === "string" && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Linked to{" "}
+              <span className="font-medium text-foreground">
+                {String(status.config.connectedEmail)}
+              </span>
+            </p>
+          )}
         </div>
       </div>
 
