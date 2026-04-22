@@ -18,6 +18,9 @@ interface ConnectorStatusLike {
 /**
  * Prerequisites for a one-click connector (Slack / Gmail / HubSpot / …).
  * Order: enable → OAuth link → verify → required config → recommended config.
+ *
+ * Every item carries an `actionId` so the card can wire a "Run next step"
+ * button to the appropriate local handler (Connect / Test / Edit / …).
  */
 export function deriveConnectorPrerequisites(
   meta: ConnectorMeta,
@@ -31,6 +34,8 @@ export function deriveConnectorPrerequisites(
       title: "Not connected yet",
       nextStep: `Click "Connect" to start the ${meta.name} sign-in flow.`,
       severity: "blocking",
+      actionId: "connect",
+      actionLabel: `Connect ${meta.name}`,
     });
     return out;
   }
@@ -42,6 +47,8 @@ export function deriveConnectorPrerequisites(
       nextStep: `Your workspace owner needs to finish the ${meta.name} OAuth flow so we receive an access token.`,
       severity: "blocking",
       link: { label: "Provider docs", href: meta.docsUrl, external: true },
+      actionId: "reconnect",
+      actionLabel: "Restart sign-in",
     });
     return out;
   }
@@ -55,6 +62,8 @@ export function deriveConnectorPrerequisites(
           ? `Provider said: "${status.verifyError.trim()}". Click Test to retry, or disconnect and reconnect.`
           : "Click Test to retry. If it keeps failing, disconnect and reconnect.",
       severity: "blocking",
+      actionId: "test",
+      actionLabel: "Run test now",
     });
   }
 
@@ -79,6 +88,8 @@ export function deriveConnectorPrerequisites(
           nextStep:
             f.helper ?? `Open the Edit panel and fill in "${f.label}" so this integration can run.`,
           severity: "blocking",
+          actionId: "edit-config",
+          actionLabel: `Edit ${meta.name} settings`,
         });
       } else if (err) {
         out.push({
@@ -86,6 +97,8 @@ export function deriveConnectorPrerequisites(
           title: `${f.label} is invalid`,
           nextStep: `${err} Update it from the Edit panel.`,
           severity: "blocking",
+          actionId: "edit-config",
+          actionLabel: `Edit ${meta.name} settings`,
         });
       } else if (!rule?.required && value.length === 0) {
         out.push({
@@ -94,6 +107,8 @@ export function deriveConnectorPrerequisites(
           nextStep:
             f.helper ?? `Optional — set it from Edit to customize ${meta.name} behavior.`,
           severity: "recommended",
+          actionId: "edit-config",
+          actionLabel: `Edit ${meta.name} settings`,
         });
       }
     }
@@ -139,6 +154,8 @@ export function deriveByoPrerequisites(args: {
       nextStep: `Paste your ${providerName} API key below to enable this integration.`,
       severity: "blocking",
       link: { label: `Get ${providerName} key`, href: docsUrl, external: true },
+      actionId: "focus-key-input",
+      actionLabel: "Paste API key",
     });
     return out;
   }
@@ -151,6 +168,8 @@ export function deriveByoPrerequisites(args: {
         ? `Provider said: "${lastTest.reason}". Use Edit to replace the key, or click Test to retry.`
         : "Use Edit to replace the key, or click Test to retry.",
       severity: "blocking",
+      actionId: "test",
+      actionLabel: "Run test now",
     });
   }
 
@@ -173,6 +192,8 @@ export function deriveByoPrerequisites(args: {
           nextStep:
             f.helper ?? `Set "${f.label}" below before this provider can send anything.`,
           severity: "blocking",
+          actionId: "edit-key",
+          actionLabel: `Edit ${providerName} settings`,
         });
       } else if (err) {
         out.push({
@@ -180,6 +201,8 @@ export function deriveByoPrerequisites(args: {
           title: `${f.label} is invalid`,
           nextStep: `${err} Update it in the settings panel below.`,
           severity: "blocking",
+          actionId: "edit-key",
+          actionLabel: `Edit ${providerName} settings`,
         });
       } else if (!rule?.required && value.length === 0) {
         out.push({
@@ -188,6 +211,8 @@ export function deriveByoPrerequisites(args: {
           nextStep:
             f.helper ?? `Optional — set "${f.label}" to customize how ${providerName} runs.`,
           severity: "recommended",
+          actionId: "edit-key",
+          actionLabel: `Edit ${providerName} settings`,
         });
       }
     }

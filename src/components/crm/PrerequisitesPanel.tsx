@@ -5,11 +5,27 @@
  * Renders nothing when everything is in order — so cards stay quiet once
  * they're fully wired up. The component is purely presentational; the
  * caller decides which prerequisites to feed in based on the integration's
- * current status.
+ * current status, and which action handler to wire to the "Run next step"
+ * button via the optional `onAction` prop.
  */
-import { AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export type PrerequisiteSeverity = "blocking" | "recommended";
+
+/**
+ * Machine-readable hint for what the "Run next step" button should do.
+ * The card owner interprets these — we don't hard-code behaviour here.
+ */
+export type PrerequisiteActionId =
+  | "connect"          // Start the OAuth/Enable flow.
+  | "reconnect"        // Disconnect + reconnect (or rerun OAuth).
+  | "test"             // Re-run the verify/test call.
+  | "edit-config"      // Open the inline config editor.
+  | "edit-key"         // Open the BYO API key editor.
+  | "focus-key-input"  // Focus the empty API key field on a fresh card.
+  | "open-docs";       // Fallback — open the provider's docs.
 
 export interface Prerequisite {
   /** Stable id for React keys + analytics. */
@@ -22,6 +38,13 @@ export interface Prerequisite {
   severity: PrerequisiteSeverity;
   /** Optional deep link (provider docs, internal route) the user can open. */
   link?: { label: string; href: string; external?: boolean };
+  /**
+   * Optional action hint. When the parent provides an `onAction` handler that
+   * recognises this id, the panel renders a "Run next step" button.
+   */
+  actionId?: PrerequisiteActionId;
+  /** Optional override for the action button label (default: "Run next step"). */
+  actionLabel?: string;
 }
 
 interface Props {
@@ -34,9 +57,22 @@ interface Props {
    * missing to keep the card compact).
    */
   forceShow?: boolean;
+  /**
+   * Handler invoked when the user clicks "Run next step" on a row. May be
+   * async — the panel will show a spinner on the clicked row until it
+   * resolves. If omitted, no action button is rendered.
+   */
+  onAction?: (prereq: Prerequisite) => void | Promise<void>;
 }
 
-export function PrerequisitesPanel({ prerequisites, providerLabel, forceShow }: Props) {
+export function PrerequisitesPanel({
+  prerequisites,
+  providerLabel,
+  forceShow,
+  onAction,
+}: Props) {
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
   if (prerequisites.length === 0) {
     if (!forceShow) return null;
     return (
@@ -55,6 +91,16 @@ export function PrerequisitesPanel({ prerequisites, providerLabel, forceShow }: 
     : "border-border bg-secondary/30";
   const iconTone = hasBlocking ? "text-warning" : "text-muted-foreground";
 
+  const handleRun = async (p: Prerequisite) => {
+    if (!onAction || !p.actionId) return;
+    setPendingId(p.id);
+    try {
+      await onAction(p);
+    } finally {
+      setPendingId((cur) => (cur === p.id ? null : cur));
+    }
+  };
+
   return (
     <div className={`rounded-md border ${tone} p-3 space-y-2`}>
       <div className="flex items-center gap-1.5">
@@ -66,38 +112,61 @@ export function PrerequisitesPanel({ prerequisites, providerLabel, forceShow }: 
         </p>
       </div>
       <ul className="space-y-1.5">
-        {prerequisites.map((p) => (
-          <li key={p.id} className="text-[11px] text-foreground">
-            <div className="flex items-start gap-1.5">
-              <span
-                aria-hidden="true"
-                className={`mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
-                  p.severity === "blocking" ? "bg-warning" : "bg-muted-foreground"
-                }`}
-              />
-              <div className="min-w-0">
-                <p className="font-medium">{p.title}</p>
-                <p className="text-muted-foreground">
-                  {p.nextStep}
-                  {p.link && (
-                    <>
-                      {" "}
-                      <a
-                        href={p.link.href}
-                        target={p.link.external ? "_blank" : undefined}
-                        rel={p.link.external ? "noreferrer" : undefined}
-                        className="text-primary hover:underline inline-flex items-center gap-0.5"
+        {prerequisites.map((p) => {
+          const actionable = !!onAction && !!p.actionId;
+          const isPending = pendingId === p.id;
+          return (
+            <li key={p.id} className="text-[11px] text-foreground">
+              <div className="flex items-start gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className={`mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                    p.severity === "blocking" ? "bg-warning" : "bg-muted-foreground"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{p.title}</p>
+                  <p className="text-muted-foreground">
+                    {p.nextStep}
+                    {p.link && (
+                      <>
+                        {" "}
+                        <a
+                          href={p.link.href}
+                          target={p.link.external ? "_blank" : undefined}
+                          rel={p.link.external ? "noreferrer" : undefined}
+                          className="text-primary hover:underline inline-flex items-center gap-0.5"
+                        >
+                          {p.link.label}
+                          {p.link.external && <ExternalLink className="h-2.5 w-2.5" />}
+                        </a>
+                      </>
+                    )}
+                  </p>
+                  {actionable && (
+                    <div className="mt-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-[10px] gap-1"
+                        disabled={isPending || pendingId !== null}
+                        onClick={() => void handleRun(p)}
                       >
-                        {p.link.label}
-                        {p.link.external && <ExternalLink className="h-2.5 w-2.5" />}
-                      </a>
-                    </>
+                        {isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <ArrowRight className="h-3 w-3" />
+                        )}
+                        {p.actionLabel ?? "Run next step"}
+                      </Button>
+                    </div>
                   )}
-                </p>
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
