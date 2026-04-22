@@ -47,6 +47,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     score: 50,
     next_action: "",
     notes: "",
+    annual_kwh: "" as string,
+    contract_end_date: "" as string,
+    current_supplier: "",
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -74,16 +77,34 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       score: lead.score,
       next_action: lead.nextAction || "",
       notes: "",
+      annual_kwh:
+        typeof lead.annualKwh === "number" && lead.annualKwh >= 0
+          ? String(lead.annualKwh)
+          : "",
+      contract_end_date: lead.contractEndDate ?? "",
+      current_supplier: lead.currentSupplier ?? "",
     });
 
+    // Fetch the full notes + energy fields (the list view doesn't include notes).
     setLoadingNotes(true);
     supabase
       .from("leads")
-      .select("notes")
+      .select("notes, annual_kwh, contract_end_date, current_supplier")
       .eq("id", lead.id)
       .single()
       .then(({ data }) => {
-        if (data?.notes) setForm((prev) => ({ ...prev, notes: data.notes ?? "" }));
+        if (data) {
+          setForm((prev) => ({
+            ...prev,
+            notes: data.notes ?? "",
+            annual_kwh:
+              typeof data.annual_kwh === "number" && data.annual_kwh >= 0
+                ? String(data.annual_kwh)
+                : prev.annual_kwh,
+            contract_end_date: data.contract_end_date ?? prev.contract_end_date,
+            current_supplier: data.current_supplier ?? prev.current_supplier,
+          }));
+        }
         setLoadingNotes(false);
       });
   }, [lead]);
