@@ -453,3 +453,78 @@ export const listEnabledConnectorsFn = createServerFn({ method: "POST" })
         })),
     };
   });
+
+// ----- LIST ACTIVITY: paginated audit feed for the Integrations → Activity tab.
+// Membership-checked (any org member can read) so non-owner reps can see what
+// outbound actions ran on their behalf without bothering an owner.
+const activitySchema = z.object({
+  organizationId: z.string().uuid(),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+export interface ConnectorActivityEntry {
+  id: string;
+  provider: string;
+  direction: "outbound" | "inbound";
+  action: string;
+  status: "success" | "failed" | "partial";
+  summary: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  /** Display name of whoever triggered the action, when available. */
+  actorName: string | null;
+}
+
+export const listConnectorActivityFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof activitySchema>) => activitySchema.parse(input))
+  .handler(async ({ data, context }) => {
+    // Membership check (org member, not just owner).
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (profile?.organization_id !== data.organizationId) {
+      throw new Error("Not a member of that organization.");
+    }
+
+    const limit = data.limit ?? 50;
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("connector_activity_log")
+      .select("id, provider, direction, action, status, summary, error_message, created_at, user_id")
+      .eq("organization_id", data.organizationId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw new Error(`Failed to load activity: ${error.message}`);
+
+    const userIds = Array.from(
+      new Set((rows ?? []).map((r) => r.user_id).filter((u): u is string => !!u)),
+    );
+    const nameByUserId = new Map<string, string>();
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      for (const p of profiles ?? []) {
+        if (p.full_name) nameByUserId.set(p.user_id, p.full_name);
+      }
+    }
+
+    const entries: ConnectorActivityEntry[] = (rows ?? []).map((r) => ({
+      id: r.id,
+      provider: r.provider,
+      direction: (r.direction as "outbound" | "inbound") ?? "outbound",
+      action: r.action,
+      status: (r.status as "success" | "failed" | "partial") ?? "success",
+      summary: r.summary,
+      errorMessage: r.error_message,
+      createdAt: r.created_at,
+      actorName: r.user_id ? nameByUserId.get(r.user_id) ?? null : null,
+    }));
+
+    return { entries };
+  });
