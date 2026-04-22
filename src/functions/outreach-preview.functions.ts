@@ -3,7 +3,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
-import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
+import {
+  deliverOutreachEmail,
+  loadOutreachDeliveryChannels,
+} from "@/lib/email/outreach-delivery";
 import { z } from "zod";
 
 // =============================================================================
@@ -176,33 +179,28 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       throw new Error(insertErr?.message || "Failed to save message");
     }
 
-    // 2. Dispatch in-process. Calling the public /lovable/email/transactional/send
-    // route via fetch from inside a server function creates a Cloudflare 522
-    // self-loop (the worker can't reach its own public hostname while still
-    // handling the inbound request), so we render + enqueue directly instead.
-    const result = await dispatchOutreachEmail({
-      templateName: "outreach-email",
+    const channels = await loadOutreachDeliveryChannels(data.organizationId);
+
+    // 2. Deliver using the best available channel in priority order:
+    // SendGrid → Gmail → Outlook → built-in queue-backed email.
+    const result = await deliverOutreachEmail({
       recipientEmail: data.recipientEmail,
-      idempotencyKey: `outreach-${inserted.id}`,
-      templateData: {
-        subject: data.subject,
-        body: data.body,
-        brandName: businessName,
-      },
-      fromName: businessName,
+      subject: data.subject,
+      body: data.body,
+      brandName: businessName,
       replyTo,
+      idempotencyKey: `outreach-${inserted.id}`,
+      channels,
     });
 
     if (!result.success) {
       await supabase
         .from("messages")
-        .update({ status: result.reason === "suppressed" ? "bounced" : "failed" })
+        .update({ status: result.suppressed ? "bounced" : "failed" })
         .eq("id", inserted.id);
       return {
         success: false,
-        reason: result.reason === "suppressed"
-          ? "Recipient is on the suppression list (previously unsubscribed or bounced)."
-          : result.error || "Failed to send email.",
+        reason: result.reason,
       };
     }
 
