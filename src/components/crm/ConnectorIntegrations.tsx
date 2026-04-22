@@ -153,6 +153,7 @@ export function ConnectorIntegrations() {
                 loading={loading}
                 onEnable={() => handleEnable(meta.id)}
                 onDisable={() => handleDisable(meta.id, meta.name)}
+                organizationId={organization?.id ?? null}
               />
             ))}
           </div>
@@ -168,10 +169,13 @@ interface ConnectorRowProps {
   loading: boolean;
   onEnable: () => Promise<void>;
   onDisable: () => Promise<void>;
+  organizationId: string | null;
 }
 
-function ConnectorRow({ meta, status, loading, onEnable, onDisable }: ConnectorRowProps) {
+function ConnectorRow({ meta, status, loading, onEnable, onDisable, organizationId }: ConnectorRowProps) {
   const [busy, setBusy] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const importHubspot = useAuthedServerFn(importHubspotContactsFn);
 
   const enabled = !!status?.enabled;
   const credentialPresent = !!status?.credentialPresent;
@@ -245,15 +249,48 @@ function ConnectorRow({ meta, status, loading, onEnable, onDisable }: ConnectorR
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         ) : enabled ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleClick("disable")}
-            disabled={busy}
-          >
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
-            Disable
-          </Button>
+          <div className="flex items-center gap-2">
+            {meta.id === "hubspot" && organizationId && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={syncing}
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    const res = await importHubspot({
+                      data: { organizationId, limit: 25 },
+                    });
+                    toast.success("HubSpot sync complete", {
+                      description: `Imported ${res.inserted} new lead${res.inserted === 1 ? "" : "s"} (${res.skipped} skipped).`,
+                    });
+                  } catch (err) {
+                    toast.error("Sync failed", {
+                      description: err instanceof Error ? err.message : "Unknown error",
+                    });
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+              >
+                {syncing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                Sync contacts
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleClick("disable")}
+              disabled={busy}
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
+              Disable
+            </Button>
+          </div>
         ) : (
           <Button
             variant="command"
