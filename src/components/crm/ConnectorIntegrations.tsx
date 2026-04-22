@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useActionLock } from "@/hooks/useActionLock";
 import {
   listConnectorsFn,
   enableConnectorFn,
@@ -399,7 +400,7 @@ function ConnectorRow({
   organizationId,
 }: ConnectorRowProps) {
   const [busy, setBusy] = useState(false);
-  const [testing, setTesting] = useState(false);
+  // `testing` is now derived from useActionLock below.
   const [syncing, setSyncing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
