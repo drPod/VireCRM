@@ -7,6 +7,7 @@ import {
   deliverOutreachEmail,
   loadOutreachDeliveryChannels,
 } from "@/lib/email/outreach-delivery";
+import { fillTemplateTokens } from "@/lib/outreach/template-fill";
 import { z } from "zod";
 
 const outreachSchema = z.object({
@@ -20,6 +21,8 @@ const outreachSchema = z.object({
     score: z.number().min(0).max(100).optional(),
   })).min(1).max(50),
   businessContext: z.string().min(1).max(5000).optional(),
+  /** Optional saved template ID to use as the structural base for AI personalization. */
+  templateId: z.string().uuid().optional().nullable(),
 });
 
 interface GeneratedEmail {
