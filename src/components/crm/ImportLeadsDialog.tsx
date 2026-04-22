@@ -143,6 +143,9 @@ function parseCSV(text: string): ParseOutcome {
   const scoreIdx = normalized.findIndex((h) => SCORE_HEADERS.includes(h));
   const notesIdx = normalized.findIndex((h) => NOTES_HEADERS.includes(h));
   const sourceIdx = normalized.findIndex((h) => SOURCE_HEADERS.includes(h));
+  const annualKwhIdx = normalized.findIndex((h) => ANNUAL_KWH_HEADERS.includes(h));
+  const contractEndIdx = normalized.findIndex((h) => CONTRACT_END_HEADERS.includes(h));
+  const supplierIdx = normalized.findIndex((h) => SUPPLIER_HEADERS.includes(h));
 
   return buildLeadsFromIndices({
     rows: dataRows,
@@ -155,6 +158,9 @@ function parseCSV(text: string): ParseOutcome {
     scoreIdx,
     notesIdx,
     sourceIdx,
+    annualKwhIdx,
+    contractEndIdx,
+    supplierIdx,
     defaultSource: "csv_import",
   });
 }
@@ -248,6 +254,9 @@ function parseXLSX(buffer: ArrayBuffer): ParseOutcome {
   const scoreIdx = normalized.findIndex((h) => SCORE_HEADERS.includes(h));
   const notesIdx = normalized.findIndex((h) => NOTES_HEADERS.includes(h));
   const sourceIdx = normalized.findIndex((h) => SOURCE_HEADERS.includes(h));
+  const annualKwhIdx = normalized.findIndex((h) => ANNUAL_KWH_HEADERS.includes(h));
+  const contractEndIdx = normalized.findIndex((h) => CONTRACT_END_HEADERS.includes(h));
+  const supplierIdx = normalized.findIndex((h) => SUPPLIER_HEADERS.includes(h));
 
   return buildLeadsFromIndices({
     rows: dataRows,
@@ -260,6 +269,9 @@ function parseXLSX(buffer: ArrayBuffer): ParseOutcome {
     scoreIdx,
     notesIdx,
     sourceIdx,
+    annualKwhIdx,
+    contractEndIdx,
+    supplierIdx,
     defaultSource: "xlsx_import",
   });
 }
@@ -276,7 +288,78 @@ interface IndexMap {
   scoreIdx: number;
   notesIdx: number;
   sourceIdx: number;
+  annualKwhIdx: number;
+  contractEndIdx: number;
+  supplierIdx: number;
   defaultSource: string;
+}
+
+/** Parse "12,345", "12345 kWh", "12.5k" loosely into a positive integer kWh. */
+function parseAnnualKwh(raw: string): number | null {
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  // Strip spaces, commas, and any non-numeric suffix like "kwh".
+  const numericPart = s.replace(/,/g, "").replace(/\s+/g, "").replace(/kwh$/i, "");
+  // "12.5k" → 12500
+  const kMatch = numericPart.match(/^(\d+(?:\.\d+)?)k$/);
+  let n: number;
+  if (kMatch) {
+    n = Math.round(Number(kMatch[1]) * 1000);
+  } else {
+    n = Math.round(Number(numericPart));
+  }
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
+
+/**
+ * Parse a contract end date cell into ISO YYYY-MM-DD. Accepts:
+ * - YYYY-MM-DD / YYYY/MM/DD
+ * - DD/MM/YYYY or DD-MM-YYYY (UK convention — common in energy contracts)
+ * - Excel serial numbers (days since 1899-12-30)
+ * - Anything Date.parse() understands as a last resort.
+ * Returns null when the cell is blank or unparseable.
+ */
+function parseContractEndDate(raw: string): string | null {
+  const s = raw.trim();
+  if (!s) return null;
+
+  // Excel serial (e.g. 45123) — pure integer 1000–80000 range.
+  if (/^\d{4,5}$/.test(s)) {
+    const serial = parseInt(s, 10);
+    if (serial >= 1000 && serial <= 80000) {
+      // Excel epoch is 1899-12-30 (accounts for the 1900 leap-year bug).
+      const ms = (serial - 25569) * 86400 * 1000;
+      const d = new Date(ms);
+      if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
+  }
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // DD/MM/YYYY or DD-MM-YYYY (UK first — most common for energy data).
+  const ukMatch = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (ukMatch) {
+    let [, d, m, y] = ukMatch;
+    if (y.length === 2) y = (parseInt(y, 10) > 50 ? "19" : "20") + y;
+    const day = parseInt(d, 10);
+    const mon = parseInt(m, 10);
+    if (day >= 1 && day <= 31 && mon >= 1 && mon <= 12) {
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+  }
+
+  // Last resort — let JS try.
+  const fallback = new Date(s);
+  if (!Number.isNaN(fallback.getTime())) {
+    return fallback.toISOString().slice(0, 10);
+  }
+  return null;
 }
 
 function buildLeadsFromIndices(m: IndexMap): ParseOutcome {
@@ -309,6 +392,32 @@ function buildLeadsFromIndices(m: IndexMap): ParseOutcome {
     const scoreRaw =
       m.scoreIdx >= 0 ? parseInt((row[m.scoreIdx] ?? "").toString().trim(), 10) : NaN;
 
+    // Energy fields — soft warnings on bad values, never block the row.
+    let annualKwh: number | null = null;
+    if (m.annualKwhIdx >= 0) {
+      const rawKwh = (row[m.annualKwhIdx] ?? "").toString();
+      if (rawKwh.trim()) {
+        annualKwh = parseAnnualKwh(rawKwh);
+        if (annualKwh === null) {
+          issues.push({ row: rowNum, message: `unreadable annual kWh "${rawKwh}"` });
+        }
+      }
+    }
+
+    let contractEnd: string | null = null;
+    if (m.contractEndIdx >= 0) {
+      const rawDate = (row[m.contractEndIdx] ?? "").toString();
+      if (rawDate.trim()) {
+        contractEnd = parseContractEndDate(rawDate);
+        if (contractEnd === null) {
+          issues.push({ row: rowNum, message: `unreadable contract end date "${rawDate}"` });
+        }
+      }
+    }
+
+    const supplier =
+      m.supplierIdx >= 0 ? (row[m.supplierIdx] ?? "").toString().trim() || null : null;
+
     leads.push({
       name,
       email,
@@ -318,6 +427,9 @@ function buildLeadsFromIndices(m: IndexMap): ParseOutcome {
       score: !isNaN(scoreRaw) ? Math.min(100, Math.max(0, scoreRaw)) : 50,
       notes: m.notesIdx >= 0 ? (row[m.notesIdx] ?? "").toString().trim() || undefined : undefined,
       source: m.sourceIdx >= 0 ? (row[m.sourceIdx] ?? "").toString().trim() || undefined : m.defaultSource,
+      annual_kwh: annualKwh,
+      contract_end_date: contractEnd,
+      current_supplier: supplier,
     });
   });
 
