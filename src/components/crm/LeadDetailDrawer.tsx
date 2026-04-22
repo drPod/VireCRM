@@ -227,6 +227,20 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       toast.error("Name is required");
       return;
     }
+
+    // Parse annual kWh — accept blank, "12,000", "12000 kWh".
+    let annualKwh: number | null = null;
+    const rawKwh = form.annual_kwh.trim();
+    if (rawKwh) {
+      const cleaned = rawKwh.replace(/[^\d.]/g, "");
+      const n = cleaned ? Math.round(Number(cleaned)) : NaN;
+      if (!Number.isFinite(n) || n < 0) {
+        toast.error("Annual kWh must be a positive number");
+        return;
+      }
+      annualKwh = n;
+    }
+
     setSaving(true);
     const { error } = await supabase
       .from("leads")
@@ -239,6 +253,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
         score: form.score,
         next_action: form.next_action.trim() || null,
         notes: form.notes.trim() || null,
+        annual_kwh: annualKwh,
+        contract_end_date: form.contract_end_date || null,
+        current_supplier: form.current_supplier.trim() || null,
       })
       .eq("id", lead.id);
 
