@@ -576,7 +576,37 @@ function ConnectorRow({
         if (prereqs.length === 0) return null;
         return (
           <div className="mb-3">
-            <PrerequisitesPanel prerequisites={prereqs} providerLabel={meta.name} />
+            <PrerequisitesPanel
+              prerequisites={prereqs}
+              providerLabel={meta.name}
+              onAction={async (p) => {
+                switch (p.actionId) {
+                  case "connect":
+                    await handleEnable();
+                    break;
+                  case "reconnect":
+                    // Re-trigger the enable flow — for OAuth connectors this
+                    // re-runs the gateway's connect handshake.
+                    await handleEnable();
+                    toast.info(`Finish ${meta.name} sign-in`, {
+                      description:
+                        "If a provider window didn't open, your workspace owner needs to approve the connection.",
+                    });
+                    break;
+                  case "test":
+                    await handleTest();
+                    break;
+                  case "edit-config":
+                    if (hasConfigFields) openEditor();
+                    break;
+                  case "open-docs":
+                    window.open(meta.docsUrl, "_blank", "noopener,noreferrer");
+                    break;
+                  default:
+                    break;
+                }
+              }}
+            />
           </div>
         );
       })()}
