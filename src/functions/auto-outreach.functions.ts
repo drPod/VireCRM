@@ -66,10 +66,13 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       throw new Error("Unauthorized: not a member of this organization");
     }
 
-    // Get org info for context + token-budget enforcement
+    // Get org info for context + token-budget enforcement.
+    // `support_email` doubles as the org's business reply-to address — when
+    // set, recipient replies route to the user's inbox instead of disappearing
+    // into the platform default.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, ai_tokens_used, ai_tokens_limit")
+      .select("name, brand_name, support_email, ai_tokens_used, ai_tokens_limit")
       .eq("id", data.organizationId)
       .single();
 
@@ -79,6 +82,31 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     }
 
     if (!process.env.LOVABLE_API_KEY) throw new Error("AI service not configured");
+
+    // If the org has a verified BYO SendGrid key with a "from" address, route
+    // outreach through SendGrid so the email comes from the user's own
+    // verified domain (proper DKIM/SPF) rather than Lovable's shared sender.
+    // We import lazily to keep the cold-start cost off the no-SendGrid path.
+    const { data: sgRow } = await supabaseAdmin
+      .from("org_integrations")
+      .select("api_key, config")
+      .eq("organization_id", data.organizationId)
+      .eq("provider", "sendgrid")
+      .maybeSingle();
+
+    const sgConfig = (sgRow?.config ?? {}) as Record<string, unknown>;
+    const sgFromAddress =
+      (typeof sgConfig.defaultFromAddress === "string" && sgConfig.defaultFromAddress.trim()) ||
+      (typeof sgConfig.fromAddress === "string" && sgConfig.fromAddress.trim()) ||
+      null;
+    const useSendgrid = !!(sgRow?.api_key && sgFromAddress);
+
+    // Reply-To: business inbox if provided, otherwise the SendGrid from
+    // address (so replies still land somewhere the user owns).
+    const businessReplyTo =
+      (org.support_email && org.support_email.trim()) ||
+      (useSendgrid ? sgFromAddress : null) ||
+      null;
 
     // Filter leads that have emails — no email = no outreach.
     const leadsWithEmail = data.leads.filter((l) => l.email);
