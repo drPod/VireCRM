@@ -107,15 +107,15 @@ export function ConnectorIntegrations() {
   const handleDisable = useCallback(
     async (provider: string, name: string) => {
       if (!organization?.id) return;
-      if (!confirm(`Disable ${name}? Outbound actions through ${name} will stop working.`)) return;
       try {
         await disableConnector({ data: { organizationId: organization.id, provider } });
-        toast.success(`${name} disabled`);
+        toast.success(`${name} disconnected`);
         void refresh();
       } catch (err) {
-        toast.error("Couldn't disable", {
+        toast.error("Couldn't disconnect", {
           description: err instanceof Error ? err.message : "Unknown error",
         });
+        throw err;
       }
     },
     [organization?.id, disableConnector, refresh],
