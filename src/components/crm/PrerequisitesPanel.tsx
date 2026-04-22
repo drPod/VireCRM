@@ -8,7 +8,7 @@
  * current status, and which action handler to wire to the "Run next step"
  * button via the optional `onAction` prop.
  */
-import { AlertTriangle, ArrowRight, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock, ExternalLink, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -63,6 +63,39 @@ interface Props {
    * resolves. If omitted, no action button is rendered.
    */
   onAction?: (prereq: Prerequisite) => void | Promise<void>;
+  /**
+   * Optional verification context. When at least one blocking prereq is
+   * present and we know when the integration was last verified (or have a
+   * provider-side error from the last run), the panel renders a small
+   * footer with that timestamp + cause so the user doesn't have to dig
+   * through a separate Test panel to find it.
+   */
+  verification?: {
+    /** ISO timestamp of the most recent verification attempt, success or fail. */
+    lastVerifiedAt?: string | null;
+    /** "ok" / "failed" / "unknown" — drives the verification footer wording. */
+    outcome: "ok" | "failed" | "unknown";
+    /** Provider error returned on the last failed run, when known. */
+    failureReason?: string | null;
+  };
+}
+
+/** Compact relative-time formatter for the verification footer. */
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "just now";
+  const diffMs = Date.now() - then;
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 5) return "just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day === 1) return "yesterday";
+  if (day < 7) return `${day}d ago`;
+  return new Date(iso).toLocaleDateString();
 }
 
 export function PrerequisitesPanel({
@@ -70,6 +103,7 @@ export function PrerequisitesPanel({
   providerLabel,
   forceShow,
   onAction,
+  verification,
 }: Props) {
   const [pendingId, setPendingId] = useState<string | null>(null);
 
