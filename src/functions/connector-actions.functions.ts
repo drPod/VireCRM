@@ -492,3 +492,279 @@ export const importHubspotContactsFn = createServerFn({ method: "POST" })
       throw err;
     }
   });
+
+// ===== Gmail: send mail via the Gmail API (gateway) =====
+const gmailSchema = z.object({
+  organizationId: z.string().uuid(),
+  leadId: z.string().uuid().nullable().optional(),
+  to: z.string().trim().email(),
+  subject: z.string().trim().min(1).max(255),
+  body: z.string().trim().min(1).max(50_000),
+  fromAddress: z.string().trim().email().optional(),
+});
+
+/**
+ * Build an RFC 2822 email then base64url-encode it the way Gmail's
+ * users.messages.send endpoint expects.
+ */
+function buildGmailRawMessage(opts: { from?: string; to: string; subject: string; body: string }) {
+  const lines = [
+    opts.from ? `From: ${opts.from}` : null,
+    `To: ${opts.to}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    `Subject: ${opts.subject}`,
+    "",
+    opts.body,
+  ].filter(Boolean) as string[];
+  const raw = lines.join("\r\n");
+  // base64url (no padding) of UTF-8 bytes
+  return Buffer.from(raw, "utf-8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+export const sendGmailFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof gmailSchema>) => gmailSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { meta, config } = await assertMemberAndConnector(
+      context.userId,
+      data.organizationId,
+      "gmail",
+    );
+
+    const fromAddress =
+      data.fromAddress ?? (typeof config.fromAddress === "string" ? config.fromAddress : undefined);
+
+    try {
+      const raw = buildGmailRawMessage({
+        from: fromAddress,
+        to: data.to,
+        subject: data.subject,
+        body: data.body,
+      });
+
+      const result = await callGateway<{ id?: string; threadId?: string }>({
+        connectorId: meta.connectorId,
+        envVar: meta.envVar,
+        path: "/gmail/v1/users/me/messages/send",
+        body: { raw },
+      });
+
+      await recordConnectorActivity({
+        organizationId: data.organizationId,
+        userId: context.userId,
+        leadId: data.leadId ?? null,
+        provider: "gmail",
+        direction: "outbound",
+        action: "send_email",
+        summary: `Email sent to ${data.to}`,
+        payload: { subject: data.subject, gmailId: result.id, threadId: result.threadId },
+      });
+
+      await logLeadEmail({
+        organizationId: data.organizationId,
+        leadId: data.leadId,
+        subject: data.subject,
+        body: data.body,
+        provider: "gmail",
+      });
+
+      return { ok: true, id: result.id ?? null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      await recordConnectorActivity({
+        organizationId: data.organizationId,
+        userId: context.userId,
+        leadId: data.leadId ?? null,
+        provider: "gmail",
+        direction: "outbound",
+        action: "send_email",
+        status: "failed",
+        errorMessage: msg,
+        payload: { to: data.to },
+      });
+      throw err;
+    }
+  });
+
+// ===== SendGrid: send mail using the org's BYO API key =====
+const sendgridSchema = z.object({
+  organizationId: z.string().uuid(),
+  leadId: z.string().uuid().nullable().optional(),
+  to: z.string().trim().email(),
+  subject: z.string().trim().min(1).max(255),
+  body: z.string().trim().min(1).max(50_000),
+  fromAddress: z.string().trim().email().optional(),
+});
+
+/** Convert a plain-text body to minimal HTML so SendGrid renders line breaks. */
+function plainTextToHtml(body: string): string {
+  const escaped = body
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped
+    .split(/\n{2,}/)
+    .map((p) => `<p>${p.replace(/\n/g, "<br />")}</p>`)
+    .join("\n");
+}
+
+export const sendSendgridLeadEmailFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof sendgridSchema>) => sendgridSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    // Membership check
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (profile?.organization_id !== data.organizationId) {
+      throw new Error("Not a member of that organization.");
+    }
+
+    const { data: row } = await supabaseAdmin
+      .from("org_integrations")
+      .select("api_key, config")
+      .eq("organization_id", data.organizationId)
+      .eq("provider", "sendgrid")
+      .maybeSingle();
+
+    if (!row?.api_key) {
+      throw new Error("SendGrid is not configured. Add an API key in Settings → Integrations.");
+    }
+
+    const cfg = (row.config as Record<string, unknown> | null) ?? {};
+    const fromAddress =
+      data.fromAddress ??
+      (typeof cfg.defaultFromAddress === "string" ? cfg.defaultFromAddress : undefined) ??
+      (typeof cfg.fromAddress === "string" ? cfg.fromAddress : undefined);
+
+    if (!fromAddress) {
+      throw new Error(
+        "No SendGrid 'from' address configured. Set a default from address in Settings → Integrations → SendGrid.",
+      );
+    }
+
+    try {
+      const result = await sendSendgridEmail({
+        apiKey: row.api_key,
+        from: fromAddress,
+        to: data.to,
+        subject: data.subject,
+        html: plainTextToHtml(data.body),
+      });
+
+      await recordConnectorActivity({
+        organizationId: data.organizationId,
+        userId: context.userId,
+        leadId: data.leadId ?? null,
+        provider: "sendgrid",
+        direction: "outbound",
+        action: "send_email",
+        summary: `Email sent to ${data.to}`,
+        payload: { subject: data.subject, messageId: result.messageId, from: fromAddress },
+      });
+
+      await logLeadEmail({
+        organizationId: data.organizationId,
+        leadId: data.leadId,
+        subject: data.subject,
+        body: data.body,
+        provider: "sendgrid",
+      });
+
+      return { ok: true, messageId: result.messageId };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      await recordConnectorActivity({
+        organizationId: data.organizationId,
+        userId: context.userId,
+        leadId: data.leadId ?? null,
+        provider: "sendgrid",
+        direction: "outbound",
+        action: "send_email",
+        status: "failed",
+        errorMessage: msg,
+        payload: { to: data.to },
+      });
+      throw err;
+    }
+  });
+
+// ===== List which email providers are usable for sending from this lead =====
+const listEmailProvidersSchema = z.object({ organizationId: z.string().uuid() });
+
+export interface LeadEmailProvider {
+  /** "gmail" | "microsoft_outlook" | "sendgrid" */
+  provider: string;
+  /** Friendly label for the picker. */
+  label: string;
+  /** Pre-filled "from" address if one is configured. */
+  defaultFromAddress: string | null;
+}
+
+export const listLeadEmailProvidersFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof listEmailProvidersSchema>) =>
+    listEmailProvidersSchema.parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ providers: LeadEmailProvider[] }> => {
+    // Membership check
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (profile?.organization_id !== data.organizationId) {
+      throw new Error("Not a member of that organization.");
+    }
+
+    const providers: LeadEmailProvider[] = [];
+
+    // Connector-based providers (Gmail / Outlook)
+    const { data: connectorRows } = await supabaseAdmin
+      .from("org_connectors")
+      .select("provider, config")
+      .eq("organization_id", data.organizationId)
+      .eq("enabled", true)
+      .in("provider", ["gmail", "microsoft_outlook"]);
+
+    for (const r of connectorRows ?? []) {
+      const meta = getConnector(r.provider);
+      if (!meta) continue;
+      if (!process.env[meta.envVar]) continue; // not actually linked yet
+      const cfg = (r.config as Record<string, unknown> | null) ?? {};
+      providers.push({
+        provider: r.provider,
+        label: meta.name,
+        defaultFromAddress: typeof cfg.fromAddress === "string" ? cfg.fromAddress : null,
+      });
+    }
+
+    // BYO-key SendGrid
+    const { data: sgRow } = await supabaseAdmin
+      .from("org_integrations")
+      .select("api_key, config")
+      .eq("organization_id", data.organizationId)
+      .eq("provider", "sendgrid")
+      .maybeSingle();
+
+    if (sgRow?.api_key) {
+      const cfg = (sgRow.config as Record<string, unknown> | null) ?? {};
+      const from =
+        (typeof cfg.defaultFromAddress === "string" ? cfg.defaultFromAddress : null) ??
+        (typeof cfg.fromAddress === "string" ? cfg.fromAddress : null);
+      providers.push({
+        provider: "sendgrid",
+        label: "SendGrid",
+        defaultFromAddress: from,
+      });
+    }
+
+    return { providers };
+  });
