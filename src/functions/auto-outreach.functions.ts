@@ -1,10 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { sendSendgridEmail } from "@/lib/sendgrid";
+import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
 import { z } from "zod";
 
 const outreachSchema = z.object({
@@ -45,16 +45,9 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<OutreachResult> => {
     const { supabase, userId } = context;
 
-    // Forward the caller's JWT to the internal /lovable/email/transactional/send
-    // route — that route requires `Authorization: Bearer <user-jwt>` and we're
-    // running server-side here so we have to re-attach it manually.
-    const req = getRequest();
-    const incomingAuth = req?.headers.get("authorization") ?? null;
-    if (!incomingAuth) {
-      throw new Error("Missing authorization header — cannot send emails");
-    }
-    // Server-side fetch needs an absolute URL — derive origin from the request.
-    const origin = req ? new URL(req.url).origin : "";
+    // Outreach delivery now happens entirely in-process (see
+    // dispatchOutreachEmail). We no longer call our own public send route via
+    // fetch, so there's no JWT to forward and no origin to derive.
 
     // Verify org membership
     const { data: profile } = await supabase
