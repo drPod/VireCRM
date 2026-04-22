@@ -21,6 +21,7 @@ import {
   disableConnectorFn,
   type ConnectorStatus,
 } from "@/functions/connectors.functions";
+import { importHubspotContactsFn } from "@/functions/connector-actions.functions";
 import {
   CONNECTORS,
   CATEGORY_LABELS,
@@ -38,6 +39,7 @@ import {
   Plug,
   AlertTriangle,
   Power,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
