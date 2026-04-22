@@ -317,9 +317,21 @@ export function IntegrationsSettings() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Monthly lead credits */}
-      <Card className="p-6">
+    <Tabs defaultValue="manage" className="w-full">
+      <TabsList className="mb-6">
+        <TabsTrigger value="manage" className="gap-2">
+          <KeyRound className="h-3.5 w-3.5" />
+          Manage
+        </TabsTrigger>
+        <TabsTrigger value="activity" className="gap-2">
+          <Activity className="h-3.5 w-3.5" />
+          Activity
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="manage" className="space-y-6">
+        {/* Monthly lead credits */}
+        <Card className="p-6">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary" />
@@ -438,7 +450,12 @@ export function IntegrationsSettings() {
           </div>
         </div>
       </Card>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="activity">
+        <IntegrationActivityLog />
+      </TabsContent>
+    </Tabs>
   );
 }
 
