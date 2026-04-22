@@ -571,6 +571,16 @@ function ConnectorRow({
         </div>
       </div>
 
+      {!loading && (() => {
+        const prereqs = deriveConnectorPrerequisites(meta, status);
+        if (prereqs.length === 0) return null;
+        return (
+          <div className="mb-3">
+            <PrerequisitesPanel prerequisites={prereqs} providerLabel={meta.name} />
+          </div>
+        );
+      })()}
+
       {(testResult || testing) && (
         <div className="mb-3">
           <TestResultPanel result={testResult} testing={testing} providerLabel={meta.name} />
