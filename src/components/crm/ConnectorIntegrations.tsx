@@ -642,7 +642,11 @@ function ConnectorRow({
           {(meta.configFields ?? []).map((f) => {
             const ruleKey = `${meta.id}.${f.key}`;
             const rule = FIELD_RULES[ruleKey];
-            const err = fieldErrors[f.key];
+            const rawErr = fieldErrors[f.key];
+            // Only surface the inline error after the user has blurred the
+            // field at least once — keeps the UI quiet while they type the
+            // first character, but updates instantly on subsequent edits.
+            const err = touchedFields[f.key] ? rawErr : null;
             return (
               <div key={f.key} className="space-y-1">
                 <label className="block text-[11px] font-medium text-foreground">
@@ -657,6 +661,11 @@ function ConnectorRow({
                   value={draftConfig[f.key] ?? ""}
                   onChange={(e) =>
                     setDraftConfig((prev) => ({ ...prev, [f.key]: e.target.value }))
+                  }
+                  onBlur={() =>
+                    setTouchedFields((prev) =>
+                      prev[f.key] ? prev : { ...prev, [f.key]: true },
+                    )
                   }
                   placeholder={f.placeholder}
                   aria-invalid={err ? true : undefined}
