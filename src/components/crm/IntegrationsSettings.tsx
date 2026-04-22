@@ -521,6 +521,9 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
     return seed;
   });
   const [savingSettings, setSavingSettings] = useState(false);
+  // Tracks which settings inputs have been blurred — controls whether the
+  // inline format error renders (we stay quiet until the user moves on).
+  const [touchedSettings, setTouchedSettings] = useState<Record<string, boolean>>({});
 
   // Reseed the settings draft whenever the saved config changes (e.g. after refresh).
   useEffect(() => {
