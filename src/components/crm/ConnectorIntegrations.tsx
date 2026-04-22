@@ -168,16 +168,35 @@ export function ConnectorIntegrations() {
   };
   for (const c of CONNECTORS) grouped[c.category].push(c);
 
+  const connectedCount = Object.values(statuses).filter(
+    (s) => s.enabled && s.credentialPresent,
+  ).length;
+  const totalCount = CONNECTORS.length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3">
-        <Plug className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-        <div>
-          <h3 className="text-base font-semibold text-foreground">One-click integrations</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Connect the tools your team already uses — no API keys to copy. Your tokens are
-            managed by Lovable's connector gateway and refreshed automatically.
-          </p>
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+        <div className="flex items-start gap-3">
+          <Plug className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h3 className="text-base font-semibold text-foreground">
+                One-click integrations
+              </h3>
+              {!loading && (
+                <Badge variant="secondary" className="gap-1 text-[11px]">
+                  <CheckCircle2 className="h-3 w-3 text-success" />
+                  {connectedCount} of {totalCount} connected
+                </Badge>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Connect tools your team already uses — no API keys to copy or paste. Just click
+              <span className="font-medium text-foreground"> Connect </span>
+              on any card below and sign in to that service when prompted. We handle the
+              technical setup automatically.
+            </p>
+          </div>
         </div>
       </div>
 
