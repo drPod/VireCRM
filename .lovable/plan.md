@@ -2,83 +2,101 @@
 
 ## Goal
 
-Turn the existing Settings → Integrations tab into a complete management page where you can **Add, Edit, Test, and Disconnect** every CRM integration — both BYO API-key providers (Apollo, Hunter, Snov) and one-click connectors (Slack, Outlook, Teams, Twilio, HubSpot, Linear, etc.).
+Make Gmail, Google Calendar, Twilio, and SendGrid first-class integrations users can link from Settings → Integrations and use directly from a lead.
 
-## What's missing today
+## Current state
 
-| Integration type | Add | Edit | Test | Disconnect |
-|---|---|---|---|---|
-| BYO (Apollo/Hunter/Snov) | yes | **no** (must remove first) | **no** | yes |
-| Connectors (Slack/HubSpot/…) | partial (no real OAuth trigger) | **no** (config like default Slack channel can't be changed) | **no** (only auto-verify on load) | yes |
-
-We'll close every "no" above and unify the look so each card has the same four actions.
+- **Twilio** — already live (Connect/Test/Edit/Disconnect + `sendTwilioSmsFn`). No work needed.
+- **Gmail** — in catalog as `beta` (enable-only). No send action.
+- **Google Calendar** — in catalog as `beta` (enable-only). No scheduling action.
+- **SendGrid** — not present at all. Not available as a Lovable Connector → must be a BYO API-key provider, like Apollo / Hunter / Snov.
 
 ## What you'll see
 
 ```text
 Settings → Integrations
-────────────────────────────────────────────
-[ Monthly Lead Credits card — unchanged    ]
+─────────────────────────────────────────────
+[ One-click integrations ]
+  Email & Calendar
+   ┌─ Gmail ───────────────── Connected ─┐
+   │ Send-from address: you@company.com  │
+   │ [ Send test email ] [ Test ] [ Edit ] [ Disconnect ]
+   └─────────────────────────────────────┘
+   ┌─ Google Calendar ─────── Connected ─┐
+   │ Default meeting length: 30 min      │
+   │ Time zone: America/Chicago          │
+   │ [ Test ] [ Edit ] [ Disconnect ]    │
+   └─────────────────────────────────────┘
+   ┌─ Microsoft Outlook ─── (existing)   │
 
-[ One-click integrations  (Slack, Outlook, …) ]
-  ┌─ Slack ───────────────── Connected ───┐
-  │  Default channel: #sales              │
-  │  Verified 2m ago                      │
-  │  [ Test ]  [ Edit ]  [ Disconnect ]   │
-  └───────────────────────────────────────┘
+  Communication
+   ┌─ Twilio SMS ─────────── (existing) ─┐
 
-[ Lead-source API keys  (Apollo, Hunter, Snov) ]
-  ┌─ Apollo.io ────────────── Connected ──┐
-  │  Key: apol••••a91f                    │
-  │  Verified yesterday                   │
-  │  [ Test ]  [ Edit ]  [ Disconnect ]   │
-  └───────────────────────────────────────┘
+[ Lead-source & email API keys ]
+   ┌─ SendGrid ──────────── Connected ───┐
+   │ Key: SG.x••••a1f2                   │
+   │ Verified just now                   │
+   │ [ Test ] [ Edit ] [ Disconnect ]    │
+   └─────────────────────────────────────┘
 ```
 
-Every card now exposes the same four primary actions. "Edit" opens a small inline editor (new key / new config); "Test" pings the provider live and shows a success or error toast; "Disconnect" asks for confirmation before removing.
+On a lead drawer:
+- "Send email" now offers **Gmail / Outlook / SendGrid** (whichever are connected).
+- "Schedule meeting" now opens a small dialog (date, time, duration, invite the lead's email) and creates a Google Calendar event.
 
-## Per-action behaviour
+## What gets built
 
-- **Add (Connect)**
-  - BYO: paste key → server verifies live with the provider → saved (existing flow, kept as-is).
-  - Connector: button now actually triggers the Lovable Connector OAuth flow for the provider (today it just marks the row enabled). After the popup closes we re-verify.
+### 1. Catalog updates (`src/lib/connectors/catalog.ts`)
 
-- **Edit**
-  - BYO: "Edit" reveals the password input pre-filled empty; entering a new key replaces the old one (re-verified before saving).
-  - Connector: opens a small form for that connector's config — e.g. Slack default channel, Outlook from-address, Twilio from-number, HubSpot import limit. Saved via the existing `updateConnectorConfigFn`.
+- **Gmail** → `status: "live"`, add `configFields: [{ key: "fromAddress", label: "Send from address", placeholder: "you@gmail.com" }]`, description tightened to "Send outreach emails from your Gmail account."
+- **Google Calendar** → `status: "live"`, add `configFields`:
+  - `defaultDurationMinutes` (default 30)
+  - `timeZone` (default "UTC", helper text suggests browser TZ)
+  - `defaultCalendarId` (optional, default "primary")
+- No catalog change for SendGrid (it lives in the BYO section, not the connector catalog).
 
-- **Test**
-  - BYO: server hits the same lightweight verify endpoint used at save time (`/auth/health` for Apollo, `/v2/account` for Hunter, OAuth token for Snov) and updates `last_verified_at`.
-  - Connector: calls the gateway's `/api/v1/verify_credentials` endpoint and refreshes the badge/error.
-  - Either way the result shows as a toast plus a "Verified just now" / "Failed: …" line on the card.
+### 2. New connector action handlers (`src/functions/connector-actions.functions.ts`)
 
-- **Disconnect**
-  - BYO: existing delete flow, with a clearer confirm dialog ("This will stop Auto-Find Leads via Apollo…").
-  - Connector: existing disable + (new) call the disconnect helper so the gateway connection is cleanly released, not just marked `enabled=false`.
+- **`sendGmailFn`** — POST to `/gmail/v1/users/me/messages/send` with a base64url-encoded RFC 2822 message (`From`, `To`, `Subject`, `Content-Type: text/html`, body). Logs to `connector_activity_log` like the Outlook handler.
+- **`scheduleGoogleCalendarEventFn`** — POST to `/calendar/v3/calendars/{calendarId}/events` with `summary`, `description`, `start.dateTime`, `end.dateTime`, `timeZone`, `attendees: [{ email }]`, `sendUpdates=all` so the lead gets the invite email. Returns the new event's `htmlLink`.
 
-## Technical changes
+Both follow the existing `assertMemberAndConnector` → `callGateway` → `recordConnectorActivity` pattern.
 
-1. **New server functions**
-   - `testIntegrationFn` (BYO) — re-runs `verifyApolloKey` / `verifyHunterKey` / `verifySnovKey` against the stored key and updates `last_verified_at`.
-   - `testConnectorFn` (connector) — wraps `verifyConnectorCredentials` so the UI can trigger it on demand instead of only at list time.
-   - `updateIntegrationKeyFn` (BYO) — same as save, but explicit "edit" semantics (verify → upsert → return new masked key).
+### 3. SendGrid as a BYO provider
 
-2. **Refactor `IntegrationsSettings.tsx`**
-   - `ProviderCard` gains `Test` + `Edit` buttons and an inline edit panel.
-   - Status badge becomes "Connected · Verified 5m ago" or "Failed verification" with the provider's error.
+SendGrid is not a Lovable Connector. It joins the existing BYO flow used by Apollo/Hunter/Snov.
 
-3. **Refactor `ConnectorIntegrations.tsx` → `ConnectorRow`**
-   - Adds `Test` and `Edit` buttons (Edit opens a per-connector config drawer).
-   - Connect button now calls a small client helper that opens the Lovable Connector OAuth flow for `meta.connectorId`, then calls `enableConnectorFn` on success.
-   - Per-connector config schemas (Slack: `defaultChannel`; Outlook: `fromAddress`; Twilio: `fromNumber`; HubSpot: `importLimit`; others: none) drive what the Edit form renders.
+- **`src/lib/sendgrid.ts`** — small client:
+  - `verifySendgridKey(key)` → `GET https://api.sendgrid.com/v3/scopes` with `Authorization: Bearer <key>`. 200 = ok; 401 = "Invalid SendGrid API key"; otherwise pass through error.
+  - `sendSendgridEmail({ key, from, to, subject, html })` → `POST https://api.sendgrid.com/v3/mail/send`.
+- **`src/functions/integrations.functions.ts`**:
+  - Extend `SUPPORTED_PROVIDERS` to include `"sendgrid"` and route it through `verifySendgridKey` in `verifyKey()`. Existing get/save/test/delete server fns automatically gain SendGrid support — no new fns needed.
+- **`src/functions/connector-actions.functions.ts`**:
+  - `sendSendgridEmailFn` — looks up the org's stored SendGrid key from `org_integrations`, calls `sendSendgridEmail`, logs activity. Requires a "from address" passed in (or stored on the integration row's existing column — see Edit UI below).
+- **`src/components/crm/IntegrationsSettings.tsx`** — add a `ProviderConfig` row for SendGrid:
+  - Setup steps: 1) Sign in to SendGrid, 2) Settings → API Keys → Create API Key (Full Access or Mail Send), 3) Verify a sender domain or single sender, 4) Paste key here.
+  - Single field input (`SG.…`).
+  - Config field (stored alongside the masked key UI as part of the Edit panel) for `defaultFromAddress`.
 
-4. **No DB migrations** — `org_integrations` and `org_connectors` already store everything we need (`api_key`, `last_verified_at`, `config jsonb`, `enabled`).
+### 4. Lead drawer wiring (`src/components/crm/LeadConnectorActions.tsx`)
 
-5. **Owner-only guard** is unchanged — every new server function calls `assertOwner` first.
+- **Send email**: detect which of `gmail`, `microsoft_outlook`, `sendgrid` are connected. Show a dropdown to pick provider, then the existing email composer. Submit calls the matching server fn.
+- **Schedule meeting** (new button, only shown if `google_calendar` is connected):
+  - Small dialog: date, start time, duration (prefilled from config), notes.
+  - Calls `scheduleGoogleCalendarEventFn` with the lead's email as attendee.
+  - On success: toast with "Open in Calendar" link.
+
+### 5. Quiet fix
+
+Address the runtime "Cannot convert object to primitive value" error surfaced in the preview while doing the catalog/UI edits.
 
 ## Out of scope
 
-- Adding more providers beyond what's already in the catalog.
-- Per-user (vs per-org) connections.
-- Two-way sync schedules — this PR is just settings management.
+- Inbound sync (Gmail thread pulls, Calendar busy/free reads).
+- SendGrid templates / dynamic data.
+- Per-user (vs per-org) Gmail accounts.
+
+## DB changes
+
+None. Gmail/Calendar config goes in `org_connectors.config` (already jsonb). SendGrid uses the existing `org_integrations` table; the `defaultFromAddress` is stored in a small jsonb column the row already has, or — if not — in a new nullable `config jsonb` column added via migration during implementation.
 
