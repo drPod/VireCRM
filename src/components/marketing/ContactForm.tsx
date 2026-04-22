@@ -179,6 +179,7 @@ export function ContactForm() {
         />
       </div>
 
+      <Button type="submit" variant="command" size="lg" className="w-full gap-2" disabled={loading}>
         {loading ? "Sending…" : "Send Inquiry"}
         <Send className="h-4 w-4" />
       </Button>
