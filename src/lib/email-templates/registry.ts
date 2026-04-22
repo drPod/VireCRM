@@ -14,6 +14,7 @@ import { template as clientPasswordReset } from './client-password-reset'
 import { template as clientWelcome } from './client-welcome'
 import { template as reviewRequest } from './review-request'
 import { template as outreachEmail } from './outreach-email'
+import { template as contactInquiry } from './contact-inquiry'
 
 /**
  * Template registry — maps template names to their React Email components.
@@ -25,4 +26,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'client-welcome': clientWelcome,
   'review-request': reviewRequest,
   'outreach-email': outreachEmail,
+  'contact-inquiry': contactInquiry,
 }
