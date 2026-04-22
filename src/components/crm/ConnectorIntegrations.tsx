@@ -46,6 +46,16 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function ConnectorIntegrations() {
   const { organization, role } = useAuth();
@@ -107,15 +117,15 @@ export function ConnectorIntegrations() {
   const handleDisable = useCallback(
     async (provider: string, name: string) => {
       if (!organization?.id) return;
-      if (!confirm(`Disable ${name}? Outbound actions through ${name} will stop working.`)) return;
       try {
         await disableConnector({ data: { organizationId: organization.id, provider } });
-        toast.success(`${name} disabled`);
+        toast.success(`${name} disconnected`);
         void refresh();
       } catch (err) {
-        toast.error("Couldn't disable", {
+        toast.error("Couldn't disconnect", {
           description: err instanceof Error ? err.message : "Unknown error",
         });
+        throw err;
       }
     },
     [organization?.id, disableConnector, refresh],
@@ -168,16 +178,35 @@ export function ConnectorIntegrations() {
   };
   for (const c of CONNECTORS) grouped[c.category].push(c);
 
+  const connectedCount = Object.values(statuses).filter(
+    (s) => s.enabled && s.credentialPresent,
+  ).length;
+  const totalCount = CONNECTORS.length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3">
-        <Plug className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-        <div>
-          <h3 className="text-base font-semibold text-foreground">One-click integrations</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Connect the tools your team already uses — no API keys to copy. Your tokens are
-            managed by Lovable's connector gateway and refreshed automatically.
-          </p>
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+        <div className="flex items-start gap-3">
+          <Plug className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h3 className="text-base font-semibold text-foreground">
+                One-click integrations
+              </h3>
+              {!loading && (
+                <Badge variant="secondary" className="gap-1 text-[11px]">
+                  <CheckCircle2 className="h-3 w-3 text-success" />
+                  {connectedCount} of {totalCount} connected
+                </Badge>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Connect tools your team already uses — no API keys to copy or paste. Just click
+              <span className="font-medium text-foreground"> Connect </span>
+              on any card below and sign in to that service when prompted. We handle the
+              technical setup automatically.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -235,6 +264,7 @@ function ConnectorRow({
   const [editing, setEditing] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [draftConfig, setDraftConfig] = useState<Record<string, string>>({});
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const importHubspot = useAuthedServerFn(importHubspotContactsFn);
 
   const enabled = !!status?.enabled;
@@ -242,11 +272,22 @@ function ConnectorRow({
   const verified = status?.verified;
   const hasConfigFields = (meta.configFields ?? []).length > 0;
 
-  const handleClick = async (action: "enable" | "disable") => {
+  const handleEnable = async () => {
     setBusy(true);
     try {
-      if (action === "enable") await onEnable();
-      else await onDisable();
+      await onEnable();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDisable = async () => {
+    setBusy(true);
+    try {
+      await onDisable();
+      setConfirmDisconnect(false);
+    } catch {
+      // toast already shown upstream
     } finally {
       setBusy(false);
     }
@@ -441,7 +482,7 @@ function ConnectorRow({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleClick("disable")}
+              onClick={() => setConfirmDisconnect(true)}
               disabled={busy}
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
@@ -452,7 +493,7 @@ function ConnectorRow({
           <Button
             variant="command"
             size="sm"
-            onClick={() => handleClick("enable")}
+            onClick={handleEnable}
             disabled={busy}
           >
             {busy ? (
@@ -464,6 +505,31 @@ function ConnectorRow({
           </Button>
         )}
       </div>
+
+      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect {meta.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Outbound actions through {meta.name} will stop working until you reconnect. Your
+              {meta.name} account itself isn't touched — you can reconnect any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Keep connected</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisable} disabled={busy}>
+              {busy ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Disconnecting…
+                </>
+              ) : (
+                "Yes, disconnect"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
