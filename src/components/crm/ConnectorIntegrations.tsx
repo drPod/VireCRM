@@ -33,6 +33,7 @@ import {
   type ConnectorCategory,
   type ConnectorMeta,
 } from "@/lib/connectors/catalog";
+import { validateDraft, FIELD_RULES } from "@/lib/connectors/validation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -567,31 +568,61 @@ function ConnectorRow({
       )}
 
       {/* Inline config editor */}
-      {enabled && editing && hasConfigFields && (
+      {enabled && editing && hasConfigFields && (() => {
+        const { errors: fieldErrors, valid: draftValid } = validateDraft(
+          meta.id,
+          meta.configFields ?? [],
+          draftConfig,
+        );
+        return (
         <div className="space-y-3 mb-3 p-3 rounded-md bg-secondary/30 border border-border">
-          {(meta.configFields ?? []).map((f) => (
-            <div key={f.key} className="space-y-1">
-              <label className="block text-[11px] font-medium text-foreground">{f.label}</label>
-              <input
-                value={draftConfig[f.key] ?? ""}
-                onChange={(e) =>
-                  setDraftConfig((prev) => ({ ...prev, [f.key]: e.target.value }))
-                }
-                placeholder={f.placeholder}
-                className="h-8 w-full rounded-md border border-input bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
-                spellCheck={false}
-              />
-              {f.helper && (
-                <p className="text-[10px] text-muted-foreground">{f.helper}</p>
-              )}
-            </div>
-          ))}
+          {(meta.configFields ?? []).map((f) => {
+            const ruleKey = `${meta.id}.${f.key}`;
+            const rule = FIELD_RULES[ruleKey];
+            const err = fieldErrors[f.key];
+            return (
+              <div key={f.key} className="space-y-1">
+                <label className="block text-[11px] font-medium text-foreground">
+                  {f.label}
+                  {rule?.required && (
+                    <span className="text-destructive ml-0.5" aria-hidden="true">
+                      *
+                    </span>
+                  )}
+                </label>
+                <input
+                  value={draftConfig[f.key] ?? ""}
+                  onChange={(e) =>
+                    setDraftConfig((prev) => ({ ...prev, [f.key]: e.target.value }))
+                  }
+                  placeholder={f.placeholder}
+                  aria-invalid={err ? true : undefined}
+                  aria-describedby={err ? `${meta.id}-${f.key}-err` : undefined}
+                  className={`h-8 w-full rounded-md border bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring ${
+                    err ? "border-destructive/60" : "border-input"
+                  }`}
+                  spellCheck={false}
+                />
+                {err ? (
+                  <p
+                    id={`${meta.id}-${f.key}-err`}
+                    className="text-[10px] text-destructive"
+                  >
+                    {err}
+                  </p>
+                ) : f.helper ? (
+                  <p className="text-[10px] text-muted-foreground">{f.helper}</p>
+                ) : null}
+              </div>
+            );
+          })}
           <div className="flex gap-2">
             <Button
               variant="command"
               size="sm"
               onClick={handleSaveConfig}
-              disabled={savingConfig}
+              disabled={savingConfig || !draftValid}
+              title={!draftValid ? "Fix the highlighted fields before saving." : undefined}
             >
               {savingConfig ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               Save
@@ -601,7 +632,8 @@ function ConnectorRow({
             </Button>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Inline "Send test email" — only for Gmail. SendGrid has its own
           version on the BYO key card in IntegrationsSettings. */}

@@ -34,6 +34,7 @@ import { ConnectorIntegrations } from "./ConnectorIntegrations";
 import { SendTestEmailControl } from "./SendTestEmailControl";
 import { TestResultPanel, type TestResult } from "./TestResultPanel";
 import { IntegrationActivityLog } from "./IntegrationActivityLog";
+import { validateDraft, FIELD_RULES } from "@/lib/connectors/validation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -531,6 +532,12 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
     return (settingsDraft[f.key] ?? "") !== savedStr;
   });
 
+  const { errors: settingsErrors, valid: settingsValid } = validateDraft(
+    config.id,
+    settingsFields,
+    settingsDraft,
+  );
+
   const verifiedLabel = status.lastVerifiedAt
     ? `Verified ${formatRelative(status.lastVerifiedAt)}`
     : null;
@@ -617,7 +624,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   };
 
   const handleSaveSettings = async () => {
-    if (!settingsDirty) return;
+    if (!settingsDirty || !settingsValid) return;
     setSavingSettings(true);
     try {
       // Convert to the shape expected by the server fn — empty strings become null.
@@ -854,32 +861,54 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
               />
               {settingsFields.length > 0 && (
                 <div className="space-y-2 rounded-md border border-border bg-secondary/30 p-3">
-                  {settingsFields.map((f) => (
-                    <div key={f.key} className="space-y-1">
-                      <label className="block text-[11px] font-medium text-foreground">
-                        {f.label}
-                      </label>
-                      <input
-                        value={settingsDraft[f.key] ?? ""}
-                        onChange={(e) =>
-                          setSettingsDraft((prev) => ({ ...prev, [f.key]: e.target.value }))
-                        }
-                        placeholder={f.placeholder}
-                        className="h-8 w-full rounded-md border border-input bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
-                        spellCheck={false}
-                        disabled={savingSettings}
-                      />
-                      {f.helper && (
-                        <p className="text-[10px] text-muted-foreground">{f.helper}</p>
-                      )}
-                    </div>
-                  ))}
+                  {settingsFields.map((f) => {
+                    const ruleKey = `${config.id}.${f.key}`;
+                    const rule = FIELD_RULES[ruleKey];
+                    const err = settingsErrors[f.key];
+                    return (
+                      <div key={f.key} className="space-y-1">
+                        <label className="block text-[11px] font-medium text-foreground">
+                          {f.label}
+                          {rule?.required && (
+                            <span className="text-destructive ml-0.5" aria-hidden="true">
+                              *
+                            </span>
+                          )}
+                        </label>
+                        <input
+                          value={settingsDraft[f.key] ?? ""}
+                          onChange={(e) =>
+                            setSettingsDraft((prev) => ({ ...prev, [f.key]: e.target.value }))
+                          }
+                          placeholder={f.placeholder}
+                          aria-invalid={err ? true : undefined}
+                          aria-describedby={err ? `${config.id}-${f.key}-err` : undefined}
+                          className={`h-8 w-full rounded-md border bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring ${
+                            err ? "border-destructive/60" : "border-input"
+                          }`}
+                          spellCheck={false}
+                          disabled={savingSettings}
+                        />
+                        {err ? (
+                          <p
+                            id={`${config.id}-${f.key}-err`}
+                            className="text-[10px] text-destructive"
+                          >
+                            {err}
+                          </p>
+                        ) : f.helper ? (
+                          <p className="text-[10px] text-muted-foreground">{f.helper}</p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                   {settingsDirty && (
                     <Button
                       variant="command"
                       size="sm"
                       onClick={handleSaveSettings}
-                      disabled={savingSettings}
+                      disabled={savingSettings || !settingsValid}
+                      title={!settingsValid ? "Fix the highlighted fields before saving." : undefined}
                     >
                       {savingSettings ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
