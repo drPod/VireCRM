@@ -28,6 +28,12 @@ interface ParsedLead {
   score?: number;
   notes?: string;
   source?: string;
+  /** Annual electricity usage in kWh (energy-broker workflow). */
+  annual_kwh?: number | null;
+  /** Contract end date as ISO YYYY-MM-DD. */
+  contract_end_date?: string | null;
+  /** Current energy supplier name. */
+  current_supplier?: string | null;
 }
 
 /** Per-row warning/error captured during parsing — surfaced to the user. */
@@ -71,6 +77,39 @@ const STATUS_HEADERS = ["status", "stage", "lead status"];
 const SCORE_HEADERS = ["score", "lead score", "rating"];
 const NOTES_HEADERS = ["notes", "note", "comments", "description"];
 const SOURCE_HEADERS = ["source", "lead source", "origin", "channel"];
+const ANNUAL_KWH_HEADERS = [
+  "annual kwh",
+  "annual usage",
+  "annual usage kwh",
+  "kwh",
+  "yearly kwh",
+  "yearly usage",
+  "consumption",
+  "annual consumption",
+  "usage",
+  "usage kwh",
+];
+const CONTRACT_END_HEADERS = [
+  "contract end",
+  "contract end date",
+  "contract expiry",
+  "contract expiration",
+  "expiry date",
+  "expiration date",
+  "renewal date",
+  "end date",
+  "ced",
+];
+const SUPPLIER_HEADERS = [
+  "current supplier",
+  "supplier",
+  "energy supplier",
+  "utility",
+  "utility provider",
+  "provider",
+  "incumbent supplier",
+  "current provider",
+];
 
 const normalizeHeader = (key: string) => key.trim().toLowerCase().replace(/['"]/g, "");
 
