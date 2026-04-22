@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { useActionLock } from "@/hooks/useActionLock";
@@ -487,6 +487,11 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   const [editing, setEditing] = useState(false);
   const [showStepsForFirstSetup, setShowStepsForFirstSetup] = useState(true);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  // Refs used by the "Run next step" buttons in the prerequisites panel
+  // to focus the right input after expanding/scrolling to the editor.
+  const apiKeyInputRef = useRef<HTMLInputElement | null>(null);
+  const fieldOneInputRef = useRef<HTMLInputElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   // Latest Test result, kept inline on the card until the next Test run replaces it.
   const [testResult, setTestResult] = useState<TestResult | null>(() =>
     status.lastVerifiedAt ? { ok: true, verifiedAt: status.lastVerifiedAt } : null,
@@ -687,6 +692,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                 {tf.fieldOneLabel}
               </label>
               <input
+                ref={fieldOneInputRef}
                 type="text"
                 value={fieldOne}
                 onChange={(e) => setFieldOne(e.target.value)}
@@ -719,6 +725,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
               {config.name} API key
             </label>
             <input
+              ref={apiKeyInputRef}
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
@@ -774,7 +781,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   };
 
   return (
-    <Card className="p-6">
+    <Card ref={cardRef} className="p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -814,9 +821,46 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
           lastTest: testResult ? { ok: testResult.ok, reason: testResult.reason ?? undefined } : null,
         });
         if (prereqs.length === 0) return null;
+        const focusKeyInput = () => {
+          // Reveal setup steps + scroll into view, then focus the first input.
+          setShowStepsForFirstSetup(true);
+          requestAnimationFrame(() => {
+            cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            const target = isTwoField ? fieldOneInputRef.current : apiKeyInputRef.current;
+            target?.focus();
+          });
+        };
         return (
           <div className="mb-4">
-            <PrerequisitesPanel prerequisites={prereqs} providerLabel={config.name} />
+            <PrerequisitesPanel
+              prerequisites={prereqs}
+              providerLabel={config.name}
+              onAction={async (p) => {
+                switch (p.actionId) {
+                  case "focus-key-input":
+                    focusKeyInput();
+                    break;
+                  case "edit-key":
+                    setEditing(true);
+                    requestAnimationFrame(() => {
+                      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      const target = isTwoField
+                        ? fieldOneInputRef.current
+                        : apiKeyInputRef.current;
+                      target?.focus();
+                    });
+                    break;
+                  case "test":
+                    await handleTest();
+                    break;
+                  case "open-docs":
+                    window.open(config.docsUrl, "_blank", "noopener,noreferrer");
+                    break;
+                  default:
+                    break;
+                }
+              }}
+            />
           </div>
         );
       })()}
