@@ -768,3 +768,157 @@ export const listLeadEmailProvidersFn = createServerFn({ method: "POST" })
 
     return { providers };
   });
+
+// ===== Send a test email (Gmail or SendGrid) — used by Settings → Integrations =====
+//
+// This validates that the integration is fully configured (enabled, credentials
+// present, from-address set where required) and actually delivers a small
+// "it works!" message to the address the owner specifies. It does NOT log to
+// the lead messages table — this is a config check, not a lead interaction —
+// but it does record an entry in connector_activity_log so test sends are
+// auditable.
+const sendTestEmailSchema = z.object({
+  organizationId: z.string().uuid(),
+  provider: z.enum(["gmail", "sendgrid"]),
+  to: z.string().trim().email(),
+});
+
+export const sendTestEmailFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof sendTestEmailSchema>) => sendTestEmailSchema.parse(input))
+  .handler(async ({ data, context }): Promise<{ ok: true; messageId: string | null }> => {
+    // Owner-only — same gate as the rest of the Integrations settings.
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("organization_id", data.organizationId)
+      .eq("role", "owner")
+      .maybeSingle();
+    if (!roleRow) throw new Error("Only the organization owner can send test emails.");
+
+    const subject = "Test email from your CRM";
+    const body = [
+      "This is a test email from your CRM's Settings → Integrations page.",
+      "",
+      `Provider: ${data.provider === "gmail" ? "Gmail" : "SendGrid"}`,
+      `Sent at: ${new Date().toUTCString()}`,
+      "",
+      "If you're reading this, your integration is configured correctly and ready to send outreach to leads.",
+    ].join("\n");
+
+    if (data.provider === "gmail") {
+      const { meta, config } = await assertMemberAndConnector(
+        context.userId,
+        data.organizationId,
+        "gmail",
+      );
+      const fromAddress =
+        typeof config.fromAddress === "string" ? config.fromAddress : undefined;
+
+      try {
+        const raw = buildGmailRawMessage({
+          from: fromAddress,
+          to: data.to,
+          subject,
+          body,
+        });
+        const result = await callGateway<{ id?: string; threadId?: string }>({
+          connectorId: meta.connectorId,
+          envVar: meta.envVar,
+          path: "/gmail/v1/users/me/messages/send",
+          body: { raw },
+        });
+        await recordConnectorActivity({
+          organizationId: data.organizationId,
+          userId: context.userId,
+          leadId: null,
+          provider: "gmail",
+          direction: "outbound",
+          action: "send_email",
+          summary: `Test email sent to ${data.to}`,
+          payload: { test: true, gmailId: result.id, threadId: result.threadId },
+        });
+        return { ok: true, messageId: result.id ?? null };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        await recordConnectorActivity({
+          organizationId: data.organizationId,
+          userId: context.userId,
+          leadId: null,
+          provider: "gmail",
+          direction: "outbound",
+          action: "send_email",
+          status: "failed",
+          errorMessage: msg,
+          payload: { test: true, to: data.to },
+        });
+        throw err;
+      }
+    }
+
+    // ----- SendGrid path -----
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (profile?.organization_id !== data.organizationId) {
+      throw new Error("Not a member of that organization.");
+    }
+
+    const { data: row } = await supabaseAdmin
+      .from("org_integrations")
+      .select("api_key, config")
+      .eq("organization_id", data.organizationId)
+      .eq("provider", "sendgrid")
+      .maybeSingle();
+
+    if (!row?.api_key) {
+      throw new Error("SendGrid is not configured. Add an API key first.");
+    }
+    const cfg = (row.config as Record<string, unknown> | null) ?? {};
+    const fromAddress =
+      (typeof cfg.defaultFromAddress === "string" ? cfg.defaultFromAddress : undefined) ??
+      (typeof cfg.fromAddress === "string" ? cfg.fromAddress : undefined);
+    if (!fromAddress) {
+      throw new Error(
+        "No SendGrid 'from' address configured. Set a Send-from address before testing.",
+      );
+    }
+
+    try {
+      const result = await sendSendgridEmail({
+        apiKey: row.api_key,
+        from: fromAddress,
+        to: data.to,
+        subject,
+        html: plainTextToHtml(body),
+      });
+      await recordConnectorActivity({
+        organizationId: data.organizationId,
+        userId: context.userId,
+        leadId: null,
+        provider: "sendgrid",
+        direction: "outbound",
+        action: "send_email",
+        summary: `Test email sent to ${data.to}`,
+        payload: { test: true, messageId: result.messageId, from: fromAddress },
+      });
+      return { ok: true, messageId: result.messageId };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      await recordConnectorActivity({
+        organizationId: data.organizationId,
+        userId: context.userId,
+        leadId: null,
+        provider: "sendgrid",
+        direction: "outbound",
+        action: "send_email",
+        status: "failed",
+        errorMessage: msg,
+        payload: { test: true, to: data.to },
+      });
+      throw err;
+    }
+  });
