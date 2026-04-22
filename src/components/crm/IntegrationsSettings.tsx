@@ -394,29 +394,57 @@ interface ProviderCardProps {
 }
 
 function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: ProviderCardProps) {
+  const isTwoField = !!config.twoFieldCredentials;
   const [apiKey, setApiKey] = useState("");
+  const [fieldOne, setFieldOne] = useState("");
+  const [fieldTwo, setFieldTwo] = useState("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [showStepsForFirstSetup, setShowStepsForFirstSetup] = useState(true);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const verifiedLabel = status.lastVerifiedAt
     ? `Verified ${formatRelative(status.lastVerifiedAt)}`
     : null;
 
+  // What the user actually submits — single field or joined two fields.
+  const submitValue = (): string => {
+    if (isTwoField) {
+      return `${fieldOne.trim()}${config.twoFieldCredentials!.joiner}${fieldTwo.trim()}`;
+    }
+    return apiKey.trim();
+  };
+
+  const canSubmit = isTwoField
+    ? fieldOne.trim().length >= 4 && fieldTwo.trim().length >= 4
+    : apiKey.trim().length >= 10;
+
+  const resetInputs = () => {
+    setApiKey("");
+    setFieldOne("");
+    setFieldTwo("");
+  };
+
   const handleSave = async () => {
-    if (apiKey.trim().length < 10) return;
+    if (!canSubmit) return;
     setSaving(true);
     try {
-      await onSave(apiKey);
+      await onSave(submitValue());
       toast.success(`${config.name} ${editing ? "updated" : "connected"}`, {
-        description: editing ? "Your new key is verified and saved." : config.connectedDescription,
+        description: editing
+          ? "Your new key is verified and saved."
+          : config.connectedDescription,
       });
-      setApiKey("");
+      resetInputs();
       setEditing(false);
     } catch (err) {
-      toast.error("Couldn't save key", {
-        description: err instanceof Error ? err.message : "Unknown error",
+      toast.error("Couldn't save", {
+        description:
+          err instanceof Error
+            ? `${err.message} — Double-check you copied the whole key.`
+            : "Unknown error",
       });
     } finally {
       setSaving(false);
@@ -424,7 +452,6 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: Pro
   };
 
   const handleRemove = async () => {
-    if (!confirm(config.removeConfirm)) return;
     setRemoving(true);
     try {
       await onRemove();
@@ -435,6 +462,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: Pro
       });
     } finally {
       setRemoving(false);
+      setConfirmDisconnect(false);
     }
   };
 
@@ -460,60 +488,132 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: Pro
     }
   };
 
-  // Render the editor (used both for first-time connect and Edit on a configured row).
-  const renderEditor = () => (
-    <div className="space-y-3">
-      <label className="block text-xs font-medium text-foreground">
-        {config.name} API key
-      </label>
-      <input
-        type="password"
-        value={apiKey}
-        onChange={(e) => setApiKey(e.target.value)}
-        placeholder={config.inputHint}
-        className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring font-mono"
-        autoComplete="off"
-        spellCheck={false}
-        maxLength={500}
-      />
-      <div className="flex gap-2 flex-wrap">
-        <Button
-          variant="command"
-          size="sm"
-          onClick={handleSave}
-          disabled={saving || apiKey.trim().length < 10}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              Verifying with {config.name}…
-            </>
-          ) : editing ? (
-            "Save new key"
-          ) : (
-            `Connect ${config.name}`
-          )}
-        </Button>
-        {editing && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setEditing(false);
-              setApiKey("");
-            }}
-            disabled={saving}
-          >
-            Cancel
-          </Button>
-        )}
+  // Step-by-step "How to get your key" panel — the headline accessibility win
+  // for non-technical users. Always visible on first setup; hidden by default
+  // when editing an existing connection.
+  const renderSetupSteps = () => (
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+      <div className="flex items-start gap-2 mb-3">
+        <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+        <div>
+          <h4 className="text-sm font-semibold text-foreground">
+            How to set up {config.name} (takes 2 minutes)
+          </h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Follow these steps in order. The link opens {config.name} in a new browser tab.
+          </p>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Your key is stored encrypted at rest and only ever used server-side. It is never exposed
-        to your team members or the browser.
-      </p>
+      <ol className="space-y-2 ml-1">
+        {config.setupSteps.map((step, i) => (
+          <li key={i} className="flex gap-3 text-xs text-foreground">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+              {i + 1}
+            </span>
+            <span className="pt-0.5 leading-relaxed">{step}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
+
+  // The credential editor — single text field OR two side-by-side fields.
+  const renderEditor = () => {
+    const tf = config.twoFieldCredentials;
+    return (
+      <div className="space-y-3">
+        {isTwoField && tf ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-foreground">
+                {tf.fieldOneLabel}
+              </label>
+              <input
+                type="text"
+                value={fieldOne}
+                onChange={(e) => setFieldOne(e.target.value)}
+                placeholder={tf.fieldOnePlaceholder}
+                className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring font-mono"
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={250}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-foreground">
+                {tf.fieldTwoLabel}
+              </label>
+              <input
+                type="password"
+                value={fieldTwo}
+                onChange={(e) => setFieldTwo(e.target.value)}
+                placeholder={tf.fieldTwoPlaceholder}
+                className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring font-mono"
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={250}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-foreground">
+              {config.name} API key
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={config.inputHint}
+              className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring font-mono"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={500}
+            />
+          </div>
+        )}
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="command"
+            size="sm"
+            onClick={handleSave}
+            disabled={saving || !canSubmit}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Checking with {config.name}…
+              </>
+            ) : editing ? (
+              "Save new key"
+            ) : (
+              `Connect ${config.name}`
+            )}
+          </Button>
+          {editing && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setEditing(false);
+                resetInputs();
+              }}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+          <KeyRound className="h-3 w-3 mt-0.5 shrink-0" />
+          <span>
+            Your credentials are stored encrypted and only used by our servers. Your team and
+            browser never see them.
+          </span>
+        </p>
+      </div>
+    );
+  };
 
   return (
     <Card className="p-6">
@@ -559,7 +659,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: Pro
           </div>
 
           {editing ? (
-            renderEditor()
+            <>
+              {renderSetupSteps()}
+              {renderEditor()}
+            </>
           ) : (
             <div className="flex gap-2 flex-wrap">
               <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
@@ -574,7 +677,12 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: Pro
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm" onClick={handleRemove} disabled={removing}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDisconnect(true)}
+                disabled={removing}
+              >
                 {removing ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
@@ -586,8 +694,44 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest }: Pro
           )}
         </div>
       ) : (
-        renderEditor()
+        <div className="space-y-4">
+          {showStepsForFirstSetup ? (
+            renderSetupSteps()
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowStepsForFirstSetup(true)}
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              <HelpCircle className="h-3 w-3" />
+              Show step-by-step setup guide
+            </button>
+          )}
+          {renderEditor()}
+        </div>
       )}
+
+      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect {config.name}?</AlertDialogTitle>
+            <AlertDialogDescription>{config.removeConfirm}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removing}>Keep connected</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemove} disabled={removing}>
+              {removing ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Disconnecting…
+                </>
+              ) : (
+                "Yes, disconnect"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
