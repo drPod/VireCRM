@@ -12,8 +12,42 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callGateway } from "@/lib/connectors/gateway";
 import { getConnector } from "@/lib/connectors/catalog";
+import { sendSendgridEmail } from "@/lib/sendgrid";
 import { recordConnectorActivity } from "./_connector-log";
 import { z } from "zod";
+
+/**
+ * Best-effort: persist a sent email to the `messages` table so it shows up in
+ * the lead drawer Activity feed, and bump the lead to "contacted" if it was
+ * still "new". Mirrors what sendOutreachWithContentFn does for the AI path.
+ */
+async function logLeadEmail(input: {
+  organizationId: string;
+  leadId: string | null | undefined;
+  subject: string;
+  body: string;
+  provider: string;
+}) {
+  if (!input.leadId) return;
+  try {
+    await supabaseAdmin.from("messages").insert({
+      organization_id: input.organizationId,
+      lead_id: input.leadId,
+      subject: input.subject,
+      content: input.body,
+      type: "email",
+      status: "sent",
+    });
+    await supabaseAdmin
+      .from("leads")
+      .update({ status: "contacted", last_contact: new Date().toISOString() })
+      .eq("id", input.leadId)
+      .eq("status", "new");
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(`[${input.provider}] message log insert failed`, err);
+  }
+}
 
 async function assertMemberAndConnector(
   userId: string,
