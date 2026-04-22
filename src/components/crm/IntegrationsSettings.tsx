@@ -345,8 +345,9 @@ export function IntegrationsSettings() {
       <div>
         <h3 className="text-base font-semibold text-foreground">Lead-source API keys</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Bring your own keys for the lead-discovery providers below. Each is billed directly by
-          the vendor and bypasses your platform monthly quota.
+          Use your own account with these lead-finding providers. You'll be billed directly by
+          them, and these searches don't count against your monthly quota above. Don't worry —
+          each one has step-by-step instructions to walk you through it.
         </p>
       </div>
 
