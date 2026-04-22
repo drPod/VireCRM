@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor, Key, Info } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useNavigate } from "@tanstack/react-router";
