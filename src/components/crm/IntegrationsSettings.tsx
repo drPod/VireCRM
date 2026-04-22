@@ -800,6 +800,27 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
         </a>
       </div>
 
+      {!loading && (() => {
+        const prereqs = deriveByoPrerequisites({
+          providerId: config.id,
+          providerName: config.name,
+          docsUrl: config.docsUrl,
+          status,
+          settingsFields: settingsFields.map((f) => ({
+            key: f.key,
+            label: f.label,
+            helper: f.helper,
+          })),
+          lastTest: testResult ? { ok: testResult.ok, reason: testResult.reason } : null,
+        });
+        if (prereqs.length === 0) return null;
+        return (
+          <div className="mb-4">
+            <PrerequisitesPanel prerequisites={prereqs} providerLabel={config.name} />
+          </div>
+        );
+      })()}
+
       {loading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
