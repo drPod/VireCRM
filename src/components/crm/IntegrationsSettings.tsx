@@ -135,12 +135,39 @@ const PROVIDERS: ProviderConfig[] = [
       joiner: ":",
     },
   },
+  {
+    id: "sendgrid",
+    name: "SendGrid",
+    description:
+      "Send transactional and outreach emails through SendGrid. Best for teams that already use SendGrid for their app email.",
+    docsUrl: "https://app.sendgrid.com/settings/api_keys",
+    inputHint: "Paste your SendGrid API key (starts with SG.)",
+    connectedDescription: "SendGrid is now available as an email channel on each lead.",
+    removeConfirm: "Outreach emails sent via SendGrid will stop working.",
+    setupSteps: [
+      'Click "Get API key" above — it opens SendGrid in a new tab.',
+      "Sign in to your SendGrid account (the free plan includes 100 emails/day).",
+      'Go to Settings → API Keys → "Create API Key". Choose "Restricted Access" and tick at least the "Mail Send" permission.',
+      'Verify a sender domain or single sender (Settings → Sender Authentication) — SendGrid will refuse mail from unverified addresses.',
+      'Copy the key (it starts with "SG.") and paste it below. Then add a "Send-from address" so we know which verified address to send from.',
+    ],
+    settingsFields: [
+      {
+        key: "defaultFromAddress",
+        label: "Send-from address",
+        placeholder: "you@yourcompany.com",
+        helper: "Must be a verified sender or domain in SendGrid, or sends will fail.",
+      },
+    ],
+  },
 ];
 
 interface ProviderStatus {
   configured: boolean;
   maskedKey?: string;
   lastVerifiedAt?: string | null;
+  /** Non-secret config (e.g. SendGrid default from address). */
+  config?: Record<string, string | number | boolean | null>;
 }
 
 export function IntegrationsSettings() {
