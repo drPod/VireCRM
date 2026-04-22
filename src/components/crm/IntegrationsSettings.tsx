@@ -23,11 +23,23 @@ import {
   Infinity as InfinityIcon,
   Pencil,
   Activity,
+  HelpCircle,
+  Sparkles,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ConnectorIntegrations } from "./ConnectorIntegrations";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Provider = "apollo" | "hunter" | "snov";
 
