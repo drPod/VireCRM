@@ -602,10 +602,13 @@ export type Database = {
       }
       leads: {
         Row: {
+          annual_kwh: number | null
           closed_at: string | null
           closed_by_user_id: string | null
           company: string | null
+          contract_end_date: string | null
           created_at: string
+          current_supplier: string | null
           deal_currency: string
           deal_value_cents: number | null
           email: string | null
@@ -622,10 +625,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          annual_kwh?: number | null
           closed_at?: string | null
           closed_by_user_id?: string | null
           company?: string | null
+          contract_end_date?: string | null
           created_at?: string
+          current_supplier?: string | null
           deal_currency?: string
           deal_value_cents?: number | null
           email?: string | null
@@ -642,10 +648,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          annual_kwh?: number | null
           closed_at?: string | null
           closed_by_user_id?: string | null
           company?: string | null
+          contract_end_date?: string | null
           created_at?: string
+          current_supplier?: string | null
           deal_currency?: string
           deal_value_cents?: number | null
           email?: string | null
