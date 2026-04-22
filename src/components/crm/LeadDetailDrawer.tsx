@@ -149,7 +149,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       setActivities(items);
       setLoadingActivity(false);
     });
-  }, [lead]);
+  }, [lead, activityRefetchKey]);
 
   // Fetch email send log when the Emails tab is opened (refetch on email change too)
   const refreshEmailLogs = useCallback(async () => {
@@ -257,13 +257,11 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
 
   const handleSent = () => {
     // Refresh parent list (lead status may have moved to "contacted") and the
-    // activity tab so the new message shows up immediately.
+    // drawer's tabs so the new message + send-log entry show up immediately.
     onUpdated();
     if (lead) {
       void refreshEmailLogs();
-      // Re-fetch activities by reusing the lead-effect: trigger by setting lead state.
-      // Simpler: the parent's onUpdated will close & reopen flows; here we just
-      // trust the next drawer open to refetch. For now, optimistically nothing more.
+      setActivityRefetchKey((k) => k + 1);
     }
   };
 
