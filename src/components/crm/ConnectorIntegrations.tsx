@@ -19,6 +19,8 @@ import {
   listConnectorsFn,
   enableConnectorFn,
   disableConnectorFn,
+  testConnectorFn,
+  updateConnectorConfigFn,
   type ConnectorStatus,
 } from "@/functions/connectors.functions";
 import { importHubspotContactsFn } from "@/functions/connector-actions.functions";
@@ -40,6 +42,8 @@ import {
   AlertTriangle,
   Power,
   Download,
+  Activity,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
