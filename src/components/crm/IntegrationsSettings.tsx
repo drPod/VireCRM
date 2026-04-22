@@ -31,6 +31,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ConnectorIntegrations } from "./ConnectorIntegrations";
+import { BusinessEmailCard } from "./BusinessEmailCard";
 import { SendTestEmailControl } from "./SendTestEmailControl";
 import { TestResultPanel, type TestResult } from "./TestResultPanel";
 import { IntegrationActivityLog } from "./IntegrationActivityLog";
@@ -411,6 +412,9 @@ export function IntegrationsSettings() {
           </div>
         )}
       </Card>
+
+      {/* Sender identity (Reply-To) — applies on every plan */}
+      <BusinessEmailCard sendgridConnected={statuses.sendgrid.configured} />
 
       {/* One-click connector integrations (Slack, Gmail, HubSpot, ...) */}
       <ConnectorIntegrations />
