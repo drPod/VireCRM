@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { dispatchToN8n, loadN8nWebhookMap } from "@/lib/n8n/dispatch";
+import { logAdvisorExecution } from "@/lib/advisor-audit";
 import { z } from "zod";
 
 /**
