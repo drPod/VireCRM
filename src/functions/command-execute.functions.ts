@@ -217,6 +217,58 @@ GUARDRAILS — you must obey:
     const results: ExecutionResult[] = [];
     const n8nWebhooks = await loadN8nWebhookMap(supabase, orgId);
 
+    // ---------- Guardrails ----------
+    // 1) Block intents that try to contact leads or import new ones. The
+    //    Advisor is strictly an in-app reasoning agent — sourcing/contact
+    //    flows live in dedicated screens (Auto-Find Leads, Auto Outreach).
+    const FORBIDDEN_INTENT = [
+      /\b(send|email|sms|text|call|dial|message)\s+(the\s+)?(lead|leads|client|prospects?)\b/i,
+      /\b(blast|broadcast|reach\s*out|cold[-\s]?email|cold[-\s]?call)\b/i,
+      /\b(import|scrape|enrich|find|source|auto[-\s]?find|pull|fetch|search\s+for|look\s+up)\s+(new\s+)?(leads?|prospects?|companies|contacts?)\b/i,
+      /\bapollo|linkedin\s+sales\s+nav|hunter\.io|snov\.io|zoominfo\b/i,
+    ];
+    const blockedByIntent = FORBIDDEN_INTENT.find((re) => re.test(data.command));
+    if (blockedByIntent) {
+      return {
+        summary:
+          "Blocked: the Advisor can't contact leads or import new ones. Use Auto Outreach to send messages or AI Advisor → Find Leads to source new contacts.",
+        results: [
+          {
+            type: "note",
+            status: "skipped",
+            handler: "in_app",
+            message:
+              "Guardrail: this command requires contacting leads or importing new ones, which is outside the Advisor's allowed scope. Try a follow-up task, lead scoring, a campaign shell, or a draft you can review and send manually.",
+          },
+        ],
+      };
+    }
+
+    // 2) Hard allowlist of action types the executor will run, regardless
+    //    of what the AI returned. Anything else is silently dropped with
+    //    a skipped note so the user sees what was rejected.
+    const ALLOWED_ACTIONS = new Set<AgentAction["type"]>([
+      "create_task",
+      "draft_message",
+      "score_leads",
+      "create_campaign",
+      "pipeline_summary",
+      "note",
+    ]);
+    const sanitizedActions: AgentAction[] = [];
+    for (const a of plan.actions ?? []) {
+      if (a && typeof a === "object" && ALLOWED_ACTIONS.has(a.type)) {
+        sanitizedActions.push(a);
+      } else {
+        results.push({
+          type: "note",
+          status: "skipped",
+          handler: "in_app",
+          message: `Guardrail: dropped unsupported action "${(a as { type?: string })?.type ?? "unknown"}".`,
+        });
+      }
+    }
+    plan.actions = sanitizedActions;
     // Resolve lead matches (case-insensitive name OR company contains).
     async function resolveLead(match?: string): Promise<{ id: string; name: string } | null> {
       if (!match) return null;
