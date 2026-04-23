@@ -30,7 +30,7 @@ export interface PricingTier {
 export const crmTiers: PricingTier[] = [
   {
     name: "Starter — Get Organized Fast",
-    price: "$39",
+    price: "$97",
     period: "/month",
     description: "Everything you need to get your sales system off the ground and stay organized from day one.",
     stripePriceId: "crm_starter_monthly",
@@ -51,7 +51,7 @@ export const crmTiers: PricingTier[] = [
   },
   {
     name: "Growth — Automate & Scale",
-    price: "$89",
+    price: "$197",
     period: "/month",
     description: "Turn your CRM into a consistent revenue engine with automated outreach and pipeline optimization.",
     badge: "Most Popular",
@@ -74,7 +74,7 @@ export const crmTiers: PricingTier[] = [
   },
   {
     name: "Pro — Full Sales System",
-    price: "$179",
+    price: "$297",
     period: "/month",
     description: "Built for scaling teams that need serious automation, deep visibility, and enterprise-grade workflows.",
     badge: "High Value",
