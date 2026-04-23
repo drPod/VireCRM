@@ -303,6 +303,8 @@ function Dashboard() {
         </div>
       )}
 
+      {taskStatuses.length > 0 && <TaskStatusPanel items={taskStatuses} />}
+
       {execution && <ExecutionResults data={execution} />}
 
       {/* First-run empty state */}
