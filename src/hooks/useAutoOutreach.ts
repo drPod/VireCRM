@@ -62,7 +62,7 @@ export function useAutoOutreach() {
       if (integrationLeads.length === 0) {
         toast.info("Auto-outreach skipped", {
           description:
-            "Auto-outreach only runs on leads sourced from your integrations (Apollo, Hunter, Snov). You can still email these leads manually from the lead drawer.",
+            "Auto-outreach only runs on leads from integrations (Apollo, Hunter, Snov), CSV/XLSX imports, or the AI Advisor. Manually-added leads can still be emailed from the lead drawer.",
         });
         return;
       }
