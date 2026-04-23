@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy } from "lucide-react";
+import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy, Calculator } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -67,6 +67,47 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
+  const [commissionRule, setCommissionRule] = useState<{
+    rule_type: string;
+    percent: number;
+    flat_cents: number;
+    scope: "rep" | "org";
+  } | null>(null);
+
+  // Fetch active commission rule (rep override > org default) for the preview.
+  useEffect(() => {
+    if (!organization?.id) {
+      setCommissionRule(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const uid = userRes.user?.id;
+      const { data } = await supabase
+        .from("commission_rules")
+        .select("rule_type, percent, flat_cents, user_id")
+        .eq("organization_id", organization.id)
+        .eq("is_active", true);
+      if (cancelled) return;
+      if (!data || data.length === 0) {
+        setCommissionRule(null);
+        return;
+      }
+      const repRule = data.find((r) => r.user_id === uid);
+      const orgRule = data.find((r) => r.user_id === null);
+      const chosen = repRule ?? orgRule ?? data[0];
+      setCommissionRule({
+        rule_type: chosen.rule_type,
+        percent: Number(chosen.percent ?? 0),
+        flat_cents: Number(chosen.flat_cents ?? 0),
+        scope: chosen.user_id ? "rep" : "org",
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [organization?.id]);
 
   useEffect(() => {
     if (!lead) return;
@@ -627,9 +668,55 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   </select>
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Recording a deal value when marking a lead as won automatically creates a commission earning if rules are configured.
-              </p>
+              {(() => {
+                const parsed = parseDealValueCents();
+                const cents = parsed.ok ? parsed.cents : null;
+                if (form.status !== "won" || !cents || cents <= 0) {
+                  return (
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Recording a deal value when marking a lead as won automatically creates a commission earning if rules are configured.
+                    </p>
+                  );
+                }
+                if (!commissionRule) {
+                  return (
+                    <div className="rounded-md border border-warning/30 bg-warning/5 px-2.5 py-2">
+                      <p className="text-[11px] text-warning leading-relaxed flex items-start gap-1.5">
+                        <Calculator className="h-3 w-3 mt-0.5 shrink-0" />
+                        No active commission rule configured — set one in Payouts → Commission Rules to auto-calculate earnings.
+                      </p>
+                    </div>
+                  );
+                }
+                const commissionCents =
+                  commissionRule.rule_type === "flat"
+                    ? commissionRule.flat_cents
+                    : Math.round(cents * commissionRule.percent);
+                const fmt = (c: number) =>
+                  new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: form.deal_currency || "USD",
+                    maximumFractionDigits: 2,
+                  }).format(c / 100);
+                const ruleLabel =
+                  commissionRule.rule_type === "flat"
+                    ? `${fmt(commissionRule.flat_cents)} flat`
+                    : `${(commissionRule.percent * 100).toFixed(1)}% of deal`;
+                return (
+                  <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2.5 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-success">
+                        <Calculator className="h-3 w-3" />
+                        Estimated commission
+                      </span>
+                      <span className="text-base font-bold text-success">{fmt(commissionCents)}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {ruleLabel} · {commissionRule.scope === "rep" ? "your personal rule" : "org default"}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
