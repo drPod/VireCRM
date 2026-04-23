@@ -219,11 +219,31 @@ export function ConnectorIntegrations() {
         const res = await enableConnector({
           data: { organizationId: organization.id, provider },
         });
-        toast.success("Integration enabled", {
-          description: res.credentialPresent
-            ? "We can now reach this provider on your behalf."
-            : "Marked as enabled. Have your workspace owner link the connection so we can authenticate.",
-        });
+        const meta = CONNECTORS.find((c) => c.id === provider);
+        if (res.credentialPresent) {
+          toast.success(`${meta?.name ?? "Integration"} connected`, {
+            description: "Credentials are live — you can use it right away.",
+          });
+        } else {
+          // Auto-copy the AI prompt to the clipboard so the user has zero
+          // friction finishing the OAuth handshake. The card will flip to
+          // "Connected" automatically the moment the gateway env var arrives.
+          const prompt = `Please connect the "${meta?.connectorId ?? provider}" connector to this project so I can use ${meta?.name ?? "this integration"}. Use the standard_connectors connect tool with connector_id "${meta?.connectorId ?? provider}", then confirm when it's linked.`;
+          try {
+            await navigator.clipboard.writeText(prompt);
+            toast.success(`${meta?.name ?? "Integration"} ready to authorize`, {
+              description:
+                "We copied a one-line prompt to your clipboard. Paste it into your AI assistant chat to finish sign-in — this card will flip to Connected automatically.",
+              duration: 7000,
+            });
+          } catch {
+            toast.info(`${meta?.name ?? "Integration"} ready to authorize`, {
+              description:
+                "Use the 'Copy AI prompt' button on the card and paste it into your AI assistant chat to finish sign-in.",
+              duration: 7000,
+            });
+          }
+        }
         void refresh();
       } catch (err) {
         toast.error("Couldn't enable", {
