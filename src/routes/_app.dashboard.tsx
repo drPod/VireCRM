@@ -20,6 +20,11 @@ import { MetricCard } from "@/components/crm/MetricCard";
 import { ActivityFeed } from "@/components/crm/ActivityFeed";
 import { PipelineView } from "@/components/crm/PipelineView";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
+import {
+  executeCommandActionsFn,
+  type ExecuteCommandResponse,
+  type ExecutionResult,
+} from "@/functions/command-execute.functions";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
