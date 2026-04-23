@@ -223,16 +223,16 @@ export function TestEmailReport() {
             value={to}
             onChange={(e) => setTo(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !sendLock.isLocked) {
+              if (e.key === "Enter" && !sendLock.locked) {
                 e.preventDefault();
                 void handleSend();
               }
             }}
-            disabled={sendLock.isLocked}
+            disabled={sendLock.locked}
             className="flex-1"
           />
-          <Button onClick={handleSend} disabled={sendLock.isLocked}>
-            {sendLock.isLocked ? (
+          <Button onClick={handleSend} disabled={sendLock.locked}>
+            {sendLock.locked ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…
               </>
