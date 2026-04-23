@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
+import { dispatchToN8n, loadN8nWebhookMap } from "@/lib/n8n/dispatch";
 import { z } from "zod";
 
 /**
@@ -76,6 +77,8 @@ export interface ExecutionResult {
   type: AgentAction["type"];
   status: "ok" | "skipped" | "error";
   message: string;
+  /** "n8n" if handled by an external n8n webhook, "in_app" otherwise. */
+  handler?: "n8n" | "in_app";
   meta?: Record<string, string | number | null>;
 }
 
@@ -209,6 +212,7 @@ Rules:
     });
 
     const results: ExecutionResult[] = [];
+    const n8nWebhooks = await loadN8nWebhookMap(supabase, orgId);
 
     // Resolve lead matches (case-insensitive name OR company contains).
     async function resolveLead(match?: string): Promise<{ id: string; name: string } | null> {
@@ -225,6 +229,34 @@ Rules:
     }
 
     for (const action of plan.actions ?? []) {
+      // Hybrid routing: if an n8n webhook is registered for this action
+      // type, hand off to n8n and skip the in-app branch. Note actions
+      // are always in-app (they are pure UI text).
+      if (action.type !== "note") {
+        const webhook = n8nWebhooks[action.type];
+        if (webhook) {
+          const dispatch = await dispatchToN8n(webhook, {
+            action_type: action.type,
+            organization_id: orgId,
+            user_id: userId,
+            command: data.command,
+            payload: action,
+          });
+          if (dispatch) {
+            results.push({
+              type: action.type,
+              status: dispatch.status,
+              handler: "n8n",
+              message: dispatch.message,
+              meta: dispatch.http_status
+                ? { http_status: dispatch.http_status }
+                : undefined,
+            });
+            continue;
+          }
+        }
+      }
+
       try {
         switch (action.type) {
           case "create_task": {
@@ -383,6 +415,13 @@ Rules:
           status: "error",
           message: err instanceof Error ? err.message : "Action failed",
         });
+      }
+
+      // Tag the in-app branch result(s) added in this iteration. Anything
+      // dispatched to n8n already `continue`d before reaching here.
+      const last = results[results.length - 1];
+      if (last && !last.handler) {
+        last.handler = "in_app";
       }
     }
 

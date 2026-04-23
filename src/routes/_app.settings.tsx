@@ -5,6 +5,7 @@ import { EmailAuditLog } from "@/components/crm/EmailAuditLog";
 import { TestEmailReport } from "@/components/crm/TestEmailReport";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
+import { N8nWebhookSettings } from "@/components/crm/N8nWebhookSettings";
 import { OutreachTemplatesManager } from "@/components/crm/OutreachTemplatesManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Palette, Mail, Plug, FileText } from "lucide-react";
@@ -83,8 +84,9 @@ function SettingsPage() {
           <OutreachTemplatesManager />
         </TabsContent>
 
-        <TabsContent value="integrations">
+        <TabsContent value="integrations" className="space-y-6">
           <IntegrationsSettings />
+          <N8nWebhookSettings />
         </TabsContent>
 
         {isPlatformAdmin && (

@@ -216,7 +216,7 @@ function Dashboard() {
 
           <div className="border-t border-border bg-background/40 px-5 py-3 flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
-              Runs CRM actions only — tasks, drafts, scoring, campaigns. No external sends.
+              Runs CRM actions or hands off to your n8n workflows when configured.
             </p>
             <Button
               variant="command"
@@ -361,6 +361,11 @@ function ExecutionResults({ data }: { data: ExecuteCommandResponse }) {
                   <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {meta.label}
                   </span>
+                  {r.handler === "n8n" && (
+                    <span className="rounded-full bg-primary/10 text-primary text-[10px] font-semibold px-1.5 py-0.5 uppercase tracking-wide">
+                      n8n
+                    </span>
+                  )}
                   {r.status === "error" && (
                     <XCircle className="h-3 w-3 text-destructive" />
                   )}
