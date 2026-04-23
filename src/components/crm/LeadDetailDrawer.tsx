@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
@@ -38,6 +39,7 @@ interface LeadDetailDrawerProps {
 }
 
 export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDetailDrawerProps) {
+  const { organization } = useAuth();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -244,14 +246,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   };
 
   const recordWonActivity = async (cents: number, currency: string) => {
-    if (!lead) return;
+    if (!lead || !organization?.id) return;
     const formatted = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency || "USD",
       maximumFractionDigits: 2,
     }).format(cents / 100);
     await supabase.from("messages").insert({
-      organization_id: lead.organizationId,
+      organization_id: organization.id,
       lead_id: lead.id,
       type: "lead_won",
       subject: `Lead marked as won — ${formatted}`,
