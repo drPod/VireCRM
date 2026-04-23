@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
@@ -22,7 +23,7 @@ const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "nego
 
 interface ActivityItem {
   id: string;
-  type: "email" | "reply" | "task";
+  type: "email" | "reply" | "task" | "won";
   title: string;
   content: string;
   date: string;
@@ -38,6 +39,7 @@ interface LeadDetailDrawerProps {
 }
 
 export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDetailDrawerProps) {
+  const { organization } = useAuth();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -149,8 +151,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       messagesRes.data?.forEach((m) =>
         items.push({
           id: m.id,
-          type: "email",
-          title: m.subject || "Outreach email",
+          type: m.type === "lead_won" ? "won" : "email",
+          title: m.subject || (m.type === "lead_won" ? "Lead marked as won" : "Outreach email"),
           content: m.content,
           date: m.created_at,
           status: m.status,
@@ -243,6 +245,23 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     return { ok: true, cents: Math.round(n * 100) };
   };
 
+  const recordWonActivity = async (cents: number, currency: string) => {
+    if (!lead || !organization?.id) return;
+    const formatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
+      maximumFractionDigits: 2,
+    }).format(cents / 100);
+    await supabase.from("messages").insert({
+      organization_id: organization.id,
+      lead_id: lead.id,
+      type: "lead_won",
+      subject: `Lead marked as won — ${formatted}`,
+      content: `${form.name.trim() || lead.name} was marked as won with a deal value of ${formatted}.`,
+      status: "logged",
+    });
+  };
+
   const handleSave = async () => {
     if (!lead || !form.name.trim()) {
       toast.error("Name is required");
@@ -297,6 +316,10 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     if (error) {
       toast.error("Failed to update lead");
     } else {
+      const transitionedToWon = form.status === "won" && lead.status !== "won";
+      if (transitionedToWon && dealParsed.cents !== null && dealParsed.cents > 0) {
+        await recordWonActivity(dealParsed.cents, form.deal_currency || "USD");
+      }
       toast.success(form.status === "won" ? "Lead marked as won 🎉" : "Lead updated");
       onUpdated();
       onOpenChange(false);
@@ -327,8 +350,12 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     if (error) {
       toast.error("Failed to mark lead as won");
     } else {
+      if (lead.status !== "won") {
+        await recordWonActivity(dealParsed.cents, form.deal_currency || "USD");
+      }
       toast.success("Lead marked as won 🎉");
       setForm((prev) => ({ ...prev, status: "won" }));
+      setActivityRefetchKey((k) => k + 1);
       onUpdated();
     }
   };
@@ -815,12 +842,14 @@ function ActivityEntry({ item }: { item: ActivityItem }) {
     email: <Mail className="h-3.5 w-3.5" />,
     reply: <MessageSquare className="h-3.5 w-3.5" />,
     task: <Clock className="h-3.5 w-3.5" />,
+    won: <Trophy className="h-3.5 w-3.5" />,
   };
 
   const colorMap = {
     email: "bg-primary/15 text-primary border-primary/20",
     reply: "bg-accent text-accent-foreground border-accent",
     task: "bg-secondary text-secondary-foreground border-secondary",
+    won: "bg-success/15 text-success border-success/30",
   };
 
   const sentimentBadge = item.sentiment ? (
