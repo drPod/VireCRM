@@ -271,21 +271,46 @@ export function AiAdvisorPanel() {
               )}
             </div>
 
-            <Button
-              variant="command"
-              className="mt-4 w-full gap-2"
-              onClick={() => {
-                const term =
-                  result.searchFilters.keywords[0] ||
-                  result.searchFilters.industries[0] ||
-                  result.searchFilters.job_titles[0] ||
-                  "";
-                navigate({ to: "/leads", search: { q: term } });
-              }}
-            >
-              <Search className="h-4 w-4" />
-              Search Leads with These Filters
-            </Button>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  const term =
+                    result.searchFilters.keywords[0] ||
+                    result.searchFilters.industries[0] ||
+                    result.searchFilters.job_titles[0] ||
+                    "";
+                  navigate({ to: "/leads", search: { q: term } });
+                }}
+              >
+                <Search className="h-4 w-4" />
+                Search Existing Leads
+              </Button>
+              <Button
+                variant="command"
+                className="gap-2"
+                onClick={() => {
+                  // Hand off to /leads with auto-find dialog open and ICP
+                  // pre-filled. The auto-outreach toggle in that dialog will
+                  // handle the email dispatch once leads are imported.
+                  navigate({
+                    to: "/leads",
+                    search: {
+                      action: "auto-find",
+                      ai_desc: `${result.icp.title} — ${result.icp.decision_maker} at ${result.icp.industry} companies (${result.icp.company_size})`.slice(0, 1000),
+                      ai_industry: result.searchFilters.industries[0] ?? result.icp.industry,
+                    },
+                  });
+                  toast.success("Opening auto-find with your ICP preloaded", {
+                    description: "Toggle 'AI auto-outreach' on before importing to email leads automatically.",
+                  });
+                }}
+              >
+                <Sparkles className="h-4 w-4" />
+                Auto-find & Email Leads
+              </Button>
+            </div>
           </div>
 
           {/* Strategic Hook */}
