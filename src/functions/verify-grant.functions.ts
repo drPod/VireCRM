@@ -32,7 +32,7 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" })
       return { ok: false, applied: false, healed: false, reason: "no_email" };
     }
 
-    const admin = supabaseAdmin();
+    const admin = supabaseAdmin;
 
     // 1. Look up grant for this email.
     const { data: grant } = await admin
@@ -84,7 +84,9 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" })
       .eq("organization_id", orgId);
 
     const enabledKeys = new Set(
-      (existingFeatures ?? []).filter((f) => f.enabled).map((f) => f.feature_key),
+      (existingFeatures ?? [])
+        .filter((f: { enabled: boolean }) => f.enabled)
+        .map((f: { feature_key: string }) => f.feature_key),
     );
     const missing = (grant.feature_keys ?? []).filter((k: string) => !enabledKeys.has(k));
 
