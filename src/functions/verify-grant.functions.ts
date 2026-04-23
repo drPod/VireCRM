@@ -7,7 +7,7 @@ export interface VerifyGrantResult {
   applied: boolean;
   healed: boolean;
   reason?: string;
-  org_updates?: Record<string, string | number | boolean>;
+  org_updates?: { plan?: string; is_reseller?: boolean; monthly_lead_quota?: number };
   missing_features_added?: string[];
   total_features?: number;
   plan?: string;
@@ -66,7 +66,11 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" })
       .eq("id", orgId)
       .maybeSingle();
 
-    const orgUpdates: Record<string, string | number | boolean> = {};
+    const orgUpdates: {
+      plan?: string;
+      is_reseller?: boolean;
+      monthly_lead_quota?: number;
+    } = {};
     if (org?.plan !== grant.plan) orgUpdates.plan = grant.plan;
     if (org?.is_reseller !== grant.is_reseller) orgUpdates.is_reseller = grant.is_reseller;
     if ((org?.monthly_lead_quota ?? 0) < grant.monthly_lead_quota) {
