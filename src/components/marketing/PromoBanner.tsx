@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Sparkles } from "lucide-react";
 
 /**
- * Sitewide promo banner — 35% off everything.
+ * Sitewide promo banner — 30% off everything.
  * Shown above the marketing header. Uses primary gradient for emphasis.
  */
 export function PromoBanner() {
@@ -14,7 +14,7 @@ export function PromoBanner() {
       >
         <Sparkles className="h-3.5 w-3.5 shrink-0" />
         <span>
-          <span className="font-bold">35% OFF EVERYTHING</span>
+          <span className="font-bold">30% OFF EVERYTHING</span>
           <span className="hidden sm:inline"> — limited time launch promo. Discount applied automatically at checkout.</span>
         </span>
         <span className="hidden underline-offset-2 hover:underline sm:inline">View plans →</span>
@@ -23,8 +23,8 @@ export function PromoBanner() {
   );
 }
 
-/** Discount rate applied to all displayed prices. 0.35 = 35% off. */
-export const PROMO_DISCOUNT = 0.35;
+/** Discount rate applied to all displayed prices. 0.30 = 30% off. */
+export const PROMO_DISCOUNT = 0.30;
 
 /**
  * Apply the promo discount to a price string like "$97" or "$297–$497".
