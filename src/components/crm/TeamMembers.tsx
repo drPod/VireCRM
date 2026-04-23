@@ -1,5 +1,6 @@
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { sendTransactionalEmail } from "@/lib/email/send";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -149,9 +150,43 @@ export function TeamMembers() {
 
       if (error) throw error;
 
-      const inviteUrl = `${window.location.origin}/signup?invite=${data.token}`;
+      const inviteUrl = `${window.location.origin}/accept-invite?token=${data.token}`;
       await navigator.clipboard.writeText(inviteUrl).catch(() => {});
-      toast.success("Invitation created — link copied to clipboard");
+
+      // Send the invitation email. Surface failures clearly so the owner
+      // knows whether to share the link manually.
+      const inviterName =
+        (user.user_metadata?.full_name as string | undefined)?.trim() ||
+        user.email ||
+        "Your team owner";
+      const orgName = organization.name || "your team";
+      const brandName = organization.brand_name?.trim() || "GenesisX";
+      const replyTo = organization.support_email?.trim() || undefined;
+      const roleLabel = roleLabels[inviteRole];
+
+      try {
+        await sendTransactionalEmail({
+          templateName: "team-invite",
+          recipientEmail: email,
+          idempotencyKey: `team-invite-${data.token}`,
+          fromName: brandName,
+          replyTo,
+          templateData: {
+            inviterName,
+            organizationName: orgName,
+            roleLabel,
+            acceptUrl: inviteUrl,
+            brandName,
+          },
+        });
+        toast.success(`Invitation sent to ${email} — link also copied`);
+      } catch (emailErr) {
+        console.error("Failed to send invitation email", emailErr);
+        toast.warning(
+          `Invitation created and link copied — but email delivery failed. Share the link manually.`,
+        );
+      }
+
       setInviteEmail("");
       setInviteRole("sales_rep");
       setInviteOpen(false);
@@ -164,7 +199,7 @@ export function TeamMembers() {
   };
 
   const copyInviteLink = (token: string) => {
-    const url = `${window.location.origin}/signup?invite=${token}`;
+    const url = `${window.location.origin}/accept-invite?token=${token}`;
     navigator.clipboard.writeText(url);
     toast.success("Invite link copied");
   };
