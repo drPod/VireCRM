@@ -67,6 +67,47 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
+  const [commissionRule, setCommissionRule] = useState<{
+    rule_type: string;
+    percent: number;
+    flat_cents: number;
+    scope: "rep" | "org";
+  } | null>(null);
+
+  // Fetch active commission rule (rep override > org default) for the preview.
+  useEffect(() => {
+    if (!organization?.id) {
+      setCommissionRule(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const uid = userRes.user?.id;
+      const { data } = await supabase
+        .from("commission_rules")
+        .select("rule_type, percent, flat_cents, user_id")
+        .eq("organization_id", organization.id)
+        .eq("is_active", true);
+      if (cancelled) return;
+      if (!data || data.length === 0) {
+        setCommissionRule(null);
+        return;
+      }
+      const repRule = data.find((r) => r.user_id === uid);
+      const orgRule = data.find((r) => r.user_id === null);
+      const chosen = repRule ?? orgRule ?? data[0];
+      setCommissionRule({
+        rule_type: chosen.rule_type,
+        percent: Number(chosen.percent ?? 0),
+        flat_cents: Number(chosen.flat_cents ?? 0),
+        scope: chosen.user_id ? "rep" : "org",
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [organization?.id]);
 
   useEffect(() => {
     if (!lead) return;
