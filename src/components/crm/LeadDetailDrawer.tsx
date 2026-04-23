@@ -243,6 +243,23 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     return { ok: true, cents: Math.round(n * 100) };
   };
 
+  const recordWonActivity = async (cents: number, currency: string) => {
+    if (!lead) return;
+    const formatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
+      maximumFractionDigits: 2,
+    }).format(cents / 100);
+    await supabase.from("messages").insert({
+      organization_id: lead.organizationId,
+      lead_id: lead.id,
+      type: "lead_won",
+      subject: `Lead marked as won — ${formatted}`,
+      content: `${form.name.trim() || lead.name} was marked as won with a deal value of ${formatted}.`,
+      status: "logged",
+    });
+  };
+
   const handleSave = async () => {
     if (!lead || !form.name.trim()) {
       toast.error("Name is required");
