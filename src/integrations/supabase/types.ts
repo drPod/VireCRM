@@ -772,6 +772,56 @@ export type Database = {
           },
         ]
       }
+      org_features: {
+        Row: {
+          config: Json
+          created_at: string
+          enabled: boolean
+          enabled_at: string
+          enabled_by: string | null
+          expires_at: string | null
+          feature_key: string
+          id: string
+          notes: string | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          enabled_at?: string
+          enabled_by?: string | null
+          expires_at?: string | null
+          feature_key: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          enabled_at?: string
+          enabled_by?: string | null
+          expires_at?: string | null
+          feature_key?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_features_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_integrations: {
         Row: {
           api_key: string
@@ -1693,6 +1743,10 @@ export type Database = {
       get_user_org_id: { Args: { p_user_id: string }; Returns: string }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
+        Returns: boolean
+      }
+      has_feature: {
+        Args: { p_feature_key: string; p_org_id: string }
         Returns: boolean
       }
       has_role: {
