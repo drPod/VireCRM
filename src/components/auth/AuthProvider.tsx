@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { verifyAndApplyGrant } from "@/functions/verify-grant.functions";
+import { getServerFnAuthHeaders } from "@/lib/auth-errors";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -61,6 +63,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  const grantCheckedFor = useRef<string | null>(null);
+
+  // Idempotent post-signup verification: confirms any pre-paid grant has been
+  // applied to this user's org, and self-heals missing plan / feature flags.
+  // Runs at most once per (browser session, user) pair.
+  const verifyGrantOnce = async (userId: string) => {
+    if (grantCheckedFor.current === userId) return;
+    grantCheckedFor.current = userId;
+    try {
+      const headers = await getServerFnAuthHeaders();
+      const result = await verifyAndApplyGrant({ headers });
+      if (result?.healed) {
+        console.info("[AuthProvider] Pre-paid grant self-healed:", result);
+        // Pull fresh org state into the context.
+        await fetchUserData(userId);
+      }
+    } catch (err) {
+      // Non-fatal — user can still use the app, the grant is just not applied yet.
+      console.warn("[AuthProvider] verifyAndApplyGrant failed", err);
+    }
+  };
 
   const fetchUserData = async (userId: string) => {
     try {
