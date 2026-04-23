@@ -18,7 +18,10 @@ export type N8nActionType =
   | "score_leads"
   | "create_campaign"
   | "pipeline_summary"
-  | "note";
+  | "note"
+  | "update_lead_status"
+  | "log_message"
+  | "schedule_follow_up";
 
 interface N8nConnectorConfig {
   webhooks?: Partial<Record<N8nActionType, string>>;
