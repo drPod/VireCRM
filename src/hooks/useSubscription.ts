@@ -146,9 +146,12 @@ export function useSubscription(userId: string | null | undefined): Subscription
   const periodOk =
     !sub?.current_period_end || new Date(sub.current_period_end) > new Date();
   const isManual = sub?.environment === "manual" && sub.status === "active";
-  const hasAccess = !!sub && (isManual || (ACTIVE_STATUSES.has(sub.status) && periodOk));
-  const inGrace = !!sub && GRACE_STATUSES.has(sub.status);
-  const isBlocked = !!sub && !hasAccess && !inGrace;
+  // Access if: this user has their own active sub, OR an owner of their org does
+  // (covers invited team members who shouldn't be charged separately).
+  const ownAccess = !!sub && (isManual || (ACTIVE_STATUSES.has(sub.status) && periodOk));
+  const hasAccess = ownAccess || orgHasAccess;
+  const inGrace = !ownAccess && !!sub && GRACE_STATUSES.has(sub.status);
+  const isBlocked = !hasAccess && !inGrace && !!sub;
 
   return { loading, subscription, hasAccess, inGrace, isBlocked, refresh: load };
 }
