@@ -316,6 +316,10 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     if (error) {
       toast.error("Failed to update lead");
     } else {
+      const transitionedToWon = form.status === "won" && lead.status !== "won";
+      if (transitionedToWon && dealParsed.cents !== null && dealParsed.cents > 0) {
+        await recordWonActivity(dealParsed.cents, form.deal_currency || "USD");
+      }
       toast.success(form.status === "won" ? "Lead marked as won 🎉" : "Lead updated");
       onUpdated();
       onOpenChange(false);
@@ -346,8 +350,12 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     if (error) {
       toast.error("Failed to mark lead as won");
     } else {
+      if (lead.status !== "won") {
+        await recordWonActivity(dealParsed.cents, form.deal_currency || "USD");
+      }
       toast.success("Lead marked as won 🎉");
       setForm((prev) => ({ ...prev, status: "won" }));
+      setActivityRefetchKey((k) => k + 1);
       onUpdated();
     }
   };
