@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getConnector } from "@/lib/connectors/catalog";
 import { callGateway } from "@/lib/connectors/gateway";
 import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
+import { sendResendEmail } from "@/lib/resend";
 import { sendSendgridEmail } from "@/lib/sendgrid";
 
 type ConnectorProvider = "gmail" | "microsoft_outlook";
@@ -14,6 +15,19 @@ interface AvailableConnectorChannel {
 }
 
 export interface OutreachDeliveryChannels {
+  /**
+   * Resend connection details for this org. Present only when:
+   *   1. The Resend connector is linked at the workspace level
+   *      (`process.env.RESEND_API_KEY` exists), AND
+   *   2. The org owner saved a verified `fromAddress` for Resend.
+   *
+   * Resend takes priority over SendGrid because it's the more recently-added
+   * channel and users opting into it have explicitly set a from address.
+   */
+  resend?: {
+    fromAddress: string;
+    replyTo?: string | null;
+  };
   sendgrid?: {
     apiKey: string;
     fromAddress: string;
@@ -32,7 +46,11 @@ export interface DeliverOutreachEmailInput {
 }
 
 export type DeliverOutreachEmailResult =
-  | { success: true; channel: "sendgrid" | "gmail" | "microsoft_outlook" | "lovable"; label: string }
+  | {
+      success: true;
+      channel: "resend" | "sendgrid" | "gmail" | "microsoft_outlook" | "lovable";
+      label: string;
+    }
   | { success: false; reason: string; suppressed?: boolean };
 
 const EMAIL_PROVIDER_PRIORITY: ConnectorProvider[] = ["gmail", "microsoft_outlook"];
@@ -86,7 +104,13 @@ function toSafeEmail(value: unknown): string | null {
 export async function loadOutreachDeliveryChannels(
   organizationId: string,
 ): Promise<OutreachDeliveryChannels> {
-  const [sendgridResult, connectorResult] = await Promise.all([
+  const [resendResult, sendgridResult, connectorResult] = await Promise.all([
+    supabaseAdmin
+      .from("org_integrations")
+      .select("config")
+      .eq("organization_id", organizationId)
+      .eq("provider", "resend")
+      .maybeSingle(),
     supabaseAdmin
       .from("org_integrations")
       .select("api_key, config")
@@ -102,6 +126,18 @@ export async function loadOutreachDeliveryChannels(
   ]);
 
   const channels: OutreachDeliveryChannels = { connectors: [] };
+
+  // Resend — workspace-level connector + per-org from address.
+  // Only enable if the connector is actually linked (env var present);
+  // otherwise we'd attempt sends that always fail.
+  const resendConfig = (resendResult.data?.config ?? {}) as Record<string, unknown>;
+  const resendFrom = toSafeEmail(resendConfig.fromAddress);
+  if (resendFrom && process.env.RESEND_API_KEY) {
+    channels.resend = {
+      fromAddress: resendFrom,
+      replyTo: toSafeEmail(resendConfig.replyTo),
+    };
+  }
 
   const sendgridConfig = (sendgridResult.data?.config ?? {}) as Record<string, unknown>;
   const sendgridFrom =
@@ -157,6 +193,49 @@ export async function deliverOutreachEmail(
       suppressed: true,
       reason: "This recipient previously unsubscribed, bounced, or reported spam, so outreach was not sent.",
     };
+  }
+
+  // Resend goes first — it's the most recently-wired channel and users who
+  // configured it explicitly opted into it for outreach.
+  if (input.channels.resend) {
+    try {
+      const result = await sendResendEmail({
+        from: input.channels.resend.fromAddress,
+        to: input.recipientEmail,
+        subject: input.subject,
+        html: plainTextToHtml(input.body),
+        replyTo:
+          toSafeEmail(input.replyTo) ??
+          toSafeEmail(input.channels.resend.replyTo) ??
+          undefined,
+      });
+      await supabaseAdmin.from("email_send_log").insert({
+        recipient_email: input.recipientEmail,
+        template_name: "outreach_resend",
+        status: "sent",
+        message_id: result.messageId,
+        metadata: {
+          channel: "resend",
+          from: input.channels.resend.fromAddress,
+          idempotency_key: input.idempotencyKey,
+        } as never,
+      });
+      return { success: true, channel: "resend", label: "Resend" };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "send failed";
+      attemptedErrors.push(`Resend: ${reason}`);
+      await supabaseAdmin.from("email_send_log").insert({
+        recipient_email: input.recipientEmail,
+        template_name: "outreach_resend",
+        status: "failed",
+        error_message: reason,
+        metadata: {
+          channel: "resend",
+          from: input.channels.resend.fromAddress,
+          idempotency_key: input.idempotencyKey,
+        } as never,
+      });
+    }
   }
 
   if (input.channels.sendgrid) {
