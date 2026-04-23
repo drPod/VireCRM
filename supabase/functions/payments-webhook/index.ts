@@ -81,14 +81,14 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
 }
 
 /**
- * Expected promo discount applied to every checkout: 25% off via the
- * `launch25` Stripe coupon. We tolerate ±1 cent for rounding.
+ * Expected promo discount applied to every checkout: 35% off via the
+ * `launch35` Stripe coupon. We tolerate ±1 cent for rounding.
  */
-const EXPECTED_DISCOUNT_PERCENT = 25;
-const EXPECTED_COUPON_ID = "launch25";
+const EXPECTED_DISCOUNT_PERCENT = 35;
+const EXPECTED_COUPON_ID = "launch35";
 
 /**
- * Flag any completed checkout session whose total doesn't reflect 25% off
+ * Flag any completed checkout session whose total doesn't reflect 35% off
  * the subtotal. Writes a structured row into error_logs so finance/ops can
  * audit it. Never throws — discount auditing must not break webhook ingest.
  */

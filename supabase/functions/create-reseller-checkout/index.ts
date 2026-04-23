@@ -61,16 +61,16 @@ serve(async (req) => {
     const env = (environment || "sandbox") as StripeEnv;
     const stripe = createStripeClient(env);
 
-    // Ensure the launch promo coupon exists (25% off, forever for subscriptions).
-    const PROMO_COUPON_ID = "launch25";
+    // Ensure the launch promo coupon exists (35% off, forever for subscriptions).
+    const PROMO_COUPON_ID = "launch35";
     try {
       await stripe.coupons.retrieve(PROMO_COUPON_ID);
     } catch {
       await stripe.coupons.create({
         id: PROMO_COUPON_ID,
-        percent_off: 25,
+        percent_off: 35,
         duration: "forever",
-        name: "Launch promo — 25% off",
+        name: "Launch promo — 35% off",
       });
     }
 
