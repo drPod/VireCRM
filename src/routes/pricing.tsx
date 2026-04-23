@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download } from "lucide-react";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { PricingCards } from "@/components/marketing/PricingCards";
 import { CtaSection } from "@/components/marketing/CtaSection";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
-import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -34,17 +32,6 @@ function PricingPage() {
             <p className="mt-3 text-lg text-muted-foreground">
               Just need a CRM? We'll build and run it for you. Want to resell it? Go white-label.
             </p>
-            <div className="mt-6 flex justify-center">
-              <Button asChild size="lg" variant="outline" className="gap-2">
-                <a
-                  href="/sales-pitch-guide.pdf"
-                  download="genesis-sales-pitch-guide.pdf"
-                >
-                  <Download className="h-4 w-4" />
-                  Download the Sales Pitch Guide (PDF)
-                </a>
-              </Button>
-            </div>
           </div>
 
           <PricingCards />
