@@ -1,6 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
-import { requireAuthenticatedUser } from "@/lib/server-fn-auth";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+export interface VerifyGrantResult {
+  ok: boolean;
+  applied: boolean;
+  healed: boolean;
+  reason?: string;
+  org_updates?: Record<string, string | number | boolean>;
+  missing_features_added?: string[];
+  total_features?: number;
+  plan?: string;
+  is_reseller?: boolean;
+}
 
 /**
  * Post-signup verification: confirms the signed-in user's organization
@@ -10,23 +22,19 @@ import { requireAuthenticatedUser } from "@/lib/server-fn-auth";
  * Idempotent. Safe to call on every login — it no-ops when nothing is
  * missing or when no grant exists for the user's email.
  */
-export const verifyAndApplyGrant = createServerFn({ method: "POST" }).handler(
-  async () => {
-    const { user } = await requireAuthenticatedUser();
-    const email = user.email?.toLowerCase();
-    if (!email) return { ok: false, reason: "no_email" as const };
+export const verifyAndApplyGrant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<VerifyGrantResult> => {
+    const userId = context.userId;
+    const email = (context.claims.email as string | undefined)?.toLowerCase();
 
-    const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceKey) {
-      return { ok: false, reason: "service_not_configured" as const };
+    if (!email) {
+      return { ok: false, applied: false, healed: false, reason: "no_email" };
     }
 
-    const admin = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const admin = supabaseAdmin();
 
-    // 1. Look up grant for this email (consumed or not — we still verify state).
+    // 1. Look up grant for this email.
     const { data: grant } = await admin
       .from("pending_subscription_grants")
       .select("*")
@@ -35,28 +43,30 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" }).handler(
       .limit(1)
       .maybeSingle();
 
-    if (!grant) return { ok: true, applied: false, reason: "no_grant" as const };
+    if (!grant) {
+      return { ok: true, applied: false, healed: false, reason: "no_grant" };
+    }
 
     // 2. Find the user's organization.
     const { data: profile } = await admin
       .from("profiles")
       .select("organization_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (!profile?.organization_id) {
-      return { ok: false, reason: "no_org" as const };
+      return { ok: false, applied: false, healed: false, reason: "no_org" };
     }
     const orgId = profile.organization_id;
 
-    // 3. Check current org state.
+    // 3. Check & heal org-level state.
     const { data: org } = await admin
       .from("organizations")
       .select("plan, is_reseller, monthly_lead_quota")
       .eq("id", orgId)
       .maybeSingle();
 
-    const orgUpdates: Record<string, unknown> = {};
+    const orgUpdates: Record<string, string | number | boolean> = {};
     if (org?.plan !== grant.plan) orgUpdates.plan = grant.plan;
     if (org?.is_reseller !== grant.is_reseller) orgUpdates.is_reseller = grant.is_reseller;
     if ((org?.monthly_lead_quota ?? 0) < grant.monthly_lead_quota) {
@@ -67,7 +77,7 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" }).handler(
       await admin.from("organizations").update(orgUpdates).eq("id", orgId);
     }
 
-    // 4. Check feature flags.
+    // 4. Check & heal feature flags.
     const { data: existingFeatures } = await admin
       .from("org_features")
       .select("feature_key, enabled")
@@ -96,7 +106,7 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" }).handler(
         .from("pending_subscription_grants")
         .update({
           consumed_at: new Date().toISOString(),
-          consumed_user_id: user.id,
+          consumed_user_id: userId,
           consumed_org_id: orgId,
         })
         .eq("id", grant.id);
@@ -114,5 +124,4 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" }).handler(
       plan: grant.plan,
       is_reseller: grant.is_reseller,
     };
-  },
-);
+  });
