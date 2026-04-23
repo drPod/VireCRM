@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Crown, Loader2, RefreshCw, ShieldCheck, Trash2, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { OrgFeaturesPanel } from "./OrgFeaturesPanel";
+import { PriceConsistencyCheck } from "./PriceConsistencyCheck";
 
 interface ManualSub {
   id: string;
@@ -335,6 +336,8 @@ export function PlatformAdminPanel() {
       </Card>
 
       <OrgFeaturesPanel />
+
+      <PriceConsistencyCheck />
     </div>
   );
 }
