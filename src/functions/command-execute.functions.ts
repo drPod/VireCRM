@@ -59,13 +59,43 @@ interface NoteAction {
   message: string; // explanatory note shown to the user, no DB side-effect
 }
 
+interface UpdateLeadStatusAction {
+  type: "update_lead_status";
+  lead_match: string;
+  new_status: "new" | "contacted" | "qualified" | "negotiation" | "won" | "lost";
+  reason?: string;
+}
+
+interface LogMessageAction {
+  type: "log_message";
+  /** Channel of the logged message. */
+  channel?: "email" | "sms" | "call" | "note";
+  /** Direction is informational; stored on the messages.type field. */
+  direction?: "outbound" | "inbound";
+  subject?: string;
+  body: string;
+  lead_match?: string;
+}
+
+interface ScheduleFollowUpAction {
+  type: "schedule_follow_up";
+  lead_match: string;
+  /** Days from now (1..90). */
+  in_days: number;
+  channel?: "email" | "call" | "meeting" | "task";
+  notes?: string;
+}
+
 type AgentAction =
   | CreateTaskAction
   | DraftMessageAction
   | ScoreLeadsAction
   | CreateCampaignAction
   | PipelineSummaryAction
-  | NoteAction;
+  | NoteAction
+  | UpdateLeadStatusAction
+  | LogMessageAction
+  | ScheduleFollowUpAction;
 
 interface AgentPlan {
   summary: string;
