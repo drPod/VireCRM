@@ -230,7 +230,7 @@ GUARDRAILS — you must obey:
     ];
     const blockedByIntent = FORBIDDEN_INTENT.find((re) => re.test(data.command));
     if (blockedByIntent) {
-      return {
+      const blockedResponse: ExecuteCommandResponse = {
         summary:
           "Blocked: the Advisor can't contact leads or import new ones. Use Auto Outreach to send messages or AI Advisor → Find Leads to source new contacts.",
         results: [
@@ -243,6 +243,18 @@ GUARDRAILS — you must obey:
           },
         ],
       };
+      await logAdvisorExecution({
+        supabase: supabaseAdmin,
+        organizationId: orgId,
+        userId,
+        command: data.command,
+        summary: blockedResponse.summary,
+        plan: { blocked_by: String(blockedByIntent) } as unknown,
+        results: blockedResponse.results,
+        durationMs: Date.now() - startedAt,
+        errorMessage: "blocked_by_guardrail",
+      });
+      return blockedResponse;
     }
 
     // 2) Hard allowlist of action types the executor will run, regardless
