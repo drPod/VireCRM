@@ -10,7 +10,10 @@ import {
   Brain,
   Play,
   RefreshCw,
+  Repeat2,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
@@ -18,6 +21,7 @@ import {
   listAdvisorAuditFn,
   type AdvisorAuditEntry,
 } from "@/functions/advisor-audit.functions";
+import { replayCommandPlanFn } from "@/functions/command-execute.functions";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
