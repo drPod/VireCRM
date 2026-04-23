@@ -281,6 +281,12 @@ export function AutoFindLeadsDialog({
   // Show the full upgrade panel when the server returned QUOTA_EXCEEDED OR
   // the user already has zero credits left (no point letting them try).
   const isAtCap = errorCode === "QUOTA_EXCEEDED" || outOfCredits;
+  // Show a dedicated "connect a lead source" panel when the server told us
+  // no Apollo/Hunter/Snov credentials are wired up. We only treat this as
+  // a blocking screen when the user IS the owner — non-owners can't fix it
+  // themselves, so we keep the inline error so they can still see filters.
+  const needsIntegration =
+    (errorCode === "INTEGRATION_MISSING" || errorCode === "PLATFORM_KEY_MISSING") && isOwner;
   // Build a friendly message when we're showing the upgrade panel due to
   // pre-flight detection (no server error to display).
   const capMessage =
