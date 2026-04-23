@@ -36,10 +36,12 @@ function getRetryAfterSeconds(error: unknown): number {
 }
 
 // Move a message to the dead letter queue and log the reason.
+// Cast `supabase` to any so the service-role client can target tables/RPCs
+// (move_to_dlq, delete_email, email_send_log) without strict generic friction.
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   queue: string,
-  msg: { msg_id: number; message: Record<string, unknown> },
+  msg: { msg_id: number; message: Record<string, any> },
   reason: string
 ): Promise<void> {
   const payload = msg.message
