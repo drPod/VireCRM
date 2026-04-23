@@ -5,6 +5,7 @@ import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor, Key, Info } 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useNavigate } from "@tanstack/react-router";
+import { applyPromoDiscount } from "@/components/marketing/PromoBanner";
 
 export interface PricingTier {
   name: string;
@@ -231,10 +232,29 @@ function TierCard({
 
       <div className="mb-6">
         <h3 className="text-base font-semibold text-foreground">{tier.name}</h3>
-        <div className="mt-3 flex items-baseline gap-1">
-          <span className="text-3xl font-bold text-foreground">{tier.price}</span>
-          <span className="text-xs text-muted-foreground">{tier.period}</span>
-        </div>
+        {(() => {
+          const discounted = applyPromoDiscount(tier.price);
+          if (discounted) {
+            return (
+              <>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-foreground">{discounted}</span>
+                  <span className="text-xs text-muted-foreground">{tier.period}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground line-through">{tier.price}</span>
+                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">25% OFF</Badge>
+                </div>
+              </>
+            );
+          }
+          return (
+            <div className="mt-3 flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-foreground">{tier.price}</span>
+              <span className="text-xs text-muted-foreground">{tier.period}</span>
+            </div>
+          );
+        })()}
         {tier.setupFee && (
           <p className="mt-1 text-xs font-medium text-primary/80">{tier.setupFee}</p>
         )}
