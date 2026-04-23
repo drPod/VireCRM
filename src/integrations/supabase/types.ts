@@ -1854,6 +1854,10 @@ export type Database = {
         }
         Returns: number
       }
+      org_has_active_subscription: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       purge_advisor_audit_log: { Args: never; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

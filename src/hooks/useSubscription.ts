@@ -47,6 +47,10 @@ export interface SubscriptionState {
 export function useSubscription(userId: string | null | undefined): SubscriptionState {
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
+  // Org-level entitlement: true when *any owner* of the user's organization
+  // has an active subscription. Lets invited members (managers / sales reps)
+  // ride on the inviter's plan without paying separately.
+  const [orgHasAccess, setOrgHasAccess] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -56,37 +60,51 @@ export function useSubscription(userId: string | null | undefined): Subscription
       // propagated the new user. When userId is genuinely null/empty (signed
       // out), _app.tsx's separate auth gate will redirect to /login.
       setSubscription(null);
+      setOrgHasAccess(false);
       return;
     }
     setLoading(true);
     try {
       const env = getEnvForMode();
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("user_id", userId)
-        .in("environment", [env, "manual"])
-        .order("created_at", { ascending: false });
+      // Run both lookups in parallel: the user's own subscription rows AND
+      // an org-level entitlement check (any owner of their org with an
+      // active sub). Either one grants access.
+      const [subResult, orgResult] = await Promise.all([
+        supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", userId)
+          .in("environment", [env, "manual"])
+          .order("created_at", { ascending: false }),
+        supabase.rpc("org_has_active_subscription", { p_user_id: userId }),
+      ]);
 
+      const { data, error } = subResult;
       if (error) {
         // Don't hang the UI on transient/RLS errors — treat as "no subscription".
         console.warn("useSubscription: failed to load", error);
         setSubscription(null);
-        return;
+      } else {
+        const rows = (data ?? []) as unknown as SubscriptionRow[];
+        const best =
+          rows.find((r) => r.environment === "manual" && r.status === "active") ||
+          rows.find((r) => ACTIVE_STATUSES.has(r.status)) ||
+          rows.find((r) => GRACE_STATUSES.has(r.status)) ||
+          rows[0] ||
+          null;
+        setSubscription(best);
       }
 
-      const rows = (data ?? []) as unknown as SubscriptionRow[];
-      const best =
-        rows.find((r) => r.environment === "manual" && r.status === "active") ||
-        rows.find((r) => ACTIVE_STATUSES.has(r.status)) ||
-        rows.find((r) => GRACE_STATUSES.has(r.status)) ||
-        rows[0] ||
-        null;
-
-      setSubscription(best);
+      if (orgResult.error) {
+        console.warn("useSubscription: org entitlement check failed", orgResult.error);
+        setOrgHasAccess(false);
+      } else {
+        setOrgHasAccess(Boolean(orgResult.data));
+      }
     } catch (err) {
       console.warn("useSubscription: unexpected error", err);
       setSubscription(null);
+      setOrgHasAccess(false);
     } finally {
       // Always release the loading flag so the page can render.
       setLoading(false);
@@ -128,9 +146,12 @@ export function useSubscription(userId: string | null | undefined): Subscription
   const periodOk =
     !sub?.current_period_end || new Date(sub.current_period_end) > new Date();
   const isManual = sub?.environment === "manual" && sub.status === "active";
-  const hasAccess = !!sub && (isManual || (ACTIVE_STATUSES.has(sub.status) && periodOk));
-  const inGrace = !!sub && GRACE_STATUSES.has(sub.status);
-  const isBlocked = !!sub && !hasAccess && !inGrace;
+  // Access if: this user has their own active sub, OR an owner of their org does
+  // (covers invited team members who shouldn't be charged separately).
+  const ownAccess = !!sub && (isManual || (ACTIVE_STATUSES.has(sub.status) && periodOk));
+  const hasAccess = ownAccess || orgHasAccess;
+  const inGrace = !ownAccess && !!sub && GRACE_STATUSES.has(sub.status);
+  const isBlocked = !hasAccess && !inGrace && !!sub;
 
   return { loading, subscription, hasAccess, inGrace, isBlocked, refresh: load };
 }
