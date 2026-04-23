@@ -28,6 +28,7 @@ import { CommandBar } from "@/components/crm/CommandBar";
 import { MetricCard } from "@/components/crm/MetricCard";
 import { ActivityFeed } from "@/components/crm/ActivityFeed";
 import { PipelineView } from "@/components/crm/PipelineView";
+import { TaskStatusPanel, type TaskStatusItem } from "@/components/crm/TaskStatusPanel";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
 import {
   executeCommandActionsFn,
