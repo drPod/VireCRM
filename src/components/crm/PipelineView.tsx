@@ -20,6 +20,15 @@ export function PipelineView() {
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const panState = useRef<{ active: boolean; startX: number; scrollLeft: number; moved: boolean }>({
+    active: false,
+    startX: 0,
+    scrollLeft: 0,
+    moved: false,
+  });
 
   const fetchLeads = useCallback(async () => {
     if (!organization?.id) return;
