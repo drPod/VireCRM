@@ -46,7 +46,11 @@ export interface DeliverOutreachEmailInput {
 }
 
 export type DeliverOutreachEmailResult =
-  | { success: true; channel: "sendgrid" | "gmail" | "microsoft_outlook" | "lovable"; label: string }
+  | {
+      success: true;
+      channel: "resend" | "sendgrid" | "gmail" | "microsoft_outlook" | "lovable";
+      label: string;
+    }
   | { success: false; reason: string; suppressed?: boolean };
 
 const EMAIL_PROVIDER_PRIORITY: ConnectorProvider[] = ["gmail", "microsoft_outlook"];
