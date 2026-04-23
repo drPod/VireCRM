@@ -541,6 +541,70 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </div>
             </div>
 
+            <div
+              className={`rounded-lg border p-3 space-y-3 ${
+                form.status === "won"
+                  ? "border-success/40 bg-success/5"
+                  : "border-border bg-secondary/30"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Deal value
+                </p>
+                {form.status !== "won" ? (
+                  <Button
+                    variant="command"
+                    size="sm"
+                    onClick={handleMarkWon}
+                    disabled={markingWon}
+                    className="h-7 px-2.5 text-xs"
+                    title="Mark this lead as won and record the deal value"
+                  >
+                    {markingWon ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trophy className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Mark as Won
+                  </Button>
+                ) : (
+                  <Badge variant="success" className="text-[10px]">
+                    <Trophy className="mr-1 h-3 w-3" /> Won
+                  </Badge>
+                )}
+              </div>
+              <div className="grid gap-3 grid-cols-[1fr_90px]">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">Amount</label>
+                  <input
+                    inputMode="decimal"
+                    className={inputClass}
+                    value={form.deal_value}
+                    onChange={(e) => update("deal_value", e.target.value)}
+                    placeholder="e.g. 2500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">Currency</label>
+                  <select
+                    className={inputClass}
+                    value={form.deal_currency}
+                    onChange={(e) => update("deal_currency", e.target.value)}
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                  </select>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Recording a deal value when marking a lead as won automatically creates a commission earning if rules are configured.
+              </p>
+            </div>
+
             <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Energy details
