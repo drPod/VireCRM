@@ -18,10 +18,10 @@ export function CommandBar({ onCommand, isProcessing = false }: CommandBarProps)
   };
 
   const suggestions = [
-    "Run outreach on 200 leads",
-    "Follow up with cold leads",
-    "Book calls with hot leads",
-    "Score all new leads",
+    "Remind me to follow up with my hottest leads tomorrow",
+    "Draft a re-engagement email for cold leads",
+    "Boost score on leads I've contacted this week",
+    "Create a Q1 outbound campaign and summarize my pipeline",
   ];
 
   return (

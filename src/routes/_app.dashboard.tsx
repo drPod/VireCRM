@@ -13,6 +13,15 @@ import {
   ChevronRight,
   Sparkles,
   ArrowRight,
+  Play,
+  CheckCheck,
+  XCircle,
+  ListTodo,
+  Mail,
+  TrendingDown,
+  Megaphone,
+  StickyNote,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandBar } from "@/components/crm/CommandBar";
@@ -20,6 +29,11 @@ import { MetricCard } from "@/components/crm/MetricCard";
 import { ActivityFeed } from "@/components/crm/ActivityFeed";
 import { PipelineView } from "@/components/crm/PipelineView";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
+import {
+  executeCommandActionsFn,
+  type ExecuteCommandResponse,
+  type ExecutionResult,
+} from "@/functions/command-execute.functions";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -78,12 +92,16 @@ function Dashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [plan, setPlan] = useState<CommandPlan | null>(null);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [execution, setExecution] = useState<ExecuteCommandResponse | null>(null);
   const execCommand = useAuthedServerFn(executeCommandFn);
+  const runCommand = useAuthedServerFn(executeCommandActionsFn);
 
   const handleCommand = async (command: string) => {
     setIsProcessing(true);
     setLastCommand(command);
     setPlan(null);
+    setExecution(null);
 
     try {
       const result = await execCommand({
@@ -95,6 +113,32 @@ function Dashboard() {
       toast.error(message);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleExecute = async () => {
+    if (!lastCommand || isExecuting) return;
+    setIsExecuting(true);
+    setExecution(null);
+    try {
+      const result = await runCommand({ data: { command: lastCommand } });
+      setExecution(result);
+      const okCount = result.results.filter((r) => r.status === "ok").length;
+      const errCount = result.results.filter((r) => r.status === "error").length;
+      if (errCount > 0) {
+        toast.warning(`Completed with ${errCount} issue${errCount === 1 ? "" : "s"}`, {
+          description: `${okCount} action${okCount === 1 ? "" : "s"} applied.`,
+        });
+      } else {
+        toast.success(result.summary, {
+          description: `${okCount} action${okCount === 1 ? "" : "s"} applied.`,
+        });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Execution failed";
+      toast.error(message);
+    } finally {
+      setIsExecuting(false);
     }
   };
 
@@ -169,8 +213,35 @@ function Dashboard() {
               ))}
             </div>
           )}
+
+          <div className="border-t border-border bg-background/40 px-5 py-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              Runs CRM actions only — tasks, drafts, scoring, campaigns. No external sends.
+            </p>
+            <Button
+              variant="command"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExecute}
+              disabled={isExecuting}
+            >
+              {isExecuting ? (
+                <>
+                  <Zap className="h-3.5 w-3.5 animate-pulse" />
+                  Executing…
+                </>
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5" />
+                  {execution ? "Re-run" : "Execute"}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       )}
+
+      {execution && <ExecutionResults data={execution} />}
 
       {/* First-run empty state */}
       {isEmpty && (
@@ -238,6 +309,68 @@ function Dashboard() {
       </div>
 
       <ActivityFeed />
+    </div>
+  );
+}
+
+const ACTION_META: Record<
+  ExecutionResult["type"],
+  { label: string; Icon: typeof ListTodo }
+> = {
+  create_task: { label: "Task", Icon: ListTodo },
+  draft_message: { label: "Email draft", Icon: Mail },
+  score_leads: { label: "Lead scoring", Icon: TrendingDown },
+  create_campaign: { label: "Campaign", Icon: Megaphone },
+  pipeline_summary: { label: "Pipeline summary", Icon: BarChart3 },
+  note: { label: "Note", Icon: StickyNote },
+};
+
+function ExecutionResults({ data }: { data: ExecuteCommandResponse }) {
+  const okCount = data.results.filter((r) => r.status === "ok").length;
+  const errCount = data.results.filter((r) => r.status === "error").length;
+  const skipCount = data.results.filter((r) => r.status === "skipped").length;
+
+  return (
+    <div className="rounded-xl border border-success/20 bg-success/5 overflow-hidden">
+      <div className="border-b border-success/20 bg-success/10 px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CheckCheck className="h-4 w-4 text-success" />
+          <span className="text-sm font-semibold text-foreground">Done</span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {okCount} applied{skipCount > 0 ? `, ${skipCount} skipped` : ""}
+          {errCount > 0 ? `, ${errCount} failed` : ""}
+        </span>
+      </div>
+      <p className="px-5 pt-3 text-sm text-foreground">{data.summary}</p>
+      <ul className="px-5 py-3 space-y-2">
+        {data.results.map((r, i) => {
+          const meta = ACTION_META[r.type] ?? ACTION_META.note;
+          const Icon = meta.Icon;
+          const tone =
+            r.status === "ok"
+              ? "text-success"
+              : r.status === "error"
+                ? "text-destructive"
+                : "text-muted-foreground";
+          return (
+            <li key={i} className="flex items-start gap-3">
+              <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${tone}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {meta.label}
+                  </span>
+                  {r.status === "error" && (
+                    <XCircle className="h-3 w-3 text-destructive" />
+                  )}
+                </div>
+                <p className="text-sm text-foreground break-words">{r.message}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

@@ -1,0 +1,393 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
+import { z } from "zod";
+
+/**
+ * Execute the user's command by running the AI as an "agent" that picks
+ * concrete actions to perform on their CRM (tasks, message drafts, lead
+ * scoring tweaks, campaigns, summaries). All actions are non-integration
+ * — they only touch our own database. Outbound email/integration work is
+ * handled elsewhere by Auto Outreach + the Connectors panel.
+ */
+
+const executeSchema = z.object({
+  command: z.string().min(1).max(500),
+});
+
+// ---------- Action types the AI is allowed to emit ----------
+
+interface CreateTaskAction {
+  type: "create_task";
+  title: string;
+  description?: string;
+  priority?: "low" | "medium" | "high" | "urgent";
+  due_in_days?: number;
+  lead_match?: string; // free-text name/company; we resolve to lead_id
+}
+
+interface DraftMessageAction {
+  type: "draft_message";
+  subject: string;
+  body: string;
+  lead_match?: string;
+}
+
+interface ScoreLeadsAction {
+  type: "score_leads";
+  criteria: string; // e.g. "engaged in last 14 days"
+  score_delta: number; // -50..+50
+  status_filter?: string; // optional pipeline status
+  max_leads?: number;
+}
+
+interface CreateCampaignAction {
+  type: "create_campaign";
+  name: string;
+  objective?: string;
+}
+
+interface PipelineSummaryAction {
+  type: "pipeline_summary";
+}
+
+interface NoteAction {
+  type: "note";
+  message: string; // explanatory note shown to the user, no DB side-effect
+}
+
+type AgentAction =
+  | CreateTaskAction
+  | DraftMessageAction
+  | ScoreLeadsAction
+  | CreateCampaignAction
+  | PipelineSummaryAction
+  | NoteAction;
+
+interface AgentPlan {
+  summary: string;
+  actions: AgentAction[];
+}
+
+// ---------- Result shape returned to the client ----------
+
+export interface ExecutionResult {
+  type: AgentAction["type"];
+  status: "ok" | "skipped" | "error";
+  message: string;
+  meta?: Record<string, string | number | null>;
+}
+
+export interface ExecuteCommandResponse {
+  summary: string;
+  results: ExecutionResult[];
+}
+
+// ---------- Helpers ----------
+
+function priorityValue(p?: string): "low" | "medium" | "high" | "urgent" {
+  if (p === "low" || p === "medium" || p === "high" || p === "urgent") return p;
+  return "medium";
+}
+
+function dueDateFromDays(days?: number): string | null {
+  if (typeof days !== "number" || !Number.isFinite(days) || days < 0) return null;
+  const d = new Date();
+  d.setDate(d.getDate() + Math.min(days, 365));
+  return d.toISOString();
+}
+
+// ---------- Server function ----------
+
+export const executeCommandActionsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof executeSchema>) => executeSchema.parse(input))
+  .handler(async ({ data, context }): Promise<ExecuteCommandResponse> => {
+    const { supabase, userId } = context;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!profile) throw new Error("No organization found for user");
+    const orgId = profile.organization_id;
+
+    // Quick context: counts + a few recent leads to ground the AI.
+    const [{ count: leadCount }, { count: campaignCount }, { data: recentLeads }] =
+      await Promise.all([
+        supabase
+          .from("leads")
+          .select("*", { count: "exact", head: true })
+          .eq("organization_id", orgId),
+        supabase
+          .from("campaigns")
+          .select("*", { count: "exact", head: true })
+          .eq("organization_id", orgId),
+        supabase
+          .from("leads")
+          .select("id, name, company, status, score, last_contact")
+          .eq("organization_id", orgId)
+          .order("updated_at", { ascending: false })
+          .limit(15),
+      ]);
+
+    const leadContext = (recentLeads ?? [])
+      .map((l) => `- ${l.name}${l.company ? ` @ ${l.company}` : ""} [status=${l.status}, score=${l.score ?? "?"}]`)
+      .join("\n");
+
+    const plan = await callAiWithFallback<AgentPlan>({
+      featureLabel: "Command executor",
+      models: DEFAULT_TEXT_MODELS,
+      organizationId: orgId,
+      userId,
+      toolName: "execute_crm_actions",
+      toolDescription:
+        "Translate the user's CRM command into a sequence of concrete actions to apply to their database.",
+      systemPrompt: `You are a CRM execution agent. The org has ${leadCount ?? 0} leads and ${campaignCount ?? 0} campaigns.
+
+Recent leads:
+${leadContext || "(none yet)"}
+
+You can ONLY produce these action types:
+- create_task: schedule a follow-up / reminder. Use when the user says "remind me", "follow up", "call X tomorrow", etc.
+- draft_message: write a personalized outreach draft saved to Messages (NOT sent). Use for "write an email to ...", "draft a follow-up".
+- score_leads: bulk-adjust scores on leads matching simple criteria. Use for "score my hot leads", "deprioritize cold leads".
+- create_campaign: create a new campaign shell. Use for "start a campaign for ...".
+- pipeline_summary: produce a written summary of pipeline health (no DB writes — the server fills the data).
+- note: a plain explanation, used when no real action fits or to clarify what you skipped.
+
+Rules:
+- Pick the smallest set of actions that fulfils the command. Usually 1–3 actions.
+- For draft_message and create_task, set lead_match to the lead name/company the user mentioned if any.
+- Never invent integrations, never claim emails were sent — drafts are saved for the user to send manually.
+- Keep messages concise, professional, no placeholders like [Name].`,
+      userPrompt: data.command,
+      toolSchema: {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "One sentence telling the user what you did." },
+          actions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                type: {
+                  type: "string",
+                  enum: [
+                    "create_task",
+                    "draft_message",
+                    "score_leads",
+                    "create_campaign",
+                    "pipeline_summary",
+                    "note",
+                  ],
+                },
+                title: { type: "string" },
+                description: { type: "string" },
+                priority: { type: "string", enum: ["low", "medium", "high", "urgent"] },
+                due_in_days: { type: "number" },
+                lead_match: { type: "string" },
+                subject: { type: "string" },
+                body: { type: "string" },
+                criteria: { type: "string" },
+                score_delta: { type: "number" },
+                status_filter: { type: "string" },
+                max_leads: { type: "number" },
+                name: { type: "string" },
+                objective: { type: "string" },
+                message: { type: "string" },
+              },
+              required: ["type"],
+            },
+          },
+        },
+        required: ["summary", "actions"],
+      },
+    });
+
+    const results: ExecutionResult[] = [];
+
+    // Resolve lead matches (case-insensitive name OR company contains).
+    async function resolveLead(match?: string): Promise<{ id: string; name: string } | null> {
+      if (!match) return null;
+      const term = match.trim();
+      if (!term) return null;
+      const { data: hits } = await supabase
+        .from("leads")
+        .select("id, name")
+        .eq("organization_id", orgId)
+        .or(`name.ilike.%${term}%,company.ilike.%${term}%`)
+        .limit(1);
+      return hits?.[0] ?? null;
+    }
+
+    for (const action of plan.actions ?? []) {
+      try {
+        switch (action.type) {
+          case "create_task": {
+            const lead = await resolveLead(action.lead_match);
+            const { data: row, error } = await supabaseAdmin
+              .from("tasks")
+              .insert({
+                organization_id: orgId,
+                title: action.title.slice(0, 200),
+                description: action.description?.slice(0, 2000) ?? null,
+                priority: priorityValue(action.priority),
+                due_date: dueDateFromDays(action.due_in_days),
+                lead_id: lead?.id ?? null,
+                assigned_to: userId,
+                status: "pending",
+              })
+              .select("id")
+              .single();
+            if (error) throw error;
+            results.push({
+              type: "create_task",
+              status: "ok",
+              message: `Task created: "${action.title}"${lead ? ` for ${lead.name}` : ""}`,
+              meta: { task_id: row.id, lead_id: lead?.id ?? null },
+            });
+            break;
+          }
+
+          case "draft_message": {
+            const lead = await resolveLead(action.lead_match);
+            const { data: row, error } = await supabaseAdmin
+              .from("messages")
+              .insert({
+                organization_id: orgId,
+                lead_id: lead?.id ?? null,
+                type: "email",
+                status: "draft",
+                subject: action.subject.slice(0, 200),
+                content: action.body.slice(0, 5000),
+              })
+              .select("id")
+              .single();
+            if (error) throw error;
+            results.push({
+              type: "draft_message",
+              status: "ok",
+              message: `Email draft saved${lead ? ` for ${lead.name}` : ""}: "${action.subject}"`,
+              meta: { message_id: row.id, lead_id: lead?.id ?? null },
+            });
+            break;
+          }
+
+          case "score_leads": {
+            const delta = Math.max(-50, Math.min(50, Math.round(action.score_delta || 0)));
+            const limit = Math.max(1, Math.min(action.max_leads ?? 50, 200));
+            let q = supabase
+              .from("leads")
+              .select("id, score")
+              .eq("organization_id", orgId)
+              .order("updated_at", { ascending: false })
+              .limit(limit);
+            if (action.status_filter) {
+              q = q.eq("status", action.status_filter);
+            }
+            const { data: targets, error } = await q;
+            if (error) throw error;
+            if (!targets?.length) {
+              results.push({
+                type: "score_leads",
+                status: "skipped",
+                message: `No leads matched: "${action.criteria}"`,
+              });
+              break;
+            }
+            const updates = targets.map((l) => ({
+              id: l.id,
+              score: Math.max(0, Math.min(100, (l.score ?? 50) + delta)),
+            }));
+            // Apply one-by-one via admin to bypass RLS noise but stay within org via id list
+            const ids = updates.map((u) => u.id);
+            // Issue per-row updates in parallel (small N).
+            await Promise.all(
+              updates.map((u) =>
+                supabaseAdmin
+                  .from("leads")
+                  .update({ score: u.score })
+                  .eq("id", u.id)
+                  .eq("organization_id", orgId),
+              ),
+            );
+            results.push({
+              type: "score_leads",
+              status: "ok",
+              message: `Adjusted score by ${delta > 0 ? "+" : ""}${delta} on ${ids.length} lead${ids.length === 1 ? "" : "s"} (${action.criteria})`,
+              meta: { updated: ids.length, delta },
+            });
+            break;
+          }
+
+          case "create_campaign": {
+            const { data: row, error } = await supabaseAdmin
+              .from("campaigns")
+              .insert({
+                organization_id: orgId,
+                name: action.name.slice(0, 200),
+                objective: action.objective?.slice(0, 500) ?? null,
+                status: "draft",
+              })
+              .select("id")
+              .single();
+            if (error) throw error;
+            results.push({
+              type: "create_campaign",
+              status: "ok",
+              message: `Campaign created: "${action.name}"`,
+              meta: { campaign_id: row.id },
+            });
+            break;
+          }
+
+          case "pipeline_summary": {
+            const { data: byStatus } = await supabase
+              .from("leads")
+              .select("status")
+              .eq("organization_id", orgId);
+            const counts = (byStatus ?? []).reduce<Record<string, number>>((acc, r) => {
+              acc[r.status] = (acc[r.status] ?? 0) + 1;
+              return acc;
+            }, {});
+            const top = Object.entries(counts)
+              .sort((a, b) => b[1] - a[1])
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(", ");
+            results.push({
+              type: "pipeline_summary",
+              status: "ok",
+              message: top ? `Pipeline — ${top}` : "Pipeline is empty.",
+              meta: { total: byStatus?.length ?? 0 },
+            });
+            break;
+          }
+
+          case "note":
+          default: {
+            results.push({
+              type: "note",
+              status: "ok",
+              message: (action as NoteAction).message ?? "Noted.",
+            });
+            break;
+          }
+        }
+      } catch (err) {
+        results.push({
+          type: action.type,
+          status: "error",
+          message: err instanceof Error ? err.message : "Action failed",
+        });
+      }
+    }
+
+    return {
+      summary: plan.summary || "Done.",
+      results,
+    };
+  });
