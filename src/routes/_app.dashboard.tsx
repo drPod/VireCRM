@@ -30,6 +30,7 @@ import { CommandBar } from "@/components/crm/CommandBar";
 import { MetricCard } from "@/components/crm/MetricCard";
 import { ActivityFeed } from "@/components/crm/ActivityFeed";
 import { PipelineView } from "@/components/crm/PipelineView";
+import { WonDealsWidget } from "@/components/crm/WonDealsWidget";
 import { TaskStatusPanel, type TaskStatusItem } from "@/components/crm/TaskStatusPanel";
 import { AdvisorAuditLog } from "@/components/crm/AdvisorAuditLog";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
@@ -366,6 +367,8 @@ function Dashboard() {
           value={metrics.loading ? "—" : `${metrics.conversionRate.toFixed(1)}%`}
         />
       </div>
+
+      <WonDealsWidget organizationId={organization?.id} />
 
       <div>
         <div className="mb-4 flex items-center gap-2">
