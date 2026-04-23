@@ -118,7 +118,7 @@ export const executeCommandActionsFn = createServerFn({ method: "POST" })
 
     if (!profile) throw new Error("No organization found for user");
     const orgId = profile.organization_id;
-
+    const startedAt = Date.now();
     // Quick context: counts + a few recent leads to ground the AI.
     const [{ count: leadCount }, { count: campaignCount }, { data: recentLeads }] =
       await Promise.all([
