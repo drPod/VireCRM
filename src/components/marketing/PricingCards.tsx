@@ -7,7 +7,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useNavigate } from "@tanstack/react-router";
 import { applyPromoDiscount } from "@/components/marketing/PromoBanner";
-import { getDisplayedPrice, loadOverrides } from "@/lib/pricing-overrides";
+import { getDisplayedPrice } from "@/lib/pricing-overrides";
 
 export interface PricingTier {
   name: string;
