@@ -493,8 +493,21 @@ GUARDRAILS — you must obey:
       }
     }
 
-    return {
+    const response: ExecuteCommandResponse = {
       summary: plan.summary || "Done.",
       results,
     };
+
+    await logAdvisorExecution({
+      supabase: supabaseAdmin,
+      organizationId: orgId,
+      userId,
+      command: data.command,
+      summary: response.summary,
+      plan: plan as unknown,
+      results,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return response;
   });
