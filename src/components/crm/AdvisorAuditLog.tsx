@@ -10,7 +10,10 @@ import {
   Brain,
   Play,
   RefreshCw,
+  Repeat2,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
@@ -18,6 +21,7 @@ import {
   listAdvisorAuditFn,
   type AdvisorAuditEntry,
 } from "@/functions/advisor-audit.functions";
+import { replayCommandPlanFn } from "@/functions/command-execute.functions";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -32,10 +36,12 @@ function timeAgo(iso: string): string {
 
 export function AdvisorAuditLog() {
   const list = useAuthedServerFn(listAdvisorAuditFn);
+  const replay = useAuthedServerFn(replayCommandPlanFn);
   const [entries, setEntries] = useState<AdvisorAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<"all" | "plan" | "execute">("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [replayingId, setReplayingId] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -44,6 +50,31 @@ export function AdvisorAuditLog() {
       setEntries(rows);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReplay = async (entry: AdvisorAuditEntry) => {
+    setReplayingId(entry.id);
+    try {
+      const res = await replay({ data: { audit_id: entry.id } });
+      const ok = res.results.filter((r) => r.status === "ok").length;
+      const err = res.results.filter((r) => r.status === "error").length;
+      if (err > 0) {
+        toast.warning(`Replay finished with ${err} error${err === 1 ? "" : "s"}`, {
+          description: `${ok} succeeded · ${err} failed`,
+        });
+      } else {
+        toast.success("Replay complete", {
+          description: `${ok} action${ok === 1 ? "" : "s"} re-executed`,
+        });
+      }
+      await refresh();
+    } catch (e) {
+      toast.error("Replay failed", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setReplayingId(null);
     }
   };
 
@@ -213,14 +244,48 @@ export function AdvisorAuditLog() {
                     )}
 
                     {e.plan != null && (
-                      <details className="group">
-                        <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          JSON plan
-                        </summary>
-                        <pre className="mt-1 max-h-64 overflow-auto rounded-md border border-border bg-background/60 p-2 text-[11px] text-foreground">
-                          {JSON.stringify(e.plan, null, 2)}
-                        </pre>
-                      </details>
+                      <>
+                        {(() => {
+                          const planObj = e.plan as { actions?: unknown[] } | null;
+                          const actionCount = Array.isArray(planObj?.actions)
+                            ? planObj.actions.length
+                            : 0;
+                          if (actionCount === 0) return null;
+                          const isReplaying = replayingId === e.id;
+                          return (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleReplay(e)}
+                                disabled={isReplaying || replayingId !== null}
+                                className="h-7 text-xs"
+                              >
+                                {isReplaying ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Repeat2 className="h-3 w-3" />
+                                )}
+                                <span className="ml-1.5">
+                                  {isReplaying ? "Replaying…" : "Replay this command"}
+                                </span>
+                              </Button>
+                              <span className="text-[11px] text-muted-foreground">
+                                Re-runs {actionCount} action
+                                {actionCount === 1 ? "" : "s"} with the same guardrails
+                              </span>
+                            </div>
+                          );
+                        })()}
+                        <details className="group">
+                          <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            JSON plan
+                          </summary>
+                          <pre className="mt-1 max-h-64 overflow-auto rounded-md border border-border bg-background/60 p-2 text-[11px] text-foreground">
+                            {JSON.stringify(e.plan, null, 2)}
+                          </pre>
+                        </details>
+                      </>
                     )}
                   </div>
                 )}
