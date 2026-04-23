@@ -629,9 +629,13 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                     variant="command"
                     size="sm"
                     onClick={handleMarkWon}
-                    disabled={markingWon}
+                    disabled={markingWon || !dealValidation.valid}
                     className="h-7 px-2.5 text-xs"
-                    title="Mark this lead as won and record the deal value"
+                    title={
+                      dealValidation.valid
+                        ? "Mark this lead as won and record the deal value"
+                        : "Enter a positive deal value first"
+                    }
                   >
                     {markingWon ? (
                       <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -648,13 +652,16 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </div>
               <div className="grid gap-3 grid-cols-[1fr_90px]">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">Amount</label>
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Amount <span className="text-destructive">*</span>
+                  </label>
                   <input
                     inputMode="decimal"
-                    className={inputClass}
+                    className={`${inputClass} ${!dealValidation.valid ? "border-destructive focus:ring-destructive" : ""}`}
                     value={form.deal_value}
                     onChange={(e) => update("deal_value", e.target.value)}
                     placeholder="e.g. 2500"
+                    aria-invalid={!dealValidation.valid}
                   />
                 </div>
                 <div>
@@ -672,9 +679,13 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   </select>
                 </div>
               </div>
+              {!dealValidation.valid && (
+                <p className="text-[11px] text-destructive leading-relaxed">
+                  {dealValidation.error}
+                </p>
+              )}
               {(() => {
-                const parsed = parseDealValueCents();
-                const cents = parsed.ok ? parsed.cents : null;
+                const cents = dealValidation.valid ? dealValidation.cents : null;
                 if (form.status !== "won" || !cents || cents <= 0) {
                   return (
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
