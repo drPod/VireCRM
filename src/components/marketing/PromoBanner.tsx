@@ -37,6 +37,12 @@ export function applyPromoDiscount(price: string): string | null {
     const hi = Math.round(Number(range[2].replace(/,/g, "")) * (1 - PROMO_DISCOUNT));
     return `$${lo.toLocaleString()}–$${hi.toLocaleString()}`;
   }
+  // Open-ended price like "$14,000+" — discount the floor and keep the "+".
+  const openEnded = price.match(/^\$(\d[\d,]*)\+$/);
+  if (openEnded) {
+    const n = Math.round(Number(openEnded[1].replace(/,/g, "")) * (1 - PROMO_DISCOUNT));
+    return `$${n.toLocaleString()}+`;
+  }
   const single = price.match(/^\$(\d[\d,]*)$/);
   if (single) {
     const n = Math.round(Number(single[1].replace(/,/g, "")) * (1 - PROMO_DISCOUNT));
