@@ -11,6 +11,7 @@ import {
   Loader2,
   CalendarDays,
   Sparkles,
+  Mail,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -43,6 +44,16 @@ interface CalendarTask {
   lead_id: string | null;
 }
 
+interface CalendarOutreach {
+  id: string;
+  subject: string | null;
+  content: string;
+  status: string;
+  created_at: string;
+  lead_id: string | null;
+  type: string;
+}
+
 const priorityColor = (p: string) => {
   if (p === "high") return "bg-destructive";
   if (p === "low") return "bg-muted-foreground";
@@ -52,10 +63,13 @@ const priorityColor = (p: string) => {
 function CalendarPage() {
   const { organization, role } = useAuth();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
+  const [outreach, setOutreach] = useState<CalendarOutreach[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [dialogDefaultDate, setDialogDefaultDate] = useState<Date | undefined>(undefined);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const completeTask = useAuthedServerFn(completeTaskWithAiFn);
   const isOwner = role?.role === "owner";
   const [cursor, setCursor] = useState(() => {
@@ -70,8 +84,6 @@ function CalendarPage() {
         data: { taskId },
       });
 
-      // If the lead has an email, fire the transactional send from the client
-      // (the route validates the user's JWT, so it must originate here).
       if (result.lead?.email) {
         try {
           await sendTransactionalEmail({
@@ -121,20 +133,35 @@ function CalendarPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("id,title,description,due_date,status,priority,lead_id")
-        .eq("organization_id", organization.id)
-        .not("due_date", "is", null)
-        .gte("due_date", monthStart.toISOString())
-        .lte("due_date", monthEnd.toISOString())
-        .order("due_date", { ascending: true });
+      const [tasksRes, outreachRes] = await Promise.all([
+        supabase
+          .from("tasks")
+          .select("id,title,description,due_date,status,priority,lead_id")
+          .eq("organization_id", organization.id)
+          .not("due_date", "is", null)
+          .gte("due_date", monthStart.toISOString())
+          .lte("due_date", monthEnd.toISOString())
+          .order("due_date", { ascending: true }),
+        supabase
+          .from("messages")
+          .select("id,subject,content,status,created_at,lead_id,type")
+          .eq("organization_id", organization.id)
+          .gte("created_at", monthStart.toISOString())
+          .lte("created_at", monthEnd.toISOString())
+          .order("created_at", { ascending: true }),
+      ]);
       if (cancelled) return;
-      if (error) {
-        console.warn("calendar load failed", error);
+      if (tasksRes.error) {
+        console.warn("calendar tasks load failed", tasksRes.error);
         setTasks([]);
       } else {
-        setTasks((data ?? []) as CalendarTask[]);
+        setTasks((tasksRes.data ?? []) as CalendarTask[]);
+      }
+      if (outreachRes.error) {
+        console.warn("calendar outreach load failed", outreachRes.error);
+        setOutreach([]);
+      } else {
+        setOutreach((outreachRes.data ?? []) as CalendarOutreach[]);
       }
       setLoading(false);
     })();
@@ -158,11 +185,28 @@ function CalendarPage() {
     return map;
   }, [tasks]);
 
-  const todayTasks = isCurrentMonth ? tasksByDay.get(todayDay) ?? [] : [];
+  const outreachByDay = useMemo(() => {
+    const map = new Map<number, CalendarOutreach[]>();
+    for (const o of outreach) {
+      const d = new Date(o.created_at).getDate();
+      if (!map.has(d)) map.set(d, []);
+      map.get(d)!.push(o);
+    }
+    return map;
+  }, [outreach]);
+
+  // Default selected day = today if viewing current month, else first of month
+  useEffect(() => {
+    setSelectedDay(isCurrentMonth ? todayDay : 1);
+  }, [cursor, isCurrentMonth, todayDay]);
+
+  const activeDay = selectedDay ?? (isCurrentMonth ? todayDay : 1);
+  const dayTasks = tasksByDay.get(activeDay) ?? [];
+  const dayOutreach = outreachByDay.get(activeDay) ?? [];
 
   const monthLabel = cursor.toLocaleString("en-US", { month: "long", year: "numeric" });
   const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
-  const firstWeekday = monthStart.getDay(); // 0 = Sun
+  const firstWeekday = monthStart.getDay();
 
   const weekStats = useMemo(() => {
     const startOfWeek = new Date(today);
@@ -174,13 +218,33 @@ function CalendarPage() {
       const d = new Date(t.due_date);
       return d >= startOfWeek && d < endOfWeek;
     });
+    const weekOutreach = outreach.filter((o) => {
+      const d = new Date(o.created_at);
+      return d >= startOfWeek && d < endOfWeek;
+    });
     return {
       booked: weekTasks.length,
       completed: weekTasks.filter((t) => t.status === "done").length,
       pending: weekTasks.filter((t) => t.status === "todo").length,
-      inProgress: weekTasks.filter((t) => t.status === "in_progress").length,
+      outreach: weekOutreach.length,
     };
-  }, [tasks, today]);
+  }, [tasks, outreach, today]);
+
+  const openNewTaskForDay = (day: number) => {
+    const d = new Date(cursor.getFullYear(), cursor.getMonth(), day, 9, 0, 0, 0);
+    setDialogDefaultDate(d);
+    setNewTaskOpen(true);
+  };
+
+  const selectedDateLabel = new Date(
+    cursor.getFullYear(),
+    cursor.getMonth(),
+    activeDay,
+  ).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <div className="flex-1 overflow-auto p-6">
@@ -189,7 +253,7 @@ function CalendarPage() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tasks scheduled for your team — pulled live from your CRM
+              Tasks &amp; outreach scheduled for your team — click any day to add an event
             </p>
           </div>
           <div className="flex gap-2">
@@ -202,11 +266,16 @@ function CalendarPage() {
             <Button
               variant="command"
               className="gap-2"
-              onClick={() => setNewTaskOpen(true)}
+              onClick={() => {
+                setDialogDefaultDate(
+                  new Date(cursor.getFullYear(), cursor.getMonth(), activeDay, 9, 0, 0, 0),
+                );
+                setNewTaskOpen(true);
+              }}
               disabled={!organization?.id}
             >
               <Plus className="h-4 w-4" />
-              New Task
+              New Event
             </Button>
           </div>
         </div>
@@ -223,6 +292,7 @@ function CalendarPage() {
                   onClick={() =>
                     setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
                   }
+                  aria-label="Previous month"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -233,7 +303,9 @@ function CalendarPage() {
                   onClick={() => {
                     const d = new Date();
                     setCursor(new Date(d.getFullYear(), d.getMonth(), 1));
+                    setSelectedDay(d.getDate());
                   }}
+                  aria-label="Today"
                 >
                   <CalendarDays className="h-4 w-4" />
                 </Button>
@@ -244,6 +316,7 @@ function CalendarPage() {
                   onClick={() =>
                     setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
                   }
+                  aria-label="Next month"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -266,88 +339,135 @@ function CalendarPage() {
                 <div key={`empty-${i}`} className="aspect-square rounded-lg" />
               ))}
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-                const dayTasks = tasksByDay.get(day) ?? [];
+                const cellTasks = tasksByDay.get(day) ?? [];
+                const cellOutreach = outreachByDay.get(day) ?? [];
+                const totalDots = cellTasks.length + cellOutreach.length;
                 const isToday = isCurrentMonth && day === todayDay;
+                const isSelected = day === activeDay;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={day}
-                    className={`aspect-square rounded-lg border p-1.5 text-xs transition-colors hover:border-primary/30 ${
-                      isToday
-                        ? "border-primary bg-primary/10 font-bold text-primary"
-                        : "border-transparent text-foreground"
+                    onClick={() => setSelectedDay(day)}
+                    onDoubleClick={() => openNewTaskForDay(day)}
+                    className={`aspect-square rounded-lg border p-1.5 text-left text-xs transition-colors hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                      isSelected
+                        ? "border-primary bg-primary/15 font-semibold text-primary"
+                        : isToday
+                          ? "border-primary/60 bg-primary/5 font-bold text-primary"
+                          : "border-transparent text-foreground"
                     }`}
+                    aria-label={`${day} — ${cellTasks.length} tasks, ${cellOutreach.length} outreach`}
                   >
                     <span>{day}</span>
-                    {dayTasks.length > 0 && (
+                    {totalDots > 0 && (
                       <div className="mt-0.5 flex flex-wrap gap-0.5">
-                        {dayTasks.slice(0, 3).map((t) => (
+                        {cellTasks.slice(0, 3).map((t) => (
                           <div
                             key={t.id}
                             className={`h-1.5 w-1.5 rounded-full ${priorityColor(t.priority)}`}
                           />
                         ))}
-                        {dayTasks.length > 3 && (
+                        {cellOutreach.slice(0, 2).map((o) => (
+                          <div
+                            key={o.id}
+                            className="h-1.5 w-1.5 rounded-full bg-primary"
+                          />
+                        ))}
+                        {totalDots > 5 && (
                           <span className="text-[10px] text-muted-foreground">
-                            +{dayTasks.length - 3}
+                            +{totalDots - 5}
                           </span>
                         )}
                       </div>
                     )}
-                  </div>
+                  </button>
                 );
               })}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-destructive" /> High priority task
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-warning" /> Medium task
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" /> Low task
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Outreach email
+              </span>
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="rounded-xl border border-border bg-card p-5">
-              <h3 className="mb-4 text-sm font-semibold text-foreground">
-                {isCurrentMonth ? "Today's Tasks" : "Tasks this month"}
-              </h3>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">{selectedDateLabel}</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {dayTasks.length} task{dayTasks.length === 1 ? "" : "s"} ·{" "}
+                    {dayOutreach.length} outreach
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => openNewTaskForDay(activeDay)}
+                  disabled={!organization?.id}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </div>
+
               {loading ? (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
-              ) : todayTasks.length === 0 && tasks.length === 0 ? (
+              ) : dayTasks.length === 0 && dayOutreach.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border p-4 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    No scheduled tasks{isCurrentMonth ? " today" : " this month"}.
-                  </p>
+                  <p className="text-xs text-muted-foreground">Nothing scheduled.</p>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="mt-2 text-xs"
-                    onClick={() => setNewTaskOpen(true)}
+                    onClick={() => openNewTaskForDay(activeDay)}
                     disabled={!organization?.id}
                   >
-                    Schedule a follow-up
+                    Schedule something
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {(isCurrentMonth ? todayTasks : tasks.slice(0, 5)).map((t) => (
+                  {dayTasks.map((t) => (
                     <div
                       key={t.id}
                       className="rounded-lg border border-border bg-muted/50 p-3"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
+                          <p className="truncate text-sm font-medium text-foreground">
                             {t.title}
                           </p>
                           <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             {new Date(t.due_date).toLocaleString(undefined, {
-                              month: "short",
-                              day: "numeric",
                               hour: "numeric",
                               minute: "2-digit",
                             })}
+                            <span
+                              className={`ml-1 h-1.5 w-1.5 rounded-full ${priorityColor(t.priority)}`}
+                            />
+                            <span className="capitalize">{t.priority}</span>
                           </div>
                         </div>
                         <Badge
                           variant={t.status === "done" ? "default" : "secondary"}
-                          className="text-xs shrink-0"
+                          className="shrink-0 text-xs"
                         >
                           {t.status.replace("_", " ")}
                         </Badge>
@@ -370,6 +490,31 @@ function CalendarPage() {
                       )}
                     </div>
                   ))}
+
+                  {dayOutreach.map((o) => (
+                    <div
+                      key={o.id}
+                      className="rounded-lg border border-primary/30 bg-primary/5 p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
+                            <Mail className="h-3.5 w-3.5 text-primary" />
+                            {o.subject || "Outreach email"}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {new Date(o.created_at).toLocaleString(undefined, {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-xs capitalize">
+                          {o.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -380,8 +525,8 @@ function CalendarPage() {
                 {[
                   { label: "Scheduled", value: weekStats.booked },
                   { label: "Completed", value: weekStats.completed },
-                  { label: "In progress", value: weekStats.inProgress },
                   { label: "Pending", value: weekStats.pending },
+                  { label: "Outreach", value: weekStats.outreach },
                 ].map((s) => (
                   <div key={s.label} className="text-center">
                     <p className="text-lg font-bold text-foreground">{s.value}</p>
@@ -392,11 +537,12 @@ function CalendarPage() {
             </div>
 
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-              <h3 className="text-sm font-semibold text-foreground">Per-lead scheduling</h3>
+              <h3 className="text-sm font-semibold text-foreground">Connected to outreach</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Manage follow-up tasks per lead from the Leads view. Use{" "}
-                <span className="font-semibold">Complete with AI</span> to draft
-                and send the follow-up email in one click.
+                Every email sent from a lead drawer or auto-outreach run shows up
+                here automatically. Click any day to add a task or call —{" "}
+                <span className="font-semibold">Complete with AI</span> drafts and
+                sends the follow-up email in one click.
               </p>
             </div>
           </div>
@@ -405,8 +551,12 @@ function CalendarPage() {
       {organization?.id && (
         <NewTaskDialog
           open={newTaskOpen}
-          onOpenChange={setNewTaskOpen}
+          onOpenChange={(o) => {
+            setNewTaskOpen(o);
+            if (!o) setDialogDefaultDate(undefined);
+          }}
           organizationId={organization.id}
+          defaultDate={dialogDefaultDate}
           onCreated={() => setReloadKey((k) => k + 1)}
         />
       )}
