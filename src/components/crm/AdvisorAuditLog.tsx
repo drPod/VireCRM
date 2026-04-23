@@ -12,16 +12,27 @@ import {
   RefreshCw,
   Repeat2,
   Loader2,
+  Settings2,
+  Trash2,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
   listAdvisorAuditFn,
   type AdvisorAuditEntry,
 } from "@/functions/advisor-audit.functions";
 import { replayCommandPlanFn } from "@/functions/command-execute.functions";
+import {
+  getAuditRetentionFn,
+  updateAuditRetentionFn,
+  purgeAuditLogNowFn,
+  type AuditRetentionInfo,
+} from "@/functions/audit-retention.functions";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -37,19 +48,71 @@ function timeAgo(iso: string): string {
 export function AdvisorAuditLog() {
   const list = useAuthedServerFn(listAdvisorAuditFn);
   const replay = useAuthedServerFn(replayCommandPlanFn);
+  const getRetention = useAuthedServerFn(getAuditRetentionFn);
+  const updateRetention = useAuthedServerFn(updateAuditRetentionFn);
+  const purgeNow = useAuthedServerFn(purgeAuditLogNowFn);
   const [entries, setEntries] = useState<AdvisorAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<"all" | "plan" | "execute">("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [replayingId, setReplayingId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [retention, setRetention] = useState<AuditRetentionInfo | null>(null);
+  const [retentionInput, setRetentionInput] = useState<string>("90");
+  const [savingRetention, setSavingRetention] = useState(false);
+  const [purging, setPurging] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
     try {
-      const rows = await list({ data: { limit: 50, phase } });
+      const [rows, retInfo] = await Promise.all([
+        list({ data: { limit: 50, phase } }),
+        getRetention(),
+      ]);
       setEntries(rows);
+      setRetention(retInfo);
+      setRetentionInput(String(retInfo.retention_days));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveRetention = async () => {
+    const days = parseInt(retentionInput, 10);
+    if (Number.isNaN(days) || days < 0 || days > 3650) {
+      toast.error("Enter a number between 0 and 3650");
+      return;
+    }
+    setSavingRetention(true);
+    try {
+      await updateRetention({ data: { retention_days: days } });
+      toast.success(
+        days === 0
+          ? "Retention disabled — entries will be kept forever"
+          : `Saved — entries older than ${days} day${days === 1 ? "" : "s"} will be purged`,
+      );
+      await refresh();
+    } catch (e) {
+      toast.error("Could not save retention", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setSavingRetention(false);
+    }
+  };
+
+  const handlePurgeNow = async () => {
+    setPurging(true);
+    try {
+      const res = await purgeNow();
+      toast.success(`Purged ${res.deleted} old entr${res.deleted === 1 ? "y" : "ies"}`);
+      await refresh();
+    } catch (e) {
+      toast.error("Purge failed", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setPurging(false);
     }
   };
 
@@ -131,11 +194,92 @@ export function AdvisorAuditLog() {
               </button>
             ))}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSettings((v) => !v)}
+            title="Retention settings"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+          </Button>
           <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
+
+      {showSettings && retention && (
+        <div className="border-b border-border bg-background/30 px-5 py-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <Label htmlFor="retention-days" className="text-xs font-semibold">
+                Retention period (days)
+              </Label>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
+                Entries older than this are purged automatically each day. Use{" "}
+                <span className="font-mono">0</span> to keep entries forever (max 3650).
+              </p>
+              <Input
+                id="retention-days"
+                type="number"
+                min={0}
+                max={3650}
+                value={retentionInput}
+                onChange={(ev) => setRetentionInput(ev.target.value)}
+                disabled={!retention.is_owner || savingRetention}
+                className="h-8 text-sm max-w-[140px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+              <span>Total entries: {retention.total_entries}</span>
+              <span>
+                Oldest:{" "}
+                {retention.oldest_entry
+                  ? new Date(retention.oldest_entry).toLocaleDateString()
+                  : "—"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handlePurgeNow}
+                disabled={!retention.is_owner || purging || retention.retention_days === 0}
+                className="h-8"
+              >
+                {purging ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                <span className="ml-1.5 text-xs">Purge now</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveRetention}
+                disabled={
+                  !retention.is_owner ||
+                  savingRetention ||
+                  retentionInput === String(retention.retention_days)
+                }
+                className="h-8"
+              >
+                {savingRetention ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                <span className="ml-1.5 text-xs">Save</span>
+              </Button>
+            </div>
+          </div>
+          {!retention.is_owner && (
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Only organization owners can change retention.
+            </p>
+          )}
+        </div>
+      )}
 
       {loading && entries.length === 0 ? (
         <div className="px-5 py-6 text-sm text-muted-foreground">Loading…</div>

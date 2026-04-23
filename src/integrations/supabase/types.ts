@@ -924,6 +924,7 @@ export type Database = {
         Row: {
           ai_tokens_limit: number
           ai_tokens_used: number
+          audit_log_retention_days: number
           brand_name: string | null
           commission_rate: number
           created_at: string
@@ -948,6 +949,7 @@ export type Database = {
         Insert: {
           ai_tokens_limit?: number
           ai_tokens_used?: number
+          audit_log_retention_days?: number
           brand_name?: string | null
           commission_rate?: number
           created_at?: string
@@ -972,6 +974,7 @@ export type Database = {
         Update: {
           ai_tokens_limit?: number
           ai_tokens_used?: number
+          audit_log_retention_days?: number
           brand_name?: string | null
           commission_rate?: number
           created_at?: string
@@ -1851,6 +1854,7 @@ export type Database = {
         }
         Returns: number
       }
+      purge_advisor_audit_log: { Args: never; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
