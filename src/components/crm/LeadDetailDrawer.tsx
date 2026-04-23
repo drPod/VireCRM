@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy } from "lucide-react";
+import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy, Calculator } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
