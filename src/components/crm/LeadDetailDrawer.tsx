@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw } from "lucide-react";
+import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
@@ -50,7 +50,10 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     annual_kwh: "" as string,
     contract_end_date: "" as string,
     current_supplier: "",
+    deal_value: "" as string,
+    deal_currency: "USD" as string,
   });
+  const [markingWon, setMarkingWon] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -83,13 +86,15 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           : "",
       contract_end_date: lead.contractEndDate ?? "",
       current_supplier: lead.currentSupplier ?? "",
+      deal_value: "",
+      deal_currency: "USD",
     });
 
-    // Fetch the full notes + energy fields (the list view doesn't include notes).
+    // Fetch the full notes + energy + deal fields (the list view doesn't include them).
     setLoadingNotes(true);
     supabase
       .from("leads")
-      .select("notes, annual_kwh, contract_end_date, current_supplier")
+      .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency")
       .eq("id", lead.id)
       .single()
       .then(({ data }) => {
@@ -103,6 +108,11 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 : prev.annual_kwh,
             contract_end_date: data.contract_end_date ?? prev.contract_end_date,
             current_supplier: data.current_supplier ?? prev.current_supplier,
+            deal_value:
+              typeof data.deal_value_cents === "number" && data.deal_value_cents > 0
+                ? (data.deal_value_cents / 100).toString()
+                : "",
+            deal_currency: data.deal_currency ?? "USD",
           }));
         }
         setLoadingNotes(false);
@@ -222,6 +232,17 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
+  const parseDealValueCents = (): { ok: true; cents: number | null } | { ok: false; error: string } => {
+    const raw = form.deal_value.trim();
+    if (!raw) return { ok: true, cents: null };
+    const cleaned = raw.replace(/[^\d.]/g, "");
+    const n = cleaned ? Number(cleaned) : NaN;
+    if (!Number.isFinite(n) || n < 0) {
+      return { ok: false, error: "Deal value must be a positive number" };
+    }
+    return { ok: true, cents: Math.round(n * 100) };
+  };
+
   const handleSave = async () => {
     if (!lead || !form.name.trim()) {
       toast.error("Name is required");
@@ -241,6 +262,17 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       annualKwh = n;
     }
 
+    const dealParsed = parseDealValueCents();
+    if (!dealParsed.ok) {
+      toast.error(dealParsed.error);
+      return;
+    }
+
+    if (form.status === "won" && (dealParsed.cents === null || dealParsed.cents <= 0)) {
+      toast.error("Enter a deal value to mark this lead as won");
+      return;
+    }
+
     setSaving(true);
     const { error } = await supabase
       .from("leads")
@@ -256,6 +288,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
         annual_kwh: annualKwh,
         contract_end_date: form.contract_end_date || null,
         current_supplier: form.current_supplier.trim() || null,
+        deal_value_cents: dealParsed.cents,
+        deal_currency: form.deal_currency || "USD",
       })
       .eq("id", lead.id);
 
@@ -263,9 +297,39 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     if (error) {
       toast.error("Failed to update lead");
     } else {
-      toast.success("Lead updated");
+      toast.success(form.status === "won" ? "Lead marked as won 🎉" : "Lead updated");
       onUpdated();
       onOpenChange(false);
+    }
+  };
+
+  const handleMarkWon = async () => {
+    if (!lead) return;
+    const dealParsed = parseDealValueCents();
+    if (!dealParsed.ok) {
+      toast.error(dealParsed.error);
+      return;
+    }
+    if (dealParsed.cents === null || dealParsed.cents <= 0) {
+      toast.error("Enter a deal value before marking as won");
+      return;
+    }
+    setMarkingWon(true);
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        status: "won",
+        deal_value_cents: dealParsed.cents,
+        deal_currency: form.deal_currency || "USD",
+      })
+      .eq("id", lead.id);
+    setMarkingWon(false);
+    if (error) {
+      toast.error("Failed to mark lead as won");
+    } else {
+      toast.success("Lead marked as won 🎉");
+      setForm((prev) => ({ ...prev, status: "won" }));
+      onUpdated();
     }
   };
 
@@ -475,6 +539,70 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   onChange={(e) => update("score", Number(e.target.value))}
                 />
               </div>
+            </div>
+
+            <div
+              className={`rounded-lg border p-3 space-y-3 ${
+                form.status === "won"
+                  ? "border-success/40 bg-success/5"
+                  : "border-border bg-secondary/30"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Deal value
+                </p>
+                {form.status !== "won" ? (
+                  <Button
+                    variant="command"
+                    size="sm"
+                    onClick={handleMarkWon}
+                    disabled={markingWon}
+                    className="h-7 px-2.5 text-xs"
+                    title="Mark this lead as won and record the deal value"
+                  >
+                    {markingWon ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trophy className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Mark as Won
+                  </Button>
+                ) : (
+                  <Badge variant="success" className="text-[10px]">
+                    <Trophy className="mr-1 h-3 w-3" /> Won
+                  </Badge>
+                )}
+              </div>
+              <div className="grid gap-3 grid-cols-[1fr_90px]">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">Amount</label>
+                  <input
+                    inputMode="decimal"
+                    className={inputClass}
+                    value={form.deal_value}
+                    onChange={(e) => update("deal_value", e.target.value)}
+                    placeholder="e.g. 2500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">Currency</label>
+                  <select
+                    className={inputClass}
+                    value={form.deal_currency}
+                    onChange={(e) => update("deal_currency", e.target.value)}
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                  </select>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Recording a deal value when marking a lead as won automatically creates a commission earning if rules are configured.
+              </p>
             </div>
 
             <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
