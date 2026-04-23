@@ -216,7 +216,7 @@ function Dashboard() {
 
           <div className="border-t border-border bg-background/40 px-5 py-3 flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
-              Runs CRM actions only — tasks, drafts, scoring, campaigns. No external sends.
+              Runs CRM actions or hands off to your n8n workflows when configured.
             </p>
             <Button
               variant="command"
