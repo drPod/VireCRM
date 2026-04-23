@@ -265,7 +265,7 @@ function TierCard({
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="text-xs text-muted-foreground line-through">{displayedPrice}</span>
-                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">25% OFF</Badge>
+                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">35% OFF</Badge>
                   {overridden && (
                     <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
                   )}
@@ -281,7 +281,7 @@ function TierCard({
               </div>
               {isCustomQuote && (
                 <div className="mt-1">
-                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">25% OFF QUOTE</Badge>
+                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">35% OFF QUOTE</Badge>
                 </div>
               )}
               {overridden && !isCustomQuote && (
