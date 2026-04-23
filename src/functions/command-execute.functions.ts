@@ -162,7 +162,10 @@ You can ONLY produce these action types:
 - pipeline_summary: produce a written summary of pipeline health (no DB writes — the server fills the data).
 - note: a plain explanation, used when no real action fits or to clarify what you skipped.
 
-Rules:
+GUARDRAILS — you must obey:
+- You operate ONLY on existing CRM data. You CANNOT contact leads, send emails/SMS, dial phones, post to social, or trigger any external integration. Email "drafts" are saved to the Messages table for the user to review and send manually.
+- You CANNOT import, scrape, enrich, or fetch new leads from any external source (Apollo, LinkedIn, Hunter, Snov, web scraping, etc.). If the user asks to "find", "import", "enrich", "scrape", or "auto-source" leads, return a single 'note' action explaining that lead sourcing is handled in the AI Advisor / Auto-Find Leads flow and refuse the request.
+- Never produce action types outside the allowed list above. Anything outside this list will be discarded by the server.
 - Pick the smallest set of actions that fulfils the command. Usually 1–3 actions.
 - For draft_message and create_task, set lead_match to the lead name/company the user mentioned if any.
 - Never invent integrations, never claim emails were sent — drafts are saved for the user to send manually.
@@ -214,6 +217,58 @@ Rules:
     const results: ExecutionResult[] = [];
     const n8nWebhooks = await loadN8nWebhookMap(supabase, orgId);
 
+    // ---------- Guardrails ----------
+    // 1) Block intents that try to contact leads or import new ones. The
+    //    Advisor is strictly an in-app reasoning agent — sourcing/contact
+    //    flows live in dedicated screens (Auto-Find Leads, Auto Outreach).
+    const FORBIDDEN_INTENT = [
+      /\b(send|email|sms|text|call|dial|message)\s+(the\s+)?(lead|leads|client|prospects?)\b/i,
+      /\b(blast|broadcast|reach\s*out|cold[-\s]?email|cold[-\s]?call)\b/i,
+      /\b(import|scrape|enrich|find|source|auto[-\s]?find|pull|fetch|search\s+for|look\s+up)\s+(new\s+)?(leads?|prospects?|companies|contacts?)\b/i,
+      /\bapollo|linkedin\s+sales\s+nav|hunter\.io|snov\.io|zoominfo\b/i,
+    ];
+    const blockedByIntent = FORBIDDEN_INTENT.find((re) => re.test(data.command));
+    if (blockedByIntent) {
+      return {
+        summary:
+          "Blocked: the Advisor can't contact leads or import new ones. Use Auto Outreach to send messages or AI Advisor → Find Leads to source new contacts.",
+        results: [
+          {
+            type: "note",
+            status: "skipped",
+            handler: "in_app",
+            message:
+              "Guardrail: this command requires contacting leads or importing new ones, which is outside the Advisor's allowed scope. Try a follow-up task, lead scoring, a campaign shell, or a draft you can review and send manually.",
+          },
+        ],
+      };
+    }
+
+    // 2) Hard allowlist of action types the executor will run, regardless
+    //    of what the AI returned. Anything else is silently dropped with
+    //    a skipped note so the user sees what was rejected.
+    const ALLOWED_ACTIONS = new Set<AgentAction["type"]>([
+      "create_task",
+      "draft_message",
+      "score_leads",
+      "create_campaign",
+      "pipeline_summary",
+      "note",
+    ]);
+    const sanitizedActions: AgentAction[] = [];
+    for (const a of plan.actions ?? []) {
+      if (a && typeof a === "object" && ALLOWED_ACTIONS.has(a.type)) {
+        sanitizedActions.push(a);
+      } else {
+        results.push({
+          type: "note",
+          status: "skipped",
+          handler: "in_app",
+          message: `Guardrail: dropped unsupported action "${(a as { type?: string })?.type ?? "unknown"}".`,
+        });
+      }
+    }
+    plan.actions = sanitizedActions;
     // Resolve lead matches (case-insensitive name OR company contains).
     async function resolveLead(match?: string): Promise<{ id: string; name: string } | null> {
       if (!match) return null;
