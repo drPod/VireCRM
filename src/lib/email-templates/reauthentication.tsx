@@ -18,7 +18,7 @@ interface ReauthenticationEmailProps {
 
 export const ReauthenticationEmail = ({
   token,
-  siteName = 'Vireon',
+  siteName = 'Genesis',
 }: ReauthenticationEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />

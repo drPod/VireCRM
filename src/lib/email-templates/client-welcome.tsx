@@ -11,7 +11,7 @@ import {
 } from '@react-email/components'
 import type { TemplateEntry } from './registry'
 
-const SITE_NAME = 'Vireon'
+const SITE_NAME = 'Genesis'
 
 interface ClientWelcomeProps {
   brandName?: string
