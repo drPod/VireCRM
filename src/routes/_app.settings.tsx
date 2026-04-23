@@ -84,8 +84,9 @@ function SettingsPage() {
           <OutreachTemplatesManager />
         </TabsContent>
 
-        <TabsContent value="integrations">
+        <TabsContent value="integrations" className="space-y-6">
           <IntegrationsSettings />
+          <N8nWebhookSettings />
         </TabsContent>
 
         {isPlatformAdmin && (
