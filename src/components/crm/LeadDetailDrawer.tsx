@@ -232,6 +232,17 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
+  const parseDealValueCents = (): { ok: true; cents: number | null } | { ok: false; error: string } => {
+    const raw = form.deal_value.trim();
+    if (!raw) return { ok: true, cents: null };
+    const cleaned = raw.replace(/[^\d.]/g, "");
+    const n = cleaned ? Number(cleaned) : NaN;
+    if (!Number.isFinite(n) || n < 0) {
+      return { ok: false, error: "Deal value must be a positive number" };
+    }
+    return { ok: true, cents: Math.round(n * 100) };
+  };
+
   const handleSave = async () => {
     if (!lead || !form.name.trim()) {
       toast.error("Name is required");
@@ -251,6 +262,17 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       annualKwh = n;
     }
 
+    const dealParsed = parseDealValueCents();
+    if (!dealParsed.ok) {
+      toast.error(dealParsed.error);
+      return;
+    }
+
+    if (form.status === "won" && (dealParsed.cents === null || dealParsed.cents <= 0)) {
+      toast.error("Enter a deal value to mark this lead as won");
+      return;
+    }
+
     setSaving(true);
     const { error } = await supabase
       .from("leads")
@@ -266,6 +288,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
         annual_kwh: annualKwh,
         contract_end_date: form.contract_end_date || null,
         current_supplier: form.current_supplier.trim() || null,
+        deal_value_cents: dealParsed.cents,
+        deal_currency: form.deal_currency || "USD",
       })
       .eq("id", lead.id);
 
@@ -273,9 +297,39 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     if (error) {
       toast.error("Failed to update lead");
     } else {
-      toast.success("Lead updated");
+      toast.success(form.status === "won" ? "Lead marked as won 🎉" : "Lead updated");
       onUpdated();
       onOpenChange(false);
+    }
+  };
+
+  const handleMarkWon = async () => {
+    if (!lead) return;
+    const dealParsed = parseDealValueCents();
+    if (!dealParsed.ok) {
+      toast.error(dealParsed.error);
+      return;
+    }
+    if (dealParsed.cents === null || dealParsed.cents <= 0) {
+      toast.error("Enter a deal value before marking as won");
+      return;
+    }
+    setMarkingWon(true);
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        status: "won",
+        deal_value_cents: dealParsed.cents,
+        deal_currency: form.deal_currency || "USD",
+      })
+      .eq("id", lead.id);
+    setMarkingWon(false);
+    if (error) {
+      toast.error("Failed to mark lead as won");
+    } else {
+      toast.success("Lead marked as won 🎉");
+      setForm((prev) => ({ ...prev, status: "won" }));
+      onUpdated();
     }
   };
 
