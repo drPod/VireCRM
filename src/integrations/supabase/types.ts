@@ -1117,6 +1117,51 @@ export type Database = {
           },
         ]
       }
+      pending_subscription_grants: {
+        Row: {
+          consumed_at: string | null
+          consumed_org_id: string | null
+          consumed_user_id: string | null
+          created_at: string
+          email: string
+          feature_keys: string[]
+          granted_by: string | null
+          id: string
+          is_reseller: boolean
+          monthly_lead_quota: number
+          notes: string | null
+          plan: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          consumed_org_id?: string | null
+          consumed_user_id?: string | null
+          created_at?: string
+          email: string
+          feature_keys?: string[]
+          granted_by?: string | null
+          id?: string
+          is_reseller?: boolean
+          monthly_lead_quota?: number
+          notes?: string | null
+          plan?: string
+        }
+        Update: {
+          consumed_at?: string | null
+          consumed_org_id?: string | null
+          consumed_user_id?: string | null
+          created_at?: string
+          email?: string
+          feature_keys?: string[]
+          granted_by?: string | null
+          id?: string
+          is_reseller?: boolean
+          monthly_lead_quota?: number
+          notes?: string | null
+          plan?: string
+        }
+        Relationships: []
+      }
       pending_welcome_emails: {
         Row: {
           attempts: number
