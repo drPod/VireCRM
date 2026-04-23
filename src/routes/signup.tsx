@@ -11,6 +11,7 @@ import {
   type PasswordStrengthResult,
 } from "@/components/auth/PasswordStrengthMeter";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { TermsCheckbox } from "@/components/auth/TermsCheckbox";
 import { friendlyAuthError } from "@/lib/auth-errors";
 
 export const Route = createFileRoute("/signup")({
@@ -49,6 +50,7 @@ function SignupPage() {
     score: 0,
     feedback: "",
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const handleStrengthChange = useCallback(
@@ -96,6 +98,10 @@ function SignupPage() {
       );
       return;
     }
+    if (!acceptedTerms) {
+      toast.error("Please accept the Terms & Conditions to continue.");
+      return;
+    }
     setLoading(true);
     try {
       const { data: signUpData, error } = await supabase.auth.signUp({
@@ -122,6 +128,10 @@ function SignupPage() {
   };
 
   const handleGoogleSignup = async () => {
+    if (!acceptedTerms) {
+      toast.error("Please accept the Terms & Conditions to continue.");
+      return;
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: buildRedirectAfterSignup(),
     });
@@ -229,7 +239,12 @@ function SignupPage() {
               />
             </div>
 
-            <Button type="submit" variant="command" className="w-full" disabled={loading}>
+            <TermsCheckbox
+              checked={acceptedTerms}
+              onCheckedChange={setAcceptedTerms}
+            />
+
+            <Button type="submit" variant="command" className="w-full" disabled={loading || !acceptedTerms}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Account
             </Button>
