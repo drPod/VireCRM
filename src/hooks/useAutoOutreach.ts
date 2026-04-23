@@ -29,6 +29,14 @@ const INTEGRATION_SOURCES = new Set<string>([
   "snov",
   // Legacy tag used before per-provider sourcing — still treated as integration-sourced.
   "ai_discovery",
+  // CSV/XLSX imports — the user uploaded these addresses, so they've vouched
+  // for them. Auto-outreach is opt-in via the import dialog toggle.
+  "csv_import",
+  "xlsx_import",
+  // Apollo list import — same idea: user-supplied verified addresses.
+  "apollo_list_import",
+  // Leads created by the AI Advisor task dispatcher.
+  "ai_advisor_task",
 ]);
 
 export function useAutoOutreach() {
