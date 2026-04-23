@@ -10,7 +10,26 @@ interface LeadForOutreach {
   name: string;
   email?: string | null;
   company?: string | null;
+  /**
+   * Where the lead came from. Auto-outreach only fires for leads sourced
+   * from real data integrations (Apollo / Hunter / Snov) — not from
+   * manual entry, CSV imports, or speculative AI suggestions.
+   */
+  source?: string | null;
 }
+
+/**
+ * Sources that represent verified leads from real data integrations.
+ * Anything outside this set will not trigger auto-outreach — the user can
+ * still email those leads manually from the lead drawer.
+ */
+const INTEGRATION_SOURCES = new Set<string>([
+  "apollo",
+  "hunter",
+  "snov",
+  // Legacy tag used before per-provider sourcing — still treated as integration-sourced.
+  "ai_discovery",
+]);
 
 export function useAutoOutreach() {
   const { organization } = useAuth();
@@ -21,8 +40,24 @@ export function useAutoOutreach() {
     async (leads: LeadForOutreach[]) => {
       if (!organization?.id || leads.length === 0 || pendingRef.current) return;
 
+      // Step 1: drop anything without an email — outreach can't send to nothing.
       const leadsWithEmail = leads.filter((l) => l.email);
       if (leadsWithEmail.length === 0) return;
+
+      // Step 2: enforce integration-only sourcing. This is the gate that
+      // prevents AI-guessed or manually entered leads from being blasted with
+      // automated emails to addresses that may not be real.
+      const integrationLeads = leadsWithEmail.filter((l) =>
+        l.source ? INTEGRATION_SOURCES.has(l.source) : false
+      );
+
+      if (integrationLeads.length === 0) {
+        toast.info("Auto-outreach skipped", {
+          description:
+            "Auto-outreach only runs on leads sourced from your integrations (Apollo, Hunter, Snov). You can still email these leads manually from the lead drawer.",
+        });
+        return;
+      }
 
       pendingRef.current = true;
 
@@ -30,7 +65,7 @@ export function useAutoOutreach() {
         const result = await outreach({
           data: {
             organizationId: organization.id,
-            leads: leadsWithEmail.map((l) => ({
+            leads: integrationLeads.map((l) => ({
               id: l.id,
               name: l.name,
               email: l.email || undefined,
@@ -46,7 +81,7 @@ export function useAutoOutreach() {
               description:
                 result.skipped > 0
                   ? `${result.skipped} skipped — ${result.errors[0] ?? "see message log"}`
-                  : "AI-generated personalized emails were dispatched.",
+                  : "AI-personalized emails were dispatched to integration-verified leads.",
             }
           );
         } else if (result.skipped > 0) {
