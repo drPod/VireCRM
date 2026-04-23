@@ -5,7 +5,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { TEMPLATES } from '@/lib/email-templates/registry'
 
 // Match the constants used by the transactional send route.
-const SITE_NAME = 'auto-pilot-sales-ace'
+const SITE_NAME = 'Genesis'
 const SENDER_DOMAIN = 'notify.vireonx.space'
 const FROM_DOMAIN = 'vireonx.space'
 
