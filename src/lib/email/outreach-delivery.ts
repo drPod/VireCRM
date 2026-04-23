@@ -104,7 +104,13 @@ function toSafeEmail(value: unknown): string | null {
 export async function loadOutreachDeliveryChannels(
   organizationId: string,
 ): Promise<OutreachDeliveryChannels> {
-  const [sendgridResult, connectorResult] = await Promise.all([
+  const [resendResult, sendgridResult, connectorResult] = await Promise.all([
+    supabaseAdmin
+      .from("org_integrations")
+      .select("config")
+      .eq("organization_id", organizationId)
+      .eq("provider", "resend")
+      .maybeSingle(),
     supabaseAdmin
       .from("org_integrations")
       .select("api_key, config")
@@ -120,6 +126,18 @@ export async function loadOutreachDeliveryChannels(
   ]);
 
   const channels: OutreachDeliveryChannels = { connectors: [] };
+
+  // Resend — workspace-level connector + per-org from address.
+  // Only enable if the connector is actually linked (env var present);
+  // otherwise we'd attempt sends that always fail.
+  const resendConfig = (resendResult.data?.config ?? {}) as Record<string, unknown>;
+  const resendFrom = toSafeEmail(resendConfig.fromAddress);
+  if (resendFrom && process.env.RESEND_API_KEY) {
+    channels.resend = {
+      fromAddress: resendFrom,
+      replyTo: toSafeEmail(resendConfig.replyTo),
+    };
+  }
 
   const sendgridConfig = (sendgridResult.data?.config ?? {}) as Record<string, unknown>;
   const sendgridFrom =
