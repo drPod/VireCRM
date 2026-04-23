@@ -341,11 +341,6 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       return;
     }
 
-    if (form.status === "won" && (dealParsed.cents === null || dealParsed.cents <= 0)) {
-      toast.error("Enter a deal value to mark this lead as won");
-      return;
-    }
-
     setSaving(true);
     const { error } = await supabase
       .from("leads")
