@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getConnector } from "@/lib/connectors/catalog";
 import { callGateway } from "@/lib/connectors/gateway";
 import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
+import { sendResendEmail } from "@/lib/resend";
 import { sendSendgridEmail } from "@/lib/sendgrid";
 
 type ConnectorProvider = "gmail" | "microsoft_outlook";
@@ -14,6 +15,19 @@ interface AvailableConnectorChannel {
 }
 
 export interface OutreachDeliveryChannels {
+  /**
+   * Resend connection details for this org. Present only when:
+   *   1. The Resend connector is linked at the workspace level
+   *      (`process.env.RESEND_API_KEY` exists), AND
+   *   2. The org owner saved a verified `fromAddress` for Resend.
+   *
+   * Resend takes priority over SendGrid because it's the more recently-added
+   * channel and users opting into it have explicitly set a from address.
+   */
+  resend?: {
+    fromAddress: string;
+    replyTo?: string | null;
+  };
   sendgrid?: {
     apiKey: string;
     fromAddress: string;
