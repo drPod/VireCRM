@@ -28,7 +28,6 @@ export function MarketingFooter() {
             <h4 className="text-sm font-semibold text-foreground">Company</h4>
             <div className="mt-3 flex flex-col gap-2">
               <span className="text-sm text-muted-foreground">About</span>
-              <span className="text-sm text-muted-foreground">Blog</span>
               <span className="text-sm text-muted-foreground">Careers</span>
             </div>
           </div>
