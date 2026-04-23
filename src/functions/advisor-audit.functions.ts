@@ -60,5 +60,5 @@ export const listAdvisorAuditFn = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []) as AdvisorAuditEntry[];
+    return (rows ?? []) as unknown as AdvisorAuditEntry[];
   });
