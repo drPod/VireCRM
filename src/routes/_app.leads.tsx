@@ -43,7 +43,7 @@ const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "w
 function LeadsPage() {
   const { organization } = useAuth();
   const navigate = useNavigate();
-  const { q, action } = Route.useSearch();
+  const { q, action, ai_desc, ai_industry } = Route.useSearch();
   const [search, setSearch] = useState(q ?? "");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -54,6 +54,10 @@ function LeadsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [autoFindOpen, setAutoFindOpen] = useState(false);
+  // Captured once when the AI Advisor deep-links us in, so the dialog gets
+  // pre-filled even after we strip the URL params.
+  const [aiPrefill, setAiPrefill] = useState<{ desc?: string; industry?: string }>({});
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
@@ -68,8 +72,21 @@ function LeadsPage() {
     } else if (action === "import") {
       setImportOpen(true);
       navigate({ to: "/leads", search: (prev: LeadsSearch) => ({ ...prev, action: undefined }), replace: true });
+    } else if (action === "auto-find") {
+      setAiPrefill({ desc: ai_desc, industry: ai_industry });
+      setAutoFindOpen(true);
+      navigate({
+        to: "/leads",
+        search: (prev: LeadsSearch) => ({
+          ...prev,
+          action: undefined,
+          ai_desc: undefined,
+          ai_industry: undefined,
+        }),
+        replace: true,
+      });
     }
-  }, [action, navigate]);
+  }, [action, ai_desc, ai_industry, navigate]);
 
   const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
