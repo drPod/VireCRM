@@ -7,14 +7,22 @@ const listSchema = z.object({
   phase: z.enum(["plan", "execute", "all"]).default("all").optional(),
 });
 
+type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export interface AdvisorAuditEntry {
   id: string;
   command: string;
   phase: "plan" | "execute";
   summary: string | null;
-  plan: unknown;
-  results: unknown;
-  handlers: Record<string, number> | null;
+  plan: Json | null;
+  results: Json | null;
+  handlers: Json | null;
   ok_count: number;
   error_count: number;
   skipped_count: number;
