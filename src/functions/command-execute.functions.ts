@@ -59,13 +59,43 @@ interface NoteAction {
   message: string; // explanatory note shown to the user, no DB side-effect
 }
 
+interface UpdateLeadStatusAction {
+  type: "update_lead_status";
+  lead_match: string;
+  new_status: "new" | "contacted" | "qualified" | "negotiation" | "won" | "lost";
+  reason?: string;
+}
+
+interface LogMessageAction {
+  type: "log_message";
+  /** Channel of the logged message. */
+  channel?: "email" | "sms" | "call" | "note";
+  /** Direction is informational; stored on the messages.type field. */
+  direction?: "outbound" | "inbound";
+  subject?: string;
+  body: string;
+  lead_match?: string;
+}
+
+interface ScheduleFollowUpAction {
+  type: "schedule_follow_up";
+  lead_match: string;
+  /** Days from now (1..90). */
+  in_days: number;
+  channel?: "email" | "call" | "meeting" | "task";
+  notes?: string;
+}
+
 type AgentAction =
   | CreateTaskAction
   | DraftMessageAction
   | ScoreLeadsAction
   | CreateCampaignAction
   | PipelineSummaryAction
-  | NoteAction;
+  | NoteAction
+  | UpdateLeadStatusAction
+  | LogMessageAction
+  | ScheduleFollowUpAction;
 
 interface AgentPlan {
   summary: string;
@@ -156,19 +186,22 @@ Recent leads:
 ${leadContext || "(none yet)"}
 
 You can ONLY produce these action types:
-- create_task: schedule a follow-up / reminder. Use when the user says "remind me", "follow up", "call X tomorrow", etc.
-- draft_message: write a personalized outreach draft saved to Messages (NOT sent). Use for "write an email to ...", "draft a follow-up".
+- create_task: schedule a generic to-do for the user. Use for "remind me", "todo".
+- schedule_follow_up: schedule a dated follow-up tied to a specific lead. Use for "follow up with X in 3 days", "check back next week with Y". Requires lead_match and in_days.
+- draft_message: write a personalized outreach draft saved to Messages as a DRAFT (NOT sent). Use for "write an email to ...", "draft a follow-up".
+- log_message: record an already-occurred conversation (logged call, sent email, inbound reply) onto a lead's history. Use for "log that I called X yesterday", "log inbound reply from Y". Stored as status="logged" so it's not confused with drafts.
+- update_lead_status: move a lead through the pipeline (new → contacted → qualified → negotiation → won/lost). Use for "mark X as qualified", "move Y to negotiation".
 - score_leads: bulk-adjust scores on leads matching simple criteria. Use for "score my hot leads", "deprioritize cold leads".
 - create_campaign: create a new campaign shell. Use for "start a campaign for ...".
 - pipeline_summary: produce a written summary of pipeline health (no DB writes — the server fills the data).
 - note: a plain explanation, used when no real action fits or to clarify what you skipped.
 
 GUARDRAILS — you must obey:
-- You operate ONLY on existing CRM data. You CANNOT contact leads, send emails/SMS, dial phones, post to social, or trigger any external integration. Email "drafts" are saved to the Messages table for the user to review and send manually.
+- You operate ONLY on existing CRM data. You CANNOT contact leads, send emails/SMS, dial phones, post to social, or trigger any external integration. Email "drafts" are saved to the Messages table for the user to review and send manually. log_message is for recording activity that already happened — it does not contact anyone.
 - You CANNOT import, scrape, enrich, or fetch new leads from any external source (Apollo, LinkedIn, Hunter, Snov, web scraping, etc.). If the user asks to "find", "import", "enrich", "scrape", or "auto-source" leads, return a single 'note' action explaining that lead sourcing is handled in the AI Advisor / Auto-Find Leads flow and refuse the request.
 - Never produce action types outside the allowed list above. Anything outside this list will be discarded by the server.
 - Pick the smallest set of actions that fulfils the command. Usually 1–3 actions.
-- For draft_message and create_task, set lead_match to the lead name/company the user mentioned if any.
+- For draft_message, log_message, schedule_follow_up, and update_lead_status, set lead_match to the lead name/company the user mentioned.
 - Never invent integrations, never claim emails were sent — drafts are saved for the user to send manually.
 - Keep messages concise, professional, no placeholders like [Name].`,
       userPrompt: data.command,
@@ -190,6 +223,9 @@ GUARDRAILS — you must obey:
                     "create_campaign",
                     "pipeline_summary",
                     "note",
+                    "update_lead_status",
+                    "log_message",
+                    "schedule_follow_up",
                   ],
                 },
                 title: { type: "string" },
@@ -206,6 +242,18 @@ GUARDRAILS — you must obey:
                 name: { type: "string" },
                 objective: { type: "string" },
                 message: { type: "string" },
+                new_status: {
+                  type: "string",
+                  enum: ["new", "contacted", "qualified", "negotiation", "won", "lost"],
+                },
+                reason: { type: "string" },
+                channel: {
+                  type: "string",
+                  enum: ["email", "sms", "call", "note", "meeting", "task"],
+                },
+                direction: { type: "string", enum: ["outbound", "inbound"] },
+                in_days: { type: "number" },
+                notes: { type: "string" },
               },
               required: ["type"],
             },
@@ -267,6 +315,9 @@ GUARDRAILS — you must obey:
       "create_campaign",
       "pipeline_summary",
       "note",
+      "update_lead_status",
+      "log_message",
+      "schedule_follow_up",
     ]);
     const sanitizedActions: AgentAction[] = [];
     for (const a of plan.actions ?? []) {
@@ -463,6 +514,108 @@ GUARDRAILS — you must obey:
               status: "ok",
               message: top ? `Pipeline — ${top}` : "Pipeline is empty.",
               meta: { total: byStatus?.length ?? 0 },
+            });
+            break;
+          }
+
+          case "update_lead_status": {
+            const lead = await resolveLead(action.lead_match);
+            if (!lead) {
+              results.push({
+                type: "update_lead_status",
+                status: "skipped",
+                message: `No lead matched "${action.lead_match}"`,
+              });
+              break;
+            }
+            const { error } = await supabaseAdmin
+              .from("leads")
+              .update({
+                status: action.new_status,
+                ...(action.reason ? { next_action: action.reason.slice(0, 500) } : {}),
+              })
+              .eq("id", lead.id)
+              .eq("organization_id", orgId);
+            if (error) throw error;
+            results.push({
+              type: "update_lead_status",
+              status: "ok",
+              message: `Moved ${lead.name} to "${action.new_status}"${action.reason ? ` — ${action.reason}` : ""}`,
+              meta: { lead_id: lead.id, new_status: action.new_status },
+            });
+            break;
+          }
+
+          case "log_message": {
+            const lead = await resolveLead(action.lead_match);
+            const channel = action.channel ?? "note";
+            const directionPrefix =
+              action.direction === "inbound" ? "[inbound] " : action.direction === "outbound" ? "[outbound] " : "";
+            const { data: row, error } = await supabaseAdmin
+              .from("messages")
+              .insert({
+                organization_id: orgId,
+                lead_id: lead?.id ?? null,
+                type: channel,
+                status: "logged",
+                subject: action.subject?.slice(0, 200) ?? null,
+                content: (directionPrefix + action.body).slice(0, 5000),
+              })
+              .select("id")
+              .single();
+            if (error) throw error;
+            // Touch last_contact when we logged contact with a lead
+            if (lead && action.direction !== "inbound") {
+              await supabaseAdmin
+                .from("leads")
+                .update({ last_contact: new Date().toISOString() })
+                .eq("id", lead.id)
+                .eq("organization_id", orgId);
+            }
+            results.push({
+              type: "log_message",
+              status: "ok",
+              message: `Logged ${channel}${lead ? ` with ${lead.name}` : ""}${action.subject ? `: "${action.subject}"` : ""}`,
+              meta: { message_id: row.id, lead_id: lead?.id ?? null, channel },
+            });
+            break;
+          }
+
+          case "schedule_follow_up": {
+            const lead = await resolveLead(action.lead_match);
+            if (!lead) {
+              results.push({
+                type: "schedule_follow_up",
+                status: "skipped",
+                message: `No lead matched "${action.lead_match}"`,
+              });
+              break;
+            }
+            const days = Math.max(1, Math.min(Math.round(action.in_days || 1), 90));
+            const due = new Date();
+            due.setDate(due.getDate() + days);
+            const channel = action.channel ?? "task";
+            const title = `Follow up with ${lead.name}${channel !== "task" ? ` (${channel})` : ""}`;
+            const { data: row, error } = await supabaseAdmin
+              .from("tasks")
+              .insert({
+                organization_id: orgId,
+                title: title.slice(0, 200),
+                description: action.notes?.slice(0, 2000) ?? null,
+                priority: "medium",
+                due_date: due.toISOString(),
+                lead_id: lead.id,
+                assigned_to: userId,
+                status: "todo",
+              })
+              .select("id")
+              .single();
+            if (error) throw error;
+            results.push({
+              type: "schedule_follow_up",
+              status: "ok",
+              message: `Follow-up scheduled with ${lead.name} in ${days} day${days === 1 ? "" : "s"} via ${channel}`,
+              meta: { task_id: row.id, lead_id: lead.id, in_days: days },
             });
             break;
           }
