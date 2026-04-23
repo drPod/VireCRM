@@ -13,6 +13,15 @@ import {
   ChevronRight,
   Sparkles,
   ArrowRight,
+  Play,
+  CheckCheck,
+  XCircle,
+  ListTodo,
+  Mail,
+  TrendingDown,
+  Megaphone,
+  StickyNote,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandBar } from "@/components/crm/CommandBar";
