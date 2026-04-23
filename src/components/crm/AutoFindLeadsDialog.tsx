@@ -58,6 +58,15 @@ const PERSONA_PRESETS = [
 
 interface AutoFindLeadsDialogProps {
   onLeadsImported?: () => void;
+  /** Optional controlled open state — used when triggered from another panel (e.g. AI Advisor). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Hide the default "Auto-find" trigger button. Useful when controlled externally. */
+  hideTrigger?: boolean;
+  /** Pre-populate the search description (e.g. AI Advisor → strategic hook / ICP summary). */
+  initialDescription?: string;
+  /** Pre-populate the industry filter. */
+  initialIndustry?: string;
 }
 
 type ErrorCode = "INTEGRATION_MISSING" | "QUOTA_EXCEEDED" | "PLATFORM_KEY_MISSING" | null;
