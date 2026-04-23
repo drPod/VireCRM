@@ -94,16 +94,29 @@ function formatResetDate(iso: string | undefined): string {
   return d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
 
-export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProps) {
+export function AutoFindLeadsDialog({
+  onLeadsImported,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger,
+  initialDescription,
+  initialIndustry,
+}: AutoFindLeadsDialogProps) {
   const { organization, role } = useAuth();
   const isOwner = role?.role === "owner";
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    controlledOnOpenChange?.(v);
+  };
   const [provider, setProvider] = useState<"apollo" | "hunter" | "snov">("apollo");
   const [companyDomain, setCompanyDomain] = useState("");
-  const [description, setDescription] = useState("");
-  const [industry, setIndustry] = useState("");
+  const [description, setDescription] = useState(initialDescription ?? "");
+  const [industry, setIndustry] = useState(initialIndustry ?? "");
   const [industryChoice, setIndustryChoice] = useState<string>("");
   const [persona, setPersona] = useState<string>("");
   const [count, setCount] = useState(10);
