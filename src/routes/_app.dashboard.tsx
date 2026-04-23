@@ -392,6 +392,9 @@ const ACTION_META: Record<
   create_campaign: { label: "Campaign", Icon: Megaphone },
   pipeline_summary: { label: "Pipeline summary", Icon: BarChart3 },
   note: { label: "Note", Icon: StickyNote },
+  update_lead_status: { label: "Lead status", Icon: ArrowRightLeft },
+  log_message: { label: "Logged message", Icon: MessageSquare },
+  schedule_follow_up: { label: "Follow-up", Icon: CalendarClock },
 };
 
 function ExecutionResults({ data }: { data: ExecuteCommandResponse }) {
