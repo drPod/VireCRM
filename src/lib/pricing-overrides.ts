@@ -28,13 +28,37 @@ function isBrowser(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
+// Lookup keys whose stored overrides should always be discarded on load.
+// Use this when the source-of-truth price in code is intentionally changed
+// and any prior auto-sync override would mask the new value.
+const STALE_OVERRIDE_KEYS = new Set<string>([
+  "crm_starter_monthly",
+  "crm_growth_monthly",
+  "crm_pro_monthly",
+]);
+
 export function loadOverrides(): PriceOverrideMap {
   if (!isBrowser()) return {};
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as PriceOverrideMap;
-    return parsed && typeof parsed === "object" ? parsed : {};
+    if (!parsed || typeof parsed !== "object") return {};
+    let mutated = false;
+    for (const key of STALE_OVERRIDE_KEYS) {
+      if (key in parsed) {
+        delete parsed[key];
+        mutated = true;
+      }
+    }
+    if (mutated) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      } catch {
+        // ignore quota / privacy errors
+      }
+    }
+    return parsed;
   } catch {
     return {};
   }
