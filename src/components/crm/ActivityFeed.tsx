@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { Mail, Bot, UserPlus, MessageSquare, Activity as ActivityIcon } from "lucide-react";
+import { Mail, Bot, UserPlus, MessageSquare, Activity as ActivityIcon, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { formatDistanceToNow } from "date-fns";
 
-type ActivityKind = "lead" | "message" | "reply";
+type ActivityKind = "lead" | "message" | "reply" | "won";
 
 interface ActivityItem {
   id: string;
@@ -17,12 +17,14 @@ const ICONS: Record<ActivityKind, typeof Mail> = {
   lead: UserPlus,
   message: Mail,
   reply: MessageSquare,
+  won: Trophy,
 };
 
 const COLORS: Record<ActivityKind, string> = {
   lead: "bg-success/10 text-success",
   message: "bg-primary/10 text-primary",
   reply: "bg-info/10 text-info",
+  won: "bg-success/15 text-success",
 };
 
 export function ActivityFeed() {
@@ -66,6 +68,15 @@ export function ActivityFeed() {
         });
       }
       for (const m of messages.data ?? []) {
+        if (m.type === "lead_won") {
+          all.push({
+            id: `m-${m.id}`,
+            type: "won",
+            description: m.subject || "Lead marked as won",
+            timestamp: m.created_at,
+          });
+          continue;
+        }
         const label =
           m.type === "ai_generated" ? "AI sent message" : m.type === "sms" ? "SMS sent" : "Email sent";
         const detail = m.subject || (m.content ? m.content.slice(0, 60) : "");
