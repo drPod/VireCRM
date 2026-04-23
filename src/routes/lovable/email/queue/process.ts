@@ -36,8 +36,8 @@ function getRetryAfterSeconds(error: unknown): number {
 }
 
 // Move a message to the dead letter queue and log the reason.
-// Uses `any` for supabase + payload to avoid fighting generated Database types
-// (this dispatcher writes to service-role-only tables and JSON payload columns).
+// Cast `supabase` to any so the service-role client can target tables/RPCs
+// (move_to_dlq, delete_email, email_send_log) without strict generic friction.
 async function moveToDlq(
   supabase: any,
   queue: string,
