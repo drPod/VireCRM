@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Terminal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { TermsCheckbox } from "@/components/auth/TermsCheckbox";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/r/$resellerSlug/signup")({
@@ -48,6 +49,7 @@ function ResellerSignupPage() {
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -103,6 +105,10 @@ function ResellerSignupPage() {
       toast.error("Password must be at least 6 characters");
       return;
     }
+    if (!acceptedTerms) {
+      toast.error("Please accept the Terms & Conditions to continue.");
+      return;
+    }
     setSubmitting(true);
     try {
       sessionStorage.setItem("reseller_pending_company", companyName);
@@ -136,6 +142,10 @@ function ResellerSignupPage() {
   const handleGoogleSignup = async () => {
     if (!companyName) {
       toast.error("Please enter your company name first");
+      return;
+    }
+    if (!acceptedTerms) {
+      toast.error("Please accept the Terms & Conditions to continue.");
       return;
     }
     sessionStorage.setItem("reseller_pending_company", companyName);
@@ -273,11 +283,16 @@ function ResellerSignupPage() {
             />
           </div>
 
+          <TermsCheckbox
+            checked={acceptedTerms}
+            onCheckedChange={setAcceptedTerms}
+          />
+
           <Button
             type="submit"
             variant="command"
             className="w-full"
-            disabled={submitting}
+            disabled={submitting || !acceptedTerms}
             style={accentColor ? { backgroundColor: accentColor } : undefined}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
