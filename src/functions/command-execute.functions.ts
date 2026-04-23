@@ -242,6 +242,18 @@ GUARDRAILS — you must obey:
                 name: { type: "string" },
                 objective: { type: "string" },
                 message: { type: "string" },
+                new_status: {
+                  type: "string",
+                  enum: ["new", "contacted", "qualified", "negotiation", "won", "lost"],
+                },
+                reason: { type: "string" },
+                channel: {
+                  type: "string",
+                  enum: ["email", "sms", "call", "note", "meeting", "task"],
+                },
+                direction: { type: "string", enum: ["outbound", "inbound"] },
+                in_days: { type: "number" },
+                notes: { type: "string" },
               },
               required: ["type"],
             },
