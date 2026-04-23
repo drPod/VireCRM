@@ -15,13 +15,25 @@ import {
   Settings2,
   Trash2,
   Save,
+  Search,
+  X,
+  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
 import {
   listAdvisorAuditFn,
   type AdvisorAuditEntry,
@@ -45,7 +57,18 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
+type StatusFilter = "all" | "success" | "errors" | "skipped";
+
+function entryStatusMatches(entry: AdvisorAuditEntry, status: StatusFilter): boolean {
+  if (status === "all") return true;
+  if (status === "errors") return entry.error_count > 0 || !!entry.error_message;
+  if (status === "skipped") return entry.skipped_count > 0;
+  // success
+  return entry.error_count === 0 && !entry.error_message && entry.phase === "execute" && entry.ok_count > 0;
+}
+
 export function AdvisorAuditLog() {
+  const { organization } = useAuth();
   const list = useAuthedServerFn(listAdvisorAuditFn);
   const replay = useAuthedServerFn(replayCommandPlanFn);
   const getRetention = useAuthedServerFn(getAuditRetentionFn);
@@ -62,6 +85,16 @@ export function AdvisorAuditLog() {
   const [savingRetention, setSavingRetention] = useState(false);
   const [purging, setPurging] = useState(false);
 
+  // Filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [search, setSearch] = useState("");
+  const [userFilter, setUserFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+
   const refresh = async () => {
     setLoading(true);
     try {
@@ -76,6 +109,24 @@ export function AdvisorAuditLog() {
       setLoading(false);
     }
   };
+
+  // Load member names for the user filter
+  useEffect(() => {
+    if (!organization?.id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("organization_id", organization.id);
+      if (data) {
+        const map: Record<string, string> = {};
+        for (const row of data) {
+          map[row.user_id] = row.full_name || row.user_id.slice(0, 8);
+        }
+        setMemberNames(map);
+      }
+    })();
+  }, [organization?.id]);
 
   const handleSaveRetention = async () => {
     const days = parseInt(retentionInput, 10);
@@ -146,8 +197,41 @@ export function AdvisorAuditLog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
+  // Build user options from entries + known members
+  const userOptions = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of entries) {
+      if (e.user_id) ids.add(e.user_id);
+    }
+    return Array.from(ids).map((id) => ({
+      id,
+      name: memberNames[id] ?? `${id.slice(0, 8)}…`,
+    }));
+  }, [entries, memberNames]);
+
+  // Apply filters
+  const filteredEntries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const fromTs = dateFrom ? new Date(dateFrom).getTime() : null;
+    // dateTo is inclusive end-of-day
+    const toTs = dateTo ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1 : null;
+
+    return entries.filter((e) => {
+      if (q) {
+        const hay = `${e.command} ${e.summary ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (userFilter !== "all" && e.user_id !== userFilter) return false;
+      if (!entryStatusMatches(e, statusFilter)) return false;
+      const ts = new Date(e.created_at).getTime();
+      if (fromTs !== null && ts < fromTs) return false;
+      if (toTs !== null && ts > toTs) return false;
+      return true;
+    });
+  }, [entries, search, userFilter, statusFilter, dateFrom, dateTo]);
+
   const stats = useMemo(() => {
-    return entries.reduce(
+    return filteredEntries.reduce(
       (acc, e) => {
         acc.total += 1;
         if (e.phase === "execute") {
@@ -159,7 +243,22 @@ export function AdvisorAuditLog() {
       },
       { total: 0, executions: 0, ok: 0, err: 0 },
     );
-  }, [entries]);
+  }, [filteredEntries]);
+
+  const activeFilterCount =
+    (search.trim() ? 1 : 0) +
+    (userFilter !== "all" ? 1 : 0) +
+    (statusFilter !== "all" ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearch("");
+    setUserFilter("all");
+    setStatusFilter("all");
+    setDateFrom("");
+    setDateTo("");
+  };
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -170,7 +269,8 @@ export function AdvisorAuditLog() {
             Advisor Audit Log
           </span>
           <Badge variant="secondary" className="text-[10px]">
-            {stats.total} entries
+            {stats.total}
+            {activeFilterCount > 0 ? ` / ${entries.length}` : ""} entries
           </Badge>
           {stats.executions > 0 && (
             <Badge variant="secondary" className="text-[10px]">
@@ -197,6 +297,20 @@ export function AdvisorAuditLog() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setShowFilters((v) => !v)}
+            title="Search & filters"
+            className="relative"
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowSettings((v) => !v)}
             title="Retention settings"
           >
@@ -207,6 +321,111 @@ export function AdvisorAuditLog() {
           </Button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="border-b border-border bg-background/30 px-5 py-3 space-y-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search command text or summary…"
+              value={search}
+              onChange={(ev) => setSearch(ev.target.value)}
+              className="h-8 text-sm pl-8 pr-8"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <Label className="text-[11px] font-semibold text-muted-foreground">
+                User
+              </Label>
+              <Select value={userFilter} onValueChange={setUserFilter}>
+                <SelectTrigger className="h-8 text-xs mt-1">
+                  <SelectValue placeholder="All users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All users</SelectItem>
+                  {userOptions.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-[11px] font-semibold text-muted-foreground">
+                Status
+              </Label>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+              >
+                <SelectTrigger className="h-8 text-xs mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any status</SelectItem>
+                  <SelectItem value="success">Success only</SelectItem>
+                  <SelectItem value="errors">With errors</SelectItem>
+                  <SelectItem value="skipped">With skipped</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-[11px] font-semibold text-muted-foreground">
+                From
+              </Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(ev) => setDateFrom(ev.target.value)}
+                className="h-8 text-xs mt-1"
+              />
+            </div>
+
+            <div>
+              <Label className="text-[11px] font-semibold text-muted-foreground">
+                To
+              </Label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(ev) => setDateTo(ev.target.value)}
+                className="h-8 text-xs mt-1"
+              />
+            </div>
+          </div>
+
+          {activeFilterCount > 0 && (
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-muted-foreground">
+                Showing {filteredEntries.length} of {entries.length} entries
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearFilters}
+                className="h-7 text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear filters
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {showSettings && retention && (
         <div className="border-b border-border bg-background/30 px-5 py-4">
@@ -288,13 +507,24 @@ export function AdvisorAuditLog() {
           No Advisor activity yet. Run a command from the Command Bar above to
           see plans, workflow runs, and CRM updates here.
         </div>
+      ) : filteredEntries.length === 0 ? (
+        <div className="px-5 py-6 text-sm text-muted-foreground flex items-center justify-between">
+          <span>No entries match your filters.</span>
+          <Button size="sm" variant="ghost" onClick={clearFilters} className="h-7 text-xs">
+            <X className="h-3 w-3 mr-1" />
+            Clear filters
+          </Button>
+        </div>
       ) : (
         <ul className="divide-y divide-border">
-          {entries.map((e) => {
+          {filteredEntries.map((e) => {
             const isOpen = openId === e.id;
             const PhaseIcon = e.phase === "plan" ? Brain : Play;
             const handlers = (e.handlers ?? null) as Record<string, number> | null;
             const n8nCount = handlers?.n8n ?? 0;
+            const userLabel = e.user_id
+              ? (memberNames[e.user_id] ?? `${e.user_id.slice(0, 8)}…`)
+              : null;
             return (
               <li key={e.id} className="px-5 py-3">
                 <button
@@ -355,6 +585,7 @@ export function AdvisorAuditLog() {
                     )}
                     <div className="text-[11px] text-muted-foreground mt-0.5">
                       {timeAgo(e.created_at)} · {e.duration_ms}ms
+                      {userLabel ? ` · ${userLabel}` : ""}
                       {e.error_message ? ` · ${e.error_message}` : ""}
                     </div>
                   </div>
