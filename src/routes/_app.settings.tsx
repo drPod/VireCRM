@@ -3,6 +3,7 @@ import { WhiteLabelSettings } from "@/components/crm/WhiteLabelSettings";
 import { TeamMembers } from "@/components/crm/TeamMembers";
 import { EmailAuditLog } from "@/components/crm/EmailAuditLog";
 import { TestEmailReport } from "@/components/crm/TestEmailReport";
+import { EmailTemplatePreviewPanel } from "@/components/crm/EmailTemplatePreviewPanel";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
 import { N8nWebhookSettings } from "@/components/crm/N8nWebhookSettings";
@@ -77,6 +78,7 @@ function SettingsPage() {
 
         <TabsContent value="emails" className="space-y-6">
           <TestEmailReport />
+          <EmailTemplatePreviewPanel />
           <EmailAuditLog />
         </TabsContent>
 
