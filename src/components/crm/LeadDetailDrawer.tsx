@@ -366,7 +366,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       toast.error("Failed to update lead");
     } else {
       const transitionedToWon = form.status === "won" && lead.status !== "won";
-      if (transitionedToWon && dealParsed.cents !== null && dealParsed.cents > 0) {
+      if (transitionedToWon) {
         await recordWonActivity(dealParsed.cents, form.deal_currency || "USD");
       }
       toast.success(form.status === "won" ? "Lead marked as won 🎉" : "Lead updated");
