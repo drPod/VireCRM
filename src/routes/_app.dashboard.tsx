@@ -312,3 +312,65 @@ function Dashboard() {
     </div>
   );
 }
+
+const ACTION_META: Record<
+  ExecutionResult["type"],
+  { label: string; Icon: typeof ListTodo }
+> = {
+  create_task: { label: "Task", Icon: ListTodo },
+  draft_message: { label: "Email draft", Icon: Mail },
+  score_leads: { label: "Lead scoring", Icon: TrendingDown },
+  create_campaign: { label: "Campaign", Icon: Megaphone },
+  pipeline_summary: { label: "Pipeline summary", Icon: BarChart3 },
+  note: { label: "Note", Icon: StickyNote },
+};
+
+function ExecutionResults({ data }: { data: ExecuteCommandResponse }) {
+  const okCount = data.results.filter((r) => r.status === "ok").length;
+  const errCount = data.results.filter((r) => r.status === "error").length;
+  const skipCount = data.results.filter((r) => r.status === "skipped").length;
+
+  return (
+    <div className="rounded-xl border border-success/20 bg-success/5 overflow-hidden">
+      <div className="border-b border-success/20 bg-success/10 px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CheckCheck className="h-4 w-4 text-success" />
+          <span className="text-sm font-semibold text-foreground">Done</span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {okCount} applied{skipCount > 0 ? `, ${skipCount} skipped` : ""}
+          {errCount > 0 ? `, ${errCount} failed` : ""}
+        </span>
+      </div>
+      <p className="px-5 pt-3 text-sm text-foreground">{data.summary}</p>
+      <ul className="px-5 py-3 space-y-2">
+        {data.results.map((r, i) => {
+          const meta = ACTION_META[r.type] ?? ACTION_META.note;
+          const Icon = meta.Icon;
+          const tone =
+            r.status === "ok"
+              ? "text-success"
+              : r.status === "error"
+                ? "text-destructive"
+                : "text-muted-foreground";
+          return (
+            <li key={i} className="flex items-start gap-3">
+              <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${tone}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {meta.label}
+                  </span>
+                  {r.status === "error" && (
+                    <XCircle className="h-3 w-3 text-destructive" />
+                  )}
+                </div>
+                <p className="text-sm text-foreground break-words">{r.message}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
