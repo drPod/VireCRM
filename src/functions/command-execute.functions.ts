@@ -416,6 +416,13 @@ Rules:
           message: err instanceof Error ? err.message : "Action failed",
         });
       }
+
+      // Tag the in-app branch result(s) added in this iteration. Anything
+      // dispatched to n8n already `continue`d before reaching here.
+      const last = results[results.length - 1];
+      if (last && !last.handler) {
+        last.handler = "in_app";
+      }
     }
 
     return {
