@@ -22,6 +22,9 @@ import {
   Megaphone,
   StickyNote,
   BarChart3,
+  ArrowRightLeft,
+  MessageSquare,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandBar } from "@/components/crm/CommandBar";
