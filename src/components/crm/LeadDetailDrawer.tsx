@@ -23,7 +23,7 @@ const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "nego
 
 interface ActivityItem {
   id: string;
-  type: "email" | "reply" | "task";
+  type: "email" | "reply" | "task" | "won";
   title: string;
   content: string;
   date: string;
@@ -151,8 +151,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       messagesRes.data?.forEach((m) =>
         items.push({
           id: m.id,
-          type: "email",
-          title: m.subject || "Outreach email",
+          type: m.type === "lead_won" ? "won" : "email",
+          title: m.subject || (m.type === "lead_won" ? "Lead marked as won" : "Outreach email"),
           content: m.content,
           date: m.created_at,
           status: m.status,
@@ -842,12 +842,14 @@ function ActivityEntry({ item }: { item: ActivityItem }) {
     email: <Mail className="h-3.5 w-3.5" />,
     reply: <MessageSquare className="h-3.5 w-3.5" />,
     task: <Clock className="h-3.5 w-3.5" />,
+    won: <Trophy className="h-3.5 w-3.5" />,
   };
 
   const colorMap = {
     email: "bg-primary/15 text-primary border-primary/20",
     reply: "bg-accent text-accent-foreground border-accent",
     task: "bg-secondary text-secondary-foreground border-secondary",
+    won: "bg-success/15 text-success border-success/30",
   };
 
   const sentimentBadge = item.sentiment ? (
