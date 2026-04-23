@@ -23,8 +23,8 @@ export function PromoBanner() {
   );
 }
 
-/** Discount rate applied to all displayed prices. 0.25 = 25% off. */
-export const PROMO_DISCOUNT = 0.25;
+/** Discount rate applied to all displayed prices. 0.35 = 35% off. */
+export const PROMO_DISCOUNT = 0.35;
 
 /**
  * Apply the promo discount to a price string like "$97" or "$297–$497".
