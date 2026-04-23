@@ -275,16 +275,29 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const parseDealValueCents = (): { ok: true; cents: number | null } | { ok: false; error: string } => {
+  const parseDealValueCents = (): { ok: true; cents: number } | { ok: false; error: string } => {
     const raw = form.deal_value.trim();
-    if (!raw) return { ok: true, cents: null };
+    if (!raw) {
+      return { ok: false, error: "Deal value is required — enter a positive amount" };
+    }
     const cleaned = raw.replace(/[^\d.]/g, "");
     const n = cleaned ? Number(cleaned) : NaN;
-    if (!Number.isFinite(n) || n < 0) {
-      return { ok: false, error: "Deal value must be a positive number" };
+    if (!Number.isFinite(n) || n <= 0) {
+      return { ok: false, error: "Deal value must be greater than 0" };
     }
     return { ok: true, cents: Math.round(n * 100) };
   };
+
+  const dealValidation = useMemo(() => {
+    const raw = form.deal_value.trim();
+    if (!raw) return { valid: false, error: "Enter a positive deal value" };
+    const cleaned = raw.replace(/[^\d.]/g, "");
+    const n = cleaned ? Number(cleaned) : NaN;
+    if (!Number.isFinite(n) || n <= 0) {
+      return { valid: false, error: "Deal value must be greater than 0" };
+    }
+    return { valid: true as const, cents: Math.round(n * 100) };
+  }, [form.deal_value]);
 
   const recordWonActivity = async (cents: number, currency: string) => {
     if (!lead || !organization?.id) return;
@@ -328,11 +341,6 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       return;
     }
 
-    if (form.status === "won" && (dealParsed.cents === null || dealParsed.cents <= 0)) {
-      toast.error("Enter a deal value to mark this lead as won");
-      return;
-    }
-
     setSaving(true);
     const { error } = await supabase
       .from("leads")
@@ -358,7 +366,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       toast.error("Failed to update lead");
     } else {
       const transitionedToWon = form.status === "won" && lead.status !== "won";
-      if (transitionedToWon && dealParsed.cents !== null && dealParsed.cents > 0) {
+      if (transitionedToWon) {
         await recordWonActivity(dealParsed.cents, form.deal_currency || "USD");
       }
       toast.success(form.status === "won" ? "Lead marked as won 🎉" : "Lead updated");
@@ -372,10 +380,6 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     const dealParsed = parseDealValueCents();
     if (!dealParsed.ok) {
       toast.error(dealParsed.error);
-      return;
-    }
-    if (dealParsed.cents === null || dealParsed.cents <= 0) {
-      toast.error("Enter a deal value before marking as won");
       return;
     }
     setMarkingWon(true);
@@ -625,9 +629,13 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                     variant="command"
                     size="sm"
                     onClick={handleMarkWon}
-                    disabled={markingWon}
+                    disabled={markingWon || !dealValidation.valid}
                     className="h-7 px-2.5 text-xs"
-                    title="Mark this lead as won and record the deal value"
+                    title={
+                      dealValidation.valid
+                        ? "Mark this lead as won and record the deal value"
+                        : "Enter a positive deal value first"
+                    }
                   >
                     {markingWon ? (
                       <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -644,13 +652,16 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </div>
               <div className="grid gap-3 grid-cols-[1fr_90px]">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground">Amount</label>
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    Amount <span className="text-destructive">*</span>
+                  </label>
                   <input
                     inputMode="decimal"
-                    className={inputClass}
+                    className={`${inputClass} ${!dealValidation.valid ? "border-destructive focus:ring-destructive" : ""}`}
                     value={form.deal_value}
                     onChange={(e) => update("deal_value", e.target.value)}
                     placeholder="e.g. 2500"
+                    aria-invalid={!dealValidation.valid}
                   />
                 </div>
                 <div>
@@ -668,9 +679,13 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   </select>
                 </div>
               </div>
+              {!dealValidation.valid && (
+                <p className="text-[11px] text-destructive leading-relaxed">
+                  {dealValidation.error}
+                </p>
+              )}
               {(() => {
-                const parsed = parseDealValueCents();
-                const cents = parsed.ok ? parsed.cents : null;
+                const cents = dealValidation.valid ? dealValidation.cents : null;
                 if (form.status !== "won" || !cents || cents <= 0) {
                   return (
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -802,7 +817,13 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 )}
                 {confirmDelete ? "Confirm Delete" : "Delete"}
               </Button>
-              <Button variant="command" size="sm" onClick={handleSave} disabled={saving}>
+              <Button
+                variant="command"
+                size="sm"
+                onClick={handleSave}
+                disabled={saving || !dealValidation.valid}
+                title={dealValidation.valid ? "Save changes" : "Enter a positive deal value to save"}
+              >
                 {saving ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
