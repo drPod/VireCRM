@@ -12,16 +12,27 @@ import {
   RefreshCw,
   Repeat2,
   Loader2,
+  Settings2,
+  Trash2,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
   listAdvisorAuditFn,
   type AdvisorAuditEntry,
 } from "@/functions/advisor-audit.functions";
 import { replayCommandPlanFn } from "@/functions/command-execute.functions";
+import {
+  getAuditRetentionFn,
+  updateAuditRetentionFn,
+  purgeAuditLogNowFn,
+  type AuditRetentionInfo,
+} from "@/functions/audit-retention.functions";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
