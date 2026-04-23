@@ -297,12 +297,14 @@ export function AutoFindLeadsDialog({
         if (!v) reset();
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="command" size="sm">
-          <Wand2 className="h-4 w-4" />
-          Auto-Find Leads
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="command" size="sm">
+            <Wand2 className="h-4 w-4" />
+            Auto-Find Leads
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
