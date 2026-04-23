@@ -315,6 +315,9 @@ GUARDRAILS — you must obey:
       "create_campaign",
       "pipeline_summary",
       "note",
+      "update_lead_status",
+      "log_message",
+      "schedule_follow_up",
     ]);
     const sanitizedActions: AgentAction[] = [];
     for (const a of plan.actions ?? []) {
