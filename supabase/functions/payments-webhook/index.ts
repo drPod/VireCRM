@@ -31,6 +31,7 @@ serve(async (req) => {
         await markSubscriptionDeleted(event.data.object, env);
         break;
       case "invoice.payment_succeeded":
+        await verifyInvoiceDiscount(event.data.object, env);
         await recordTransaction(event.data.object, env, "completed");
         break;
       case "invoice.payment_failed":
@@ -51,6 +52,9 @@ serve(async (req) => {
 });
 
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
+  // Verify the launch promo discount actually landed on the session.
+  await verifySessionDiscount(session, env);
+
   // For one-off payments we may want to record a transaction here.
   // Subscription rows are populated by customer.subscription.created.
   if (session.mode === "payment" && session.payment_status === "paid") {
@@ -73,6 +77,124 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       },
       { onConflict: "stripe_transaction_id" },
     );
+  }
+}
+
+/**
+ * Expected promo discount applied to every checkout: 25% off via the
+ * `launch25` Stripe coupon. We tolerate ±1 cent for rounding.
+ */
+const EXPECTED_DISCOUNT_PERCENT = 25;
+const EXPECTED_COUPON_ID = "launch25";
+
+/**
+ * Flag any completed checkout session whose total doesn't reflect 25% off
+ * the subtotal. Writes a structured row into error_logs so finance/ops can
+ * audit it. Never throws — discount auditing must not break webhook ingest.
+ */
+async function verifySessionDiscount(session: any, env: StripeEnv) {
+  try {
+    const subtotal = Number(session.amount_subtotal ?? 0);
+    const total = Number(session.amount_total ?? 0);
+    if (!subtotal || subtotal <= 0) return;
+
+    const expectedTotal = Math.round(subtotal * (1 - EXPECTED_DISCOUNT_PERCENT / 100));
+    const drift = Math.abs(total - expectedTotal);
+    const couponId =
+      session.total_details?.breakdown?.discounts?.[0]?.discount?.coupon?.id ||
+      session.discounts?.[0]?.coupon ||
+      null;
+    const couponOk = couponId === EXPECTED_COUPON_ID;
+
+    if (drift <= 1 && couponOk) return; // healthy
+
+    const reason = !couponOk
+      ? `Missing or wrong coupon (got ${couponId ?? "none"}, expected ${EXPECTED_COUPON_ID})`
+      : `Total ${total}¢ does not match expected ${expectedTotal}¢ (subtotal ${subtotal}¢, drift ${drift}¢)`;
+
+    console.error(
+      `[discount-audit] session=${session.id} env=${env} ${reason}`,
+    );
+
+    await supabase.from("error_logs").insert({
+      message: `Discount mismatch on checkout.session.completed: ${reason}`,
+      url: `stripe://checkout/session/${session.id}`,
+      user_id: session.metadata?.userId || null,
+      organization_id: session.metadata?.attributedResellerId || null,
+      metadata: {
+        kind: "discount_mismatch",
+        source: "checkout.session.completed",
+        session_id: session.id,
+        environment: env,
+        currency: session.currency,
+        amount_subtotal: subtotal,
+        amount_total: total,
+        expected_total: expectedTotal,
+        drift_cents: drift,
+        expected_coupon: EXPECTED_COUPON_ID,
+        applied_coupon: couponId,
+        mode: session.mode,
+        customer_email: session.customer_details?.email || session.customer_email || null,
+        reseller_plan_id: session.metadata?.resellerPlanId || null,
+      },
+    });
+  } catch (e) {
+    console.error("[discount-audit] failed to verify session", e);
+  }
+}
+
+/**
+ * For recurring subscriptions, Stripe issues an invoice on each renewal.
+ * We re-check the first paid invoice (billing_reason === "subscription_create")
+ * to ensure the coupon was carried into the subscription billing.
+ */
+async function verifyInvoiceDiscount(invoice: any, env: StripeEnv) {
+  try {
+    // Only audit the initial subscription invoice — recurring renewals reuse
+    // the same coupon (forever) and don't need to be re-flagged repeatedly.
+    if (invoice.billing_reason !== "subscription_create") return;
+
+    const subtotal = Number(invoice.subtotal ?? 0);
+    const total = Number(invoice.total ?? invoice.amount_paid ?? 0);
+    if (!subtotal || subtotal <= 0) return;
+
+    const expectedTotal = Math.round(subtotal * (1 - EXPECTED_DISCOUNT_PERCENT / 100));
+    const drift = Math.abs(total - expectedTotal);
+    const couponId = invoice.discount?.coupon?.id || invoice.discounts?.[0] || null;
+    const couponOk = couponId === EXPECTED_COUPON_ID;
+
+    if (drift <= 1 && couponOk) return;
+
+    const reason = !couponOk
+      ? `Missing or wrong coupon on invoice (got ${couponId ?? "none"}, expected ${EXPECTED_COUPON_ID})`
+      : `Invoice total ${total}¢ does not match expected ${expectedTotal}¢ (subtotal ${subtotal}¢, drift ${drift}¢)`;
+
+    console.error(
+      `[discount-audit] invoice=${invoice.id} env=${env} ${reason}`,
+    );
+
+    await supabase.from("error_logs").insert({
+      message: `Discount mismatch on invoice.payment_succeeded: ${reason}`,
+      url: `stripe://invoice/${invoice.id}`,
+      metadata: {
+        kind: "discount_mismatch",
+        source: "invoice.payment_succeeded",
+        invoice_id: invoice.id,
+        subscription_id: invoice.subscription,
+        environment: env,
+        currency: invoice.currency,
+        amount_subtotal: subtotal,
+        amount_total: total,
+        expected_total: expectedTotal,
+        drift_cents: drift,
+        expected_coupon: EXPECTED_COUPON_ID,
+        applied_coupon: couponId,
+        billing_reason: invoice.billing_reason,
+        customer_email: invoice.customer_email || null,
+      },
+    });
+  } catch (e) {
+    console.error("[discount-audit] failed to verify invoice", e);
   }
 }
 
