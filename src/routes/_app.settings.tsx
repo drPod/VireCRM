@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { WhiteLabelSettings } from "@/components/crm/WhiteLabelSettings";
 import { TeamMembers } from "@/components/crm/TeamMembers";
 import { EmailAuditLog } from "@/components/crm/EmailAuditLog";
+import { TestEmailReport } from "@/components/crm/TestEmailReport";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
 import { OutreachTemplatesManager } from "@/components/crm/OutreachTemplatesManager";
@@ -73,7 +74,8 @@ function SettingsPage() {
           <WhiteLabelSettings />
         </TabsContent>
 
-        <TabsContent value="emails">
+        <TabsContent value="emails" className="space-y-6">
+          <TestEmailReport />
           <EmailAuditLog />
         </TabsContent>
 
