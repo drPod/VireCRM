@@ -75,7 +75,7 @@ function ReputationPage() {
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const brandName = organization?.brand_name || organization?.name || "Vireon";
+  const brandName = organization?.brand_name || organization?.name || "Genesis";
   const senderName = profile?.full_name?.split(" ")[0] || undefined;
 
   useEffect(() => {
