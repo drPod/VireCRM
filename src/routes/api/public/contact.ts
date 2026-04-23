@@ -206,6 +206,21 @@ export const Route = createFileRoute('/api/public/contact')({
           return jsonError('We could not deliver your message right now.', 500)
         }
 
+        // Best-effort acknowledgment to the visitor. Failure here must NEVER
+        // bubble up — the owner already has the inquiry, and the visitor
+        // already saw the on-screen "Message sent" confirmation.
+        try {
+          await sendVisitorAcknowledgment({
+            supabase,
+            visitorName: payload.name,
+            visitorEmail: payload.email,
+            visitorMessage: payload.message,
+            origin: request.headers.get('origin'),
+          })
+        } catch (ackErr) {
+          console.warn('contact: visitor acknowledgment failed (non-fatal)', ackErr)
+        }
+
         return Response.json({ success: true })
       },
 
