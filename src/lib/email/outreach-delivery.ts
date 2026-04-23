@@ -195,6 +195,49 @@ export async function deliverOutreachEmail(
     };
   }
 
+  // Resend goes first — it's the most recently-wired channel and users who
+  // configured it explicitly opted into it for outreach.
+  if (input.channels.resend) {
+    try {
+      const result = await sendResendEmail({
+        from: input.channels.resend.fromAddress,
+        to: input.recipientEmail,
+        subject: input.subject,
+        html: plainTextToHtml(input.body),
+        replyTo:
+          toSafeEmail(input.replyTo) ??
+          toSafeEmail(input.channels.resend.replyTo) ??
+          undefined,
+      });
+      await supabaseAdmin.from("email_send_log").insert({
+        recipient_email: input.recipientEmail,
+        template_name: "outreach_resend",
+        status: "sent",
+        message_id: result.messageId,
+        metadata: {
+          channel: "resend",
+          from: input.channels.resend.fromAddress,
+          idempotency_key: input.idempotencyKey,
+        } as never,
+      });
+      return { success: true, channel: "resend", label: "Resend" };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "send failed";
+      attemptedErrors.push(`Resend: ${reason}`);
+      await supabaseAdmin.from("email_send_log").insert({
+        recipient_email: input.recipientEmail,
+        template_name: "outreach_resend",
+        status: "failed",
+        error_message: reason,
+        metadata: {
+          channel: "resend",
+          from: input.channels.resend.fromAddress,
+          idempotency_key: input.idempotencyKey,
+        } as never,
+      });
+    }
+  }
+
   if (input.channels.sendgrid) {
     try {
       await sendSendgridEmail({
