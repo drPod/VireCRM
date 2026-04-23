@@ -58,6 +58,15 @@ const PERSONA_PRESETS = [
 
 interface AutoFindLeadsDialogProps {
   onLeadsImported?: () => void;
+  /** Optional controlled open state — used when triggered from another panel (e.g. AI Advisor). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Hide the default "Auto-find" trigger button. Useful when controlled externally. */
+  hideTrigger?: boolean;
+  /** Pre-populate the search description (e.g. AI Advisor → strategic hook / ICP summary). */
+  initialDescription?: string;
+  /** Pre-populate the industry filter. */
+  initialIndustry?: string;
 }
 
 type ErrorCode = "INTEGRATION_MISSING" | "QUOTA_EXCEEDED" | "PLATFORM_KEY_MISSING" | null;
@@ -85,16 +94,29 @@ function formatResetDate(iso: string | undefined): string {
   return d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
 
-export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProps) {
+export function AutoFindLeadsDialog({
+  onLeadsImported,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger,
+  initialDescription,
+  initialIndustry,
+}: AutoFindLeadsDialogProps) {
   const { organization, role } = useAuth();
   const isOwner = role?.role === "owner";
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    controlledOnOpenChange?.(v);
+  };
   const [provider, setProvider] = useState<"apollo" | "hunter" | "snov">("apollo");
   const [companyDomain, setCompanyDomain] = useState("");
-  const [description, setDescription] = useState("");
-  const [industry, setIndustry] = useState("");
+  const [description, setDescription] = useState(initialDescription ?? "");
+  const [industry, setIndustry] = useState(initialIndustry ?? "");
   const [industryChoice, setIndustryChoice] = useState<string>("");
   const [persona, setPersona] = useState<string>("");
   const [count, setCount] = useState(10);
@@ -275,12 +297,14 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
         if (!v) reset();
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="command" size="sm">
-          <Wand2 className="h-4 w-4" />
-          Auto-Find Leads
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="command" size="sm">
+            <Wand2 className="h-4 w-4" />
+            Auto-Find Leads
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

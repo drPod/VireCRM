@@ -29,6 +29,14 @@ const INTEGRATION_SOURCES = new Set<string>([
   "snov",
   // Legacy tag used before per-provider sourcing — still treated as integration-sourced.
   "ai_discovery",
+  // CSV/XLSX imports — the user uploaded these addresses, so they've vouched
+  // for them. Auto-outreach is opt-in via the import dialog toggle.
+  "csv_import",
+  "xlsx_import",
+  // Apollo list import — same idea: user-supplied verified addresses.
+  "apollo_list_import",
+  // Leads created by the AI Advisor task dispatcher.
+  "ai_advisor_task",
 ]);
 
 export function useAutoOutreach() {
@@ -54,7 +62,7 @@ export function useAutoOutreach() {
       if (integrationLeads.length === 0) {
         toast.info("Auto-outreach skipped", {
           description:
-            "Auto-outreach only runs on leads sourced from your integrations (Apollo, Hunter, Snov). You can still email these leads manually from the lead drawer.",
+            "Auto-outreach only runs on leads from integrations (Apollo, Hunter, Snov), CSV/XLSX imports, or the AI Advisor. Manually-added leads can still be emailed from the lead drawer.",
         });
         return;
       }

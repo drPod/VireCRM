@@ -11,15 +11,23 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-type LeadsAction = "add" | "import";
-type LeadsSearch = { q?: string; action?: LeadsAction };
+type LeadsAction = "add" | "import" | "auto-find";
+type LeadsSearch = { q?: string; action?: LeadsAction; ai_desc?: string; ai_industry?: string };
 
 export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
   validateSearch: (search: Record<string, unknown>): LeadsSearch => {
     const out: LeadsSearch = {};
     if (typeof search.q === "string" && search.q.length > 0) out.q = search.q;
-    if (search.action === "add" || search.action === "import") out.action = search.action;
+    if (search.action === "add" || search.action === "import" || search.action === "auto-find") {
+      out.action = search.action;
+    }
+    if (typeof search.ai_desc === "string" && search.ai_desc.length > 0) {
+      out.ai_desc = search.ai_desc.slice(0, 1000);
+    }
+    if (typeof search.ai_industry === "string" && search.ai_industry.length > 0) {
+      out.ai_industry = search.ai_industry.slice(0, 200);
+    }
     return out;
   },
   head: () => ({
@@ -35,7 +43,7 @@ const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "w
 function LeadsPage() {
   const { organization } = useAuth();
   const navigate = useNavigate();
-  const { q, action } = Route.useSearch();
+  const { q, action, ai_desc, ai_industry } = Route.useSearch();
   const [search, setSearch] = useState(q ?? "");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -46,6 +54,10 @@ function LeadsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [autoFindOpen, setAutoFindOpen] = useState(false);
+  // Captured once when the AI Advisor deep-links us in, so the dialog gets
+  // pre-filled even after we strip the URL params.
+  const [aiPrefill, setAiPrefill] = useState<{ desc?: string; industry?: string }>({});
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
@@ -60,8 +72,21 @@ function LeadsPage() {
     } else if (action === "import") {
       setImportOpen(true);
       navigate({ to: "/leads", search: (prev: LeadsSearch) => ({ ...prev, action: undefined }), replace: true });
+    } else if (action === "auto-find") {
+      setAiPrefill({ desc: ai_desc, industry: ai_industry });
+      setAutoFindOpen(true);
+      navigate({
+        to: "/leads",
+        search: (prev: LeadsSearch) => ({
+          ...prev,
+          action: undefined,
+          ai_desc: undefined,
+          ai_industry: undefined,
+        }),
+        replace: true,
+      });
     }
-  }, [action, navigate]);
+  }, [action, ai_desc, ai_industry, navigate]);
 
   const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -127,7 +152,16 @@ function LeadsPage() {
         <div className="flex gap-2">
           <ExportLeadsButton leads={leads} />
           <ImportApolloListDialog onLeadsImported={handleLeadAdded} />
-          <AutoFindLeadsDialog onLeadsImported={handleLeadAdded} />
+          <AutoFindLeadsDialog
+            onLeadsImported={handleLeadAdded}
+            open={autoFindOpen}
+            onOpenChange={(v) => {
+              setAutoFindOpen(v);
+              if (!v) setAiPrefill({});
+            }}
+            initialDescription={aiPrefill.desc}
+            initialIndustry={aiPrefill.industry}
+          />
           <ImportLeadsDialog
             onLeadsImported={handleLeadAdded}
             open={importOpen}
