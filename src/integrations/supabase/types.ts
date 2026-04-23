@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      advisor_audit_log: {
+        Row: {
+          command: string
+          created_at: string
+          duration_ms: number
+          error_count: number
+          error_message: string | null
+          handlers: Json | null
+          id: string
+          ok_count: number
+          organization_id: string
+          phase: string
+          plan: Json | null
+          results: Json | null
+          skipped_count: number
+          summary: string | null
+          user_id: string | null
+        }
+        Insert: {
+          command: string
+          created_at?: string
+          duration_ms?: number
+          error_count?: number
+          error_message?: string | null
+          handlers?: Json | null
+          id?: string
+          ok_count?: number
+          organization_id: string
+          phase: string
+          plan?: Json | null
+          results?: Json | null
+          skipped_count?: number
+          summary?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          command?: string
+          created_at?: string
+          duration_ms?: number
+          error_count?: number
+          error_message?: string | null
+          handlers?: Json | null
+          id?: string
+          ok_count?: number
+          organization_id?: string
+          phase?: string
+          plan?: Json | null
+          results?: Json | null
+          skipped_count?: number
+          summary?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advisor_audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_analyses: {
         Row: {
           business_description: string

@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { dispatchToN8n, loadN8nWebhookMap } from "@/lib/n8n/dispatch";
+import { logAdvisorExecution } from "@/lib/advisor-audit";
 import { z } from "zod";
 
 /**
@@ -117,7 +118,7 @@ export const executeCommandActionsFn = createServerFn({ method: "POST" })
 
     if (!profile) throw new Error("No organization found for user");
     const orgId = profile.organization_id;
-
+    const startedAt = Date.now();
     // Quick context: counts + a few recent leads to ground the AI.
     const [{ count: leadCount }, { count: campaignCount }, { data: recentLeads }] =
       await Promise.all([
@@ -229,7 +230,7 @@ GUARDRAILS — you must obey:
     ];
     const blockedByIntent = FORBIDDEN_INTENT.find((re) => re.test(data.command));
     if (blockedByIntent) {
-      return {
+      const blockedResponse: ExecuteCommandResponse = {
         summary:
           "Blocked: the Advisor can't contact leads or import new ones. Use Auto Outreach to send messages or AI Advisor → Find Leads to source new contacts.",
         results: [
@@ -242,6 +243,18 @@ GUARDRAILS — you must obey:
           },
         ],
       };
+      await logAdvisorExecution({
+        supabase: supabaseAdmin,
+        organizationId: orgId,
+        userId,
+        command: data.command,
+        summary: blockedResponse.summary,
+        plan: { blocked_by: String(blockedByIntent) } as unknown,
+        results: blockedResponse.results,
+        durationMs: Date.now() - startedAt,
+        errorMessage: "blocked_by_guardrail",
+      });
+      return blockedResponse;
     }
 
     // 2) Hard allowlist of action types the executor will run, regardless
@@ -480,8 +493,21 @@ GUARDRAILS — you must obey:
       }
     }
 
-    return {
+    const response: ExecuteCommandResponse = {
       summary: plan.summary || "Done.",
       results,
     };
+
+    await logAdvisorExecution({
+      supabase: supabaseAdmin,
+      organizationId: orgId,
+      userId,
+      command: data.command,
+      summary: response.summary,
+      plan: plan as unknown,
+      results,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return response;
   });
