@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { verifyAndApplyGrant } from "@/functions/verify-grant.functions";
+import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -61,6 +63,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  const grantCheckedFor = useRef<string | null>(null);
+
+  // Idempotent post-signup verification: confirms any pre-paid grant has been
+  // applied to this user's org, and self-heals missing plan / feature flags.
+  // Runs at most once per (browser session, user) pair.
+  const verifyGrantOnce = async (userId: string) => {
+    if (grantCheckedFor.current === userId) return;
+    grantCheckedFor.current = userId;
+    try {
+      const headers = await getServerFnAuthHeaders();
+      const result = await verifyAndApplyGrant({ headers });
+      if (result?.healed) {
+        console.info("[AuthProvider] Pre-paid grant self-healed:", result);
+        // Pull fresh org state into the context.
+        await fetchUserData(userId);
+      }
+    } catch (err) {
+      // Non-fatal — user can still use the app, the grant is just not applied yet.
+      console.warn("[AuthProvider] verifyAndApplyGrant failed", err);
+    }
+  };
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -125,11 +148,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (currentSession?.user) {
           // Use setTimeout to avoid Supabase deadlock
-          setTimeout(() => fetchUserData(currentSession.user.id), 0);
+          const uid = currentSession.user.id;
+          setTimeout(() => {
+            fetchUserData(uid);
+            // Verify pre-paid grant on sign-in (idempotent, runs once per user/session).
+            if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+              verifyGrantOnce(uid);
+            }
+          }, 0);
         } else {
           setProfile(null);
           setRole(null);
           setOrganization(null);
+          grantCheckedFor.current = null;
         }
         // Only release loading after the initial session check has run, so the
         // app doesn't briefly see user=null and bounce to /login.
@@ -143,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
         fetchUserData(existingSession.user.id);
+        verifyGrantOnce(existingSession.user.id);
       }
       initialized = true;
       setLoading(false);
