@@ -518,6 +518,108 @@ GUARDRAILS — you must obey:
             break;
           }
 
+          case "update_lead_status": {
+            const lead = await resolveLead(action.lead_match);
+            if (!lead) {
+              results.push({
+                type: "update_lead_status",
+                status: "skipped",
+                message: `No lead matched "${action.lead_match}"`,
+              });
+              break;
+            }
+            const { error } = await supabaseAdmin
+              .from("leads")
+              .update({
+                status: action.new_status,
+                ...(action.reason ? { next_action: action.reason.slice(0, 500) } : {}),
+              })
+              .eq("id", lead.id)
+              .eq("organization_id", orgId);
+            if (error) throw error;
+            results.push({
+              type: "update_lead_status",
+              status: "ok",
+              message: `Moved ${lead.name} to "${action.new_status}"${action.reason ? ` — ${action.reason}` : ""}`,
+              meta: { lead_id: lead.id, new_status: action.new_status },
+            });
+            break;
+          }
+
+          case "log_message": {
+            const lead = await resolveLead(action.lead_match);
+            const channel = action.channel ?? "note";
+            const directionPrefix =
+              action.direction === "inbound" ? "[inbound] " : action.direction === "outbound" ? "[outbound] " : "";
+            const { data: row, error } = await supabaseAdmin
+              .from("messages")
+              .insert({
+                organization_id: orgId,
+                lead_id: lead?.id ?? null,
+                type: channel,
+                status: "logged",
+                subject: action.subject?.slice(0, 200) ?? null,
+                content: (directionPrefix + action.body).slice(0, 5000),
+              })
+              .select("id")
+              .single();
+            if (error) throw error;
+            // Touch last_contact when we logged contact with a lead
+            if (lead && action.direction !== "inbound") {
+              await supabaseAdmin
+                .from("leads")
+                .update({ last_contact: new Date().toISOString() })
+                .eq("id", lead.id)
+                .eq("organization_id", orgId);
+            }
+            results.push({
+              type: "log_message",
+              status: "ok",
+              message: `Logged ${channel}${lead ? ` with ${lead.name}` : ""}${action.subject ? `: "${action.subject}"` : ""}`,
+              meta: { message_id: row.id, lead_id: lead?.id ?? null, channel },
+            });
+            break;
+          }
+
+          case "schedule_follow_up": {
+            const lead = await resolveLead(action.lead_match);
+            if (!lead) {
+              results.push({
+                type: "schedule_follow_up",
+                status: "skipped",
+                message: `No lead matched "${action.lead_match}"`,
+              });
+              break;
+            }
+            const days = Math.max(1, Math.min(Math.round(action.in_days || 1), 90));
+            const due = new Date();
+            due.setDate(due.getDate() + days);
+            const channel = action.channel ?? "task";
+            const title = `Follow up with ${lead.name}${channel !== "task" ? ` (${channel})` : ""}`;
+            const { data: row, error } = await supabaseAdmin
+              .from("tasks")
+              .insert({
+                organization_id: orgId,
+                title: title.slice(0, 200),
+                description: action.notes?.slice(0, 2000) ?? null,
+                priority: "medium",
+                due_date: due.toISOString(),
+                lead_id: lead.id,
+                assigned_to: userId,
+                status: "todo",
+              })
+              .select("id")
+              .single();
+            if (error) throw error;
+            results.push({
+              type: "schedule_follow_up",
+              status: "ok",
+              message: `Follow-up scheduled with ${lead.name} in ${days} day${days === 1 ? "" : "s"} via ${channel}`,
+              meta: { task_id: row.id, lead_id: lead.id, in_days: days },
+            });
+            break;
+          }
+
           case "note":
           default: {
             results.push({
