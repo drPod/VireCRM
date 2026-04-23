@@ -21,7 +21,7 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Must match the constants baked into the transactional send route.
-const SITE_NAME = "auto-pilot-sales-ace";
+const SITE_NAME = "Genesis";
 const SENDER_DOMAIN = "notify.vireonx.space";
 const FROM_DOMAIN = "vireonx.space";
 
