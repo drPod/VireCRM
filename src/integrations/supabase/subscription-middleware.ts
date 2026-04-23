@@ -21,15 +21,27 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
     const { userId } = context;
 
     // Use the service-role admin client so this check can't be bypassed via
-    // missing/permissive RLS. We still scope strictly by user_id.
-    const { data, error } = await supabaseAdmin
-      .from("subscriptions")
-      .select("status, environment, current_period_end")
-      .eq("user_id", userId)
-      .in("status", ACTIVE_STATUSES as unknown as string[])
-      .order("created_at", { ascending: false });
+    // missing/permissive RLS. We still scope strictly by user_id / org_id.
+    //
+    // Access is granted when EITHER:
+    //   1. The user has their own active subscription, OR
+    //   2. Any owner of the user's organization has an active subscription
+    //      (so invited team members ride on the inviter's plan).
+    const [ownSubResult, profileResult] = await Promise.all([
+      supabaseAdmin
+        .from("subscriptions")
+        .select("status, environment, current_period_end")
+        .eq("user_id", userId)
+        .in("status", ACTIVE_STATUSES as unknown as string[])
+        .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
 
-    if (error) {
+    if (ownSubResult.error || profileResult.error) {
       // Fail closed — if we can't verify entitlement, deny access. This is
       // safer than letting through on transient DB hiccups.
       throw new Response(
@@ -39,10 +51,46 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
     }
 
     const now = Date.now();
-    const hasActive = (data ?? []).some((row) => {
-      if (!row.current_period_end) return true; // manual/comped or no expiry
-      return new Date(row.current_period_end).getTime() > now;
-    });
+    const isRowActive = (row: { current_period_end: string | null }) =>
+      !row.current_period_end || new Date(row.current_period_end).getTime() > now;
+
+    let hasActive = (ownSubResult.data ?? []).some(isRowActive);
+
+    // Fall back to org-level entitlement: any owner of this user's org with
+    // an active sub grants access. This is what makes invited members work
+    // without paying separately.
+    if (!hasActive && profileResult.data?.organization_id) {
+      const { data: ownerRoles, error: rolesError } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id")
+        .eq("organization_id", profileResult.data.organization_id)
+        .eq("role", "owner");
+
+      if (rolesError) {
+        throw new Response(
+          JSON.stringify({ error: "Subscription check failed" }),
+          { status: 503, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const ownerIds = (ownerRoles ?? []).map((r) => r.user_id).filter(Boolean);
+      if (ownerIds.length > 0) {
+        const { data: ownerSubs, error: ownerSubsError } = await supabaseAdmin
+          .from("subscriptions")
+          .select("status, environment, current_period_end, user_id")
+          .in("user_id", ownerIds)
+          .in("status", ACTIVE_STATUSES as unknown as string[]);
+
+        if (ownerSubsError) {
+          throw new Response(
+            JSON.stringify({ error: "Subscription check failed" }),
+            { status: 503, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        hasActive = (ownerSubs ?? []).some(isRowActive);
+      }
+    }
 
     if (!hasActive) {
       throw new Response(
