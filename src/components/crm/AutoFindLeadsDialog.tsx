@@ -350,8 +350,49 @@ export function AutoFindLeadsDialog({
           </div>
         )}
 
-        {/* QUOTA EXCEEDED — replace whole content with upgrade prompt */}
-        {isAtCap ? (() => {
+        {/* INTEGRATION MISSING — owner-friendly panel pointing straight to Settings */}
+        {needsIntegration ? (
+          <div className="space-y-4 py-4">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="rounded-full bg-primary/10 p-3">
+                <Plug className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">
+                Connect a lead source to start finding leads
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                {error ?? "We need an Apollo, Hunter, or Snov API key to pull verified contacts."}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs space-y-1.5">
+              <p className="font-medium text-foreground flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                Two ways to get going
+              </p>
+              <ul className="space-y-1 text-muted-foreground pl-5 list-disc">
+                <li>
+                  <span className="text-foreground font-medium">Add your own key</span> — unlimited searches, billed by the provider.
+                </li>
+                <li>
+                  <span className="text-foreground font-medium">Use platform credits</span> — comes with your plan, no setup needed (Apollo only).
+                </li>
+              </ul>
+            </div>
+
+            <div className="grid gap-2 pt-1">
+              <Link to="/settings" onClick={() => setOpen(false)}>
+                <Button variant="command" className="w-full gap-2">
+                  <SettingsIcon className="h-4 w-4" />
+                  Open Settings → Integrations
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={reset}>
+                Back
+              </Button>
+            </div>
+          </div>
+        ) : isAtCap ? (() => {
           // Use server-provided reset date when available; otherwise compute locally.
           const resetIso = quotaResetAt
             || (() => {
