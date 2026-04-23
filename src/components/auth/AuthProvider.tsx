@@ -148,11 +148,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (currentSession?.user) {
           // Use setTimeout to avoid Supabase deadlock
-          setTimeout(() => fetchUserData(currentSession.user.id), 0);
+          const uid = currentSession.user.id;
+          setTimeout(() => {
+            fetchUserData(uid);
+            // Verify pre-paid grant on sign-in (idempotent, runs once per user/session).
+            if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+              verifyGrantOnce(uid);
+            }
+          }, 0);
         } else {
           setProfile(null);
           setRole(null);
           setOrganization(null);
+          grantCheckedFor.current = null;
         }
         // Only release loading after the initial session check has run, so the
         // app doesn't briefly see user=null and bounce to /login.
@@ -166,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
         fetchUserData(existingSession.user.id);
+        verifyGrantOnce(existingSession.user.id);
       }
       initialized = true;
       setLoading(false);
