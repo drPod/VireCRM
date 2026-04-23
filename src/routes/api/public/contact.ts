@@ -236,3 +236,118 @@ export const Route = createFileRoute('/api/public/contact')({
     },
   },
 })
+
+/**
+ * Best-effort acknowledgment back to the visitor. Mirrors the
+ * enqueue-to-pgmq pattern used for the owner notification above so that
+ * retries, rate-limit handling, and dead-letter routing work the same way.
+ */
+async function sendVisitorAcknowledgment(args: {
+  supabase: AdminClient
+  visitorName: string
+  visitorEmail: string
+  visitorMessage: string
+  origin: string | null
+}) {
+  const { supabase, visitorName, visitorEmail, visitorMessage, origin } = args
+
+  const recipient = visitorEmail.toLowerCase()
+
+  // Don't email visitors who previously unsubscribed/bounced.
+  const { data: suppressed } = await supabase
+    .from('suppressed_emails')
+    .select('id')
+    .eq('email', recipient)
+    .maybeSingle()
+  if (suppressed) return
+
+  const ackTemplate = TEMPLATES['contact-acknowledgment']
+  if (!ackTemplate) {
+    console.warn('contact: acknowledgment template missing — skipping')
+    return
+  }
+
+  // One-token-per-recipient mapping (required by enqueue contract).
+  let unsubscribeToken: string
+  const { data: existingToken } = await supabase
+    .from('email_unsubscribe_tokens')
+    .select('token, used_at')
+    .eq('email', recipient)
+    .maybeSingle()
+
+  if (existingToken && !existingToken.used_at) {
+    unsubscribeToken = existingToken.token
+  } else {
+    unsubscribeToken = generateToken()
+    await supabase
+      .from('email_unsubscribe_tokens')
+      .upsert(
+        { token: unsubscribeToken, email: recipient } as any,
+        { onConflict: 'email', ignoreDuplicates: true }
+      )
+    const { data: stored } = await supabase
+      .from('email_unsubscribe_tokens')
+      .select('token')
+      .eq('email', recipient)
+      .maybeSingle()
+    unsubscribeToken = stored?.token ?? unsubscribeToken
+  }
+
+  const pricingUrl = origin ? `${origin}/pricing` : 'https://genesisx.space/pricing'
+  const ackData = {
+    name: visitorName,
+    message: visitorMessage,
+    pricingUrl,
+  }
+
+  const ackElement = React.createElement(ackTemplate.component, ackData)
+  const ackHtml = await render(ackElement)
+  const ackText = await render(ackElement, { plainText: true })
+  const ackSubject =
+    typeof ackTemplate.subject === 'function'
+      ? ackTemplate.subject(ackData)
+      : ackTemplate.subject
+
+  const ackMessageId = crypto.randomUUID()
+
+  await supabase.from('email_send_log').insert({
+    message_id: ackMessageId,
+    template_name: 'contact-acknowledgment',
+    recipient_email: recipient,
+    status: 'pending',
+    metadata: {
+      subject: ackSubject,
+      body_preview: ackText.replace(/\s+/g, ' ').trim().slice(0, 200),
+    },
+  } as any)
+
+  const { error: ackEnqueueErr } = await supabase.rpc('enqueue_email', {
+    queue_name: 'transactional_emails',
+    payload: {
+      message_id: ackMessageId,
+      to: recipient,
+      from: `${FROM_DISPLAY_NAME} <noreply@${FROM_DOMAIN}>`,
+      sender_domain: SENDER_DOMAIN,
+      subject: ackSubject,
+      body_preview: ackText.slice(0, 200),
+      html: ackHtml,
+      text: ackText,
+      purpose: 'transactional',
+      label: 'contact-acknowledgment',
+      idempotency_key: `contact-ack-${ackMessageId}`,
+      unsubscribe_token: unsubscribeToken,
+      queued_at: new Date().toISOString(),
+    },
+  } as any)
+
+  if (ackEnqueueErr) {
+    console.warn('contact: ack enqueue failed (non-fatal)', ackEnqueueErr)
+    await supabase.from('email_send_log').insert({
+      message_id: ackMessageId,
+      template_name: 'contact-acknowledgment',
+      recipient_email: recipient,
+      status: 'failed',
+      error_message: 'Failed to enqueue acknowledgment',
+    } as any)
+  }
+}
