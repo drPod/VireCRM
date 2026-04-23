@@ -234,6 +234,7 @@ function TierCard({
         <h3 className="text-base font-semibold text-foreground">{tier.name}</h3>
         {(() => {
           const discounted = applyPromoDiscount(tier.price);
+          const isCustomQuote = tier.price.toLowerCase() === "custom";
           if (discounted) {
             return (
               <>
@@ -249,10 +250,17 @@ function TierCard({
             );
           }
           return (
-            <div className="mt-3 flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-foreground">{tier.price}</span>
-              <span className="text-xs text-muted-foreground">{tier.period}</span>
-            </div>
+            <>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-foreground">{tier.price}</span>
+                <span className="text-xs text-muted-foreground">{tier.period}</span>
+              </div>
+              {isCustomQuote && (
+                <div className="mt-1">
+                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">25% OFF QUOTE</Badge>
+                </div>
+              )}
+            </>
           );
         })()}
         {tier.setupFee && (
