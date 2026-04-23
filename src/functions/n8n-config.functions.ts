@@ -26,12 +26,9 @@ const saveSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
-async function getOrgId(
-  supabase: Parameters<typeof requireSupabaseAuth>[0] extends never
-    ? never
-    : Awaited<ReturnType<typeof requireSupabaseAuth>>["context"]["supabase"],
-  userId: string,
-) {
+// Loosely typed: TanStack middleware context typing makes a strict signature
+// hard to express here, and we only use a couple of supabase methods.
+async function getOrgId(supabase: any, userId: string): Promise<string> {
   const { data } = await supabase
     .from("profiles")
     .select("organization_id")
