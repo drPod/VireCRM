@@ -152,7 +152,16 @@ function LeadsPage() {
         <div className="flex gap-2">
           <ExportLeadsButton leads={leads} />
           <ImportApolloListDialog onLeadsImported={handleLeadAdded} />
-          <AutoFindLeadsDialog onLeadsImported={handleLeadAdded} />
+          <AutoFindLeadsDialog
+            onLeadsImported={handleLeadAdded}
+            open={autoFindOpen}
+            onOpenChange={(v) => {
+              setAutoFindOpen(v);
+              if (!v) setAiPrefill({});
+            }}
+            initialDescription={aiPrefill.desc}
+            initialIndustry={aiPrefill.industry}
+          />
           <ImportLeadsDialog
             onLeadsImported={handleLeadAdded}
             open={importOpen}
