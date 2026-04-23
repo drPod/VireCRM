@@ -61,6 +61,19 @@ serve(async (req) => {
     const env = (environment || "sandbox") as StripeEnv;
     const stripe = createStripeClient(env);
 
+    // Ensure the launch promo coupon exists (25% off, forever for subscriptions).
+    const PROMO_COUPON_ID = "launch25";
+    try {
+      await stripe.coupons.retrieve(PROMO_COUPON_ID);
+    } catch {
+      await stripe.coupons.create({
+        id: PROMO_COUPON_ID,
+        percent_off: 25,
+        duration: "forever",
+        name: "Launch promo — 25% off",
+      });
+    }
+
     // Resolve the reseller's chosen base price (which the reseller marks up
     // by selling at monthly_price_cents to their client). For Stripe MVP we
     // bill the client at the reseller's price using price_data, then the
@@ -79,6 +92,7 @@ serve(async (req) => {
       ],
       mode: "subscription",
       ui_mode: "embedded",
+      discounts: [{ coupon: PROMO_COUPON_ID }],
       return_url:
         returnUrl ||
         `${req.headers.get("origin")}/r/${resellerSlug}/checkout/${planSlug}/return?session_id={CHECKOUT_SESSION_ID}`,
