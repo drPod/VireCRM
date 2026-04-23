@@ -77,6 +77,8 @@ export interface ExecutionResult {
   type: AgentAction["type"];
   status: "ok" | "skipped" | "error";
   message: string;
+  /** "n8n" if handled by an external n8n webhook, "in_app" otherwise. */
+  handler?: "n8n" | "in_app";
   meta?: Record<string, string | number | null>;
 }
 
