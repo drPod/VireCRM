@@ -95,6 +95,7 @@ function Dashboard() {
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [execution, setExecution] = useState<ExecuteCommandResponse | null>(null);
+  const [taskStatuses, setTaskStatuses] = useState<TaskStatusItem[]>([]);
   const execCommand = useAuthedServerFn(executeCommandFn);
   const runCommand = useAuthedServerFn(executeCommandActionsFn);
 
@@ -103,12 +104,22 @@ function Dashboard() {
     setLastCommand(command);
     setPlan(null);
     setExecution(null);
+    setTaskStatuses([]);
 
     try {
       const result = await execCommand({
         data: { command },
       });
       setPlan(result);
+      // Seed the status panel with planned steps as soon as the AI responds.
+      setTaskStatuses(
+        result.steps.map((s) => ({
+          step: s.step,
+          action: s.action,
+          detail: s.detail,
+          status: "planned" as const,
+        })),
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Command failed";
       toast.error(message);
@@ -118,12 +129,54 @@ function Dashboard() {
   };
 
   const handleExecute = async () => {
-    if (!lastCommand || isExecuting) return;
+    if (!lastCommand || isExecuting || !plan) return;
     setIsExecuting(true);
     setExecution(null);
+
+    // Mark every planned step as queued, then animate "running" one at a time.
+    setTaskStatuses((prev) => prev.map((s) => ({ ...s, status: "queued" as const, message: undefined })));
+
+    const totalSteps = plan.steps.length;
+    let runningIndex = 0;
+    const runningTimer = setInterval(() => {
+      setTaskStatuses((prev) => {
+        if (runningIndex >= prev.length) return prev;
+        const next = prev.map((s, i) => {
+          if (i < runningIndex) return s;
+          if (i === runningIndex) return { ...s, status: "running" as const };
+          return s;
+        });
+        runningIndex += 1;
+        return next;
+      });
+    }, Math.max(400, Math.min(1200, Math.floor(2400 / Math.max(1, totalSteps)))));
+
     try {
       const result = await runCommand({ data: { command: lastCommand } });
       setExecution(result);
+
+      // Map server results back onto the planned steps positionally.
+      setTaskStatuses((prev) =>
+        prev.map((s, i) => {
+          const r = result.results[i];
+          if (!r) {
+            return { ...s, status: "completed" as const };
+          }
+          const status: TaskStatusItem["status"] =
+            r.status === "ok"
+              ? "completed"
+              : r.status === "error"
+                ? "failed"
+                : "skipped";
+          return {
+            ...s,
+            status,
+            handler: r.handler,
+            message: r.message,
+          };
+        }),
+      );
+
       const okCount = result.results.filter((r) => r.status === "ok").length;
       const errCount = result.results.filter((r) => r.status === "error").length;
       if (errCount > 0) {
@@ -138,7 +191,15 @@ function Dashboard() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Execution failed";
       toast.error(message);
+      setTaskStatuses((prev) =>
+        prev.map((s) =>
+          s.status === "running" || s.status === "queued"
+            ? { ...s, status: "failed" as const, message }
+            : s,
+        ),
+      );
     } finally {
+      clearInterval(runningTimer);
       setIsExecuting(false);
     }
   };
