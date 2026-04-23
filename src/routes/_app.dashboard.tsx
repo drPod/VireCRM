@@ -23,7 +23,6 @@ import {
   StickyNote,
   BarChart3,
   ArrowRightLeft,
-  MessageSquare,
   CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
