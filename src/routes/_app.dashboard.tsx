@@ -213,8 +213,35 @@ function Dashboard() {
               ))}
             </div>
           )}
+
+          <div className="border-t border-border bg-background/40 px-5 py-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              Runs CRM actions only — tasks, drafts, scoring, campaigns. No external sends.
+            </p>
+            <Button
+              variant="command"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExecute}
+              disabled={isExecuting}
+            >
+              {isExecuting ? (
+                <>
+                  <Zap className="h-3.5 w-3.5 animate-pulse" />
+                  Executing…
+                </>
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5" />
+                  {execution ? "Re-run" : "Execute"}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       )}
+
+      {execution && <ExecutionResults data={execution} />}
 
       {/* First-run empty state */}
       {isEmpty && (
