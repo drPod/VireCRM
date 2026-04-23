@@ -92,12 +92,16 @@ function Dashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [plan, setPlan] = useState<CommandPlan | null>(null);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [execution, setExecution] = useState<ExecuteCommandResponse | null>(null);
   const execCommand = useAuthedServerFn(executeCommandFn);
+  const runCommand = useAuthedServerFn(executeCommandActionsFn);
 
   const handleCommand = async (command: string) => {
     setIsProcessing(true);
     setLastCommand(command);
     setPlan(null);
+    setExecution(null);
 
     try {
       const result = await execCommand({
@@ -109,6 +113,32 @@ function Dashboard() {
       toast.error(message);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleExecute = async () => {
+    if (!lastCommand || isExecuting) return;
+    setIsExecuting(true);
+    setExecution(null);
+    try {
+      const result = await runCommand({ data: { command: lastCommand } });
+      setExecution(result);
+      const okCount = result.results.filter((r) => r.status === "ok").length;
+      const errCount = result.results.filter((r) => r.status === "error").length;
+      if (errCount > 0) {
+        toast.warning(`Completed with ${errCount} issue${errCount === 1 ? "" : "s"}`, {
+          description: `${okCount} action${okCount === 1 ? "" : "s"} applied.`,
+        });
+      } else {
+        toast.success(result.summary, {
+          description: `${okCount} action${okCount === 1 ? "" : "s"} applied.`,
+        });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Execution failed";
+      toast.error(message);
+    } finally {
+      setIsExecuting(false);
     }
   };
 
