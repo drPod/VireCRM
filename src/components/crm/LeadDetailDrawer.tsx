@@ -50,7 +50,10 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     annual_kwh: "" as string,
     contract_end_date: "" as string,
     current_supplier: "",
+    deal_value: "" as string,
+    deal_currency: "USD" as string,
   });
+  const [markingWon, setMarkingWon] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
