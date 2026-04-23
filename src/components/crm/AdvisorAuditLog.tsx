@@ -48,19 +48,71 @@ function timeAgo(iso: string): string {
 export function AdvisorAuditLog() {
   const list = useAuthedServerFn(listAdvisorAuditFn);
   const replay = useAuthedServerFn(replayCommandPlanFn);
+  const getRetention = useAuthedServerFn(getAuditRetentionFn);
+  const updateRetention = useAuthedServerFn(updateAuditRetentionFn);
+  const purgeNow = useAuthedServerFn(purgeAuditLogNowFn);
   const [entries, setEntries] = useState<AdvisorAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<"all" | "plan" | "execute">("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [replayingId, setReplayingId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [retention, setRetention] = useState<AuditRetentionInfo | null>(null);
+  const [retentionInput, setRetentionInput] = useState<string>("90");
+  const [savingRetention, setSavingRetention] = useState(false);
+  const [purging, setPurging] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
     try {
-      const rows = await list({ data: { limit: 50, phase } });
+      const [rows, retInfo] = await Promise.all([
+        list({ data: { limit: 50, phase } }),
+        getRetention(),
+      ]);
       setEntries(rows);
+      setRetention(retInfo);
+      setRetentionInput(String(retInfo.retention_days));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveRetention = async () => {
+    const days = parseInt(retentionInput, 10);
+    if (Number.isNaN(days) || days < 0 || days > 3650) {
+      toast.error("Enter a number between 0 and 3650");
+      return;
+    }
+    setSavingRetention(true);
+    try {
+      await updateRetention({ data: { retention_days: days } });
+      toast.success(
+        days === 0
+          ? "Retention disabled — entries will be kept forever"
+          : `Saved — entries older than ${days} day${days === 1 ? "" : "s"} will be purged`,
+      );
+      await refresh();
+    } catch (e) {
+      toast.error("Could not save retention", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setSavingRetention(false);
+    }
+  };
+
+  const handlePurgeNow = async () => {
+    setPurging(true);
+    try {
+      const res = await purgeNow();
+      toast.success(`Purged ${res.deleted} old entr${res.deleted === 1 ? "y" : "ies"}`);
+      await refresh();
+    } catch (e) {
+      toast.error("Purge failed", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setPurging(false);
     }
   };
 
