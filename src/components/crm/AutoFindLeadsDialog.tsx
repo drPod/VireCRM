@@ -210,11 +210,14 @@ export function AutoFindLeadsDialog({ onLeadsImported }: AutoFindLeadsDialogProp
         company: l.company.slice(0, 200),
         status: "new" as const,
         score: Math.min(100, Math.max(0, l.score)),
-        notes: `Role: ${l.role}\nAI Insight: ${l.reason}`,
-        source: "ai_discovery",
+        notes: `Role: ${l.role}\nVerified by: ${l.reason}`,
+        // Tag with the actual integration provider so auto-outreach knows
+        // these came from a real data source (Apollo / Hunter / Snov), not
+        // an AI guess or a manual entry.
+        source: provider,
       }));
 
-    const { error: insertError, data: inserted } = await supabase.from("leads").insert(leadsToImport).select("id, name, email, company");
+    const { error: insertError, data: inserted } = await supabase.from("leads").insert(leadsToImport).select("id, name, email, company, source");
 
     // Record the import outcome to the sync log (best-effort, non-blocking).
     void recordImport({
