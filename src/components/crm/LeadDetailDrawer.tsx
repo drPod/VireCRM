@@ -275,16 +275,29 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const parseDealValueCents = (): { ok: true; cents: number | null } | { ok: false; error: string } => {
+  const parseDealValueCents = (): { ok: true; cents: number } | { ok: false; error: string } => {
     const raw = form.deal_value.trim();
-    if (!raw) return { ok: true, cents: null };
+    if (!raw) {
+      return { ok: false, error: "Deal value is required — enter a positive amount" };
+    }
     const cleaned = raw.replace(/[^\d.]/g, "");
     const n = cleaned ? Number(cleaned) : NaN;
-    if (!Number.isFinite(n) || n < 0) {
-      return { ok: false, error: "Deal value must be a positive number" };
+    if (!Number.isFinite(n) || n <= 0) {
+      return { ok: false, error: "Deal value must be greater than 0" };
     }
     return { ok: true, cents: Math.round(n * 100) };
   };
+
+  const dealValidation = useMemo(() => {
+    const raw = form.deal_value.trim();
+    if (!raw) return { valid: false, error: "Enter a positive deal value" };
+    const cleaned = raw.replace(/[^\d.]/g, "");
+    const n = cleaned ? Number(cleaned) : NaN;
+    if (!Number.isFinite(n) || n <= 0) {
+      return { valid: false, error: "Deal value must be greater than 0" };
+    }
+    return { valid: true as const, cents: Math.round(n * 100) };
+  }, [form.deal_value]);
 
   const recordWonActivity = async (cents: number, currency: string) => {
     if (!lead || !organization?.id) return;
