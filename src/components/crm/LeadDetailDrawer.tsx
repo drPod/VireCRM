@@ -817,7 +817,13 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 )}
                 {confirmDelete ? "Confirm Delete" : "Delete"}
               </Button>
-              <Button variant="command" size="sm" onClick={handleSave} disabled={saving}>
+              <Button
+                variant="command"
+                size="sm"
+                onClick={handleSave}
+                disabled={saving || !dealValidation.valid}
+                title={dealValidation.valid ? "Save changes" : "Enter a positive deal value to save"}
+              >
                 {saving ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
