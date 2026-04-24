@@ -169,13 +169,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       current_supplier: lead.currentSupplier ?? "",
       deal_value: "",
       deal_currency: "USD",
+      assigned_to: lead.assignedTo ?? "",
     });
 
-    // Fetch the full notes + energy + deal fields (the list view doesn't include them).
+    // Fetch the full notes + energy + deal + assignment fields (the list view doesn't include them).
     setLoadingNotes(true);
     supabase
       .from("leads")
-      .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency")
+      .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency, assigned_to")
       .eq("id", lead.id)
       .single()
       .then(({ data }) => {
@@ -194,6 +195,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 ? (data.deal_value_cents / 100).toString()
                 : "",
             deal_currency: data.deal_currency ?? "USD",
+            assigned_to: data.assigned_to ?? prev.assigned_to,
           }));
         }
         setLoadingNotes(false);
