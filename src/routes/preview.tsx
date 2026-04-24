@@ -45,18 +45,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
-/**
- * Marker attribute. Any interactive element inside the read-only shield
- * that legitimately needs to work (sidebar tab switch, exit preview,
- * upgrade CTA, etc.) opts in by setting data-preview-allow="true".
- * Everything else is intercepted before it can fire side effects.
- */
-const ALLOW_ATTR = "data-preview-allow";
-
-function isAllowed(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  return target.closest(`[${ALLOW_ATTR}="true"]`) !== null;
-}
+import {
+  isAllowed,
+  shouldBlockClickEvent,
+  shouldBlockKeyboardEvent,
+} from "@/lib/preview/read-only-shield";
 
 
 
