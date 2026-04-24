@@ -8,6 +8,16 @@ import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
 import { AssigneeMultiSelect, type AssigneeOption } from "@/components/crm/AssigneeMultiSelect";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Search, Loader2, UserPlus, X } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +87,9 @@ function LeadsPage() {
   // one-by-one across employees (each lead gets exactly one assignee).
   const [bulkAssignMode, setBulkAssignMode] = useState<"share" | "round_robin">("share");
   const [bulkAssigning, setBulkAssigning] = useState(false);
+  // Owner-only: confirmation prompt before the destructive round-robin pass
+  // (which clears existing assignees on the selected leads).
+  const [confirmRoundRobinOpen, setConfirmRoundRobinOpen] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
@@ -290,8 +303,12 @@ function LeadsPage() {
    *    matches that single assignee. Existing assignees on the selected
    *    leads are replaced so the distribution is clean.
    */
-  const handleBulkAssign = async () => {
-    if (!organization?.id) return;
+  /**
+   * Entry point clicked by the user. Round-robin is destructive (it wipes
+   * existing assignees on the selected leads), so we require an explicit
+   * confirmation prompt before running. Share is additive and runs directly.
+   */
+  const handleBulkAssignClick = () => {
     if (selectedLeadIds.length === 0) {
       toast.error("Select at least one lead first.");
       return;
@@ -300,6 +317,16 @@ function LeadsPage() {
       toast.error("Pick at least one employee to assign to.");
       return;
     }
+    if (bulkAssignMode === "round_robin") {
+      setConfirmRoundRobinOpen(true);
+      return;
+    }
+    void runBulkAssign();
+  };
+
+  const runBulkAssign = async () => {
+    if (!organization?.id) return;
+    if (selectedLeadIds.length === 0 || bulkAssignTargets.length === 0) return;
     setBulkAssigning(true);
     try {
       if (bulkAssignMode === "round_robin") {
@@ -515,7 +542,7 @@ function LeadsPage() {
             />
             <Button
               size="sm"
-              onClick={handleBulkAssign}
+              onClick={handleBulkAssignClick}
               disabled={
                 bulkAssigning ||
                 selectedLeadIds.length === 0 ||
@@ -564,6 +591,12 @@ function LeadsPage() {
               selected={selectedLeadIds.includes(lead.id)}
               onSelectedChange={(next) => toggleLeadSelected(lead.id, next)}
               onClick={() => {
+                // Per org policy, only the owner can open the full lead
+                // detail drawer. Reps and managers see the card data only.
+                if (!isOwner) {
+                  toast.info("Only the organization owner can open lead details.");
+                  return;
+                }
                 setSelectedLead(lead);
                 setDrawerOpen(true);
               }}
@@ -577,12 +610,43 @@ function LeadsPage() {
         </div>
       )}
 
-      <LeadDetailDrawer
-        lead={selectedLead}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        onUpdated={handleLeadAdded}
-      />
+      {isOwner && (
+        <LeadDetailDrawer
+          lead={selectedLead}
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          onUpdated={handleLeadAdded}
+        />
+      )}
+
+      <AlertDialog open={confirmRoundRobinOpen} onOpenChange={setConfirmRoundRobinOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Distribute leads round-robin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will <strong>replace existing assignees</strong> on{" "}
+              {selectedLeadIds.length} selected lead
+              {selectedLeadIds.length === 1 ? "" : "s"} and distribute them
+              one-by-one across {bulkAssignTargets.length} employee
+              {bulkAssignTargets.length === 1 ? "" : "s"}. Each lead will end
+              up with exactly one assignee. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkAssigning}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulkAssigning}
+              onClick={(e) => {
+                e.preventDefault();
+                setConfirmRoundRobinOpen(false);
+                void runBulkAssign();
+              }}
+            >
+              Distribute
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
