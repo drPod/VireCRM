@@ -1,12 +1,18 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { applyWhiteLabelColor } from "@/lib/white-label-theme";
+import {
+  applyBrandFont,
+  applyFavicon,
+  applyWhiteLabelColor,
+} from "@/lib/white-label-theme";
 
 export interface DomainBranding {
   id: string;
   slug: string;
   brand_name: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
+  font_family: string | null;
   primary_color: string | null;
   is_reseller: boolean;
   support_email: string | null;
