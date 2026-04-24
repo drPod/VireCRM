@@ -3,7 +3,11 @@ import { useEffect, useState } from "react";
 import { Loader2, Terminal, Check, Zap, Bot, BrainCircuit, CalendarCheck, Sparkles, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { applyWhiteLabelColor } from "@/lib/white-label-theme";
+import {
+  applyBrandFont,
+  applyFavicon,
+  applyWhiteLabelColor,
+} from "@/lib/white-label-theme";
 
 export const Route = createFileRoute("/r/$resellerSlug/")({
   component: ResellerLandingPage,
@@ -20,6 +24,8 @@ interface ResellerBranding {
   slug: string;
   brand_name: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
+  font_family: string | null;
   primary_color: string | null;
   is_reseller: boolean;
   support_email: string | null;
@@ -67,10 +73,28 @@ function ResellerLandingPage() {
     })();
   }, [resellerSlug]);
 
-  // Apply the reseller's color to the marketing page chrome
+  // Apply the reseller's color, favicon, and font to the marketing page chrome
   useEffect(() => {
     return applyWhiteLabelColor(branding?.primary_color);
   }, [branding?.primary_color]);
+
+  useEffect(() => {
+    return applyFavicon(branding?.favicon_url);
+  }, [branding?.favicon_url]);
+
+  useEffect(() => {
+    return applyBrandFont(branding?.font_family);
+  }, [branding?.font_family]);
+
+  // Update document title to reflect the reseller brand
+  useEffect(() => {
+    if (!branding?.brand_name || typeof document === "undefined") return;
+    const original = document.title;
+    document.title = `${branding.brand_name} — AI CRM for your sales team`;
+    return () => {
+      document.title = original;
+    };
+  }, [branding?.brand_name]);
 
   if (loading) {
     return (

@@ -1,12 +1,18 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { applyWhiteLabelColor } from "@/lib/white-label-theme";
+import {
+  applyBrandFont,
+  applyFavicon,
+  applyWhiteLabelColor,
+} from "@/lib/white-label-theme";
 
 export interface DomainBranding {
   id: string;
   slug: string;
   brand_name: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
+  font_family: string | null;
   primary_color: string | null;
   is_reseller: boolean;
   support_email: string | null;
@@ -76,6 +82,14 @@ export function DomainBrandingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return applyWhiteLabelColor(branding?.primary_color);
   }, [branding?.primary_color]);
+
+  useEffect(() => {
+    return applyFavicon(branding?.favicon_url);
+  }, [branding?.favicon_url]);
+
+  useEffect(() => {
+    return applyBrandFont(branding?.font_family);
+  }, [branding?.font_family]);
 
   // Update document title when domain branding is active
   useEffect(() => {

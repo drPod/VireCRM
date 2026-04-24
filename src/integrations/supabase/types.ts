@@ -994,6 +994,9 @@ export type Database = {
           custom_domain: string | null
           domain_verification_token: string
           domain_verified_at: string | null
+          email_signature: string | null
+          favicon_url: string | null
+          font_family: string | null
           id: string
           is_reseller: boolean
           lead_period_start: string
@@ -1019,6 +1022,9 @@ export type Database = {
           custom_domain?: string | null
           domain_verification_token?: string
           domain_verified_at?: string | null
+          email_signature?: string | null
+          favicon_url?: string | null
+          font_family?: string | null
           id?: string
           is_reseller?: boolean
           lead_period_start?: string
@@ -1044,6 +1050,9 @@ export type Database = {
           custom_domain?: string | null
           domain_verification_token?: string
           domain_verified_at?: string | null
+          email_signature?: string | null
+          favicon_url?: string | null
+          font_family?: string | null
           id?: string
           is_reseller?: boolean
           lead_period_start?: string

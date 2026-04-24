@@ -16,16 +16,23 @@ import {
   CheckCircle2,
   AlertCircle,
   Mail,
+  Type,
+  ImageIcon,
+  PenLine,
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SUPPORTED_FONTS } from "@/lib/white-label-theme";
 
 type OrgWithDomain = {
   is_reseller?: boolean;
   domain_verification_token?: string;
   domain_verified_at?: string | null;
   support_email?: string | null;
+  favicon_url?: string | null;
+  font_family?: string | null;
+  email_signature?: string | null;
 };
 
 export function WhiteLabelSettings() {
@@ -34,6 +41,9 @@ export function WhiteLabelSettings() {
   const [brandName, setBrandName] = useState(organization?.brand_name || "");
   const [primaryColor, setPrimaryColor] = useState(organization?.primary_color || "#3b82f6");
   const [logoUrl, setLogoUrl] = useState(organization?.logo_url || "");
+  const [faviconUrl, setFaviconUrl] = useState(orgExt?.favicon_url || "");
+  const [fontFamily, setFontFamily] = useState(orgExt?.font_family || "");
+  const [emailSignature, setEmailSignature] = useState(orgExt?.email_signature || "");
   const [customDomain, setCustomDomain] = useState(organization?.custom_domain || "");
   const [supportEmail, setSupportEmail] = useState(orgExt?.support_email || "");
   const initialIsReseller = !!orgExt?.is_reseller;
@@ -115,6 +125,9 @@ export function WhiteLabelSettings() {
         brand_name: brandName || null,
         primary_color: primaryColor,
         logo_url: logoUrl || null,
+        favicon_url: faviconUrl || null,
+        font_family: fontFamily || null,
+        email_signature: emailSignature.trim() || null,
         custom_domain: customDomain || null,
         support_email: trimmedSupport || null,
       } as never)
@@ -295,6 +308,87 @@ export function WhiteLabelSettings() {
               <span className="text-xs text-muted-foreground">Logo preview</span>
             </div>
           )}
+        </div>
+
+        {/* Favicon URL */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <label className="text-sm font-medium text-foreground">Favicon URL</label>
+          </div>
+          <input
+            type="text"
+            value={faviconUrl}
+            onChange={(e) => setFaviconUrl(e.target.value)}
+            placeholder="https://your-cdn.com/favicon.png"
+            className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Square image (32×32 or 64×64 recommended). Shown in the browser tab on
+            your custom domain and reseller storefront. Supports PNG, SVG, or ICO.
+          </p>
+          {faviconUrl && (
+            <div className="mt-3 flex items-center gap-3 rounded-lg bg-secondary/50 p-3">
+              <img
+                src={faviconUrl}
+                alt="Favicon preview"
+                className="h-6 w-6 rounded object-contain"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
+              <span className="text-xs text-muted-foreground">Favicon preview</span>
+            </div>
+          )}
+        </div>
+
+        {/* Font Family */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <Type className="h-4 w-4 text-muted-foreground" />
+            <label className="text-sm font-medium text-foreground">Brand Font</label>
+          </div>
+          <select
+            value={fontFamily}
+            onChange={(e) => setFontFamily(e.target.value)}
+            className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="">Default (Inter)</option>
+            {SUPPORTED_FONTS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+          {fontFamily && (
+            <div
+              className="mt-3 rounded-lg bg-secondary/50 p-3 text-base text-foreground"
+              style={{ fontFamily }}
+            >
+              The quick brown fox jumps over the lazy dog
+            </div>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Applied across the CRM, reseller landing page, and emails so your
+            brand reads consistently everywhere.
+          </p>
+        </div>
+
+        {/* Email Signature */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <PenLine className="h-4 w-4 text-muted-foreground" />
+            <label className="text-sm font-medium text-foreground">Email Signature</label>
+          </div>
+          <textarea
+            value={emailSignature}
+            onChange={(e) => setEmailSignature(e.target.value)}
+            placeholder={"— The Acme team\nhello@acme.com"}
+            rows={3}
+            className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Appended to outbound emails sent through Genesis. Leave blank to use
+            the default sign-off ("— {brandName || "Your brand"}").
+          </p>
         </div>
 
         {/* Custom Domain */}

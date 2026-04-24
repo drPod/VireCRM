@@ -76,3 +76,94 @@ export function applyWhiteLabelColor(color: string | null | undefined): () => vo
     }
   };
 }
+
+/**
+ * Swap the browser favicon to the org's branded icon. Updates (or creates)
+ * the <link rel="icon"> tag and returns a cleanup that restores the original.
+ */
+export function applyFavicon(faviconUrl: string | null | undefined): () => void {
+  if (typeof document === "undefined" || !faviconUrl) return () => {};
+  const head = document.head;
+  // Find or create the icon link
+  const existing = head.querySelector<HTMLLinkElement>("link[rel~='icon']");
+  const previousHref = existing?.href ?? null;
+  const previousType = existing?.type ?? null;
+
+  let link = existing;
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    head.appendChild(link);
+  }
+  // Naive content-type sniff for the most common cases
+  const lower = faviconUrl.toLowerCase();
+  if (lower.endsWith(".svg")) link.type = "image/svg+xml";
+  else if (lower.endsWith(".png")) link.type = "image/png";
+  else if (lower.endsWith(".ico")) link.type = "image/x-icon";
+  link.href = faviconUrl;
+
+  return () => {
+    if (!link) return;
+    if (previousHref) {
+      link.href = previousHref;
+      if (previousType) link.type = previousType;
+    } else {
+      link.parentElement?.removeChild(link);
+    }
+  };
+}
+
+/** Map of curated Google fonts → their CSS family stacks. */
+const FONT_STACKS: Record<string, string> = {
+  Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  Poppins: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  Manrope: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "Plus Jakarta Sans":
+    "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "DM Sans": "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "Space Grotesk":
+    "'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  Outfit: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "IBM Plex Sans":
+    "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+};
+
+export const SUPPORTED_FONTS = Object.keys(FONT_STACKS);
+
+/**
+ * Inject the Google Font stylesheet for the chosen font and apply it to the
+ * page via the --wl-font CSS variable + html font-family.
+ */
+export function applyBrandFont(fontFamily: string | null | undefined): () => void {
+  if (typeof document === "undefined" || !fontFamily) return () => {};
+  const stack = FONT_STACKS[fontFamily];
+  if (!stack) return () => {};
+
+  const head = document.head;
+  const id = `wl-font-${fontFamily.replace(/\s+/g, "-").toLowerCase()}`;
+  let link = head.querySelector<HTMLLinkElement>(`link[data-wl-font='${id}']`);
+  let createdLink = false;
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.dataset.wlFont = id;
+    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(
+      fontFamily,
+    )}:wght@400;500;600;700;800&display=swap`;
+    head.appendChild(link);
+    createdLink = true;
+  }
+
+  const root = document.documentElement;
+  const previousVar = root.style.getPropertyValue("--wl-font");
+  const previousInline = root.style.fontFamily;
+  root.style.setProperty("--wl-font", stack);
+  root.style.fontFamily = stack;
+
+  return () => {
+    if (previousVar) root.style.setProperty("--wl-font", previousVar);
+    else root.style.removeProperty("--wl-font");
+    root.style.fontFamily = previousInline;
+    if (createdLink && link?.parentElement) link.parentElement.removeChild(link);
+  };
+}

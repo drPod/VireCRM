@@ -71,7 +71,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     // into the platform default.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, support_email, ai_tokens_used, ai_tokens_limit")
+      .select("name, brand_name, support_email, ai_tokens_used, ai_tokens_limit, logo_url, primary_color, font_family, email_signature")
       .eq("id", data.organizationId)
       .single();
 
@@ -210,6 +210,10 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
           replyTo: businessReplyTo ?? undefined,
           idempotencyKey: `outreach-${inserted.id}`,
           channels: deliveryChannels,
+          logoUrl: (org as any).logo_url ?? null,
+          accentColor: (org as any).primary_color ?? null,
+          fontFamily: (org as any).font_family ?? null,
+          signature: (org as any).email_signature ?? null,
         });
 
         if (!dispatch.success) {

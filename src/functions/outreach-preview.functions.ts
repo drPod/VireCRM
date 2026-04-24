@@ -190,7 +190,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
     // Pull org branding + reply-to (business inbox) in one shot.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, support_email")
+      .select("name, brand_name, support_email, logo_url, primary_color, font_family, email_signature")
       .eq("id", data.organizationId)
       .maybeSingle();
 
@@ -229,6 +229,10 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       replyTo,
       idempotencyKey: `outreach-${inserted.id}`,
       channels,
+      logoUrl: (org as any).logo_url ?? null,
+      accentColor: (org as any).primary_color ?? null,
+      fontFamily: (org as any).font_family ?? null,
+      signature: (org as any).email_signature ?? null,
     });
 
     if (!result.success) {
