@@ -132,6 +132,26 @@ function LeadsPage() {
 
     const fetchLeads = async () => {
       setLoading(true);
+
+      // If filtering by assignee, first resolve which lead ids match in the
+      // join table (union/OR across the selected employees), then constrain
+      // the leads query to those ids.
+      let restrictedIds: string[] | null = null;
+      if (isOwner && assigneeFilter.length > 0) {
+        const { data: matches } = await supabase
+          .from("lead_assignees")
+          .select("lead_id")
+          .eq("organization_id", organization.id)
+          .in("user_id", assigneeFilter);
+        restrictedIds = Array.from(new Set((matches ?? []).map((m) => m.lead_id)));
+        if (restrictedIds.length === 0) {
+          setLeads([]);
+          setTotalCount(0);
+          setLoading(false);
+          return;
+        }
+      }
+
       let query = supabase
         .from("leads")
         .select("*", { count: "exact" })
@@ -142,9 +162,8 @@ function LeadsPage() {
         query = query.eq("status", statusFilter);
       }
 
-      // Owner assignee filter (union / OR across selected employees).
-      if (isOwner && assigneeFilter.length > 0) {
-        query = query.in("assigned_to", assigneeFilter);
+      if (restrictedIds) {
+        query = query.in("id", restrictedIds);
       }
 
       if (search.trim()) {
@@ -170,24 +189,56 @@ function LeadsPage() {
         if (p.user_id) nameByUserId.set(p.user_id, p.full_name ?? "Unnamed");
       });
 
+      // Fetch all assignees for the visible leads in one round-trip.
+      const leadIds = (data ?? []).map((l) => l.id);
+      const assigneesByLead = new Map<string, Array<{ user_id: string; full_name: string }>>();
+      if (leadIds.length > 0) {
+        const { data: assigneeRows } = await supabase
+          .from("lead_assignees")
+          .select("lead_id, user_id")
+          .in("lead_id", leadIds);
+        assigneeRows?.forEach((r) => {
+          const list = assigneesByLead.get(r.lead_id) ?? [];
+          list.push({
+            user_id: r.user_id,
+            full_name: nameByUserId.get(r.user_id) ?? "Unnamed",
+          });
+          assigneesByLead.set(r.lead_id, list);
+        });
+      }
+
       if (!error && data) {
         setLeads(
-          data.map((l) => ({
-            id: l.id,
-            name: l.name,
-            email: l.email ?? "",
-            phone: l.phone ?? undefined,
-            company: l.company ?? undefined,
-            status: l.status as Lead["status"],
-            score: l.score ?? 0,
-            nextAction: l.next_action ?? undefined,
-            lastContact: l.last_contact ?? undefined,
-            annualKwh: l.annual_kwh ?? null,
-            contractEndDate: l.contract_end_date ?? null,
-            currentSupplier: l.current_supplier ?? null,
-            assignedTo: l.assigned_to ?? null,
-            assigneeName: l.assigned_to ? nameByUserId.get(l.assigned_to) ?? null : null,
-          }))
+          data.map((l) => {
+            const list = assigneesByLead.get(l.id) ?? [];
+            // Fall back to the legacy single-assignee column if the join
+            // table hasn't been backfilled for this lead yet.
+            if (list.length === 0 && l.assigned_to) {
+              list.push({
+                user_id: l.assigned_to,
+                full_name: nameByUserId.get(l.assigned_to) ?? "Unnamed",
+              });
+            }
+            return {
+              id: l.id,
+              name: l.name,
+              email: l.email ?? "",
+              phone: l.phone ?? undefined,
+              company: l.company ?? undefined,
+              status: l.status as Lead["status"],
+              score: l.score ?? 0,
+              nextAction: l.next_action ?? undefined,
+              lastContact: l.last_contact ?? undefined,
+              annualKwh: l.annual_kwh ?? null,
+              contractEndDate: l.contract_end_date ?? null,
+              currentSupplier: l.current_supplier ?? null,
+              assignedTo: l.assigned_to ?? null,
+              assigneeName: l.assigned_to
+                ? nameByUserId.get(l.assigned_to) ?? null
+                : list[0]?.full_name ?? null,
+              assignees: list,
+            };
+          })
         );
         setTotalCount(count ?? data.length);
       }
