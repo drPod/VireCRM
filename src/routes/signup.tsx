@@ -41,7 +41,7 @@ async function tryAcceptInvite(token: string | undefined) {
 }
 
 function SignupPage() {
-  if (useCustomDomainGuard()) return null;
+  const guardActive = useCustomDomainGuard();
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const invite = params?.get("invite") ?? undefined;
   const plan = params?.get("plan") ?? undefined;
@@ -146,6 +146,7 @@ function SignupPage() {
     goPostSignup();
   };
 
+  if (guardActive) return null;
   return (
     <div className="min-h-screen">
       <MarketingHeader />
