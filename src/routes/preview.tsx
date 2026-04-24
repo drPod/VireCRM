@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type KeyboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
 } from "react";
 import {
