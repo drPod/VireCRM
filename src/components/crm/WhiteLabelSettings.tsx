@@ -528,6 +528,10 @@ export function WhiteLabelSettings() {
               search={{
                 brandName: brandName || undefined,
                 primaryColor: primaryColor || undefined,
+                secondaryColor: secondaryColor || undefined,
+                accentColor: accentColor || undefined,
+                sidebarColor: sidebarColor || undefined,
+                buttonColor: buttonColor || undefined,
                 logoUrl: logoUrl || undefined,
                 faviconUrl: faviconUrl || undefined,
                 fontFamily: fontFamily || undefined,
