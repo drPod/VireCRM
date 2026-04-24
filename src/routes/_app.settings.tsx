@@ -46,6 +46,10 @@ function SettingsPage() {
             <Users className="h-4 w-4" />
             Team
           </TabsTrigger>
+          <TabsTrigger value="roles" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Roles
+          </TabsTrigger>
           <TabsTrigger value="branding" className="gap-2">
             <Palette className="h-4 w-4" />
             White-Label
@@ -71,6 +75,10 @@ function SettingsPage() {
 
         <TabsContent value="team">
           <TeamMembers />
+        </TabsContent>
+
+        <TabsContent value="roles">
+          <CustomRolesPanel />
         </TabsContent>
 
         <TabsContent value="branding">
