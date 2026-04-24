@@ -45,6 +45,10 @@ export function WhiteLabelSettings() {
   const orgExt = organization as (typeof organization & OrgWithDomain) | null;
   const [brandName, setBrandName] = useState(organization?.brand_name || "");
   const [primaryColor, setPrimaryColor] = useState(organization?.primary_color || "#3b82f6");
+  const [secondaryColor, setSecondaryColor] = useState(orgExt?.secondary_color || "");
+  const [accentColor, setAccentColor] = useState(orgExt?.accent_color || "");
+  const [sidebarColor, setSidebarColor] = useState(orgExt?.sidebar_color || "");
+  const [buttonColor, setButtonColor] = useState(orgExt?.button_color || "");
   const [logoUrl, setLogoUrl] = useState(organization?.logo_url || "");
   const [faviconUrl, setFaviconUrl] = useState(orgExt?.favicon_url || "");
   const [fontFamily, setFontFamily] = useState(orgExt?.font_family || "");
