@@ -12,7 +12,7 @@ export function MarketingFooter() {
               <span className="text-lg font-bold text-gradient-primary">Genesis</span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
-              The autonomous CRM that sells for you.
+              The AI CRM that follows up for you, so your team can close.
             </p>
           </div>
 

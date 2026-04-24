@@ -31,7 +31,7 @@ export function HowItWorksSection() {
               step: "01",
               title: "We Learn Your Business",
               description:
-                "We study your sales process, your customers, and your offer — then architect a system designed to close your specific type of deal.",
+                "We study your sales process, your customers, and your offer — then architect a system tuned to your specific type of deal.",
             },
             {
               icon: Cog,
@@ -45,7 +45,7 @@ export function HowItWorksSection() {
               step: "03",
               title: "You Watch Revenue Grow",
               description:
-                "Your system runs 24/7 — responding instantly, following up relentlessly, and converting leads into paying clients on autopilot.",
+                "Your system runs 24/7 — responding instantly, following up relentlessly, and handing your team a steady stream of warm, ready-to-close leads.",
             },
           ].map((step) => (
             <div key={step.step} className="rounded-xl border border-border bg-card p-8">

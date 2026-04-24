@@ -15,7 +15,7 @@ export function CtaSection() {
               Stop Losing Deals You Already Paid For
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
-              Every lead that goes cold is money you already spent to acquire. Let your AI system recover that revenue — automatically, 24/7.
+              Every lead that goes cold is money you already spent to acquire. Let your AI system keep them warm and ready for your team — 24/7.
             </p>
             <div className="mt-10">
               <Link to="/contact">
