@@ -176,7 +176,7 @@ export function WhiteLabelSettings() {
   /* ---------------------------------------------------------------------- */
   /* Theme export / import                                                   */
   /* ---------------------------------------------------------------------- */
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const handleExportTheme = () => {
     const payload = {
