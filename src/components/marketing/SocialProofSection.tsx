@@ -9,12 +9,12 @@ const stats = [
 
 const testimonials = [
   {
-    quote: "We were losing 60% of our leads to slow follow-up. After Genesis, our close rate tripled. The AI doesn't forget, doesn't get tired, and doesn't take weekends off.",
+    quote: "We were losing 60% of our leads to slow follow-up. After Genesis, our close rate tripled because our reps finally talked to leads while they were still hot. The AI doesn't forget, doesn't get tired, and doesn't take weekends off.",
     name: "Jessica Torres",
     title: "VP of Sales, ScaleUp Inc",
   },
   {
-    quote: "This isn't software — it's a sales team that works 24/7. We replaced manual follow-ups entirely and our revenue went up 40% in the first quarter.",
+    quote: "This isn't software — it's a follow-up engine that works 24/7. We stopped doing manual follow-ups entirely and our revenue went up 40% in the first quarter.",
     name: "Ryan Chen",
     title: "Founder, NovaTech",
   },

@@ -48,7 +48,7 @@ export function FeaturesSection() {
         </div>
 
         <p className="mx-auto mt-8 max-w-xl text-center text-muted-foreground">
-          We fix this by automating the entire follow-up + closing process.
+          We fix this by automating the entire follow-up and lead-nurturing process — so your team can focus on closing.
         </p>
 
         {/* Positioning Shift */}
@@ -64,7 +64,7 @@ export function FeaturesSection() {
               It doesn't just <span className="line-through opacity-60">organize leads</span>.
             </p>
             <p className="text-lg font-semibold text-foreground">
-              It converts them into paying clients.
+              It nurtures them and hands your team the ones ready to buy.
             </p>
           </div>
         </div>
@@ -81,7 +81,7 @@ export function FeaturesSection() {
               { icon: Zap, text: "Responds instantly" },
               { icon: Bot, text: "Follows up until they reply" },
               { icon: BrainCircuit, text: "Nurtures them with AI messaging" },
-              { icon: CalendarCheck, text: "Pushes them toward booking or purchase" },
+              { icon: CalendarCheck, text: "Surfaces hot leads ready for your team" },
             ].map((item) => (
               <div key={item.text} className="flex items-center gap-3 rounded-lg bg-background/60 px-4 py-3">
                 <item.icon className="h-4 w-4 shrink-0 text-primary" />

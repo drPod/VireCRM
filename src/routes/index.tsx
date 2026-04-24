@@ -17,10 +17,10 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
   head: () => ({
     meta: [
-      { title: "Genesis — Turn Every Lead Into Revenue, Automatically" },
-      { name: "description", content: "We build AI-powered CRM systems that follow up, nurture, and close your leads for you—so your business keeps selling even when you're not working." },
-      { property: "og:title", content: "Genesis — Turn Every Lead Into Revenue, Automatically" },
-      { property: "og:description", content: "AI-powered CRM systems that respond instantly, follow up relentlessly, and convert leads into paying clients on autopilot." },
+      { title: "Genesis — Never Let a Lead Go Cold Again" },
+      { name: "description", content: "We build AI-powered CRM systems that respond instantly, follow up relentlessly, and surface your hottest leads — so your team can focus on closing." },
+      { property: "og:title", content: "Genesis — Never Let a Lead Go Cold Again" },
+      { property: "og:description", content: "AI-powered CRM systems that respond instantly, follow up relentlessly, and put your hottest leads in front of your sales team." },
     ],
   }),
 });
