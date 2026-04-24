@@ -18,6 +18,8 @@ import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
+import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
+import { AssigneeAvatars } from "./AssigneeAvatars";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
@@ -71,6 +73,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
   const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; role: string }>>([]);
+  // Multi-assignee state — sourced from the lead_assignees join table.
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [initialAssigneeIds, setInitialAssigneeIds] = useState<string[]>([]);
   const [commissionRule, setCommissionRule] = useState<{
     rule_type: string;
     percent: number;
