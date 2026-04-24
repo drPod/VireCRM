@@ -6,10 +6,13 @@ import { AutoFindLeadsDialog } from "@/components/crm/AutoFindLeadsDialog";
 import { ImportApolloListDialog } from "@/components/crm/ImportApolloListDialog";
 import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
-import { Search, Loader2 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { AssigneeMultiSelect, type AssigneeOption } from "@/components/crm/AssigneeMultiSelect";
+import { Button } from "@/components/ui/button";
+import { Search, Loader2, UserPlus, X } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { toast } from "sonner";
 
 type LeadsAction = "add" | "import" | "auto-find";
 type LeadsSearch = { q?: string; action?: LeadsAction; ai_desc?: string; ai_industry?: string };
@@ -41,7 +44,8 @@ export const Route = createFileRoute("/_app/leads")({
 const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
 
 function LeadsPage() {
-  const { organization } = useAuth();
+  const { organization, role } = useAuth();
+  const isOwner = role?.role === "owner";
   const navigate = useNavigate();
   const { q, action, ai_desc, ai_industry } = Route.useSearch();
   const [search, setSearch] = useState(q ?? "");
@@ -58,6 +62,16 @@ function LeadsPage() {
   // Captured once when the AI Advisor deep-links us in, so the dialog gets
   // pre-filled even after we strip the URL params.
   const [aiPrefill, setAiPrefill] = useState<{ desc?: string; industry?: string }>({});
+
+  // Owner-only: members of the org used for filtering & bulk-assign.
+  const [members, setMembers] = useState<AssigneeOption[]>([]);
+  // Owner-only: which assignees the owner is filtering the list by (union/OR).
+  const [assigneeFilter, setAssigneeFilter] = useState<string[]>([]);
+  // Owner-only: bulk-select state.
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  // Owner-only: which employees to duplicate-assign the selected leads to.
+  const [bulkAssignTargets, setBulkAssignTargets] = useState<string[]>([]);
+  const [bulkAssigning, setBulkAssigning] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
@@ -90,6 +104,28 @@ function LeadsPage() {
 
   const handleLeadAdded = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  // Load org members once for owner controls.
+  useEffect(() => {
+    if (!organization?.id || !isOwner) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("organization_id", organization.id);
+      if (cancelled || error || !data) return;
+      setMembers(
+        data
+          .filter((p): p is { user_id: string; full_name: string | null } => Boolean(p.user_id))
+          .map((p) => ({ user_id: p.user_id, full_name: p.full_name ?? "Unnamed" }))
+          .sort((a, b) => a.full_name.localeCompare(b.full_name))
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [organization?.id, isOwner]);
+
   useEffect(() => {
     if (!organization?.id) return;
 
@@ -103,6 +139,11 @@ function LeadsPage() {
 
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
+      }
+
+      // Owner assignee filter (union / OR across selected employees).
+      if (isOwner && assigneeFilter.length > 0) {
+        query = query.in("assigned_to", assigneeFilter);
       }
 
       if (search.trim()) {
@@ -153,7 +194,111 @@ function LeadsPage() {
     };
 
     fetchLeads();
-  }, [organization?.id, statusFilter, search, refreshKey]);
+  }, [organization?.id, statusFilter, search, refreshKey, isOwner, assigneeFilter]);
+
+  // Drop any selected ids that are no longer in the visible list (e.g. after
+  // filtering or refresh).
+  useEffect(() => {
+    setSelectedLeadIds((prev) => prev.filter((id) => leads.some((l) => l.id === id)));
+  }, [leads]);
+
+  const visibleLeadIds = useMemo(() => leads.map((l) => l.id), [leads]);
+  const allVisibleSelected =
+    visibleLeadIds.length > 0 && visibleLeadIds.every((id) => selectedLeadIds.includes(id));
+
+  const toggleLeadSelected = useCallback((id: string, next: boolean) => {
+    setSelectedLeadIds((prev) =>
+      next ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id)
+    );
+  }, []);
+
+  const handleSelectAllVisible = () => {
+    setSelectedLeadIds(allVisibleSelected ? [] : [...visibleLeadIds]);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedLeadIds([]);
+    setBulkAssignTargets([]);
+  };
+
+  /**
+   * Bulk-assign: for each selected lead, create a duplicate copy assigned to
+   * each chosen employee. The original lead is also reassigned to the first
+   * target so the count of "assigned employees" matches what the owner picked.
+   */
+  const handleBulkAssign = async () => {
+    if (!organization?.id) return;
+    if (selectedLeadIds.length === 0) {
+      toast.error("Select at least one lead first.");
+      return;
+    }
+    if (bulkAssignTargets.length === 0) {
+      toast.error("Pick at least one employee to assign to.");
+      return;
+    }
+    setBulkAssigning(true);
+    try {
+      // Re-fetch the full source rows so we can copy every column accurately.
+      const { data: sourceRows, error: srcErr } = await supabase
+        .from("leads")
+        .select("*")
+        .in("id", selectedLeadIds);
+      if (srcErr || !sourceRows) throw srcErr ?? new Error("Failed to load selected leads");
+
+      const [firstTarget, ...restTargets] = bulkAssignTargets;
+
+      // 1) Reassign the originals to the first target employee.
+      const { error: updErr } = await supabase
+        .from("leads")
+        .update({ assigned_to: firstTarget })
+        .in("id", selectedLeadIds);
+      if (updErr) throw updErr;
+
+      // 2) For each additional target, insert a fresh duplicate of every
+      //    source lead, assigned to that employee.
+      let duplicatesCreated = 0;
+      if (restTargets.length > 0) {
+        const inserts: Array<Record<string, unknown>> = [];
+        for (const target of restTargets) {
+          for (const row of sourceRows) {
+            // Strip identity / lifecycle fields so the insert generates a
+            // fresh row instead of conflicting with the source.
+            const {
+              id: _id,
+              created_at: _c,
+              updated_at: _u,
+              closed_at: _ca,
+              closed_by_user_id: _cb,
+              ...rest
+            } = row as Record<string, unknown>;
+            inserts.push({
+              ...rest,
+              organization_id: organization.id,
+              assigned_to: target,
+              status: "new",
+            });
+          }
+        }
+        if (inserts.length > 0) {
+          const { error: insErr } = await supabase.from("leads").insert(inserts);
+          if (insErr) throw insErr;
+          duplicatesCreated = inserts.length;
+        }
+      }
+
+      toast.success(
+        `Assigned ${selectedLeadIds.length} lead${selectedLeadIds.length === 1 ? "" : "s"} to ${bulkAssignTargets.length} employee${bulkAssignTargets.length === 1 ? "" : "s"}` +
+          (duplicatesCreated > 0 ? ` (+${duplicatesCreated} duplicates)` : "")
+      );
+      handleClearSelection();
+      handleLeadAdded();
+    } catch (err) {
+      console.error("[Leads] bulk-assign failed", err);
+      toast.error(err instanceof Error ? err.message : "Bulk assign failed");
+    } finally {
+      setBulkAssigning(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -213,7 +358,70 @@ function LeadsPage() {
             </button>
           ))}
         </div>
+        {isOwner && (
+          <AssigneeMultiSelect
+            options={members}
+            selected={assigneeFilter}
+            onChange={setAssigneeFilter}
+            placeholder="All assignees"
+            emptyText="No employees yet."
+          />
+        )}
       </div>
+
+      {isOwner && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAllVisible}
+            disabled={visibleLeadIds.length === 0}
+          >
+            {allVisibleSelected ? "Deselect all" : "Select all visible"}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {selectedLeadIds.length} selected
+          </span>
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <AssigneeMultiSelect
+              options={members}
+              selected={bulkAssignTargets}
+              onChange={setBulkAssignTargets}
+              placeholder="Assign to employees"
+              emptyText="No employees to assign."
+            />
+            <Button
+              size="sm"
+              onClick={handleBulkAssign}
+              disabled={
+                bulkAssigning ||
+                selectedLeadIds.length === 0 ||
+                bulkAssignTargets.length === 0
+              }
+              className="gap-1.5"
+            >
+              {bulkAssigning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <UserPlus className="h-3.5 w-3.5" />
+              )}
+              Assign
+            </Button>
+            {selectedLeadIds.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSelection}
+                className="gap-1.5 text-muted-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -225,6 +433,9 @@ function LeadsPage() {
             <LeadCard
               key={lead.id}
               lead={lead}
+              selectable={isOwner}
+              selected={selectedLeadIds.includes(lead.id)}
+              onSelectedChange={(next) => toggleLeadSelected(lead.id, next)}
               onClick={() => {
                 setSelectedLead(lead);
                 setDrawerOpen(true);
