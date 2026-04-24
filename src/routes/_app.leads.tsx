@@ -591,6 +591,12 @@ function LeadsPage() {
               selected={selectedLeadIds.includes(lead.id)}
               onSelectedChange={(next) => toggleLeadSelected(lead.id, next)}
               onClick={() => {
+                // Per org policy, only the owner can open the full lead
+                // detail drawer. Reps and managers see the card data only.
+                if (!isOwner) {
+                  toast.info("Only the organization owner can open lead details.");
+                  return;
+                }
                 setSelectedLead(lead);
                 setDrawerOpen(true);
               }}
@@ -604,12 +610,43 @@ function LeadsPage() {
         </div>
       )}
 
-      <LeadDetailDrawer
-        lead={selectedLead}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        onUpdated={handleLeadAdded}
-      />
+      {isOwner && (
+        <LeadDetailDrawer
+          lead={selectedLead}
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          onUpdated={handleLeadAdded}
+        />
+      )}
+
+      <AlertDialog open={confirmRoundRobinOpen} onOpenChange={setConfirmRoundRobinOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Distribute leads round-robin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will <strong>replace existing assignees</strong> on{" "}
+              {selectedLeadIds.length} selected lead
+              {selectedLeadIds.length === 1 ? "" : "s"} and distribute them
+              one-by-one across {bulkAssignTargets.length} employee
+              {bulkAssignTargets.length === 1 ? "" : "s"}. Each lead will end
+              up with exactly one assignee. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkAssigning}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulkAssigning}
+              onClick={(e) => {
+                e.preventDefault();
+                setConfirmRoundRobinOpen(false);
+                void runBulkAssign();
+              }}
+            >
+              Distribute
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
