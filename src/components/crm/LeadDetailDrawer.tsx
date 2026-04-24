@@ -548,6 +548,24 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
             <div className="flex-1 min-w-0">
               <SheetTitle>Lead Details</SheetTitle>
               <SheetDescription>Edit lead information and view activity history.</SheetDescription>
+              {assigneeIds.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <AssigneeAvatars
+                    assignees={assigneeIds.map((id) => ({
+                      user_id: id,
+                      full_name:
+                        members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
+                    }))}
+                    size="sm"
+                    max={4}
+                  />
+                  <span className="text-[11px] text-muted-foreground">
+                    {assigneeIds.length === 1
+                      ? "Assigned to 1 employee"
+                      : `Shared with ${assigneeIds.length} employees`}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <div className="flex items-center gap-1.5">
