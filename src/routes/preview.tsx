@@ -602,7 +602,7 @@ function DashboardView() {
 
 function PlaceholderView({ label }: { label: string }) {
   return (
-    <Card className="flex flex-col items-center justify-center gap-4 p-12 text-center">
+    <Card data-tour="placeholder" className="flex flex-col items-center justify-center gap-4 p-12 text-center scroll-mt-24">
       <div className="rounded-full bg-primary/10 p-4 text-primary">
         <Lock className="h-6 w-6" />
       </div>
