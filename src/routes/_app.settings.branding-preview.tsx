@@ -23,6 +23,10 @@ import {
 const searchSchema = z.object({
   brandName: z.string().optional(),
   primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  accentColor: z.string().optional(),
+  sidebarColor: z.string().optional(),
+  buttonColor: z.string().optional(),
   logoUrl: z.string().optional(),
   faviconUrl: z.string().optional(),
   fontFamily: z.string().optional(),
