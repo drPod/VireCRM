@@ -659,6 +659,35 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </div>
             </div>
 
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">
+                Assigned to
+                {!canAssign && (
+                  <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+                    (owners & managers only)
+                  </span>
+                )}
+              </label>
+              <select
+                className={`${inputClass} ${!canAssign ? "opacity-60 cursor-not-allowed" : ""}`}
+                value={form.assigned_to}
+                onChange={(e) => update("assigned_to", e.target.value)}
+                disabled={!canAssign}
+                title={
+                  canAssign
+                    ? "Assign this lead to a sales rep or manager"
+                    : "Only owners and managers can reassign leads"
+                }
+              >
+                <option value="">— Unassigned —</option>
+                {members.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>
+                    {m.full_name} ({m.role.replace("_", " ")})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div
               className={`rounded-lg border p-3 space-y-3 ${
                 form.status === "won"
