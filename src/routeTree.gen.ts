@@ -49,6 +49,7 @@ import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlu
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicContactRouteImport } from './routes/api/public/contact'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
+import { Route as AppSettingsBrandingPreviewRouteImport } from './routes/_app.settings.branding-preview'
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as AppCampaignsAnalyticsRouteImport } from './routes/_app.campaigns.analytics'
@@ -260,6 +261,12 @@ const AppWorkflowsWorkflowIdRoute = AppWorkflowsWorkflowIdRouteImport.update({
   path: '/workflows/$workflowId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsBrandingPreviewRoute =
+  AppSettingsBrandingPreviewRouteImport.update({
+    id: '/branding-preview',
+    path: '/branding-preview',
+    getParentRoute: () => AppSettingsRoute,
+  } as any)
 const AppClientsPlansRoute = AppClientsPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
@@ -345,7 +352,7 @@ export interface FileRoutesByFullPath {
   '/payouts': typeof AppPayoutsRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
-  '/settings': typeof AppSettingsRoute
+  '/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -353,6 +360,7 @@ export interface FileRoutesByFullPath {
   '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
+  '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -396,7 +404,7 @@ export interface FileRoutesByTo {
   '/payouts': typeof AppPayoutsRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
-  '/settings': typeof AppSettingsRoute
+  '/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -404,6 +412,7 @@ export interface FileRoutesByTo {
   '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
+  '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -449,7 +458,7 @@ export interface FileRoutesById {
   '/_app/payouts': typeof AppPayoutsRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/revenue': typeof AppRevenueRoute
-  '/_app/settings': typeof AppSettingsRoute
+  '/_app/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -457,6 +466,7 @@ export interface FileRoutesById {
   '/_app/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
+  '/_app/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -510,6 +520,7 @@ export interface FileRouteTypes {
     | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
+    | '/settings/branding-preview'
     | '/workflows/$workflowId'
     | '/api/public/contact'
     | '/lovable/email/suppression'
@@ -561,6 +572,7 @@ export interface FileRouteTypes {
     | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
+    | '/settings/branding-preview'
     | '/workflows/$workflowId'
     | '/api/public/contact'
     | '/lovable/email/suppression'
@@ -613,6 +625,7 @@ export interface FileRouteTypes {
     | '/_app/campaigns/analytics'
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
+    | '/_app/settings/branding-preview'
     | '/_app/workflows/$workflowId'
     | '/api/public/contact'
     | '/lovable/email/suppression'
@@ -942,6 +955,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkflowsWorkflowIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/branding-preview': {
+      id: '/_app/settings/branding-preview'
+      path: '/branding-preview'
+      fullPath: '/settings/branding-preview'
+      preLoaderRoute: typeof AppSettingsBrandingPreviewRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     '/_app/clients/plans': {
       id: '/_app/clients/plans'
       path: '/plans'
@@ -1041,6 +1061,18 @@ const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
   AppClientsRouteChildren,
 )
 
+interface AppSettingsRouteChildren {
+  AppSettingsBrandingPreviewRoute: typeof AppSettingsBrandingPreviewRoute
+}
+
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsBrandingPreviewRoute: AppSettingsBrandingPreviewRoute,
+}
+
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
@@ -1057,7 +1089,7 @@ interface AppRouteChildren {
   AppPayoutsRoute: typeof AppPayoutsRoute
   AppReputationRoute: typeof AppReputationRoute
   AppRevenueRoute: typeof AppRevenueRoute
-  AppSettingsRoute: typeof AppSettingsRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
   AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
 }
@@ -1078,7 +1110,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPayoutsRoute: AppPayoutsRoute,
   AppReputationRoute: AppReputationRoute,
   AppRevenueRoute: AppRevenueRoute,
-  AppSettingsRoute: AppSettingsRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
   AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
   AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
 }

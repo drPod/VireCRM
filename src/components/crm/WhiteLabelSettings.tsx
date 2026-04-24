@@ -19,6 +19,7 @@ import {
   Type,
   ImageIcon,
   PenLine,
+  Eye,
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -486,10 +487,28 @@ export function WhiteLabelSettings() {
           </p>
         </div>
 
-        <Button variant="command" className="w-full" onClick={handleSave} disabled={saving}>
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save White-Label Settings
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" className="flex-1 gap-2" asChild>
+            <Link
+              to="/settings/branding-preview"
+              search={{
+                brandName: brandName || undefined,
+                primaryColor: primaryColor || undefined,
+                logoUrl: logoUrl || undefined,
+                faviconUrl: faviconUrl || undefined,
+                fontFamily: fontFamily || undefined,
+                emailSignature: emailSignature || undefined,
+              }}
+            >
+              <Eye className="h-4 w-4" />
+              Preview live
+            </Link>
+          </Button>
+          <Button variant="command" className="flex-1" onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save White-Label Settings
+          </Button>
+        </div>
       </div>
 
       {!isEnterprise && (
