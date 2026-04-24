@@ -665,6 +665,7 @@ export type Database = {
       leads: {
         Row: {
           annual_kwh: number | null
+          assigned_to: string | null
           closed_at: string | null
           closed_by_user_id: string | null
           company: string | null
@@ -688,6 +689,7 @@ export type Database = {
         }
         Insert: {
           annual_kwh?: number | null
+          assigned_to?: string | null
           closed_at?: string | null
           closed_by_user_id?: string | null
           company?: string | null
@@ -711,6 +713,7 @@ export type Database = {
         }
         Update: {
           annual_kwh?: number | null
+          assigned_to?: string | null
           closed_at?: string | null
           closed_by_user_id?: string | null
           company?: string | null
