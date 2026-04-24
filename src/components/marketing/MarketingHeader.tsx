@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { PromoBanner } from "@/components/marketing/PromoBanner";
+import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 
 
 const navLinks = [
@@ -14,6 +15,9 @@ const navLinks = [
 
 export function MarketingHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isCustomDomain } = useDomainBranding();
+  // Never show platform marketing chrome on a verified white-label domain
+  if (isCustomDomain) return null;
 
   return (
     <>
