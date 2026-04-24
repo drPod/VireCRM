@@ -274,9 +274,10 @@ function LeadsPage() {
   };
 
   /**
-   * Bulk-assign: for each selected lead, create a duplicate copy assigned to
-   * each chosen employee. The original lead is also reassigned to the first
-   * target so the count of "assigned employees" matches what the owner picked.
+   * Bulk-assign: share each selected lead with every chosen employee by
+   * inserting rows into the `lead_assignees` join table. The first chosen
+   * employee also becomes the lead's primary assignee (`leads.assigned_to`)
+   * for backward compatibility with the rest of the app.
    */
   const handleBulkAssign = async () => {
     if (!organization?.id) return;
@@ -290,57 +291,38 @@ function LeadsPage() {
     }
     setBulkAssigning(true);
     try {
-      // Re-fetch the full source rows so we can copy every column accurately.
-      const { data: sourceRows, error: srcErr } = await supabase
-        .from("leads")
-        .select("*")
-        .in("id", selectedLeadIds);
-      if (srcErr || !sourceRows) throw srcErr ?? new Error("Failed to load selected leads");
+      const [primaryTarget] = bulkAssignTargets;
 
-      const [firstTarget, ...restTargets] = bulkAssignTargets;
-
-      // 1) Reassign the originals to the first target employee.
+      // 1) Set the primary assignee on each lead (legacy single-assignee column).
       const { error: updErr } = await supabase
         .from("leads")
-        .update({ assigned_to: firstTarget })
+        .update({ assigned_to: primaryTarget })
         .in("id", selectedLeadIds);
       if (updErr) throw updErr;
 
-      // 2) For each additional target, insert a fresh duplicate of every
-      //    source lead, assigned to that employee.
-      let duplicatesCreated = 0;
-      if (restTargets.length > 0) {
-        const inserts: TablesInsert<"leads">[] = [];
-        for (const target of restTargets) {
-          for (const row of sourceRows) {
-            // Strip identity / lifecycle fields so the insert generates a
-            // fresh row instead of conflicting with the source.
-            const {
-              id: _id,
-              created_at: _c,
-              updated_at: _u,
-              closed_at: _ca,
-              closed_by_user_id: _cb,
-              ...rest
-            } = row;
-            inserts.push({
-              ...rest,
-              organization_id: organization.id,
-              assigned_to: target,
-              status: "new",
-            });
-          }
-        }
-        if (inserts.length > 0) {
-          const { error: insErr } = await supabase.from("leads").insert(inserts);
-          if (insErr) throw insErr;
-          duplicatesCreated = inserts.length;
+      // 2) Insert (lead_id, user_id) rows for every (lead × target) pair.
+      //    Unique constraint silently dedupes existing pairs.
+      const rows: TablesInsert<"lead_assignees">[] = [];
+      for (const leadId of selectedLeadIds) {
+        for (const target of bulkAssignTargets) {
+          rows.push({
+            lead_id: leadId,
+            user_id: target,
+            organization_id: organization.id,
+          });
         }
       }
+      const { error: insErr } = await supabase
+        .from("lead_assignees")
+        .upsert(rows, { onConflict: "lead_id,user_id", ignoreDuplicates: true });
+      if (insErr) throw insErr;
 
       toast.success(
-        `Assigned ${selectedLeadIds.length} lead${selectedLeadIds.length === 1 ? "" : "s"} to ${bulkAssignTargets.length} employee${bulkAssignTargets.length === 1 ? "" : "s"}` +
-          (duplicatesCreated > 0 ? ` (+${duplicatesCreated} duplicates)` : "")
+        `Shared ${selectedLeadIds.length} lead${
+          selectedLeadIds.length === 1 ? "" : "s"
+        } with ${bulkAssignTargets.length} employee${
+          bulkAssignTargets.length === 1 ? "" : "s"
+        }`
       );
       handleClearSelection();
       handleLeadAdded();
