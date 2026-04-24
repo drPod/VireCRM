@@ -542,7 +542,7 @@ function LeadsPage() {
             />
             <Button
               size="sm"
-              onClick={handleBulkAssign}
+              onClick={handleBulkAssignClick}
               disabled={
                 bulkAssigning ||
                 selectedLeadIds.length === 0 ||
