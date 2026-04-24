@@ -37,6 +37,7 @@ import {
   EyeOff,
   PlayCircle,
   X,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
