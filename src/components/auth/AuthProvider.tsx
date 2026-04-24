@@ -21,6 +21,9 @@ interface Organization {
   name: string;
   slug: string;
   logo_url: string | null;
+  favicon_url: string | null;
+  font_family: string | null;
+  email_signature: string | null;
   primary_color: string | null;
   brand_name: string | null;
   custom_domain: string | null;
