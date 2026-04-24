@@ -219,6 +219,52 @@ function statusBadgeVariant(status: string): "default" | "secondary" | "outline"
 function CrmPreviewPage() {
   const [active, setActive] = useState("dashboard");
   const lastToastAt = useRef(0);
+  const [tourStep, setTourStep] = useState<number | null>(null);
+
+  const startTour = useCallback(() => {
+    setActive("dashboard");
+    setTourStep(0);
+  }, []);
+  const endTour = useCallback(() => setTourStep(null), []);
+
+  // Tour steps. Each step optionally switches the active sidebar tab so the
+  // target element is mounted before we try to spotlight it.
+  const tourSteps: TourStep[] = [
+    {
+      tab: "dashboard",
+      selector: '[data-tour="metrics"]',
+      title: "Your dashboard at a glance",
+      body: "Live metrics — active leads, pipeline value, win rate and AI response time — refresh in real time as your team works.",
+    },
+    {
+      tab: "dashboard",
+      selector: '[data-tour="pipeline"]',
+      title: "AI-prioritized pipeline",
+      body: "Genesis ranks every opportunity by intent and value, so your reps always know what to chase next.",
+    },
+    {
+      tab: "messages",
+      selector: '[data-tour="placeholder"]',
+      title: "Unified messages inbox",
+      body: "Email, SMS and chat replies land in one timeline. The AI drafts responses you can send in a click.",
+    },
+    {
+      tab: "advisor",
+      selector: '[data-tour="placeholder"]',
+      title: "Genesis AI Advisor",
+      body: "Ask anything about your pipeline — Genesis surfaces hot leads, suggests next actions, and writes outreach for you.",
+    },
+  ];
+
+  const goToStep = useCallback(
+    (idx: number) => {
+      const step = tourSteps[idx];
+      if (!step) return;
+      if (step.tab !== active) setActive(step.tab);
+      setTourStep(idx);
+    },
+    [active, tourSteps],
+  );
 
   const notifyBlocked = useCallback(() => {
     // Throttle to one toast per 1.2s so rapid clicks don't spam.
