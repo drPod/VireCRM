@@ -207,6 +207,48 @@ function statusBadgeVariant(status: string): "default" | "secondary" | "outline"
 
 function CrmPreviewPage() {
   const [active, setActive] = useState("dashboard");
+  const lastToastAt = useRef(0);
+
+  const notifyBlocked = useCallback(() => {
+    // Throttle to one toast per 1.2s so rapid clicks don't spam.
+    const now = Date.now();
+    if (now - lastToastAt.current < 1200) return;
+    lastToastAt.current = now;
+    toast("Read-only preview", {
+      description: "Sign up to create real leads, send messages, and run automations.",
+      action: {
+        label: "Start free trial",
+        onClick: () => {
+          if (typeof window !== "undefined") window.location.href = "/signup";
+        },
+      },
+    });
+  }, []);
+
+  const handleClickCapture = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      if (isAllowed(e.target)) return;
+      const el = e.target as Element;
+      const interactive = el.closest(
+        'button, a, [role="button"], [role="link"], input[type="submit"], input[type="button"], input[type="checkbox"], input[type="radio"], select, [data-preview-block]',
+      );
+      if (!interactive) return;
+      e.preventDefault();
+      e.stopPropagation();
+      notifyBlocked();
+    },
+    [notifyBlocked],
+  );
+
+  const handleSubmitCapture = useCallback(
+    (e: FormEvent<HTMLDivElement>) => {
+      if (isAllowed(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      notifyBlocked();
+    },
+    [notifyBlocked],
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -216,18 +258,24 @@ function CrmPreviewPage() {
           <div className="flex items-center gap-2 text-sm">
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="font-medium text-foreground">Live preview</span>
+            <Badge
+              variant="outline"
+              className="gap-1 border-primary/40 bg-primary/10 text-[10px] uppercase tracking-wide text-primary"
+            >
+              <EyeOff className="h-3 w-3" /> Read-only
+            </Badge>
             <span className="hidden text-muted-foreground sm:inline">
-              — explore Genesis with sample data. No signup needed.
+              — sample data, no actions are saved.
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/">
-              <Button variant="ghost" size="sm">
+            <Link to="/" data-preview-allow="true">
+              <Button variant="ghost" size="sm" data-preview-allow="true">
                 Exit preview
               </Button>
             </Link>
-            <Link to="/signup">
-              <Button variant="command" size="sm" className="gap-1.5">
+            <Link to="/signup" data-preview-allow="true">
+              <Button variant="command" size="sm" className="gap-1.5" data-preview-allow="true">
                 Start free trial
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
@@ -236,7 +284,12 @@ function CrmPreviewPage() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Read-only shield: intercepts all click/submit events that aren't opted in */}
+      <div
+        className="flex flex-1 overflow-hidden"
+        onClickCapture={handleClickCapture}
+        onSubmitCapture={handleSubmitCapture}
+      >
         {/* Sidebar */}
         <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar lg:flex">
           <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
@@ -257,6 +310,8 @@ function CrmPreviewPage() {
               return (
                 <button
                   key={item.id}
+                  type="button"
+                  data-preview-allow="true"
                   onClick={() => setActive(item.id)}
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
                     isActive
@@ -300,11 +355,11 @@ function CrmPreviewPage() {
                 <span>Search…</span>
                 <kbd className="rounded border border-border bg-background px-1.5 text-xs">⌘K</kbd>
               </div>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative" aria-label="Notifications (read-only)">
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
               </Button>
-              <Button variant="command" size="sm" className="gap-1.5">
+              <Button variant="command" size="sm" className="gap-1.5" aria-disabled="true">
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">New Lead</span>
               </Button>
