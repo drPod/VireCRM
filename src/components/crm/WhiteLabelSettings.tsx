@@ -716,7 +716,13 @@ export function WhiteLabelSettings() {
               Preview live
             </Link>
           </Button>
-          <Button variant="command" className="flex-1" onClick={handleSave} disabled={saving}>
+          <Button
+            variant="command"
+            className="flex-1"
+            onClick={handleSave}
+            disabled={saving || !paletteValid}
+            title={paletteValid ? undefined : "Fix the highlighted color values before saving"}
+          >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save White-Label Settings
           </Button>
