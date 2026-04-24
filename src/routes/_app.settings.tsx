@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { WhiteLabelSettings } from "@/components/crm/WhiteLabelSettings";
 import { TeamMembers } from "@/components/crm/TeamMembers";
+import { CustomRolesPanel } from "@/components/crm/CustomRolesPanel";
 import { EmailAuditLog } from "@/components/crm/EmailAuditLog";
 import { TestEmailReport } from "@/components/crm/TestEmailReport";
 import { EmailTemplatePreviewPanel } from "@/components/crm/EmailTemplatePreviewPanel";
@@ -9,7 +10,7 @@ import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
 import { N8nWebhookSettings } from "@/components/crm/N8nWebhookSettings";
 import { OutreachTemplatesManager } from "@/components/crm/OutreachTemplatesManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Palette, Mail, Plug, FileText } from "lucide-react";
+import { Users, Palette, Mail, Plug, FileText, Shield } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const PLATFORM_ADMIN_EMAILS = ["solidsnake4ks@gmail.com"];
@@ -45,6 +46,10 @@ function SettingsPage() {
             <Users className="h-4 w-4" />
             Team
           </TabsTrigger>
+          <TabsTrigger value="roles" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Roles
+          </TabsTrigger>
           <TabsTrigger value="branding" className="gap-2">
             <Palette className="h-4 w-4" />
             White-Label
@@ -70,6 +75,10 @@ function SettingsPage() {
 
         <TabsContent value="team">
           <TeamMembers />
+        </TabsContent>
+
+        <TabsContent value="roles">
+          <CustomRolesPanel />
         </TabsContent>
 
         <TabsContent value="branding">
