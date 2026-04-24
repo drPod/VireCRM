@@ -382,7 +382,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     }
 
     setSaving(true);
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload: TablesUpdate<"leads"> = {
       name: form.name.trim(),
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
@@ -397,7 +397,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       deal_value_cents: dealParsed.cents,
       deal_currency: form.deal_currency || "USD",
     };
-    // Only owners/managers may change the assignee — guard server-side too.
+    // Only owners/managers may change the assignee — DB trigger enforces too.
     if (canAssign) {
       updatePayload.assigned_to = form.assigned_to ? form.assigned_to : null;
     }
