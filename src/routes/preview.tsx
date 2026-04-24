@@ -441,6 +441,13 @@ function CrmPreviewPage() {
           </div>
         </main>
       </div>
+
+      <GuidedTour
+        steps={tourSteps}
+        currentStep={tourStep}
+        onNavigate={goToStep}
+        onClose={endTour}
+      />
     </div>
   );
 }
