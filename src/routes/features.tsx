@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { FeaturesSection } from "@/components/marketing/FeaturesSection";
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/features")({
 });
 
 function FeaturesPage() {
+  if (useCustomDomainGuard()) return null;
   return (
     <div className="min-h-screen">
       <MarketingHeader />
