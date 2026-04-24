@@ -180,32 +180,43 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
 
     // Fetch the full notes + energy + deal + assignment fields (the list view doesn't include them).
     setLoadingNotes(true);
-    supabase
-      .from("leads")
-      .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency, assigned_to")
-      .eq("id", lead.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setForm((prev) => ({
-            ...prev,
-            notes: data.notes ?? "",
-            annual_kwh:
-              typeof data.annual_kwh === "number" && data.annual_kwh >= 0
-                ? String(data.annual_kwh)
-                : prev.annual_kwh,
-            contract_end_date: data.contract_end_date ?? prev.contract_end_date,
-            current_supplier: data.current_supplier ?? prev.current_supplier,
-            deal_value:
-              typeof data.deal_value_cents === "number" && data.deal_value_cents > 0
-                ? (data.deal_value_cents / 100).toString()
-                : "",
-            deal_currency: data.deal_currency ?? "USD",
-            assigned_to: data.assigned_to ?? prev.assigned_to,
-          }));
-        }
-        setLoadingNotes(false);
-      });
+    Promise.all([
+      supabase
+        .from("leads")
+        .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency, assigned_to")
+        .eq("id", lead.id)
+        .single(),
+      supabase
+        .from("lead_assignees")
+        .select("user_id")
+        .eq("lead_id", lead.id),
+    ]).then(([leadRes, assigneeRes]) => {
+      const data = leadRes.data;
+      if (data) {
+        setForm((prev) => ({
+          ...prev,
+          notes: data.notes ?? "",
+          annual_kwh:
+            typeof data.annual_kwh === "number" && data.annual_kwh >= 0
+              ? String(data.annual_kwh)
+              : prev.annual_kwh,
+          contract_end_date: data.contract_end_date ?? prev.contract_end_date,
+          current_supplier: data.current_supplier ?? prev.current_supplier,
+          deal_value:
+            typeof data.deal_value_cents === "number" && data.deal_value_cents > 0
+              ? (data.deal_value_cents / 100).toString()
+              : "",
+          deal_currency: data.deal_currency ?? "USD",
+          assigned_to: data.assigned_to ?? prev.assigned_to,
+        }));
+      }
+      const ids = (assigneeRes.data ?? []).map((r) => r.user_id);
+      // Fall back to the legacy single column if the join table is empty.
+      const fallback = ids.length === 0 && data?.assigned_to ? [data.assigned_to] : ids;
+      setAssigneeIds(fallback);
+      setInitialAssigneeIds(fallback);
+      setLoadingNotes(false);
+    });
   }, [lead]);
 
   // Fetch activity history (re-runs on lead change OR when an action signals
