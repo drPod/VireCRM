@@ -1,24 +1,68 @@
 /**
- * Apply a white-label primary color across all the design tokens that
- * carry the brand identity in the CRM. We derive a small palette from a
- * single hex/css color so owners only have to pick one value.
+ * White-label theming engine.
+ *
+ * Owners pick a small palette (primary, secondary, accent, sidebar, button)
+ * and we map each color to the shadcn/Tailwind design tokens that drive that
+ * surface — so the entire CRM, reseller storefront, and emails re-skin in
+ * one go without touching component code.
+ *
+ * Every applier is idempotent and returns a cleanup that restores the
+ * previous values, so callers can safely re-run on prop change inside React
+ * effects (and tests can roll back between runs).
  */
 
-const TOKENS = [
-  "--primary",
-  "--ring",
+export type BrandPalette = {
+  primary?: string | null;
+  secondary?: string | null;
+  accent?: string | null;
+  sidebar?: string | null;
+  button?: string | null;
+};
+
+/* -------------------------------------------------------------------------- */
+/*                            Token group definitions                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Tokens driven by the primary brand color. These power buttons, focus
+ * rings, links, default chart series, and a re-usable --wl-primary
+ * variable for component-level styling.
+ */
+const PRIMARY_TOKENS = ["--primary", "--ring", "--chart-1", "--wl-primary"] as const;
+const PRIMARY_FOREGROUND_TOKENS = ["--primary-foreground"] as const;
+
+/** Light surfaces, badges, "secondary" button variants. */
+const SECONDARY_TOKENS = ["--secondary", "--muted", "--input", "--wl-secondary"] as const;
+const SECONDARY_FOREGROUND_TOKENS = ["--secondary-foreground", "--muted-foreground"] as const;
+
+/** Hover states, soft tints, accent badges. */
+const ACCENT_TOKENS = ["--accent", "--wl-accent"] as const;
+const ACCENT_FOREGROUND_TOKENS = ["--accent-foreground"] as const;
+
+/** Sidebar surface + active item pill. */
+const SIDEBAR_TOKENS = [
+  "--sidebar",
   "--sidebar-primary",
   "--sidebar-ring",
-  "--chart-1",
-  "--wl-primary",
+  "--sidebar-accent",
+  "--wl-sidebar",
 ] as const;
-
-const SOFT_TOKENS = [
+const SIDEBAR_FOREGROUND_TOKENS = [
+  "--sidebar-primary-foreground",
   "--sidebar-accent-foreground",
-  "--accent-foreground",
+  "--sidebar-foreground",
 ] as const;
 
-const FOREGROUND_TOKENS = ["--primary-foreground", "--sidebar-primary-foreground"] as const;
+/**
+ * Distinct CTA color (defaults to primary if unset). Components opt in via
+ * the `command` button variant or by reading --wl-button directly.
+ */
+const BUTTON_TOKENS = ["--wl-button"] as const;
+const BUTTON_FOREGROUND_TOKENS = ["--wl-button-foreground"] as const;
+
+/* -------------------------------------------------------------------------- */
+/*                              Color utilities                                */
+/* -------------------------------------------------------------------------- */
 
 function hexToRgb(hex: string): [number, number, number] | null {
   const m = hex.replace("#", "").trim();
@@ -37,45 +81,109 @@ function relativeLuminance([r, g, b]: [number, number, number]) {
   return 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
 }
 
-/**
- * Apply the brand color to all themed CSS variables.
- * Returns a cleanup function to restore previous values.
- */
-export function applyWhiteLabelColor(color: string | null | undefined): () => void {
-  if (typeof document === "undefined" || !color) return () => {};
-  const root = document.documentElement;
-  const previous = new Map<string, string>();
-
-  // Save then set primary tokens to the brand color
-  for (const token of TOKENS) {
-    previous.set(token, root.style.getPropertyValue(token));
-    root.style.setProperty(token, color);
-  }
-
-  // Pick a readable foreground (white or near-black) for buttons/sidebar pill
+/** Pick #ffffff or near-black depending on background luminance. */
+function readableForeground(color: string): string | null {
   const rgb = hexToRgb(color);
-  if (rgb) {
-    const lum = relativeLuminance(rgb);
-    const fg = lum > 0.55 ? "#0b0b0f" : "#ffffff";
-    for (const token of FOREGROUND_TOKENS) {
-      previous.set(token, root.style.getPropertyValue(token));
-      root.style.setProperty(token, fg);
-    }
-  }
-
-  // A softer tint for hover/foreground accents — same hue, lighter
-  for (const token of SOFT_TOKENS) {
-    previous.set(token, root.style.getPropertyValue(token));
-    root.style.setProperty(token, color);
-  }
-
-  return () => {
-    for (const [token, value] of previous) {
-      if (value) root.style.setProperty(token, value);
-      else root.style.removeProperty(token);
-    }
-  };
+  if (!rgb) return null;
+  return relativeLuminance(rgb) > 0.55 ? "#0b0b0f" : "#ffffff";
 }
+
+/* -------------------------------------------------------------------------- */
+/*                              Token application                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Save+set a list of CSS variables on `document.documentElement`. Returns the
+ * cleanup so the caller can restore the previous values. Centralises the
+ * "remember + restore" dance every applier needs.
+ */
+function setTokens(
+  tokens: readonly string[],
+  value: string,
+  store: Map<string, string>,
+) {
+  const root = document.documentElement;
+  for (const token of tokens) {
+    if (!store.has(token)) store.set(token, root.style.getPropertyValue(token));
+    root.style.setProperty(token, value);
+  }
+}
+
+function restoreTokens(store: Map<string, string>) {
+  const root = document.documentElement;
+  for (const [token, value] of store) {
+    if (value) root.style.setProperty(token, value);
+    else root.style.removeProperty(token);
+  }
+}
+
+/**
+ * Apply the full brand palette to all themed CSS variables.
+ *
+ * Backwards compatible with the older single-color signature:
+ * `applyWhiteLabelColor("#7c3aed")` still works and is treated as the
+ * primary color.
+ */
+export function applyWhiteLabelColor(
+  paletteOrPrimary: BrandPalette | string | null | undefined,
+): () => void {
+  if (typeof document === "undefined") return () => {};
+
+  const palette: BrandPalette =
+    typeof paletteOrPrimary === "string"
+      ? { primary: paletteOrPrimary }
+      : paletteOrPrimary || {};
+
+  // Nothing to apply → no-op cleanup
+  if (!palette.primary && !palette.secondary && !palette.accent && !palette.sidebar && !palette.button) {
+    return () => {};
+  }
+
+  const store = new Map<string, string>();
+
+  // Primary
+  if (palette.primary) {
+    setTokens(PRIMARY_TOKENS, palette.primary, store);
+    const fg = readableForeground(palette.primary);
+    if (fg) setTokens(PRIMARY_FOREGROUND_TOKENS, fg, store);
+  }
+
+  // Secondary
+  if (palette.secondary) {
+    setTokens(SECONDARY_TOKENS, palette.secondary, store);
+    const fg = readableForeground(palette.secondary);
+    if (fg) setTokens(SECONDARY_FOREGROUND_TOKENS, fg, store);
+  }
+
+  // Accent
+  if (palette.accent) {
+    setTokens(ACCENT_TOKENS, palette.accent, store);
+    const fg = readableForeground(palette.accent);
+    if (fg) setTokens(ACCENT_FOREGROUND_TOKENS, fg, store);
+  }
+
+  // Sidebar
+  if (palette.sidebar) {
+    setTokens(SIDEBAR_TOKENS, palette.sidebar, store);
+    const fg = readableForeground(palette.sidebar);
+    if (fg) setTokens(SIDEBAR_FOREGROUND_TOKENS, fg, store);
+  }
+
+  // Button — falls back to primary, but always exposes --wl-button for
+  // components that opt into the brand CTA color explicitly.
+  const buttonColor = palette.button || palette.primary;
+  if (buttonColor) {
+    setTokens(BUTTON_TOKENS, buttonColor, store);
+    const fg = readableForeground(buttonColor);
+    if (fg) setTokens(BUTTON_FOREGROUND_TOKENS, fg, store);
+  }
+
+  return () => restoreTokens(store);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  Favicon                                    */
+/* -------------------------------------------------------------------------- */
 
 /**
  * Swap the browser favicon to the org's branded icon. Updates (or creates)
@@ -84,7 +192,6 @@ export function applyWhiteLabelColor(color: string | null | undefined): () => vo
 export function applyFavicon(faviconUrl: string | null | undefined): () => void {
   if (typeof document === "undefined" || !faviconUrl) return () => {};
   const head = document.head;
-  // Find or create the icon link
   const existing = head.querySelector<HTMLLinkElement>("link[rel~='icon']");
   const previousHref = existing?.href ?? null;
   const previousType = existing?.type ?? null;
@@ -95,7 +202,6 @@ export function applyFavicon(faviconUrl: string | null | undefined): () => void 
     link.rel = "icon";
     head.appendChild(link);
   }
-  // Naive content-type sniff for the most common cases
   const lower = faviconUrl.toLowerCase();
   if (lower.endsWith(".svg")) link.type = "image/svg+xml";
   else if (lower.endsWith(".png")) link.type = "image/png";
@@ -113,7 +219,10 @@ export function applyFavicon(faviconUrl: string | null | undefined): () => void 
   };
 }
 
-/** Map of curated Google fonts → their CSS family stacks. */
+/* -------------------------------------------------------------------------- */
+/*                                   Fonts                                     */
+/* -------------------------------------------------------------------------- */
+
 const FONT_STACKS: Record<string, string> = {
   Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   Poppins: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -130,10 +239,6 @@ const FONT_STACKS: Record<string, string> = {
 
 export const SUPPORTED_FONTS = Object.keys(FONT_STACKS);
 
-/**
- * Inject the Google Font stylesheet for the chosen font and apply it to the
- * page via the --wl-font CSS variable + html font-family.
- */
 export function applyBrandFont(fontFamily: string | null | undefined): () => void {
   if (typeof document === "undefined" || !fontFamily) return () => {};
   const stack = FONT_STACKS[fontFamily];

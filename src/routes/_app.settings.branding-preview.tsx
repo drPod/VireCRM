@@ -23,6 +23,10 @@ import {
 const searchSchema = z.object({
   brandName: z.string().optional(),
   primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  accentColor: z.string().optional(),
+  sidebarColor: z.string().optional(),
+  buttonColor: z.string().optional(),
   logoUrl: z.string().optional(),
   faviconUrl: z.string().optional(),
   fontFamily: z.string().optional(),
@@ -46,6 +50,10 @@ export const Route = createFileRoute("/_app/settings/branding-preview")({
 type DraftBranding = {
   brandName: string;
   primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  sidebarColor: string;
+  buttonColor: string;
   logoUrl: string;
   faviconUrl: string;
   fontFamily: string;
@@ -56,6 +64,17 @@ function BrandingPreviewPage() {
   const { organization } = useAuth();
   const search = useSearch({ from: "/_app/settings/branding-preview" });
 
+  type OrgExt = {
+    favicon_url?: string | null;
+    font_family?: string | null;
+    email_signature?: string | null;
+    secondary_color?: string | null;
+    accent_color?: string | null;
+    sidebar_color?: string | null;
+    button_color?: string | null;
+  };
+  const orgExt = organization as (typeof organization & OrgExt) | null;
+
   // Draft state: start from URL params (passed from settings) or fall back
   // to the org's currently saved branding so the user always sees something.
   const initial: DraftBranding = useMemo(
@@ -63,20 +82,14 @@ function BrandingPreviewPage() {
       brandName: search.brandName ?? organization?.brand_name ?? "Acme CRM",
       primaryColor:
         search.primaryColor ?? organization?.primary_color ?? "#7c3aed",
+      secondaryColor: search.secondaryColor ?? orgExt?.secondary_color ?? "",
+      accentColor: search.accentColor ?? orgExt?.accent_color ?? "",
+      sidebarColor: search.sidebarColor ?? orgExt?.sidebar_color ?? "",
+      buttonColor: search.buttonColor ?? orgExt?.button_color ?? "",
       logoUrl: search.logoUrl ?? organization?.logo_url ?? "",
-      faviconUrl:
-        search.faviconUrl ??
-        (organization as { favicon_url?: string | null } | null)?.favicon_url ??
-        "",
-      fontFamily:
-        search.fontFamily ??
-        (organization as { font_family?: string | null } | null)?.font_family ??
-        "",
-      emailSignature:
-        search.emailSignature ??
-        (organization as { email_signature?: string | null } | null)
-          ?.email_signature ??
-        "",
+      faviconUrl: search.faviconUrl ?? orgExt?.favicon_url ?? "",
+      fontFamily: search.fontFamily ?? orgExt?.font_family ?? "",
+      emailSignature: search.emailSignature ?? orgExt?.email_signature ?? "",
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -84,11 +97,24 @@ function BrandingPreviewPage() {
 
   const [draft, setDraft] = useState<DraftBranding>(initial);
 
-  // Apply the draft to the live document so the surrounding chrome (sidebar,
-  // buttons, focus rings) re-themes in real time.
+  // Apply the draft palette to the live document so the surrounding chrome
+  // (sidebar, buttons, focus rings) re-themes in real time.
   useEffect(
-    () => applyWhiteLabelColor(draft.primaryColor),
-    [draft.primaryColor],
+    () =>
+      applyWhiteLabelColor({
+        primary: draft.primaryColor,
+        secondary: draft.secondaryColor || undefined,
+        accent: draft.accentColor || undefined,
+        sidebar: draft.sidebarColor || undefined,
+        button: draft.buttonColor || undefined,
+      }),
+    [
+      draft.primaryColor,
+      draft.secondaryColor,
+      draft.accentColor,
+      draft.sidebarColor,
+      draft.buttonColor,
+    ],
   );
   useEffect(() => applyFavicon(draft.faviconUrl), [draft.faviconUrl]);
   useEffect(() => applyBrandFont(draft.fontFamily), [draft.fontFamily]);
@@ -138,22 +164,35 @@ function BrandingPreviewPage() {
               />
             </Field>
 
-            <Field label="Primary color">
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={draft.primaryColor}
-                  onChange={(e) => update("primaryColor", e.target.value)}
-                  className="h-9 w-12 cursor-pointer rounded-md border border-input"
-                />
-                <input
-                  type="text"
-                  value={draft.primaryColor}
-                  onChange={(e) => update("primaryColor", e.target.value)}
-                  className="h-9 flex-1 rounded-md border border-input bg-input px-2.5 text-sm font-mono text-foreground outline-none focus:ring-1 focus:ring-ring"
-                />
-              </div>
-            </Field>
+            <PaletteField
+              label="Primary"
+              value={draft.primaryColor}
+              onChange={(v) => update("primaryColor", v)}
+            />
+            <PaletteField
+              label="Secondary"
+              value={draft.secondaryColor}
+              onChange={(v) => update("secondaryColor", v)}
+              optional
+            />
+            <PaletteField
+              label="Accent"
+              value={draft.accentColor}
+              onChange={(v) => update("accentColor", v)}
+              optional
+            />
+            <PaletteField
+              label="Sidebar"
+              value={draft.sidebarColor}
+              onChange={(v) => update("sidebarColor", v)}
+              optional
+            />
+            <PaletteField
+              label="CTA button"
+              value={draft.buttonColor}
+              onChange={(v) => update("buttonColor", v)}
+              optional
+            />
 
             <Field label="Logo URL">
               <input
@@ -252,6 +291,58 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function PaletteField({
+  label,
+  value,
+  onChange,
+  optional,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  optional?: boolean;
+}) {
+  const swatch = value || "#cccccc";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-muted-foreground">
+          {label}
+          {optional && (
+            <span className="ml-1 text-[10px] text-muted-foreground/70">
+              optional
+            </span>
+          )}
+        </label>
+        {optional && value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={swatch}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded-md border border-input"
+        />
+        <input
+          type="text"
+          value={value}
+          placeholder={optional ? "Inherits primary" : "#7c3aed"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 flex-1 rounded-md border border-input bg-input px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+    </div>
+  );
+}
+
 function PreviewBlock({
   title,
   description,
@@ -276,6 +367,10 @@ function PreviewBlock({
 
 function CrmPreview({ draft }: { draft: DraftBranding }) {
   const fontStyle = draft.fontFamily ? { fontFamily: draft.fontFamily } : undefined;
+  const sidebar = draft.sidebarColor || withAlpha(draft.primaryColor, 0.06);
+  const sidebarFg = pickReadableTextColor(sidebar);
+  const cta = draft.buttonColor || draft.primaryColor;
+  const secondary = draft.secondaryColor || withAlpha(draft.primaryColor, 0.1);
   return (
     <div
       className="rounded-lg border border-border overflow-hidden bg-background"
@@ -311,7 +406,10 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
       {/* Body */}
       <div className="grid grid-cols-[160px_1fr]">
         {/* Sidebar */}
-        <div className="border-r border-border bg-secondary/40 p-3 space-y-1">
+        <div
+          className="border-r border-border p-3 space-y-1"
+          style={{ backgroundColor: sidebar, color: sidebarFg }}
+        >
           {[
             { icon: TrendingUp, label: "Dashboard", active: true },
             { icon: Users, label: "Leads" },
@@ -327,14 +425,14 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
                       backgroundColor: draft.primaryColor,
                       color: pickReadableTextColor(draft.primaryColor),
                     }
-                  : undefined
+                  : { color: sidebarFg }
               }
             >
               <Icon
                 className="h-3.5 w-3.5"
                 style={!active ? { color: draft.primaryColor } : undefined}
               />
-              <span className={active ? "font-semibold" : "text-foreground"}>
+              <span className={active ? "font-semibold" : undefined}>
                 {label}
               </span>
             </div>
@@ -357,7 +455,8 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
             ].map((m) => (
               <div
                 key={m.label}
-                className="rounded-md border border-border bg-card p-3"
+                className="rounded-md border border-border p-3"
+                style={{ backgroundColor: secondary }}
               >
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   {m.label}
@@ -371,16 +470,28 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            className="rounded-md px-3 py-1.5 text-xs font-semibold"
-            style={{
-              backgroundColor: draft.primaryColor,
-              color: pickReadableTextColor(draft.primaryColor),
-            }}
-          >
-            New lead
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-md px-3 py-1.5 text-xs font-semibold"
+              style={{
+                backgroundColor: cta,
+                color: pickReadableTextColor(cta),
+              }}
+            >
+              New lead
+            </button>
+            <button
+              type="button"
+              className="rounded-md px-3 py-1.5 text-xs font-semibold"
+              style={{
+                backgroundColor: secondary,
+                color: pickReadableTextColor(secondary),
+              }}
+            >
+              Import
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -420,8 +531,8 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
           type="button"
           className="rounded-md px-3 py-1.5 text-xs font-semibold"
           style={{
-            backgroundColor: draft.primaryColor,
-            color: pickReadableTextColor(draft.primaryColor),
+            backgroundColor: draft.buttonColor || draft.primaryColor,
+            color: pickReadableTextColor(draft.buttonColor || draft.primaryColor),
           }}
         >
           Get started
@@ -432,8 +543,8 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
         <span
           className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold"
           style={{
-            backgroundColor: withAlpha(draft.primaryColor, 0.15),
-            color: draft.primaryColor,
+            backgroundColor: draft.accentColor || withAlpha(draft.primaryColor, 0.15),
+            color: pickReadableTextColor(draft.accentColor || withAlpha(draft.primaryColor, 0.15)),
           }}
         >
           Built for {draft.brandName || "your business"}
@@ -449,8 +560,8 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
             type="button"
             className="rounded-md px-4 py-2 text-xs font-semibold"
             style={{
-              backgroundColor: draft.primaryColor,
-              color: pickReadableTextColor(draft.primaryColor),
+              backgroundColor: draft.buttonColor || draft.primaryColor,
+              color: pickReadableTextColor(draft.buttonColor || draft.primaryColor),
             }}
           >
             Start free trial
@@ -458,6 +569,14 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
           <button
             type="button"
             className="rounded-md border border-border px-4 py-2 text-xs font-semibold text-foreground"
+            style={
+              draft.secondaryColor
+                ? {
+                    backgroundColor: draft.secondaryColor,
+                    color: pickReadableTextColor(draft.secondaryColor),
+                  }
+                : undefined
+            }
           >
             See pricing
           </button>

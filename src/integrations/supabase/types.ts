@@ -985,10 +985,12 @@ export type Database = {
       }
       organizations: {
         Row: {
+          accent_color: string | null
           ai_tokens_limit: number
           ai_tokens_used: number
           audit_log_retention_days: number
           brand_name: string | null
+          button_color: string | null
           commission_rate: number
           created_at: string
           custom_domain: string | null
@@ -1008,15 +1010,19 @@ export type Database = {
           parent_organization_id: string | null
           plan: string
           primary_color: string | null
+          secondary_color: string | null
+          sidebar_color: string | null
           slug: string
           support_email: string | null
           updated_at: string
         }
         Insert: {
+          accent_color?: string | null
           ai_tokens_limit?: number
           ai_tokens_used?: number
           audit_log_retention_days?: number
           brand_name?: string | null
+          button_color?: string | null
           commission_rate?: number
           created_at?: string
           custom_domain?: string | null
@@ -1036,15 +1042,19 @@ export type Database = {
           parent_organization_id?: string | null
           plan?: string
           primary_color?: string | null
+          secondary_color?: string | null
+          sidebar_color?: string | null
           slug: string
           support_email?: string | null
           updated_at?: string
         }
         Update: {
+          accent_color?: string | null
           ai_tokens_limit?: number
           ai_tokens_used?: number
           audit_log_retention_days?: number
           brand_name?: string | null
+          button_color?: string | null
           commission_rate?: number
           created_at?: string
           custom_domain?: string | null
@@ -1064,6 +1074,8 @@ export type Database = {
           parent_organization_id?: string | null
           plan?: string
           primary_color?: string | null
+          secondary_color?: string | null
+          sidebar_color?: string | null
           slug?: string
           support_email?: string | null
           updated_at?: string

@@ -34,6 +34,10 @@ type OrgWithDomain = {
   favicon_url?: string | null;
   font_family?: string | null;
   email_signature?: string | null;
+  secondary_color?: string | null;
+  accent_color?: string | null;
+  sidebar_color?: string | null;
+  button_color?: string | null;
 };
 
 export function WhiteLabelSettings() {
@@ -41,6 +45,10 @@ export function WhiteLabelSettings() {
   const orgExt = organization as (typeof organization & OrgWithDomain) | null;
   const [brandName, setBrandName] = useState(organization?.brand_name || "");
   const [primaryColor, setPrimaryColor] = useState(organization?.primary_color || "#3b82f6");
+  const [secondaryColor, setSecondaryColor] = useState(orgExt?.secondary_color || "");
+  const [accentColor, setAccentColor] = useState(orgExt?.accent_color || "");
+  const [sidebarColor, setSidebarColor] = useState(orgExt?.sidebar_color || "");
+  const [buttonColor, setButtonColor] = useState(orgExt?.button_color || "");
   const [logoUrl, setLogoUrl] = useState(organization?.logo_url || "");
   const [faviconUrl, setFaviconUrl] = useState(orgExt?.favicon_url || "");
   const [fontFamily, setFontFamily] = useState(orgExt?.font_family || "");
@@ -125,6 +133,10 @@ export function WhiteLabelSettings() {
       .update({
         brand_name: brandName || null,
         primary_color: primaryColor,
+        secondary_color: secondaryColor || null,
+        accent_color: accentColor || null,
+        sidebar_color: sidebarColor || null,
+        button_color: buttonColor || null,
         logo_url: logoUrl || null,
         favicon_url: faviconUrl || null,
         font_family: fontFamily || null,
@@ -259,30 +271,52 @@ export function WhiteLabelSettings() {
           />
         </div>
 
-        {/* Primary Color */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <Palette className="h-4 w-4 text-muted-foreground" />
-            <label className="text-sm font-medium text-foreground">Primary Color</label>
-          </div>
+        {/* Brand Palette */}
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
           <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={primaryColor}
-              onChange={(e) => setPrimaryColor(e.target.value)}
-              className="h-10 w-14 cursor-pointer rounded-lg border border-input"
-            />
-            <input
-              type="text"
-              value={primaryColor}
-              onChange={(e) => setPrimaryColor(e.target.value)}
-              className="h-10 flex-1 rounded-lg border border-input bg-input px-3 text-sm text-foreground font-mono outline-none focus:ring-1 focus:ring-ring"
-            />
-            <div
-              className="h-10 w-24 rounded-lg"
-              style={{ backgroundColor: primaryColor }}
-            />
+            <Palette className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <label className="text-sm font-medium text-foreground">Brand Palette</label>
+              <p className="text-xs text-muted-foreground">
+                Primary is required. The other colors are optional — leave them blank to derive them from primary.
+              </p>
+            </div>
           </div>
+
+          <ColorRow
+            label="Primary"
+            description="Buttons, links, focus rings, active sidebar item."
+            value={primaryColor}
+            onChange={setPrimaryColor}
+          />
+          <ColorRow
+            label="Secondary"
+            description="Soft surfaces, badges, secondary buttons."
+            value={secondaryColor}
+            onChange={setSecondaryColor}
+            optional
+          />
+          <ColorRow
+            label="Accent"
+            description="Hover states, subtle highlights."
+            value={accentColor}
+            onChange={setAccentColor}
+            optional
+          />
+          <ColorRow
+            label="Sidebar"
+            description="Background of the left navigation rail."
+            value={sidebarColor}
+            onChange={setSidebarColor}
+            optional
+          />
+          <ColorRow
+            label="Call-to-action button"
+            description="Distinct CTA color (e.g. green for sign-ups)."
+            value={buttonColor}
+            onChange={setButtonColor}
+            optional
+          />
         </div>
 
         {/* Logo URL */}
@@ -494,6 +528,10 @@ export function WhiteLabelSettings() {
               search={{
                 brandName: brandName || undefined,
                 primaryColor: primaryColor || undefined,
+                secondaryColor: secondaryColor || undefined,
+                accentColor: accentColor || undefined,
+                sidebarColor: sidebarColor || undefined,
+                buttonColor: buttonColor || undefined,
                 logoUrl: logoUrl || undefined,
                 faviconUrl: faviconUrl || undefined,
                 fontFamily: fontFamily || undefined,
@@ -525,6 +563,73 @@ export function WhiteLabelSettings() {
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Reusable color-picker row used by the brand palette card. Optional rows
+ * show a "Clear" button so the value can be reset to "use default" (empty
+ * string) and then derived from primary by the theming engine.
+ */
+function ColorRow({
+  label,
+  description,
+  value,
+  onChange,
+  optional,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (next: string) => void;
+  optional?: boolean;
+}) {
+  const swatch = value || "#cccccc";
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div>
+          <p className="text-xs font-semibold text-foreground">
+            {label}
+            {optional && (
+              <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">
+                Optional
+              </span>
+            )}
+          </p>
+          <p className="text-[11px] text-muted-foreground">{description}</p>
+        </div>
+        {optional && value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={swatch}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded-md border border-input"
+        />
+        <input
+          type="text"
+          value={value}
+          placeholder={optional ? "Inherits from primary" : "#7c3aed"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 flex-1 rounded-md border border-input bg-input px-2.5 text-sm font-mono text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+        />
+        <div
+          className="h-9 w-16 rounded-md border border-border"
+          style={{ backgroundColor: swatch }}
+          aria-hidden
+        />
+      </div>
     </div>
   );
 }

@@ -27,6 +27,10 @@ interface ResellerBranding {
   favicon_url: string | null;
   font_family: string | null;
   primary_color: string | null;
+  secondary_color: string | null;
+  accent_color: string | null;
+  sidebar_color: string | null;
+  button_color: string | null;
   is_reseller: boolean;
   support_email: string | null;
 }
@@ -73,10 +77,22 @@ function ResellerLandingPage() {
     })();
   }, [resellerSlug]);
 
-  // Apply the reseller's color, favicon, and font to the marketing page chrome
+  // Apply the reseller's full palette, favicon, and font to the page chrome
   useEffect(() => {
-    return applyWhiteLabelColor(branding?.primary_color);
-  }, [branding?.primary_color]);
+    return applyWhiteLabelColor({
+      primary: branding?.primary_color,
+      secondary: branding?.secondary_color,
+      accent: branding?.accent_color,
+      sidebar: branding?.sidebar_color,
+      button: branding?.button_color,
+    });
+  }, [
+    branding?.primary_color,
+    branding?.secondary_color,
+    branding?.accent_color,
+    branding?.sidebar_color,
+    branding?.button_color,
+  ]);
 
   useEffect(() => {
     return applyFavicon(branding?.favicon_url);
