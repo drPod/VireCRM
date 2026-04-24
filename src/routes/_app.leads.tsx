@@ -278,10 +278,17 @@ function LeadsPage() {
   };
 
   /**
-   * Bulk-assign: share each selected lead with every chosen employee by
-   * inserting rows into the `lead_assignees` join table. The first chosen
-   * employee also becomes the lead's primary assignee (`leads.assigned_to`)
-   * for backward compatibility with the rest of the app.
+   * Bulk-assign with two distribution modes:
+   *
+   * 1. "share" — every selected lead is shared with every chosen employee
+   *    (rows in the join table). The first picked employee becomes the
+   *    primary assignee on `leads.assigned_to`.
+   *
+   * 2. "round_robin" — leads are distributed one-by-one across the chosen
+   *    employees (lead 1 → emp A, lead 2 → emp B, lead 3 → emp A, …). Each
+   *    lead ends up with exactly one assignee, and `leads.assigned_to`
+   *    matches that single assignee. Existing assignees on the selected
+   *    leads are replaced so the distribution is clean.
    */
   const handleBulkAssign = async () => {
     if (!organization?.id) return;
@@ -295,39 +302,80 @@ function LeadsPage() {
     }
     setBulkAssigning(true);
     try {
-      const [primaryTarget] = bulkAssignTargets;
+      if (bulkAssignMode === "round_robin") {
+        // Build the lead → single-employee map by rotating through targets.
+        const pairs = selectedLeadIds.map((leadId, idx) => ({
+          leadId,
+          userId: bulkAssignTargets[idx % bulkAssignTargets.length]!,
+        }));
 
-      // 1) Set the primary assignee on each lead (legacy single-assignee column).
-      const { error: updErr } = await supabase
-        .from("leads")
-        .update({ assigned_to: primaryTarget })
-        .in("id", selectedLeadIds);
-      if (updErr) throw updErr;
+        // 1) Wipe existing join-table rows for these leads so we don't leave
+        //    stale assignees behind from a previous "share" pass.
+        const { error: delErr } = await supabase
+          .from("lead_assignees")
+          .delete()
+          .in("lead_id", selectedLeadIds);
+        if (delErr) throw delErr;
 
-      // 2) Insert (lead_id, user_id) rows for every (lead × target) pair.
-      //    Unique constraint silently dedupes existing pairs.
-      const rows: TablesInsert<"lead_assignees">[] = [];
-      for (const leadId of selectedLeadIds) {
-        for (const target of bulkAssignTargets) {
-          rows.push({
-            lead_id: leadId,
-            user_id: target,
-            organization_id: organization.id,
-          });
+        // 2) Update primary assignee per lead. We have to issue one update
+        //    per lead because each gets a different user_id.
+        await Promise.all(
+          pairs.map(({ leadId, userId }) =>
+            supabase.from("leads").update({ assigned_to: userId }).eq("id", leadId)
+          )
+        );
+
+        // 3) Insert one join-table row per lead.
+        const rows: TablesInsert<"lead_assignees">[] = pairs.map(({ leadId, userId }) => ({
+          lead_id: leadId,
+          user_id: userId,
+          organization_id: organization.id,
+        }));
+        const { error: insErr } = await supabase
+          .from("lead_assignees")
+          .upsert(rows, { onConflict: "lead_id,user_id", ignoreDuplicates: true });
+        if (insErr) throw insErr;
+
+        toast.success(
+          `Distributed ${selectedLeadIds.length} lead${
+            selectedLeadIds.length === 1 ? "" : "s"
+          } across ${bulkAssignTargets.length} employee${
+            bulkAssignTargets.length === 1 ? "" : "s"
+          } (round-robin)`
+        );
+      } else {
+        // "share" mode — original behavior.
+        const [primaryTarget] = bulkAssignTargets;
+
+        const { error: updErr } = await supabase
+          .from("leads")
+          .update({ assigned_to: primaryTarget })
+          .in("id", selectedLeadIds);
+        if (updErr) throw updErr;
+
+        const rows: TablesInsert<"lead_assignees">[] = [];
+        for (const leadId of selectedLeadIds) {
+          for (const target of bulkAssignTargets) {
+            rows.push({
+              lead_id: leadId,
+              user_id: target,
+              organization_id: organization.id,
+            });
+          }
         }
-      }
-      const { error: insErr } = await supabase
-        .from("lead_assignees")
-        .upsert(rows, { onConflict: "lead_id,user_id", ignoreDuplicates: true });
-      if (insErr) throw insErr;
+        const { error: insErr } = await supabase
+          .from("lead_assignees")
+          .upsert(rows, { onConflict: "lead_id,user_id", ignoreDuplicates: true });
+        if (insErr) throw insErr;
 
-      toast.success(
-        `Shared ${selectedLeadIds.length} lead${
-          selectedLeadIds.length === 1 ? "" : "s"
-        } with ${bulkAssignTargets.length} employee${
-          bulkAssignTargets.length === 1 ? "" : "s"
-        }`
-      );
+        toast.success(
+          `Shared ${selectedLeadIds.length} lead${
+            selectedLeadIds.length === 1 ? "" : "s"
+          } with ${bulkAssignTargets.length} employee${
+            bulkAssignTargets.length === 1 ? "" : "s"
+          }`
+        );
+      }
       handleClearSelection();
       handleLeadAdded();
     } catch (err) {
