@@ -50,6 +50,10 @@ export const Route = createFileRoute("/_app/settings/branding-preview")({
 type DraftBranding = {
   brandName: string;
   primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  sidebarColor: string;
+  buttonColor: string;
   logoUrl: string;
   faviconUrl: string;
   fontFamily: string;
@@ -60,6 +64,17 @@ function BrandingPreviewPage() {
   const { organization } = useAuth();
   const search = useSearch({ from: "/_app/settings/branding-preview" });
 
+  type OrgExt = {
+    favicon_url?: string | null;
+    font_family?: string | null;
+    email_signature?: string | null;
+    secondary_color?: string | null;
+    accent_color?: string | null;
+    sidebar_color?: string | null;
+    button_color?: string | null;
+  };
+  const orgExt = organization as (typeof organization & OrgExt) | null;
+
   // Draft state: start from URL params (passed from settings) or fall back
   // to the org's currently saved branding so the user always sees something.
   const initial: DraftBranding = useMemo(
@@ -67,20 +82,14 @@ function BrandingPreviewPage() {
       brandName: search.brandName ?? organization?.brand_name ?? "Acme CRM",
       primaryColor:
         search.primaryColor ?? organization?.primary_color ?? "#7c3aed",
+      secondaryColor: search.secondaryColor ?? orgExt?.secondary_color ?? "",
+      accentColor: search.accentColor ?? orgExt?.accent_color ?? "",
+      sidebarColor: search.sidebarColor ?? orgExt?.sidebar_color ?? "",
+      buttonColor: search.buttonColor ?? orgExt?.button_color ?? "",
       logoUrl: search.logoUrl ?? organization?.logo_url ?? "",
-      faviconUrl:
-        search.faviconUrl ??
-        (organization as { favicon_url?: string | null } | null)?.favicon_url ??
-        "",
-      fontFamily:
-        search.fontFamily ??
-        (organization as { font_family?: string | null } | null)?.font_family ??
-        "",
-      emailSignature:
-        search.emailSignature ??
-        (organization as { email_signature?: string | null } | null)
-          ?.email_signature ??
-        "",
+      faviconUrl: search.faviconUrl ?? orgExt?.favicon_url ?? "",
+      fontFamily: search.fontFamily ?? orgExt?.font_family ?? "",
+      emailSignature: search.emailSignature ?? orgExt?.email_signature ?? "",
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -88,11 +97,24 @@ function BrandingPreviewPage() {
 
   const [draft, setDraft] = useState<DraftBranding>(initial);
 
-  // Apply the draft to the live document so the surrounding chrome (sidebar,
-  // buttons, focus rings) re-themes in real time.
+  // Apply the draft palette to the live document so the surrounding chrome
+  // (sidebar, buttons, focus rings) re-themes in real time.
   useEffect(
-    () => applyWhiteLabelColor(draft.primaryColor),
-    [draft.primaryColor],
+    () =>
+      applyWhiteLabelColor({
+        primary: draft.primaryColor,
+        secondary: draft.secondaryColor || undefined,
+        accent: draft.accentColor || undefined,
+        sidebar: draft.sidebarColor || undefined,
+        button: draft.buttonColor || undefined,
+      }),
+    [
+      draft.primaryColor,
+      draft.secondaryColor,
+      draft.accentColor,
+      draft.sidebarColor,
+      draft.buttonColor,
+    ],
   );
   useEffect(() => applyFavicon(draft.faviconUrl), [draft.faviconUrl]);
   useEffect(() => applyBrandFont(draft.fontFamily), [draft.fontFamily]);
