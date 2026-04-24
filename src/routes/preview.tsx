@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent,
   type MouseEvent,
 } from "react";
 import {
@@ -308,6 +309,36 @@ function CrmPreviewPage() {
     [notifyBlocked],
   );
 
+  // Block Enter/Space activation on focused interactive controls that aren't opted in.
+  // This prevents keyboard users from triggering real actions, form submits, or
+  // navigation into authed flows via <a>, <button>, or role="button"/"link" elements.
+  const handleKeyDownCapture = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+      if (isAllowed(e.target)) return;
+      const el = e.target as Element | null;
+      if (!el || typeof (el as Element).closest !== "function") return;
+
+      // Don't interfere with typing inside text fields or editable areas.
+      const editable = el.closest(
+        'input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"], [contenteditable=""]',
+      );
+      if (editable) return;
+
+      const interactive = el.closest(
+        'button, a, [role="button"], [role="link"], [role="menuitem"], [role="tab"], input[type="submit"], input[type="button"], input[type="checkbox"], input[type="radio"], select, summary, [data-preview-block]',
+      );
+      if (!interactive) return;
+
+      // Space on a <select> opens the picker — allow native focus behavior but
+      // block activation keys that would commit a real action.
+      e.preventDefault();
+      e.stopPropagation();
+      notifyBlocked();
+    },
+    [notifyBlocked],
+  );
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Top preview banner */}
@@ -358,6 +389,7 @@ function CrmPreviewPage() {
         className="flex flex-1 overflow-hidden"
         onClickCapture={handleClickCapture}
         onSubmitCapture={handleSubmitCapture}
+        onKeyDownCapture={handleKeyDownCapture}
       >
         {/* Sidebar */}
         <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar lg:flex">
