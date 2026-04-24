@@ -531,8 +531,8 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
           type="button"
           className="rounded-md px-3 py-1.5 text-xs font-semibold"
           style={{
-            backgroundColor: draft.primaryColor,
-            color: pickReadableTextColor(draft.primaryColor),
+            backgroundColor: draft.buttonColor || draft.primaryColor,
+            color: pickReadableTextColor(draft.buttonColor || draft.primaryColor),
           }}
         >
           Get started
@@ -543,8 +543,8 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
         <span
           className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold"
           style={{
-            backgroundColor: withAlpha(draft.primaryColor, 0.15),
-            color: draft.primaryColor,
+            backgroundColor: draft.accentColor || withAlpha(draft.primaryColor, 0.15),
+            color: pickReadableTextColor(draft.accentColor || withAlpha(draft.primaryColor, 0.15)),
           }}
         >
           Built for {draft.brandName || "your business"}
@@ -560,8 +560,8 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
             type="button"
             className="rounded-md px-4 py-2 text-xs font-semibold"
             style={{
-              backgroundColor: draft.primaryColor,
-              color: pickReadableTextColor(draft.primaryColor),
+              backgroundColor: draft.buttonColor || draft.primaryColor,
+              color: pickReadableTextColor(draft.buttonColor || draft.primaryColor),
             }}
           >
             Start free trial
@@ -569,6 +569,14 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
           <button
             type="button"
             className="rounded-md border border-border px-4 py-2 text-xs font-semibold text-foreground"
+            style={
+              draft.secondaryColor
+                ? {
+                    backgroundColor: draft.secondaryColor,
+                    color: pickReadableTextColor(draft.secondaryColor),
+                  }
+                : undefined
+            }
           >
             See pricing
           </button>
