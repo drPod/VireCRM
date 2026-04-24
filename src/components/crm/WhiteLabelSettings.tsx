@@ -125,6 +125,9 @@ export function WhiteLabelSettings() {
         brand_name: brandName || null,
         primary_color: primaryColor,
         logo_url: logoUrl || null,
+        favicon_url: faviconUrl || null,
+        font_family: fontFamily || null,
+        email_signature: emailSignature.trim() || null,
         custom_domain: customDomain || null,
         support_email: trimmedSupport || null,
       } as never)
