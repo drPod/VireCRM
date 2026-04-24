@@ -30,6 +30,9 @@ type OrgWithDomain = {
   domain_verification_token?: string;
   domain_verified_at?: string | null;
   support_email?: string | null;
+  favicon_url?: string | null;
+  font_family?: string | null;
+  email_signature?: string | null;
 };
 
 export function WhiteLabelSettings() {
@@ -38,6 +41,9 @@ export function WhiteLabelSettings() {
   const [brandName, setBrandName] = useState(organization?.brand_name || "");
   const [primaryColor, setPrimaryColor] = useState(organization?.primary_color || "#3b82f6");
   const [logoUrl, setLogoUrl] = useState(organization?.logo_url || "");
+  const [faviconUrl, setFaviconUrl] = useState(orgExt?.favicon_url || "");
+  const [fontFamily, setFontFamily] = useState(orgExt?.font_family || "");
+  const [emailSignature, setEmailSignature] = useState(orgExt?.email_signature || "");
   const [customDomain, setCustomDomain] = useState(organization?.custom_domain || "");
   const [supportEmail, setSupportEmail] = useState(orgExt?.support_email || "");
   const initialIsReseller = !!orgExt?.is_reseller;
