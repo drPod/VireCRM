@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Calendar, Zap, Building2, CalendarClock } from "lucide-react";
+import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User } from "lucide-react";
 
 export interface Lead {
   id: string;
@@ -17,6 +17,10 @@ export interface Lead {
   contractEndDate?: string | null;
   /** Lead's current energy supplier (e.g. "British Gas"). */
   currentSupplier?: string | null;
+  /** UUID of the org member this lead is assigned to. */
+  assignedTo?: string | null;
+  /** Display name of the assignee (resolved from profiles). */
+  assigneeName?: string | null;
 }
 
 const statusConfig: Record<Lead["status"], { label: string; variant: "default" | "secondary" | "success" | "warning" | "info" | "destructive" }> = {
