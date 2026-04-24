@@ -436,6 +436,7 @@ function CrmPreviewPage() {
 
           {/* Content */}
           <div className="space-y-6 p-4 sm:p-6">
+            <PreviewViewBanner viewId={active} label={navItems.find((n) => n.id === active)?.label || "Dashboard"} />
             {active === "dashboard" && <DashboardView />}
             {active !== "dashboard" && <PlaceholderView label={navItems.find((n) => n.id === active)?.label || ""} />}
           </div>
