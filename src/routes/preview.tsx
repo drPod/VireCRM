@@ -485,7 +485,7 @@ function DashboardView() {
       </div>
 
       {/* Pipeline */}
-      <Card className="p-5">
+      <Card data-tour="pipeline" className="p-5 scroll-mt-24">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-base font-semibold text-foreground">Pipeline</h3>
