@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/terms")({
 });
 
 function TermsPage() {
+  if (useCustomDomainGuard()) return null;
   return (
     <div className="min-h-screen flex flex-col">
       <MarketingHeader />

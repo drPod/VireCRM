@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
+import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 
 
 export function MarketingFooter() {
+  const { isCustomDomain } = useDomainBranding();
+  if (isCustomDomain) return null;
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-6xl px-6 py-12">

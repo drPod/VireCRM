@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { PricingCards } from "@/components/marketing/PricingCards";
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage() {
+  if (useCustomDomainGuard()) return null;
   return (
     <div className="min-h-screen">
       <PaymentTestModeBanner />

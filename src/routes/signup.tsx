@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Button } from "@/components/ui/button";
 import { Terminal, Loader2, Mail } from "lucide-react";
@@ -40,6 +41,7 @@ async function tryAcceptInvite(token: string | undefined) {
 }
 
 function SignupPage() {
+  const guardActive = useCustomDomainGuard();
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const invite = params?.get("invite") ?? undefined;
   const plan = params?.get("plan") ?? undefined;
@@ -144,6 +146,7 @@ function SignupPage() {
     goPostSignup();
   };
 
+  if (guardActive) return null;
   return (
     <div className="min-h-screen">
       <MarketingHeader />
