@@ -133,6 +133,10 @@ export function WhiteLabelSettings() {
       .update({
         brand_name: brandName || null,
         primary_color: primaryColor,
+        secondary_color: secondaryColor || null,
+        accent_color: accentColor || null,
+        sidebar_color: sidebarColor || null,
+        button_color: buttonColor || null,
         logo_url: logoUrl || null,
         favicon_url: faviconUrl || null,
         font_family: fontFamily || null,
