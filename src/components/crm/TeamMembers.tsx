@@ -39,32 +39,36 @@ import {
   Crown,
   CheckCircle2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type AppRole = "owner" | "manager" | "sales_rep";
+
+interface CustomRoleLite {
+  id: string;
+  name: string;
+  base_role: AppRole;
+  color: string | null;
+  is_builtin: boolean;
+}
 
 interface Member {
   user_id: string;
   full_name: string | null;
   role: AppRole;
+  custom_role_id: string | null;
 }
 
 interface Invitation {
   id: string;
   email: string;
   role: AppRole;
+  custom_role_id: string | null;
   token: string;
   status: string;
   created_at: string;
   expires_at: string;
 }
-
-const roleLabels: Record<AppRole, string> = {
-  owner: "Owner",
-  manager: "Manager",
-  sales_rep: "Sales Rep",
-};
 
 export function TeamMembers() {
   const { user, organization, role } = useAuth();
@@ -72,50 +76,84 @@ export function TeamMembers() {
 
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRoleLite[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<AppRole>("sales_rep");
+  const [inviteCustomRoleId, setInviteCustomRoleId] = useState<string>("");
   const [inviting, setInviting] = useState(false);
 
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
+
+  const customRoleMap = useMemo(() => {
+    const m = new Map<string, CustomRoleLite>();
+    for (const r of customRoles) m.set(r.id, r);
+    return m;
+  }, [customRoles]);
+
+  // Roles assignable via the picker (exclude any owner-tier role, since
+  // ownership transfer is not supported through this UI).
+  const assignableRoles = useMemo(
+    () => customRoles.filter((r) => r.base_role !== "owner"),
+    [customRoles],
+  );
 
   const loadData = async () => {
     if (!organization) return;
     setLoading(true);
     try {
-      // Members: join profiles + user_roles
-      const { data: profileRows } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .eq("organization_id", organization.id);
+      const [profilesRes, rolesRes, invRes, customRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .eq("organization_id", organization.id),
+        supabase
+          .from("user_roles")
+          .select("user_id, role, custom_role_id")
+          .eq("organization_id", organization.id),
+        supabase
+          .from("invitations")
+          .select("id, email, role, custom_role_id, token, status, created_at, expires_at")
+          .eq("organization_id", organization.id)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("custom_roles")
+          .select("id, name, base_role, color, is_builtin")
+          .eq("organization_id", organization.id)
+          .order("is_builtin", { ascending: false })
+          .order("name", { ascending: true }),
+      ]);
 
-      const { data: roleRows } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .eq("organization_id", organization.id);
+      const roleRows = (rolesRes.data ?? []) as {
+        user_id: string;
+        role: AppRole;
+        custom_role_id: string | null;
+      }[];
+      const roleMap = new Map(roleRows.map((r) => [r.user_id, r]));
 
-      const roleMap = new Map<string, AppRole>(
-        (roleRows ?? []).map((r) => [r.user_id, r.role as AppRole]),
-      );
-
-      const memberList: Member[] = (profileRows ?? []).map((p) => ({
-        user_id: p.user_id,
-        full_name: p.full_name,
-        role: roleMap.get(p.user_id) ?? "sales_rep",
-      }));
+      const memberList: Member[] = (profilesRes.data ?? []).map((p) => {
+        const r = roleMap.get(p.user_id);
+        return {
+          user_id: p.user_id,
+          full_name: p.full_name,
+          role: (r?.role ?? "sales_rep") as AppRole,
+          custom_role_id: r?.custom_role_id ?? null,
+        };
+      });
 
       setMembers(memberList);
+      setInvitations((invRes.data ?? []) as Invitation[]);
+      setCustomRoles((customRes.data ?? []) as CustomRoleLite[]);
 
-      const { data: invRows } = await supabase
-        .from("invitations")
-        .select("id, email, role, token, status, created_at, expires_at")
-        .eq("organization_id", organization.id)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-
-      setInvitations((invRows ?? []) as Invitation[]);
+      // Default invite picker to the built-in Sales Rep role
+      const defaultRep = (customRes.data ?? []).find(
+        (r) => r.is_builtin && r.base_role === "sales_rep",
+      );
+      if (defaultRep && !inviteCustomRoleId) {
+        setInviteCustomRoleId(defaultRep.id);
+      }
     } catch (err) {
       console.error("Failed to load team", err);
     } finally {
@@ -135,6 +173,12 @@ export function TeamMembers() {
       return;
     }
     if (!organization || !user) return;
+    const chosen = customRoleMap.get(inviteCustomRoleId);
+    if (!chosen) {
+      toast.error("Pick a role for this invitation");
+      return;
+    }
+
     setInviting(true);
     try {
       const { data, error } = await supabase
@@ -142,7 +186,8 @@ export function TeamMembers() {
         .insert({
           organization_id: organization.id,
           email,
-          role: inviteRole,
+          role: chosen.base_role,
+          custom_role_id: chosen.id,
           invited_by: user.id,
         })
         .select("token")
@@ -153,8 +198,6 @@ export function TeamMembers() {
       const inviteUrl = `${window.location.origin}/accept-invite?token=${data.token}`;
       await navigator.clipboard.writeText(inviteUrl).catch(() => {});
 
-      // Send the invitation email. Surface failures clearly so the owner
-      // knows whether to share the link manually.
       const inviterName =
         (user.user_metadata?.full_name as string | undefined)?.trim() ||
         user.email ||
@@ -162,7 +205,6 @@ export function TeamMembers() {
       const orgName = organization.name || "your team";
       const brandName = organization.brand_name?.trim() || "GenesisX";
       const replyTo = organization.support_email?.trim() || undefined;
-      const roleLabel = roleLabels[inviteRole];
 
       try {
         await sendTransactionalEmail({
@@ -174,7 +216,7 @@ export function TeamMembers() {
           templateData: {
             inviterName,
             organizationName: orgName,
-            roleLabel,
+            roleLabel: chosen.name,
             acceptUrl: inviteUrl,
             brandName,
           },
@@ -188,7 +230,6 @@ export function TeamMembers() {
       }
 
       setInviteEmail("");
-      setInviteRole("sales_rep");
       setInviteOpen(false);
       loadData();
     } catch (err: unknown) {
@@ -214,10 +255,10 @@ export function TeamMembers() {
     loadData();
   };
 
-  const changeRole = async (userId: string, newRole: AppRole) => {
-    const { data, error } = await supabase.rpc("update_member_role", {
+  const changeMemberRole = async (userId: string, customRoleId: string) => {
+    const { data, error } = await supabase.rpc("assign_custom_role", {
       p_user_id: userId,
-      p_new_role: newRole,
+      p_custom_role_id: customRoleId,
     });
     if (error) {
       toast.error(error.message);
@@ -251,6 +292,22 @@ export function TeamMembers() {
     toast.success("Member removed");
     setRemoveTarget(null);
     loadData();
+  };
+
+  const memberRoleLabel = (m: Member) => {
+    if (m.custom_role_id) {
+      const cr = customRoleMap.get(m.custom_role_id);
+      if (cr) return cr.name;
+    }
+    return m.role === "owner" ? "Owner" : m.role === "manager" ? "Manager" : "Sales Rep";
+  };
+
+  const invitationRoleLabel = (inv: Invitation) => {
+    if (inv.custom_role_id) {
+      const cr = customRoleMap.get(inv.custom_role_id);
+      if (cr) return cr.name;
+    }
+    return inv.role === "owner" ? "Owner" : inv.role === "manager" ? "Manager" : "Sales Rep";
   };
 
   return (
@@ -314,7 +371,7 @@ export function TeamMembers() {
                         )}
                       </p>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {roleLabels[m.role]}
+                        {memberRoleLabel(m)}
                       </p>
                     </div>
                   </div>
@@ -328,15 +385,24 @@ export function TeamMembers() {
                     ) : isOwner && !isMe ? (
                       <>
                         <Select
-                          value={m.role}
-                          onValueChange={(v) => changeRole(m.user_id, v as AppRole)}
+                          value={m.custom_role_id ?? ""}
+                          onValueChange={(v) => changeMemberRole(m.user_id, v)}
                         >
-                          <SelectTrigger className="h-8 w-[130px] text-xs">
-                            <SelectValue />
+                          <SelectTrigger className="h-8 w-[180px] text-xs">
+                            <SelectValue placeholder="Pick role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="manager">Manager</SelectItem>
-                            <SelectItem value="sales_rep">Sales Rep</SelectItem>
+                            {assignableRoles.map((r) => (
+                              <SelectItem key={r.id} value={r.id}>
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className="inline-block h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: r.color ?? "#6366f1" }}
+                                  />
+                                  {r.name}
+                                </span>
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <Button
@@ -349,7 +415,7 @@ export function TeamMembers() {
                         </Button>
                       </>
                     ) : (
-                      <Badge variant="secondary">{roleLabels[m.role]}</Badge>
+                      <Badge variant="secondary">{memberRoleLabel(m)}</Badge>
                     )}
                   </div>
                 </li>
@@ -377,7 +443,7 @@ export function TeamMembers() {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{inv.email}</p>
                     <p className="text-xs text-muted-foreground">
-                      {roleLabels[inv.role]} · expires{" "}
+                      {invitationRoleLabel(inv)} · expires{" "}
                       {new Date(inv.expires_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -434,15 +500,30 @@ export function TeamMembers() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Role</label>
-              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as AppRole)}>
+              <Select value={inviteCustomRoleId} onValueChange={setInviteCustomRoleId}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Pick a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manager">Manager — can manage leads, campaigns, tasks</SelectItem>
-                  <SelectItem value="sales_rep">Sales Rep — can work assigned leads & tasks</SelectItem>
+                  {assignableRoles.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ backgroundColor: r.color ?? "#6366f1" }}
+                        />
+                        {r.name}
+                        {!r.is_builtin && (
+                          <span className="text-[10px] text-muted-foreground">(custom)</span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Manage roles in the Roles tab.
+              </p>
             </div>
             <div className="rounded-lg bg-secondary/40 p-3 flex gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
