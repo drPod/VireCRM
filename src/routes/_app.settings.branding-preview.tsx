@@ -367,6 +367,10 @@ function PreviewBlock({
 
 function CrmPreview({ draft }: { draft: DraftBranding }) {
   const fontStyle = draft.fontFamily ? { fontFamily: draft.fontFamily } : undefined;
+  const sidebar = draft.sidebarColor || withAlpha(draft.primaryColor, 0.06);
+  const sidebarFg = pickReadableTextColor(sidebar);
+  const cta = draft.buttonColor || draft.primaryColor;
+  const secondary = draft.secondaryColor || withAlpha(draft.primaryColor, 0.1);
   return (
     <div
       className="rounded-lg border border-border overflow-hidden bg-background"
@@ -402,7 +406,10 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
       {/* Body */}
       <div className="grid grid-cols-[160px_1fr]">
         {/* Sidebar */}
-        <div className="border-r border-border bg-secondary/40 p-3 space-y-1">
+        <div
+          className="border-r border-border p-3 space-y-1"
+          style={{ backgroundColor: sidebar, color: sidebarFg }}
+        >
           {[
             { icon: TrendingUp, label: "Dashboard", active: true },
             { icon: Users, label: "Leads" },
@@ -418,14 +425,14 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
                       backgroundColor: draft.primaryColor,
                       color: pickReadableTextColor(draft.primaryColor),
                     }
-                  : undefined
+                  : { color: sidebarFg }
               }
             >
               <Icon
                 className="h-3.5 w-3.5"
                 style={!active ? { color: draft.primaryColor } : undefined}
               />
-              <span className={active ? "font-semibold" : "text-foreground"}>
+              <span className={active ? "font-semibold" : undefined}>
                 {label}
               </span>
             </div>
@@ -448,7 +455,8 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
             ].map((m) => (
               <div
                 key={m.label}
-                className="rounded-md border border-border bg-card p-3"
+                className="rounded-md border border-border p-3"
+                style={{ backgroundColor: secondary }}
               >
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   {m.label}
@@ -462,16 +470,28 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            className="rounded-md px-3 py-1.5 text-xs font-semibold"
-            style={{
-              backgroundColor: draft.primaryColor,
-              color: pickReadableTextColor(draft.primaryColor),
-            }}
-          >
-            New lead
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-md px-3 py-1.5 text-xs font-semibold"
+              style={{
+                backgroundColor: cta,
+                color: pickReadableTextColor(cta),
+              }}
+            >
+              New lead
+            </button>
+            <button
+              type="button"
+              className="rounded-md px-3 py-1.5 text-xs font-semibold"
+              style={{
+                backgroundColor: secondary,
+                color: pickReadableTextColor(secondary),
+              }}
+            >
+              Import
+            </button>
+          </div>
         </div>
       </div>
     </div>
