@@ -65,15 +65,15 @@ export function HeroSection() {
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link to="/pricing">
+            <Link to="/preview">
               <Button variant="command" size="lg" className="gap-2 px-8 text-base">
-                See plans &amp; pricing
+                Preview the CRM
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/contact">
+            <Link to="/pricing">
               <Button variant="outline" size="lg" className="px-8 text-base">
-                Book a strategy call
+                See plans &amp; pricing
               </Button>
             </Link>
           </div>

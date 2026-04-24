@@ -8,6 +8,7 @@ import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 
 const navLinks = [
   { to: "/", label: "Home" },
+  { to: "/preview", label: "Preview" },
   { to: "/pricing", label: "Pricing" },
   { to: "/features", label: "Features" },
   { to: "/contact", label: "Contact" },
