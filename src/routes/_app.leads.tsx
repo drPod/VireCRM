@@ -143,10 +143,8 @@ function LeadsPage() {
             annualKwh: l.annual_kwh ?? null,
             contractEndDate: l.contract_end_date ?? null,
             currentSupplier: l.current_supplier ?? null,
-            assignedTo: (l as { assigned_to?: string | null }).assigned_to ?? null,
-            assigneeName: (l as { assigned_to?: string | null }).assigned_to
-              ? nameByUserId.get((l as { assigned_to: string }).assigned_to) ?? null
-              : null,
+            assignedTo: l.assigned_to ?? null,
+            assigneeName: l.assigned_to ? nameByUserId.get(l.assigned_to) ?? null : null,
           }))
         );
         setTotalCount(count ?? data.length);
