@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User } from "lucide-react";
 
 export interface Lead {
@@ -45,15 +46,45 @@ function ScoreBar({ score }: { score: number }) {
   );
 }
 
-export function LeadCard({ lead, onClick }: { lead: Lead; onClick?: () => void }) {
+export function LeadCard({
+  lead,
+  onClick,
+  selectable = false,
+  selected = false,
+  onSelectedChange,
+}: {
+  lead: Lead;
+  onClick?: () => void;
+  /** Show a selection checkbox in the corner. */
+  selectable?: boolean;
+  selected?: boolean;
+  onSelectedChange?: (next: boolean) => void;
+}) {
   const status = statusConfig[lead.status];
 
   return (
     <div
       onClick={onClick}
-      className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-accent/30 cursor-pointer"
+      className={`group relative rounded-lg border p-4 transition-colors hover:border-primary/30 hover:bg-accent/30 cursor-pointer ${
+        selected ? "border-primary bg-primary/5" : "border-border bg-card"
+      }`}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-2">
+        {selectable && (
+          <div
+            className="pt-0.5"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectedChange?.(!selected);
+            }}
+          >
+            <Checkbox
+              checked={selected}
+              aria-label={`Select ${lead.name}`}
+              onCheckedChange={(v) => onSelectedChange?.(v === true)}
+            />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <h4 className="truncate text-sm font-semibold text-foreground">{lead.name}</h4>
           {lead.company && (
