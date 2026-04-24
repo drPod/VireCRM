@@ -34,6 +34,10 @@ type OrgWithDomain = {
   favicon_url?: string | null;
   font_family?: string | null;
   email_signature?: string | null;
+  secondary_color?: string | null;
+  accent_color?: string | null;
+  sidebar_color?: string | null;
+  button_color?: string | null;
 };
 
 export function WhiteLabelSettings() {
