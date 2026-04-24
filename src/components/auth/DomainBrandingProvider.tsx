@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { applyWhiteLabelColor } from "@/lib/white-label-theme";
 
 export interface DomainBranding {
   id: string;
@@ -73,12 +74,7 @@ export function DomainBrandingProvider({ children }: { children: ReactNode }) {
 
   // Apply branding CSS variables when domain branding is active
   useEffect(() => {
-    if (!branding?.primary_color || typeof document === "undefined") return;
-    const root = document.documentElement;
-    root.style.setProperty("--wl-primary", branding.primary_color);
-    return () => {
-      root.style.removeProperty("--wl-primary");
-    };
+    return applyWhiteLabelColor(branding?.primary_color);
   }, [branding?.primary_color]);
 
   // Update document title when domain branding is active
