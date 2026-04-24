@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { HeroSection } from "@/components/marketing/HeroSection";
+import { TwoWaysSection } from "@/components/marketing/TwoWaysSection";
 import { FeaturesSection } from "@/components/marketing/FeaturesSection";
 import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
 import { SocialProofSection } from "@/components/marketing/SocialProofSection";
@@ -79,6 +80,7 @@ function LandingPage() {
     <div className="min-h-screen">
       <MarketingHeader />
       <HeroSection />
+      <TwoWaysSection />
       <FeaturesSection />
       <HowItWorksSection />
       <SocialProofSection />

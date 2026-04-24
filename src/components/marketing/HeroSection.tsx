@@ -17,7 +17,6 @@ export function HeroSection() {
     let frame = 0;
     const update = () => {
       frame = 0;
-      // Scroll-driven offset: image rises up to ~80px as the hero scrolls past.
       const offset = Math.min(Math.max(window.scrollY * 0.18, 0), 80);
       el.style.setProperty("--parallax-y", `${-offset}px`);
     };
@@ -47,43 +46,58 @@ export function HeroSection() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles className="h-3 w-3" />
-            Autonomous AI sales system — built for your business
+            Custom-built CRM &amp; AI sales systems
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Never Let a Lead
+            Custom CRM &amp; AI Sales Systems
             <br />
-            <span className="text-gradient-primary [-webkit-text-fill-color:transparent] drop-shadow-[0_2px_12px_oklch(0.65_0.2_250/0.35)]">Go Cold Again.</span>
+            <span className="text-gradient-primary [-webkit-text-fill-color:transparent] drop-shadow-[0_2px_12px_oklch(0.65_0.2_250/0.35)]">Built for Your Business</span>
+            <br />
+            <span className="text-2xl font-medium text-muted-foreground sm:text-3xl lg:text-4xl">— Not One-Size-Fits-All</span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-            Genesis is a custom-built AI CRM that responds instantly, follows up relentlessly, and surfaces your hottest leads — so your team always knows who to call next.
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
+            More than a CRM — this is your AI-powered sales system. We design and build custom systems that manage your pipeline, follow up with every lead, and keep your sales process moving — without the complexity of traditional CRMs.
           </p>
 
-          <p className="mx-auto mt-4 max-w-lg text-sm text-muted-foreground/80">
-            No missed follow-ups. No manual chasing. No deals lost to slow response times.
+          <p className="mx-auto mt-4 max-w-xl text-sm font-medium text-foreground/80">
+            Built for real estate, agencies, solar, roofing, home services, and coaching businesses.
+          </p>
+
+          <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground/80">
+            All the power of a CRM. None of the complexity.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link to="/preview">
+            <Link to="/contact">
               <Button variant="command" size="lg" className="gap-2 px-8 text-base">
-                Preview the CRM
+                Book a Demo
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/pricing">
+            <Link to="/preview">
               <Button variant="outline" size="lg" className="px-8 text-base">
-                See plans &amp; pricing
+                See It In Action
               </Button>
             </Link>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Custom-built for your business</span>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Set up in days, not months</span>
             <span className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Fully automated pipeline</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> No technical skills required</span>
             <span className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> 24/7 AI follow-ups</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Automated follow-up built in</span>
+            <span className="hidden sm:inline">·</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Pipeline runs 24/7</span>
+            <span className="hidden sm:inline">·</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Built around how you sell</span>
+          </div>
+
+          <div className="mx-auto mt-10 max-w-xl rounded-xl border border-primary/20 bg-primary/5 px-6 py-5">
+            <p className="text-sm text-muted-foreground">Most businesses rent their systems.</p>
+            <p className="mt-1 text-base font-semibold text-foreground">Leaders build assets — and control their growth.</p>
           </div>
         </div>
 
