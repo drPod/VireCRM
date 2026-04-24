@@ -562,3 +562,70 @@ export function WhiteLabelSettings() {
     </div>
   );
 }
+
+/**
+ * Reusable color-picker row used by the brand palette card. Optional rows
+ * show a "Clear" button so the value can be reset to "use default" (empty
+ * string) and then derived from primary by the theming engine.
+ */
+function ColorRow({
+  label,
+  description,
+  value,
+  onChange,
+  optional,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (next: string) => void;
+  optional?: boolean;
+}) {
+  const swatch = value || "#cccccc";
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div>
+          <p className="text-xs font-semibold text-foreground">
+            {label}
+            {optional && (
+              <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">
+                Optional
+              </span>
+            )}
+          </p>
+          <p className="text-[11px] text-muted-foreground">{description}</p>
+        </div>
+        {optional && value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={swatch}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded-md border border-input"
+        />
+        <input
+          type="text"
+          value={value}
+          placeholder={optional ? "Inherits from primary" : "#7c3aed"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 flex-1 rounded-md border border-input bg-input px-2.5 text-sm font-mono text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+        />
+        <div
+          className="h-9 w-16 rounded-md border border-border"
+          style={{ backgroundColor: swatch }}
+          aria-hidden
+        />
+      </div>
+    </div>
+  );
+}
