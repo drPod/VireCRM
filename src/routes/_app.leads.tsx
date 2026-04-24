@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader2, UserPlus, X } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
 
@@ -258,7 +259,7 @@ function LeadsPage() {
       //    source lead, assigned to that employee.
       let duplicatesCreated = 0;
       if (restTargets.length > 0) {
-        const inserts: Array<Record<string, unknown>> = [];
+        const inserts: TablesInsert<"leads">[] = [];
         for (const target of restTargets) {
           for (const row of sourceRows) {
             // Strip identity / lifecycle fields so the insert generates a
@@ -270,7 +271,7 @@ function LeadsPage() {
               closed_at: _ca,
               closed_by_user_id: _cb,
               ...rest
-            } = row as Record<string, unknown>;
+            } = row;
             inserts.push({
               ...rest,
               organization_id: organization.id,
