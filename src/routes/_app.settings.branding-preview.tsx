@@ -164,22 +164,35 @@ function BrandingPreviewPage() {
               />
             </Field>
 
-            <Field label="Primary color">
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={draft.primaryColor}
-                  onChange={(e) => update("primaryColor", e.target.value)}
-                  className="h-9 w-12 cursor-pointer rounded-md border border-input"
-                />
-                <input
-                  type="text"
-                  value={draft.primaryColor}
-                  onChange={(e) => update("primaryColor", e.target.value)}
-                  className="h-9 flex-1 rounded-md border border-input bg-input px-2.5 text-sm font-mono text-foreground outline-none focus:ring-1 focus:ring-ring"
-                />
-              </div>
-            </Field>
+            <PaletteField
+              label="Primary"
+              value={draft.primaryColor}
+              onChange={(v) => update("primaryColor", v)}
+            />
+            <PaletteField
+              label="Secondary"
+              value={draft.secondaryColor}
+              onChange={(v) => update("secondaryColor", v)}
+              optional
+            />
+            <PaletteField
+              label="Accent"
+              value={draft.accentColor}
+              onChange={(v) => update("accentColor", v)}
+              optional
+            />
+            <PaletteField
+              label="Sidebar"
+              value={draft.sidebarColor}
+              onChange={(v) => update("sidebarColor", v)}
+              optional
+            />
+            <PaletteField
+              label="CTA button"
+              value={draft.buttonColor}
+              onChange={(v) => update("buttonColor", v)}
+              optional
+            />
 
             <Field label="Logo URL">
               <input
