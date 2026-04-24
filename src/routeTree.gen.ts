@@ -43,6 +43,7 @@ import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
+import { Route as RResellerSlugIndexRouteImport } from './routes/r.$resellerSlug.index'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
 import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -229,6 +230,11 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   path: '/advisor',
   getParentRoute: () => AppRoute,
 } as any)
+const RResellerSlugIndexRoute = RResellerSlugIndexRouteImport.update({
+  id: '/r/$resellerSlug/',
+  path: '/r/$resellerSlug/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppWorkflowsIndexRoute = AppWorkflowsIndexRouteImport.update({
   id: '/workflows/',
   path: '/workflows/',
@@ -352,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
+  '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
+  '/r/$resellerSlug': typeof RResellerSlugIndexRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -454,6 +462,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
+  '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -506,6 +515,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/workflows/'
+    | '/r/$resellerSlug/'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -556,6 +566,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/workflows'
+    | '/r/$resellerSlug'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -607,6 +618,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
+    | '/r/$resellerSlug/'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -638,6 +650,7 @@ export interface RootRouteChildren {
   ApiPublicContactRoute: typeof ApiPublicContactRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
+  RResellerSlugIndexRoute: typeof RResellerSlugIndexRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -887,6 +900,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/r/$resellerSlug/': {
+      id: '/r/$resellerSlug/'
+      path: '/r/$resellerSlug'
+      fullPath: '/r/$resellerSlug/'
+      preLoaderRoute: typeof RResellerSlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/workflows/': {
       id: '/_app/workflows/'
       path: '/workflows'
@@ -1087,6 +1107,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicContactRoute: ApiPublicContactRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
+  RResellerSlugIndexRoute: RResellerSlugIndexRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,

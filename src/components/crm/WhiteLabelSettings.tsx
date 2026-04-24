@@ -167,7 +167,7 @@ export function WhiteLabelSettings() {
 
       {/* Reseller toggle */}
       {isEnterprise && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex gap-3">
               <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
@@ -187,6 +187,45 @@ export function WhiteLabelSettings() {
               />
             </div>
           </div>
+
+          {isReseller && organization?.slug && (
+            <div className="rounded-lg border border-border bg-background/60 p-3 space-y-2">
+              <p className="text-xs font-semibold text-foreground">Your public storefront</p>
+              <p className="text-xs text-muted-foreground">
+                Share this link to let prospects see your branded landing page, plans, and signup.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={`${typeof window !== "undefined" ? window.location.origin : ""}/r/${organization.slug}`}
+                  className="h-9 flex-1 rounded-md border border-input bg-input px-2 text-xs text-foreground font-mono outline-none"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(
+                      `${window.location.origin}/r/${organization.slug}`
+                    );
+                    toast.success("Storefront link copied");
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href={`/r/${organization.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
