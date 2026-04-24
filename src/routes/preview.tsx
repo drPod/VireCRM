@@ -326,6 +326,17 @@ function CrmPreviewPage() {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              data-preview-allow="true"
+              onClick={startTour}
+            >
+              <PlayCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Take the tour</span>
+              <span className="sm:hidden">Tour</span>
+            </Button>
             <Link to="/" data-preview-allow="true">
               <Button variant="ghost" size="sm" data-preview-allow="true">
                 Exit preview
