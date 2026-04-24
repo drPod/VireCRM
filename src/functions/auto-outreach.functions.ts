@@ -71,7 +71,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     // into the platform default.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, support_email, ai_tokens_used, ai_tokens_limit")
+      .select("name, brand_name, support_email, ai_tokens_used, ai_tokens_limit, logo_url, primary_color, font_family, email_signature")
       .eq("id", data.organizationId)
       .single();
 

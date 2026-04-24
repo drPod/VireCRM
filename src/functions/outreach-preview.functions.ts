@@ -190,7 +190,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
     // Pull org branding + reply-to (business inbox) in one shot.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, support_email")
+      .select("name, brand_name, support_email, logo_url, primary_color, font_family, email_signature")
       .eq("id", data.organizationId)
       .maybeSingle();
 
