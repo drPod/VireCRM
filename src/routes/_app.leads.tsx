@@ -87,6 +87,9 @@ function LeadsPage() {
   // one-by-one across employees (each lead gets exactly one assignee).
   const [bulkAssignMode, setBulkAssignMode] = useState<"share" | "round_robin">("share");
   const [bulkAssigning, setBulkAssigning] = useState(false);
+  // Owner-only: confirmation prompt before the destructive round-robin pass
+  // (which clears existing assignees on the selected leads).
+  const [confirmRoundRobinOpen, setConfirmRoundRobinOpen] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
