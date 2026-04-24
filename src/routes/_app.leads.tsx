@@ -115,7 +115,18 @@ function LeadsPage() {
         }
       }
 
-      const { data, count, error } = await query;
+      const [{ data, count, error }, profilesRes] = await Promise.all([
+        query,
+        supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .eq("organization_id", organization.id),
+      ]);
+
+      const nameByUserId = new Map<string, string>();
+      profilesRes.data?.forEach((p) => {
+        if (p.user_id) nameByUserId.set(p.user_id, p.full_name ?? "Unnamed");
+      });
 
       if (!error && data) {
         setLeads(
@@ -132,6 +143,10 @@ function LeadsPage() {
             annualKwh: l.annual_kwh ?? null,
             contractEndDate: l.contract_end_date ?? null,
             currentSupplier: l.current_supplier ?? null,
+            assignedTo: (l as { assigned_to?: string | null }).assigned_to ?? null,
+            assigneeName: (l as { assigned_to?: string | null }).assigned_to
+              ? nameByUserId.get((l as { assigned_to: string }).assigned_to) ?? null
+              : null,
           }))
         );
         setTotalCount(count ?? data.length);
