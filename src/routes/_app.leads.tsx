@@ -470,6 +470,42 @@ function LeadsPage() {
           </span>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            {/* Distribution mode toggle — controls how multi-employee assigns
+                actually distribute the selected leads. */}
+            <div
+              role="tablist"
+              aria-label="Bulk-assign distribution mode"
+              className="inline-flex rounded-md border border-border bg-background p-0.5 text-xs"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={bulkAssignMode === "share"}
+                onClick={() => setBulkAssignMode("share")}
+                title="Each selected lead is shared with every chosen employee"
+                className={`rounded-sm px-2.5 py-1 transition-colors ${
+                  bulkAssignMode === "share"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Share
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={bulkAssignMode === "round_robin"}
+                onClick={() => setBulkAssignMode("round_robin")}
+                title="Distribute leads one-by-one across the chosen employees"
+                className={`rounded-sm px-2.5 py-1 transition-colors ${
+                  bulkAssignMode === "round_robin"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Round-robin
+              </button>
+            </div>
             <AssigneeMultiSelect
               options={members}
               selected={bulkAssignTargets}
@@ -486,13 +522,18 @@ function LeadsPage() {
                 bulkAssignTargets.length === 0
               }
               className="gap-1.5"
+              title={
+                bulkAssignMode === "round_robin"
+                  ? "Distribute leads one-by-one across employees"
+                  : "Share each lead with every chosen employee"
+              }
             >
               {bulkAssigning ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <UserPlus className="h-3.5 w-3.5" />
               )}
-              Assign
+              {bulkAssignMode === "round_robin" ? "Distribute" : "Share"}
             </Button>
             {selectedLeadIds.length > 0 && (
               <Button
