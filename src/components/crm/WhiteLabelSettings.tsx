@@ -123,14 +123,40 @@ export function WhiteLabelSettings() {
     );
   }
 
+  // Validate the entire palette up-front so we can both block Save and
+  // disable the button visually. Empty optional colors are fine; primary
+  // must be a real hex.
+  const paletteChecks: Array<{ label: string; value: string; required: boolean }> = [
+    { label: "Primary", value: primaryColor, required: true },
+    { label: "Secondary", value: secondaryColor, required: false },
+    { label: "Accent", value: accentColor, required: false },
+    { label: "Sidebar", value: sidebarColor, required: false },
+    { label: "Call-to-action button", value: buttonColor, required: false },
+  ];
+  const invalidColor = paletteChecks.find((c) => {
+    const t = c.value.trim();
+    if (t === "") return c.required;
+    return !isValidHexColor(t);
+  });
+  const paletteValid = !invalidColor;
+
   const handleSave = async () => {
     if (!organization?.id) return;
+    if (invalidColor) {
+      toast.error(
+        invalidColor.value.trim() === ""
+          ? `${invalidColor.label} color is required`
+          : `${invalidColor.label} color must be a valid hex like #7c3aed`
+      );
+      return;
+    }
     const trimmedSupport = supportEmail.trim();
     if (trimmedSupport && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedSupport)) {
       toast.error("Please enter a valid support email address");
       return;
     }
     setSaving(true);
+
     const { error } = await supabase
       .from("organizations")
       .update({
