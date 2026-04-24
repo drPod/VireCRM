@@ -507,13 +507,13 @@ function DashboardView() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link to="/pricing">
-              <Button variant="outline" size="lg">
+            <Link to="/pricing" data-preview-allow="true">
+              <Button variant="outline" size="lg" data-preview-allow="true">
                 See pricing
               </Button>
             </Link>
-            <Link to="/signup">
-              <Button variant="command" size="lg" className="gap-2">
+            <Link to="/signup" data-preview-allow="true">
+              <Button variant="command" size="lg" className="gap-2" data-preview-allow="true">
                 Start free trial
                 <ArrowRight className="h-4 w-4" />
               </Button>
