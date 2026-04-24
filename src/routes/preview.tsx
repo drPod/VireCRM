@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useRef, useState, type FormEvent, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent,
+} from "react";
 import {
   LayoutDashboard,
   Users,
@@ -27,6 +35,8 @@ import {
   Lock,
   ArrowRight,
   EyeOff,
+  PlayCircle,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -45,6 +55,7 @@ function isAllowed(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   return target.closest(`[${ALLOW_ATTR}="true"]`) !== null;
 }
+
 
 
 export const Route = createFileRoute("/preview")({
