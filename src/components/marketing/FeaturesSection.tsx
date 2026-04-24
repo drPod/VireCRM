@@ -64,7 +64,7 @@ export function FeaturesSection() {
               It doesn't just <span className="line-through opacity-60">organize leads</span>.
             </p>
             <p className="text-lg font-semibold text-foreground">
-              It converts them into paying clients.
+              It nurtures them and hands your team the ones ready to buy.
             </p>
           </div>
         </div>

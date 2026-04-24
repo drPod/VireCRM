@@ -34,9 +34,9 @@ const ClientWelcomeEmail = ({
         <Container style={container}>
           <Heading style={h1}>{greeting}</Heading>
           <Text style={lede}>
-            Your {senderName} CRM is live and ready to help you turn more leads
-            into customers — on autopilot. Here's how to get the most out of
-            your first week.
+            Your {senderName} CRM is live and ready to help you respond faster,
+            follow up automatically, and surface your hottest leads. Here's how
+            to get the most out of your first week.
           </Text>
 
           {loginUrl && (
