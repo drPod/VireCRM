@@ -3,7 +3,11 @@ import { useEffect, useState } from "react";
 import { Loader2, Terminal, Check, Zap, Bot, BrainCircuit, CalendarCheck, Sparkles, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { applyWhiteLabelColor } from "@/lib/white-label-theme";
+import {
+  applyBrandFont,
+  applyFavicon,
+  applyWhiteLabelColor,
+} from "@/lib/white-label-theme";
 
 export const Route = createFileRoute("/r/$resellerSlug/")({
   component: ResellerLandingPage,
@@ -20,6 +24,8 @@ interface ResellerBranding {
   slug: string;
   brand_name: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
+  font_family: string | null;
   primary_color: string | null;
   is_reseller: boolean;
   support_email: string | null;
