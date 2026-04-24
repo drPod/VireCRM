@@ -70,8 +70,12 @@ function LeadsPage() {
   const [assigneeFilter, setAssigneeFilter] = useState<string[]>([]);
   // Owner-only: bulk-select state.
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
-  // Owner-only: which employees to duplicate-assign the selected leads to.
+  // Owner-only: which employees to bulk-assign the selected leads to.
   const [bulkAssignTargets, setBulkAssignTargets] = useState<string[]>([]);
+  // Owner-only: how to distribute. "share" = every lead → every employee
+  // (one shared lead, multiple assignees). "round_robin" = distribute leads
+  // one-by-one across employees (each lead gets exactly one assignee).
+  const [bulkAssignMode, setBulkAssignMode] = useState<"share" | "round_robin">("share");
   const [bulkAssigning, setBulkAssigning] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
