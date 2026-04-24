@@ -14,6 +14,10 @@ export interface DomainBranding {
   favicon_url: string | null;
   font_family: string | null;
   primary_color: string | null;
+  secondary_color: string | null;
+  accent_color: string | null;
+  sidebar_color: string | null;
+  button_color: string | null;
   is_reseller: boolean;
   support_email: string | null;
   verified: boolean;
