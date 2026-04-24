@@ -16,10 +16,14 @@ import {
   CheckCircle2,
   AlertCircle,
   Mail,
+  Type,
+  ImageIcon,
+  PenLine,
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SUPPORTED_FONTS } from "@/lib/white-label-theme";
 
 type OrgWithDomain = {
   is_reseller?: boolean;
