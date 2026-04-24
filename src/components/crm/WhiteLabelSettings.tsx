@@ -261,14 +261,41 @@ export function WhiteLabelSettings() {
       const email = (theme.email as Record<string, unknown>) || {};
 
       const str = (v: unknown) => (typeof v === "string" ? v : "");
+      // For palette colors: keep "" (means "inherit") but reject anything
+      // that's neither empty nor a real hex so a corrupt file can't poison
+      // the form.
+      const hex = (v: unknown): string | null => {
+        if (v === null || v === undefined) return "";
+        if (typeof v !== "string") return null;
+        const trimmed = v.trim();
+        if (trimmed === "") return "";
+        return isValidHexColor(trimmed) ? trimmed : null;
+      };
+
+      const paletteFields: Array<[string, unknown]> = [
+        ["primary", palette.primary],
+        ["secondary", palette.secondary],
+        ["accent", palette.accent],
+        ["sidebar", palette.sidebar],
+        ["button", palette.button],
+      ];
+      for (const [key, raw] of paletteFields) {
+        if (raw !== undefined && hex(raw) === null) {
+          throw new Error(`Theme file has an invalid hex value for "${key}"`);
+        }
+      }
 
       // Apply to local form state — user still has to click Save to persist.
       if (typeof theme.brandName === "string") setBrandName(theme.brandName);
-      if (palette.primary !== undefined) setPrimaryColor(str(palette.primary) || "#3b82f6");
-      if (palette.secondary !== undefined) setSecondaryColor(str(palette.secondary));
-      if (palette.accent !== undefined) setAccentColor(str(palette.accent));
-      if (palette.sidebar !== undefined) setSidebarColor(str(palette.sidebar));
-      if (palette.button !== undefined) setButtonColor(str(palette.button));
+      if (palette.primary !== undefined) {
+        const next = hex(palette.primary);
+        setPrimaryColor(next && next !== "" ? next : "#3b82f6");
+      }
+      if (palette.secondary !== undefined) setSecondaryColor(hex(palette.secondary) ?? "");
+      if (palette.accent !== undefined) setAccentColor(hex(palette.accent) ?? "");
+      if (palette.sidebar !== undefined) setSidebarColor(hex(palette.sidebar) ?? "");
+      if (palette.button !== undefined) setButtonColor(hex(palette.button) ?? "");
+
       if (assets.logoUrl !== undefined) setLogoUrl(str(assets.logoUrl));
       if (assets.faviconUrl !== undefined) setFaviconUrl(str(assets.faviconUrl));
       if (typography.fontFamily !== undefined) setFontFamily(str(typography.fontFamily));
