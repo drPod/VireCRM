@@ -83,6 +83,14 @@ export function DomainBrandingProvider({ children }: { children: ReactNode }) {
     return applyWhiteLabelColor(branding?.primary_color);
   }, [branding?.primary_color]);
 
+  useEffect(() => {
+    return applyFavicon(branding?.favicon_url);
+  }, [branding?.favicon_url]);
+
+  useEffect(() => {
+    return applyBrandFont(branding?.font_family);
+  }, [branding?.font_family]);
+
   // Update document title when domain branding is active
   useEffect(() => {
     if (!branding?.brand_name || typeof document === "undefined") return;
