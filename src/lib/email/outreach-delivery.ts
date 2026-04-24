@@ -43,6 +43,14 @@ export interface DeliverOutreachEmailInput {
   replyTo?: string | null;
   idempotencyKey: string;
   channels: OutreachDeliveryChannels;
+  /** Optional brand logo URL shown in the email header. */
+  logoUrl?: string | null;
+  /** Optional brand accent color (hex) for the email divider. */
+  accentColor?: string | null;
+  /** Optional brand font name (Google Font) for the email body. */
+  fontFamily?: string | null;
+  /** Optional plain-text signature appended below the sign-off. */
+  signature?: string | null;
 }
 
 export type DeliverOutreachEmailResult =
