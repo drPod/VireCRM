@@ -313,7 +313,7 @@ function CrmPreviewPage() {
   // This prevents keyboard users from triggering real actions, form submits, or
   // navigation into authed flows via <a>, <button>, or role="button"/"link" elements.
   const handleKeyDownCapture = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>) => {
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
       if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
       if (isAllowed(e.target)) return;
       const el = e.target as Element | null;
