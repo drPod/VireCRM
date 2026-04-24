@@ -73,10 +73,28 @@ function ResellerLandingPage() {
     })();
   }, [resellerSlug]);
 
-  // Apply the reseller's color to the marketing page chrome
+  // Apply the reseller's color, favicon, and font to the marketing page chrome
   useEffect(() => {
     return applyWhiteLabelColor(branding?.primary_color);
   }, [branding?.primary_color]);
+
+  useEffect(() => {
+    return applyFavicon(branding?.favicon_url);
+  }, [branding?.favicon_url]);
+
+  useEffect(() => {
+    return applyBrandFont(branding?.font_family);
+  }, [branding?.font_family]);
+
+  // Update document title to reflect the reseller brand
+  useEffect(() => {
+    if (!branding?.brand_name || typeof document === "undefined") return;
+    const original = document.title;
+    document.title = `${branding.brand_name} — AI CRM for your sales team`;
+    return () => {
+      document.title = original;
+    };
+  }, [branding?.brand_name]);
 
   if (loading) {
     return (
