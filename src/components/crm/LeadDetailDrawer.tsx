@@ -414,14 +414,41 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       deal_value_cents: dealParsed.cents,
       deal_currency: form.deal_currency || "USD",
     };
-    // Only owners/managers may change the assignee — DB trigger enforces too.
+    // Only owners/managers may change assignees — DB trigger enforces too.
+    // Primary assignee = first id in the multi-select (or null when empty).
     if (canAssign) {
-      updatePayload.assigned_to = form.assigned_to ? form.assigned_to : null;
+      updatePayload.assigned_to = assigneeIds[0] ?? null;
     }
     const { error } = await supabase
       .from("leads")
       .update(updatePayload)
       .eq("id", lead.id);
+
+    if (!error && canAssign && organization?.id) {
+      // Diff the join table so we add new assignees and remove dropped ones.
+      const toAdd = assigneeIds.filter((id) => !initialAssigneeIds.includes(id));
+      const toRemove = initialAssigneeIds.filter((id) => !assigneeIds.includes(id));
+      if (toAdd.length > 0) {
+        await supabase
+          .from("lead_assignees")
+          .upsert(
+            toAdd.map((user_id) => ({
+              lead_id: lead.id,
+              user_id,
+              organization_id: organization.id,
+            })),
+            { onConflict: "lead_id,user_id", ignoreDuplicates: true }
+          );
+      }
+      if (toRemove.length > 0) {
+        await supabase
+          .from("lead_assignees")
+          .delete()
+          .eq("lead_id", lead.id)
+          .in("user_id", toRemove);
+      }
+      setInitialAssigneeIds(assigneeIds);
+    }
 
     setSaving(false);
     if (error) {
