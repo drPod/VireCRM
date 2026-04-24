@@ -132,6 +132,26 @@ function LeadsPage() {
 
     const fetchLeads = async () => {
       setLoading(true);
+
+      // If filtering by assignee, first resolve which lead ids match in the
+      // join table (union/OR across the selected employees), then constrain
+      // the leads query to those ids.
+      let restrictedIds: string[] | null = null;
+      if (isOwner && assigneeFilter.length > 0) {
+        const { data: matches } = await supabase
+          .from("lead_assignees")
+          .select("lead_id")
+          .eq("organization_id", organization.id)
+          .in("user_id", assigneeFilter);
+        restrictedIds = Array.from(new Set((matches ?? []).map((m) => m.lead_id)));
+        if (restrictedIds.length === 0) {
+          setLeads([]);
+          setTotalCount(0);
+          setLoading(false);
+          return;
+        }
+      }
+
       let query = supabase
         .from("leads")
         .select("*", { count: "exact" })
@@ -142,9 +162,8 @@ function LeadsPage() {
         query = query.eq("status", statusFilter);
       }
 
-      // Owner assignee filter (union / OR across selected employees).
-      if (isOwner && assigneeFilter.length > 0) {
-        query = query.in("assigned_to", assigneeFilter);
+      if (restrictedIds) {
+        query = query.in("id", restrictedIds);
       }
 
       if (search.trim()) {
@@ -170,24 +189,56 @@ function LeadsPage() {
         if (p.user_id) nameByUserId.set(p.user_id, p.full_name ?? "Unnamed");
       });
 
+      // Fetch all assignees for the visible leads in one round-trip.
+      const leadIds = (data ?? []).map((l) => l.id);
+      const assigneesByLead = new Map<string, Array<{ user_id: string; full_name: string }>>();
+      if (leadIds.length > 0) {
+        const { data: assigneeRows } = await supabase
+          .from("lead_assignees")
+          .select("lead_id, user_id")
+          .in("lead_id", leadIds);
+        assigneeRows?.forEach((r) => {
+          const list = assigneesByLead.get(r.lead_id) ?? [];
+          list.push({
+            user_id: r.user_id,
+            full_name: nameByUserId.get(r.user_id) ?? "Unnamed",
+          });
+          assigneesByLead.set(r.lead_id, list);
+        });
+      }
+
       if (!error && data) {
         setLeads(
-          data.map((l) => ({
-            id: l.id,
-            name: l.name,
-            email: l.email ?? "",
-            phone: l.phone ?? undefined,
-            company: l.company ?? undefined,
-            status: l.status as Lead["status"],
-            score: l.score ?? 0,
-            nextAction: l.next_action ?? undefined,
-            lastContact: l.last_contact ?? undefined,
-            annualKwh: l.annual_kwh ?? null,
-            contractEndDate: l.contract_end_date ?? null,
-            currentSupplier: l.current_supplier ?? null,
-            assignedTo: l.assigned_to ?? null,
-            assigneeName: l.assigned_to ? nameByUserId.get(l.assigned_to) ?? null : null,
-          }))
+          data.map((l) => {
+            const list = assigneesByLead.get(l.id) ?? [];
+            // Fall back to the legacy single-assignee column if the join
+            // table hasn't been backfilled for this lead yet.
+            if (list.length === 0 && l.assigned_to) {
+              list.push({
+                user_id: l.assigned_to,
+                full_name: nameByUserId.get(l.assigned_to) ?? "Unnamed",
+              });
+            }
+            return {
+              id: l.id,
+              name: l.name,
+              email: l.email ?? "",
+              phone: l.phone ?? undefined,
+              company: l.company ?? undefined,
+              status: l.status as Lead["status"],
+              score: l.score ?? 0,
+              nextAction: l.next_action ?? undefined,
+              lastContact: l.last_contact ?? undefined,
+              annualKwh: l.annual_kwh ?? null,
+              contractEndDate: l.contract_end_date ?? null,
+              currentSupplier: l.current_supplier ?? null,
+              assignedTo: l.assigned_to ?? null,
+              assigneeName: l.assigned_to
+                ? nameByUserId.get(l.assigned_to) ?? null
+                : list[0]?.full_name ?? null,
+              assignees: list,
+            };
+          })
         );
         setTotalCount(count ?? data.length);
       }
@@ -223,9 +274,10 @@ function LeadsPage() {
   };
 
   /**
-   * Bulk-assign: for each selected lead, create a duplicate copy assigned to
-   * each chosen employee. The original lead is also reassigned to the first
-   * target so the count of "assigned employees" matches what the owner picked.
+   * Bulk-assign: share each selected lead with every chosen employee by
+   * inserting rows into the `lead_assignees` join table. The first chosen
+   * employee also becomes the lead's primary assignee (`leads.assigned_to`)
+   * for backward compatibility with the rest of the app.
    */
   const handleBulkAssign = async () => {
     if (!organization?.id) return;
@@ -239,57 +291,38 @@ function LeadsPage() {
     }
     setBulkAssigning(true);
     try {
-      // Re-fetch the full source rows so we can copy every column accurately.
-      const { data: sourceRows, error: srcErr } = await supabase
-        .from("leads")
-        .select("*")
-        .in("id", selectedLeadIds);
-      if (srcErr || !sourceRows) throw srcErr ?? new Error("Failed to load selected leads");
+      const [primaryTarget] = bulkAssignTargets;
 
-      const [firstTarget, ...restTargets] = bulkAssignTargets;
-
-      // 1) Reassign the originals to the first target employee.
+      // 1) Set the primary assignee on each lead (legacy single-assignee column).
       const { error: updErr } = await supabase
         .from("leads")
-        .update({ assigned_to: firstTarget })
+        .update({ assigned_to: primaryTarget })
         .in("id", selectedLeadIds);
       if (updErr) throw updErr;
 
-      // 2) For each additional target, insert a fresh duplicate of every
-      //    source lead, assigned to that employee.
-      let duplicatesCreated = 0;
-      if (restTargets.length > 0) {
-        const inserts: TablesInsert<"leads">[] = [];
-        for (const target of restTargets) {
-          for (const row of sourceRows) {
-            // Strip identity / lifecycle fields so the insert generates a
-            // fresh row instead of conflicting with the source.
-            const {
-              id: _id,
-              created_at: _c,
-              updated_at: _u,
-              closed_at: _ca,
-              closed_by_user_id: _cb,
-              ...rest
-            } = row;
-            inserts.push({
-              ...rest,
-              organization_id: organization.id,
-              assigned_to: target,
-              status: "new",
-            });
-          }
-        }
-        if (inserts.length > 0) {
-          const { error: insErr } = await supabase.from("leads").insert(inserts);
-          if (insErr) throw insErr;
-          duplicatesCreated = inserts.length;
+      // 2) Insert (lead_id, user_id) rows for every (lead × target) pair.
+      //    Unique constraint silently dedupes existing pairs.
+      const rows: TablesInsert<"lead_assignees">[] = [];
+      for (const leadId of selectedLeadIds) {
+        for (const target of bulkAssignTargets) {
+          rows.push({
+            lead_id: leadId,
+            user_id: target,
+            organization_id: organization.id,
+          });
         }
       }
+      const { error: insErr } = await supabase
+        .from("lead_assignees")
+        .upsert(rows, { onConflict: "lead_id,user_id", ignoreDuplicates: true });
+      if (insErr) throw insErr;
 
       toast.success(
-        `Assigned ${selectedLeadIds.length} lead${selectedLeadIds.length === 1 ? "" : "s"} to ${bulkAssignTargets.length} employee${bulkAssignTargets.length === 1 ? "" : "s"}` +
-          (duplicatesCreated > 0 ? ` (+${duplicatesCreated} duplicates)` : "")
+        `Shared ${selectedLeadIds.length} lead${
+          selectedLeadIds.length === 1 ? "" : "s"
+        } with ${bulkAssignTargets.length} employee${
+          bulkAssignTargets.length === 1 ? "" : "s"
+        }`
       );
       handleClearSelection();
       handleLeadAdded();

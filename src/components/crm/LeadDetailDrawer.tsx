@@ -18,6 +18,8 @@ import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
+import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
+import { AssigneeAvatars } from "./AssigneeAvatars";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
@@ -71,6 +73,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
   const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; role: string }>>([]);
+  // Multi-assignee state — sourced from the lead_assignees join table.
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [initialAssigneeIds, setInitialAssigneeIds] = useState<string[]>([]);
   const [commissionRule, setCommissionRule] = useState<{
     rule_type: string;
     percent: number;
@@ -175,32 +180,43 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
 
     // Fetch the full notes + energy + deal + assignment fields (the list view doesn't include them).
     setLoadingNotes(true);
-    supabase
-      .from("leads")
-      .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency, assigned_to")
-      .eq("id", lead.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setForm((prev) => ({
-            ...prev,
-            notes: data.notes ?? "",
-            annual_kwh:
-              typeof data.annual_kwh === "number" && data.annual_kwh >= 0
-                ? String(data.annual_kwh)
-                : prev.annual_kwh,
-            contract_end_date: data.contract_end_date ?? prev.contract_end_date,
-            current_supplier: data.current_supplier ?? prev.current_supplier,
-            deal_value:
-              typeof data.deal_value_cents === "number" && data.deal_value_cents > 0
-                ? (data.deal_value_cents / 100).toString()
-                : "",
-            deal_currency: data.deal_currency ?? "USD",
-            assigned_to: data.assigned_to ?? prev.assigned_to,
-          }));
-        }
-        setLoadingNotes(false);
-      });
+    Promise.all([
+      supabase
+        .from("leads")
+        .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency, assigned_to")
+        .eq("id", lead.id)
+        .single(),
+      supabase
+        .from("lead_assignees")
+        .select("user_id")
+        .eq("lead_id", lead.id),
+    ]).then(([leadRes, assigneeRes]) => {
+      const data = leadRes.data;
+      if (data) {
+        setForm((prev) => ({
+          ...prev,
+          notes: data.notes ?? "",
+          annual_kwh:
+            typeof data.annual_kwh === "number" && data.annual_kwh >= 0
+              ? String(data.annual_kwh)
+              : prev.annual_kwh,
+          contract_end_date: data.contract_end_date ?? prev.contract_end_date,
+          current_supplier: data.current_supplier ?? prev.current_supplier,
+          deal_value:
+            typeof data.deal_value_cents === "number" && data.deal_value_cents > 0
+              ? (data.deal_value_cents / 100).toString()
+              : "",
+          deal_currency: data.deal_currency ?? "USD",
+          assigned_to: data.assigned_to ?? prev.assigned_to,
+        }));
+      }
+      const ids = (assigneeRes.data ?? []).map((r) => r.user_id);
+      // Fall back to the legacy single column if the join table is empty.
+      const fallback = ids.length === 0 && data?.assigned_to ? [data.assigned_to] : ids;
+      setAssigneeIds(fallback);
+      setInitialAssigneeIds(fallback);
+      setLoadingNotes(false);
+    });
   }, [lead]);
 
   // Fetch activity history (re-runs on lead change OR when an action signals
@@ -398,14 +414,41 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       deal_value_cents: dealParsed.cents,
       deal_currency: form.deal_currency || "USD",
     };
-    // Only owners/managers may change the assignee — DB trigger enforces too.
+    // Only owners/managers may change assignees — DB trigger enforces too.
+    // Primary assignee = first id in the multi-select (or null when empty).
     if (canAssign) {
-      updatePayload.assigned_to = form.assigned_to ? form.assigned_to : null;
+      updatePayload.assigned_to = assigneeIds[0] ?? null;
     }
     const { error } = await supabase
       .from("leads")
       .update(updatePayload)
       .eq("id", lead.id);
+
+    if (!error && canAssign && organization?.id) {
+      // Diff the join table so we add new assignees and remove dropped ones.
+      const toAdd = assigneeIds.filter((id) => !initialAssigneeIds.includes(id));
+      const toRemove = initialAssigneeIds.filter((id) => !assigneeIds.includes(id));
+      if (toAdd.length > 0) {
+        await supabase
+          .from("lead_assignees")
+          .upsert(
+            toAdd.map((user_id) => ({
+              lead_id: lead.id,
+              user_id,
+              organization_id: organization.id,
+            })),
+            { onConflict: "lead_id,user_id", ignoreDuplicates: true }
+          );
+      }
+      if (toRemove.length > 0) {
+        await supabase
+          .from("lead_assignees")
+          .delete()
+          .eq("lead_id", lead.id)
+          .in("user_id", toRemove);
+      }
+      setInitialAssigneeIds(assigneeIds);
+    }
 
     setSaving(false);
     if (error) {
@@ -505,6 +548,24 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
             <div className="flex-1 min-w-0">
               <SheetTitle>Lead Details</SheetTitle>
               <SheetDescription>Edit lead information and view activity history.</SheetDescription>
+              {assigneeIds.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <AssigneeAvatars
+                    assignees={assigneeIds.map((id) => ({
+                      user_id: id,
+                      full_name:
+                        members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
+                    }))}
+                    size="sm"
+                    max={4}
+                  />
+                  <span className="text-[11px] text-muted-foreground">
+                    {assigneeIds.length === 1
+                      ? "Assigned to 1 employee"
+                      : `Shared with ${assigneeIds.length} employees`}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <div className="flex items-center gap-1.5">
@@ -661,31 +722,68 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
 
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">
-                Assigned to
+                Assignees
                 {!canAssign && (
                   <span className="ml-2 text-[10px] font-normal text-muted-foreground">
                     (owners & managers only)
                   </span>
                 )}
               </label>
-              <select
-                className={`${inputClass} ${!canAssign ? "opacity-60 cursor-not-allowed" : ""}`}
-                value={form.assigned_to}
-                onChange={(e) => update("assigned_to", e.target.value)}
-                disabled={!canAssign}
-                title={
-                  canAssign
-                    ? "Assign this lead to a sales rep or manager"
-                    : "Only owners and managers can reassign leads"
-                }
-              >
-                <option value="">— Unassigned —</option>
-                {members.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>
-                    {m.full_name} ({m.role.replace("_", " ")})
-                  </option>
-                ))}
-              </select>
+              {canAssign ? (
+                <div className="space-y-2">
+                  <AssigneeMultiSelect
+                    options={members.map((m) => ({
+                      user_id: m.user_id,
+                      full_name: `${m.full_name} (${m.role.replace("_", " ")})`,
+                    }))}
+                    selected={assigneeIds}
+                    onChange={setAssigneeIds}
+                    placeholder="Unassigned"
+                    emptyText="No employees yet."
+                    className="w-full"
+                  />
+                  {assigneeIds.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <AssigneeAvatars
+                        assignees={assigneeIds.map((id) => ({
+                          user_id: id,
+                          full_name:
+                            members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
+                        }))}
+                        size="sm"
+                        max={5}
+                      />
+                      <span className="text-[11px] text-muted-foreground">
+                        {assigneeIds.length === 1
+                          ? "1 employee assigned"
+                          : `${assigneeIds.length} employees assigned`}
+                        {assigneeIds.length > 1 && " · first is primary"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : assigneeIds.length > 0 ? (
+                <div className="flex items-center gap-2 rounded-lg border border-input bg-input/40 px-3 py-2">
+                  <AssigneeAvatars
+                    assignees={assigneeIds.map((id) => ({
+                      user_id: id,
+                      full_name:
+                        members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
+                    }))}
+                    size="sm"
+                    max={5}
+                  />
+                  <span className="text-xs text-muted-foreground truncate">
+                    {assigneeIds
+                      .map(
+                        (id) => members.find((m) => m.user_id === id)?.full_name ?? "Unnamed"
+                      )
+                      .join(", ")}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs italic text-muted-foreground">Unassigned</p>
+              )}
             </div>
 
             <div

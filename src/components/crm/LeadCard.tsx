@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User } from "lucide-react";
+import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users } from "lucide-react";
+import { AssigneeAvatars, type AssigneeLite } from "./AssigneeAvatars";
 
 export interface Lead {
   id: string;
@@ -18,10 +19,12 @@ export interface Lead {
   contractEndDate?: string | null;
   /** Lead's current energy supplier (e.g. "British Gas"). */
   currentSupplier?: string | null;
-  /** UUID of the org member this lead is assigned to. */
+  /** UUID of the org member this lead is primarily assigned to (legacy). */
   assignedTo?: string | null;
-  /** Display name of the assignee (resolved from profiles). */
+  /** Display name of the primary assignee (resolved from profiles). */
   assigneeName?: string | null;
+  /** All assignees (multi-assign join table). Includes the primary one. */
+  assignees?: AssigneeLite[];
 }
 
 const statusConfig: Record<Lead["status"], { label: string; variant: "default" | "secondary" | "success" | "warning" | "info" | "destructive" }> = {
@@ -131,12 +134,30 @@ export function LeadCard({
             <span>{lead.nextAction}</span>
           </div>
         )}
-        {lead.assigneeName && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <User className="h-3 w-3" />
-            <span className="truncate">Assigned to {lead.assigneeName}</span>
-          </div>
-        )}
+        {(() => {
+          const list = lead.assignees ?? [];
+          if (list.length > 1) {
+            return (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Users className="h-3 w-3" />
+                <AssigneeAvatars assignees={list} size="sm" max={4} />
+                <span className="truncate">
+                  {list.length} assignees
+                </span>
+              </div>
+            );
+          }
+          if (list.length === 1 || lead.assigneeName) {
+            const name = list[0]?.full_name ?? lead.assigneeName ?? "";
+            return (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span className="truncate">Assigned to {name}</span>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </div>
 
       <div className="mt-3 flex items-center justify-between">
