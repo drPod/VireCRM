@@ -123,14 +123,40 @@ export function WhiteLabelSettings() {
     );
   }
 
+  // Validate the entire palette up-front so we can both block Save and
+  // disable the button visually. Empty optional colors are fine; primary
+  // must be a real hex.
+  const paletteChecks: Array<{ label: string; value: string; required: boolean }> = [
+    { label: "Primary", value: primaryColor, required: true },
+    { label: "Secondary", value: secondaryColor, required: false },
+    { label: "Accent", value: accentColor, required: false },
+    { label: "Sidebar", value: sidebarColor, required: false },
+    { label: "Call-to-action button", value: buttonColor, required: false },
+  ];
+  const invalidColor = paletteChecks.find((c) => {
+    const t = c.value.trim();
+    if (t === "") return c.required;
+    return !isValidHexColor(t);
+  });
+  const paletteValid = !invalidColor;
+
   const handleSave = async () => {
     if (!organization?.id) return;
+    if (invalidColor) {
+      toast.error(
+        invalidColor.value.trim() === ""
+          ? `${invalidColor.label} color is required`
+          : `${invalidColor.label} color must be a valid hex like #7c3aed`
+      );
+      return;
+    }
     const trimmedSupport = supportEmail.trim();
     if (trimmedSupport && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedSupport)) {
       toast.error("Please enter a valid support email address");
       return;
     }
     setSaving(true);
+
     const { error } = await supabase
       .from("organizations")
       .update({
@@ -235,14 +261,41 @@ export function WhiteLabelSettings() {
       const email = (theme.email as Record<string, unknown>) || {};
 
       const str = (v: unknown) => (typeof v === "string" ? v : "");
+      // For palette colors: keep "" (means "inherit") but reject anything
+      // that's neither empty nor a real hex so a corrupt file can't poison
+      // the form.
+      const hex = (v: unknown): string | null => {
+        if (v === null || v === undefined) return "";
+        if (typeof v !== "string") return null;
+        const trimmed = v.trim();
+        if (trimmed === "") return "";
+        return isValidHexColor(trimmed) ? trimmed : null;
+      };
+
+      const paletteFields: Array<[string, unknown]> = [
+        ["primary", palette.primary],
+        ["secondary", palette.secondary],
+        ["accent", palette.accent],
+        ["sidebar", palette.sidebar],
+        ["button", palette.button],
+      ];
+      for (const [key, raw] of paletteFields) {
+        if (raw !== undefined && hex(raw) === null) {
+          throw new Error(`Theme file has an invalid hex value for "${key}"`);
+        }
+      }
 
       // Apply to local form state — user still has to click Save to persist.
       if (typeof theme.brandName === "string") setBrandName(theme.brandName);
-      if (palette.primary !== undefined) setPrimaryColor(str(palette.primary) || "#3b82f6");
-      if (palette.secondary !== undefined) setSecondaryColor(str(palette.secondary));
-      if (palette.accent !== undefined) setAccentColor(str(palette.accent));
-      if (palette.sidebar !== undefined) setSidebarColor(str(palette.sidebar));
-      if (palette.button !== undefined) setButtonColor(str(palette.button));
+      if (palette.primary !== undefined) {
+        const next = hex(palette.primary);
+        setPrimaryColor(next && next !== "" ? next : "#3b82f6");
+      }
+      if (palette.secondary !== undefined) setSecondaryColor(hex(palette.secondary) ?? "");
+      if (palette.accent !== undefined) setAccentColor(hex(palette.accent) ?? "");
+      if (palette.sidebar !== undefined) setSidebarColor(hex(palette.sidebar) ?? "");
+      if (palette.button !== undefined) setButtonColor(hex(palette.button) ?? "");
+
       if (assets.logoUrl !== undefined) setLogoUrl(str(assets.logoUrl));
       if (assets.faviconUrl !== undefined) setFaviconUrl(str(assets.faviconUrl));
       if (typography.fontFamily !== undefined) setFontFamily(str(typography.fontFamily));
@@ -663,7 +716,13 @@ export function WhiteLabelSettings() {
               Preview live
             </Link>
           </Button>
-          <Button variant="command" className="flex-1" onClick={handleSave} disabled={saving}>
+          <Button
+            variant="command"
+            className="flex-1"
+            onClick={handleSave}
+            disabled={saving || !paletteValid}
+            title={paletteValid ? undefined : "Fix the highlighted color values before saving"}
+          >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save White-Label Settings
           </Button>
@@ -689,9 +748,23 @@ export function WhiteLabelSettings() {
 }
 
 /**
+ * Strict 3- or 6-digit hex with leading #. We deliberately reject 4/8-digit
+ * (alpha) hex because the theming engine's luminance math expects RGB only.
+ */
+const HEX_COLOR_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+export function isValidHexColor(value: string): boolean {
+  return HEX_COLOR_RE.test(value.trim());
+}
+
+/**
  * Reusable color-picker row used by the brand palette card. Optional rows
  * show a "Clear" button so the value can be reset to "use default" (empty
  * string) and then derived from primary by the theming engine.
+ *
+ * Shows an inline error when the typed value isn't a valid hex color so the
+ * user can self-correct before saving. The native color picker only ever
+ * emits valid hex, so picking from it implicitly clears the error.
  */
 function ColorRow({
   label,
@@ -706,7 +779,16 @@ function ColorRow({
   onChange: (next: string) => void;
   optional?: boolean;
 }) {
-  const swatch = value || "#cccccc";
+  const trimmed = value.trim();
+  const isEmpty = trimmed === "";
+  const isValid = isEmpty ? optional === true : isValidHexColor(trimmed);
+  const showError = !isValid;
+  // Only feed a real color into native swatches when valid — otherwise fall
+  // back to a neutral grey so we never throw a CSS parse warning.
+  const swatch = isValid && !isEmpty ? trimmed : "#cccccc";
+
+  const errorId = `color-error-${label.replace(/\s+/g, "-").toLowerCase()}`;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -743,7 +825,13 @@ function ColorRow({
           value={value}
           placeholder={optional ? "Inherits from primary" : "#7c3aed"}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 flex-1 rounded-md border border-input bg-input px-2.5 text-sm font-mono text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+          aria-invalid={showError}
+          aria-describedby={showError ? errorId : undefined}
+          className={`h-9 flex-1 rounded-md border bg-input px-2.5 text-sm font-mono text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 ${
+            showError
+              ? "border-destructive focus:ring-destructive"
+              : "border-input focus:ring-ring"
+          }`}
         />
         <div
           className="h-9 w-16 rounded-md border border-border"
@@ -751,6 +839,18 @@ function ColorRow({
           aria-hidden
         />
       </div>
+      {showError && (
+        <p
+          id={errorId}
+          className="mt-1 flex items-center gap-1 text-[11px] text-destructive"
+        >
+          <AlertCircle className="h-3 w-3 shrink-0" />
+          {isEmpty
+            ? "Primary color is required."
+            : "Use a 3- or 6-digit hex like #7c3aed."}
+        </p>
+      )}
     </div>
   );
 }
+
