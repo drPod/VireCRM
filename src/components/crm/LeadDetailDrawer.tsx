@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy, Calculator } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
@@ -39,7 +40,8 @@ interface LeadDetailDrawerProps {
 }
 
 export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDetailDrawerProps) {
-  const { organization } = useAuth();
+  const { organization, role } = useAuth();
+  const canAssign = role?.role === "owner" || role?.role === "manager";
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -54,6 +56,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     current_supplier: "",
     deal_value: "" as string,
     deal_currency: "USD" as string,
+    assigned_to: "" as string,
   });
   const [markingWon, setMarkingWon] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -67,12 +70,48 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
+  const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; role: string }>>([]);
   const [commissionRule, setCommissionRule] = useState<{
     rule_type: string;
     percent: number;
     flat_cents: number;
     scope: "rep" | "org";
   } | null>(null);
+
+  // Load org members so owners/managers can pick an assignee.
+  useEffect(() => {
+    if (!organization?.id) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [profilesRes, rolesRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .eq("organization_id", organization.id),
+        supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .eq("organization_id", organization.id),
+      ]);
+      if (cancelled) return;
+      const roleByUser = new Map<string, string>();
+      rolesRes.data?.forEach((r) => {
+        if (r.user_id) roleByUser.set(r.user_id, r.role);
+      });
+      const list = (profilesRes.data ?? []).map((p) => ({
+        user_id: p.user_id,
+        full_name: p.full_name ?? "Unnamed",
+        role: roleByUser.get(p.user_id) ?? "sales_rep",
+      }));
+      setMembers(list);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [organization?.id]);
 
   // Fetch active commission rule (rep override > org default) for the preview.
   useEffect(() => {
@@ -131,13 +170,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       current_supplier: lead.currentSupplier ?? "",
       deal_value: "",
       deal_currency: "USD",
+      assigned_to: lead.assignedTo ?? "",
     });
 
-    // Fetch the full notes + energy + deal fields (the list view doesn't include them).
+    // Fetch the full notes + energy + deal + assignment fields (the list view doesn't include them).
     setLoadingNotes(true);
     supabase
       .from("leads")
-      .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency")
+      .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency, assigned_to")
       .eq("id", lead.id)
       .single()
       .then(({ data }) => {
@@ -156,6 +196,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 ? (data.deal_value_cents / 100).toString()
                 : "",
             deal_currency: data.deal_currency ?? "USD",
+            assigned_to: data.assigned_to ?? prev.assigned_to,
           }));
         }
         setLoadingNotes(false);
@@ -342,23 +383,28 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     }
 
     setSaving(true);
+    const updatePayload: TablesUpdate<"leads"> = {
+      name: form.name.trim(),
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      company: form.company.trim() || null,
+      status: form.status,
+      score: form.score,
+      next_action: form.next_action.trim() || null,
+      notes: form.notes.trim() || null,
+      annual_kwh: annualKwh,
+      contract_end_date: form.contract_end_date || null,
+      current_supplier: form.current_supplier.trim() || null,
+      deal_value_cents: dealParsed.cents,
+      deal_currency: form.deal_currency || "USD",
+    };
+    // Only owners/managers may change the assignee — DB trigger enforces too.
+    if (canAssign) {
+      updatePayload.assigned_to = form.assigned_to ? form.assigned_to : null;
+    }
     const { error } = await supabase
       .from("leads")
-      .update({
-        name: form.name.trim(),
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
-        company: form.company.trim() || null,
-        status: form.status,
-        score: form.score,
-        next_action: form.next_action.trim() || null,
-        notes: form.notes.trim() || null,
-        annual_kwh: annualKwh,
-        contract_end_date: form.contract_end_date || null,
-        current_supplier: form.current_supplier.trim() || null,
-        deal_value_cents: dealParsed.cents,
-        deal_currency: form.deal_currency || "USD",
-      })
+      .update(updatePayload)
       .eq("id", lead.id);
 
     setSaving(false);
@@ -611,6 +657,35 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   onChange={(e) => update("score", Number(e.target.value))}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-foreground">
+                Assigned to
+                {!canAssign && (
+                  <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+                    (owners & managers only)
+                  </span>
+                )}
+              </label>
+              <select
+                className={`${inputClass} ${!canAssign ? "opacity-60 cursor-not-allowed" : ""}`}
+                value={form.assigned_to}
+                onChange={(e) => update("assigned_to", e.target.value)}
+                disabled={!canAssign}
+                title={
+                  canAssign
+                    ? "Assign this lead to a sales rep or manager"
+                    : "Only owners and managers can reassign leads"
+                }
+              >
+                <option value="">— Unassigned —</option>
+                {members.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>
+                    {m.full_name} ({m.role.replace("_", " ")})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div

@@ -33,11 +33,22 @@ export function PipelineView() {
   const fetchLeads = useCallback(async () => {
     if (!organization?.id) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("organization_id", organization.id)
-      .order("score", { ascending: false });
+    const [{ data }, profilesRes] = await Promise.all([
+      supabase
+        .from("leads")
+        .select("*")
+        .eq("organization_id", organization.id)
+        .order("score", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("organization_id", organization.id),
+    ]);
+
+    const nameByUserId = new Map<string, string>();
+    profilesRes.data?.forEach((p) => {
+      if (p.user_id) nameByUserId.set(p.user_id, p.full_name ?? "Unnamed");
+    });
 
     if (data) {
       setLeads(
@@ -51,6 +62,8 @@ export function PipelineView() {
           score: l.score ?? 0,
           nextAction: l.next_action ?? undefined,
           lastContact: l.last_contact ?? undefined,
+          assignedTo: l.assigned_to ?? null,
+          assigneeName: l.assigned_to ? nameByUserId.get(l.assigned_to) ?? null : null,
         }))
       );
     }

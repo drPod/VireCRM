@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Calendar, Zap, Building2, CalendarClock } from "lucide-react";
+import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User } from "lucide-react";
 
 export interface Lead {
   id: string;
@@ -17,6 +17,10 @@ export interface Lead {
   contractEndDate?: string | null;
   /** Lead's current energy supplier (e.g. "British Gas"). */
   currentSupplier?: string | null;
+  /** UUID of the org member this lead is assigned to. */
+  assignedTo?: string | null;
+  /** Display name of the assignee (resolved from profiles). */
+  assigneeName?: string | null;
 }
 
 const statusConfig: Record<Lead["status"], { label: string; variant: "default" | "secondary" | "success" | "warning" | "info" | "destructive" }> = {
@@ -94,6 +98,12 @@ export function LeadCard({ lead, onClick }: { lead: Lead; onClick?: () => void }
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
             <span>{lead.nextAction}</span>
+          </div>
+        )}
+        {lead.assigneeName && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <User className="h-3 w-3" />
+            <span className="truncate">Assigned to {lead.assigneeName}</span>
           </div>
         )}
       </div>
