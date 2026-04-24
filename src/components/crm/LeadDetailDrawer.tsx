@@ -382,23 +382,28 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     }
 
     setSaving(true);
+    const updatePayload: Record<string, unknown> = {
+      name: form.name.trim(),
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      company: form.company.trim() || null,
+      status: form.status,
+      score: form.score,
+      next_action: form.next_action.trim() || null,
+      notes: form.notes.trim() || null,
+      annual_kwh: annualKwh,
+      contract_end_date: form.contract_end_date || null,
+      current_supplier: form.current_supplier.trim() || null,
+      deal_value_cents: dealParsed.cents,
+      deal_currency: form.deal_currency || "USD",
+    };
+    // Only owners/managers may change the assignee — guard server-side too.
+    if (canAssign) {
+      updatePayload.assigned_to = form.assigned_to ? form.assigned_to : null;
+    }
     const { error } = await supabase
       .from("leads")
-      .update({
-        name: form.name.trim(),
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
-        company: form.company.trim() || null,
-        status: form.status,
-        score: form.score,
-        next_action: form.next_action.trim() || null,
-        notes: form.notes.trim() || null,
-        annual_kwh: annualKwh,
-        contract_end_date: form.contract_end_date || null,
-        current_supplier: form.current_supplier.trim() || null,
-        deal_value_cents: dealParsed.cents,
-        deal_currency: form.deal_currency || "USD",
-      })
+      .update(updatePayload)
       .eq("id", lead.id);
 
     setSaving(false);
