@@ -62,6 +62,7 @@ export function WhiteLabelSettings() {
   const [saving, setSaving] = useState(false);
   const [togglingReseller, setTogglingReseller] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const verificationToken = orgExt?.domain_verification_token || "";
   const isDomainVerified = !!orgExt?.domain_verified_at;
