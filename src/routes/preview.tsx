@@ -456,7 +456,7 @@ function DashboardView() {
   return (
     <>
       {/* Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div data-tour="metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 scroll-mt-24">
         {metrics.map((m) => (
           <Card key={m.label} className="p-5">
             <div className="flex items-start justify-between">
