@@ -303,8 +303,12 @@ function LeadsPage() {
    *    matches that single assignee. Existing assignees on the selected
    *    leads are replaced so the distribution is clean.
    */
-  const handleBulkAssign = async () => {
-    if (!organization?.id) return;
+  /**
+   * Entry point clicked by the user. Round-robin is destructive (it wipes
+   * existing assignees on the selected leads), so we require an explicit
+   * confirmation prompt before running. Share is additive and runs directly.
+   */
+  const handleBulkAssignClick = () => {
     if (selectedLeadIds.length === 0) {
       toast.error("Select at least one lead first.");
       return;
@@ -313,6 +317,16 @@ function LeadsPage() {
       toast.error("Pick at least one employee to assign to.");
       return;
     }
+    if (bulkAssignMode === "round_robin") {
+      setConfirmRoundRobinOpen(true);
+      return;
+    }
+    void runBulkAssign();
+  };
+
+  const runBulkAssign = async () => {
+    if (!organization?.id) return;
+    if (selectedLeadIds.length === 0 || bulkAssignTargets.length === 0) return;
     setBulkAssigning(true);
     try {
       if (bulkAssignMode === "round_robin") {
