@@ -20,8 +20,10 @@ import {
   ImageIcon,
   PenLine,
   Eye,
+  Download,
+  FileUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SUPPORTED_FONTS } from "@/lib/white-label-theme";
@@ -60,6 +62,7 @@ export function WhiteLabelSettings() {
   const [saving, setSaving] = useState(false);
   const [togglingReseller, setTogglingReseller] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const verificationToken = orgExt?.domain_verification_token || "";
   const isDomainVerified = !!orgExt?.domain_verified_at;
@@ -171,6 +174,86 @@ export function WhiteLabelSettings() {
     await refreshProfile();
   };
 
+  /* ---------------------------------------------------------------------- */
+  /* Theme export / import                                                   */
+  /* ---------------------------------------------------------------------- */
+
+
+  const handleExportTheme = () => {
+    const payload = {
+      schema: "genesis.brand-theme",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      brandName: brandName || null,
+      palette: {
+        primary: primaryColor || null,
+        secondary: secondaryColor || null,
+        accent: accentColor || null,
+        sidebar: sidebarColor || null,
+        button: buttonColor || null,
+      },
+      assets: {
+        logoUrl: logoUrl || null,
+        faviconUrl: faviconUrl || null,
+      },
+      typography: {
+        fontFamily: fontFamily || null,
+      },
+      email: {
+        signature: emailSignature || null,
+      },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeName = (brandName || organization?.slug || "brand")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    a.href = url;
+    a.download = `${safeName}-theme.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Theme exported");
+  };
+
+  const handleImportTheme = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed: unknown = JSON.parse(text);
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("File is not a valid theme JSON");
+      }
+      const theme = parsed as Record<string, unknown>;
+      const palette = (theme.palette as Record<string, unknown>) || {};
+      const assets = (theme.assets as Record<string, unknown>) || {};
+      const typography = (theme.typography as Record<string, unknown>) || {};
+      const email = (theme.email as Record<string, unknown>) || {};
+
+      const str = (v: unknown) => (typeof v === "string" ? v : "");
+
+      // Apply to local form state — user still has to click Save to persist.
+      if (typeof theme.brandName === "string") setBrandName(theme.brandName);
+      if (palette.primary !== undefined) setPrimaryColor(str(palette.primary) || "#3b82f6");
+      if (palette.secondary !== undefined) setSecondaryColor(str(palette.secondary));
+      if (palette.accent !== undefined) setAccentColor(str(palette.accent));
+      if (palette.sidebar !== undefined) setSidebarColor(str(palette.sidebar));
+      if (palette.button !== undefined) setButtonColor(str(palette.button));
+      if (assets.logoUrl !== undefined) setLogoUrl(str(assets.logoUrl));
+      if (assets.faviconUrl !== undefined) setFaviconUrl(str(assets.faviconUrl));
+      if (typography.fontFamily !== undefined) setFontFamily(str(typography.fontFamily));
+      if (email.signature !== undefined) setEmailSignature(str(email.signature));
+
+      toast.success("Theme loaded — review and click Save to apply");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not read theme file");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -273,13 +356,51 @@ export function WhiteLabelSettings() {
 
         {/* Brand Palette */}
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <Palette className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <label className="text-sm font-medium text-foreground">Brand Palette</label>
-              <p className="text-xs text-muted-foreground">
-                Primary is required. The other colors are optional — leave them blank to derive them from primary.
-              </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Palette className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <label className="text-sm font-medium text-foreground">Brand Palette</label>
+                <p className="text-xs text-muted-foreground">
+                  Primary is required. The other colors are optional — leave them blank to derive them from primary.
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleImportTheme(file);
+                  // Reset so re-importing the same file fires onChange.
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => fileInputRef.current?.click()}
+                title="Load a previously exported theme JSON"
+              >
+                <FileUp className="h-3.5 w-3.5" />
+                Import
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleExportTheme}
+                title="Download the current theme as JSON to share or back up"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </Button>
             </div>
           </div>
 
