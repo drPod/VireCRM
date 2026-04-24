@@ -291,6 +291,58 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function PaletteField({
+  label,
+  value,
+  onChange,
+  optional,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  optional?: boolean;
+}) {
+  const swatch = value || "#cccccc";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-muted-foreground">
+          {label}
+          {optional && (
+            <span className="ml-1 text-[10px] text-muted-foreground/70">
+              optional
+            </span>
+          )}
+        </label>
+        {optional && value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={swatch}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded-md border border-input"
+        />
+        <input
+          type="text"
+          value={value}
+          placeholder={optional ? "Inherits primary" : "#7c3aed"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 flex-1 rounded-md border border-input bg-input px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+    </div>
+  );
+}
+
 function PreviewBlock({
   title,
   description,
