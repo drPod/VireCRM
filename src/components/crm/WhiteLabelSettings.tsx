@@ -356,13 +356,51 @@ export function WhiteLabelSettings() {
 
         {/* Brand Palette */}
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <Palette className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <label className="text-sm font-medium text-foreground">Brand Palette</label>
-              <p className="text-xs text-muted-foreground">
-                Primary is required. The other colors are optional — leave them blank to derive them from primary.
-              </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Palette className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <label className="text-sm font-medium text-foreground">Brand Palette</label>
+                <p className="text-xs text-muted-foreground">
+                  Primary is required. The other colors are optional — leave them blank to derive them from primary.
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleImportTheme(file);
+                  // Reset so re-importing the same file fires onChange.
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => fileInputRef.current?.click()}
+                title="Load a previously exported theme JSON"
+              >
+                <FileUp className="h-3.5 w-3.5" />
+                Import
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleExportTheme}
+                title="Download the current theme as JSON to share or back up"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </Button>
             </div>
           </div>
 
