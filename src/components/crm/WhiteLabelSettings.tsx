@@ -271,30 +271,52 @@ export function WhiteLabelSettings() {
           />
         </div>
 
-        {/* Primary Color */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <Palette className="h-4 w-4 text-muted-foreground" />
-            <label className="text-sm font-medium text-foreground">Primary Color</label>
-          </div>
+        {/* Brand Palette */}
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
           <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={primaryColor}
-              onChange={(e) => setPrimaryColor(e.target.value)}
-              className="h-10 w-14 cursor-pointer rounded-lg border border-input"
-            />
-            <input
-              type="text"
-              value={primaryColor}
-              onChange={(e) => setPrimaryColor(e.target.value)}
-              className="h-10 flex-1 rounded-lg border border-input bg-input px-3 text-sm text-foreground font-mono outline-none focus:ring-1 focus:ring-ring"
-            />
-            <div
-              className="h-10 w-24 rounded-lg"
-              style={{ backgroundColor: primaryColor }}
-            />
+            <Palette className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <label className="text-sm font-medium text-foreground">Brand Palette</label>
+              <p className="text-xs text-muted-foreground">
+                Primary is required. The other colors are optional — leave them blank to derive them from primary.
+              </p>
+            </div>
           </div>
+
+          <ColorRow
+            label="Primary"
+            description="Buttons, links, focus rings, active sidebar item."
+            value={primaryColor}
+            onChange={setPrimaryColor}
+          />
+          <ColorRow
+            label="Secondary"
+            description="Soft surfaces, badges, secondary buttons."
+            value={secondaryColor}
+            onChange={setSecondaryColor}
+            optional
+          />
+          <ColorRow
+            label="Accent"
+            description="Hover states, subtle highlights."
+            value={accentColor}
+            onChange={setAccentColor}
+            optional
+          />
+          <ColorRow
+            label="Sidebar"
+            description="Background of the left navigation rail."
+            value={sidebarColor}
+            onChange={setSidebarColor}
+            optional
+          />
+          <ColorRow
+            label="Call-to-action button"
+            description="Distinct CTA color (e.g. green for sign-ups)."
+            value={buttonColor}
+            onChange={setButtonColor}
+            optional
+          />
         </div>
 
         {/* Logo URL */}
