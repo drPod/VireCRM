@@ -379,6 +379,56 @@ export type Database = {
           },
         ]
       }
+      custom_roles: {
+        Row: {
+          base_role: Database["public"]["Enums"]["app_role"]
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_builtin: boolean
+          name: string
+          organization_id: string
+          permissions: string[]
+          updated_at: string
+        }
+        Insert: {
+          base_role?: Database["public"]["Enums"]["app_role"]
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_builtin?: boolean
+          name: string
+          organization_id: string
+          permissions?: string[]
+          updated_at?: string
+        }
+        Update: {
+          base_role?: Database["public"]["Enums"]["app_role"]
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_builtin?: boolean
+          name?: string
+          organization_id?: string
+          permissions?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -559,6 +609,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           created_at: string
+          custom_role_id: string | null
           email: string
           expires_at: string
           id: string
@@ -571,6 +622,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           created_at?: string
+          custom_role_id?: string | null
           email: string
           expires_at?: string
           id?: string
@@ -583,6 +635,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           created_at?: string
+          custom_role_id?: string | null
           email?: string
           expires_at?: string
           id?: string
@@ -593,6 +646,13 @@ export type Database = {
           token?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invitations_custom_role_id_fkey"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invitations_organization_id_fkey"
             columns: ["organization_id"]
@@ -1715,24 +1775,34 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          custom_role_id: string | null
           id: string
           organization_id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          custom_role_id?: string | null
           id?: string
           organization_id: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          custom_role_id?: string | null
           id?: string
           organization_id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_roles_custom_role_id_fkey"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_roles_organization_id_fkey"
             columns: ["organization_id"]
@@ -1810,6 +1880,10 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
+      assign_custom_role: {
+        Args: { p_custom_role_id: string; p_user_id: string }
+        Returns: Json
+      }
       calculate_reseller_payouts: {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json
@@ -1929,6 +2003,10 @@ export type Database = {
       }
       user_belongs_to_org: {
         Args: { p_org_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      user_has_permission: {
+        Args: { p_org_id: string; p_permission: string; p_user_id: string }
         Returns: boolean
       }
     }
