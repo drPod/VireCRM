@@ -39,7 +39,8 @@ interface LeadDetailDrawerProps {
 }
 
 export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDetailDrawerProps) {
-  const { organization } = useAuth();
+  const { organization, role } = useAuth();
+  const canAssign = role?.role === "owner" || role?.role === "manager";
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -54,6 +55,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     current_supplier: "",
     deal_value: "" as string,
     deal_currency: "USD" as string,
+    assigned_to: "" as string,
   });
   const [markingWon, setMarkingWon] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -67,12 +69,48 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
+  const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; role: string }>>([]);
   const [commissionRule, setCommissionRule] = useState<{
     rule_type: string;
     percent: number;
     flat_cents: number;
     scope: "rep" | "org";
   } | null>(null);
+
+  // Load org members so owners/managers can pick an assignee.
+  useEffect(() => {
+    if (!organization?.id) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [profilesRes, rolesRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .eq("organization_id", organization.id),
+        supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .eq("organization_id", organization.id),
+      ]);
+      if (cancelled) return;
+      const roleByUser = new Map<string, string>();
+      rolesRes.data?.forEach((r) => {
+        if (r.user_id) roleByUser.set(r.user_id, r.role);
+      });
+      const list = (profilesRes.data ?? []).map((p) => ({
+        user_id: p.user_id,
+        full_name: p.full_name ?? "Unnamed",
+        role: roleByUser.get(p.user_id) ?? "sales_rep",
+      }));
+      setMembers(list);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [organization?.id]);
 
   // Fetch active commission rule (rep override > org default) for the preview.
   useEffect(() => {
