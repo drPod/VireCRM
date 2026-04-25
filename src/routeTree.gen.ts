@@ -36,9 +36,11 @@ import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
+import { Route as AppFunnelsRouteImport } from './routes/_app.funnels'
 import { Route as AppExpensesRouteImport } from './routes/_app.expenses'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
@@ -198,6 +200,11 @@ const AppInvoicesRoute = AppInvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFunnelsRoute = AppFunnelsRouteImport.update({
+  id: '/funnels',
+  path: '/funnels',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppExpensesRoute = AppExpensesRouteImport.update({
   id: '/expenses',
   path: '/expenses',
@@ -211,6 +218,11 @@ const AppEmailMarketingRoute = AppEmailMarketingRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConversationsRoute = AppConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientsRoute = AppClientsRouteImport.update({
@@ -357,9 +369,11 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
+  '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/expenses': typeof AppExpensesRoute
+  '/funnels': typeof AppFunnelsRoute
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
@@ -411,9 +425,11 @@ export interface FileRoutesByTo {
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
+  '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/expenses': typeof AppExpensesRoute
+  '/funnels': typeof AppFunnelsRoute
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
@@ -467,9 +483,11 @@ export interface FileRoutesById {
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRouteWithChildren
   '/_app/clients': typeof AppClientsRouteWithChildren
+  '/_app/conversations': typeof AppConversationsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
   '/_app/expenses': typeof AppExpensesRoute
+  '/_app/funnels': typeof AppFunnelsRoute
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
@@ -523,9 +541,11 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/campaigns'
     | '/clients'
+    | '/conversations'
     | '/dashboard'
     | '/email-marketing'
     | '/expenses'
+    | '/funnels'
     | '/invoices'
     | '/leads'
     | '/messages'
@@ -577,9 +597,11 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/campaigns'
     | '/clients'
+    | '/conversations'
     | '/dashboard'
     | '/email-marketing'
     | '/expenses'
+    | '/funnels'
     | '/invoices'
     | '/leads'
     | '/messages'
@@ -632,9 +654,11 @@ export interface FileRouteTypes {
     | '/_app/calendar'
     | '/_app/campaigns'
     | '/_app/clients'
+    | '/_app/conversations'
     | '/_app/dashboard'
     | '/_app/email-marketing'
     | '/_app/expenses'
+    | '/_app/funnels'
     | '/_app/invoices'
     | '/_app/leads'
     | '/_app/messages'
@@ -890,6 +914,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInvoicesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/funnels': {
+      id: '/_app/funnels'
+      path: '/funnels'
+      fullPath: '/funnels'
+      preLoaderRoute: typeof AppFunnelsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/expenses': {
       id: '/_app/expenses'
       path: '/expenses'
@@ -909,6 +940,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/conversations': {
+      id: '/_app/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof AppConversationsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/clients': {
@@ -1120,9 +1158,11 @@ interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
   AppClientsRoute: typeof AppClientsRouteWithChildren
+  AppConversationsRoute: typeof AppConversationsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
   AppExpensesRoute: typeof AppExpensesRoute
+  AppFunnelsRoute: typeof AppFunnelsRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
@@ -1141,9 +1181,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRouteWithChildren,
   AppClientsRoute: AppClientsRouteWithChildren,
+  AppConversationsRoute: AppConversationsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
   AppExpensesRoute: AppExpensesRoute,
+  AppFunnelsRoute: AppFunnelsRoute,
   AppInvoicesRoute: AppInvoicesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,

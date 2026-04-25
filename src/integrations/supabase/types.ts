@@ -162,6 +162,132 @@ export type Database = {
         }
         Relationships: []
       }
+      appointments: {
+        Row: {
+          assigned_to: string | null
+          calendar_id: string | null
+          created_at: string
+          ends_at: string
+          id: string
+          lead_id: string | null
+          location: string | null
+          meeting_url: string | null
+          notes: string | null
+          organization_id: string
+          starts_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          calendar_id?: string | null
+          created_at?: string
+          ends_at: string
+          id?: string
+          lead_id?: string | null
+          location?: string | null
+          meeting_url?: string | null
+          notes?: string | null
+          organization_id: string
+          starts_at: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          calendar_id?: string | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          lead_id?: string | null
+          location?: string | null
+          meeting_url?: string | null
+          notes?: string | null
+          organization_id?: string
+          starts_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendars: {
+        Row: {
+          availability: Json
+          buffer_minutes: number
+          color: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          slot_duration_minutes: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          availability?: Json
+          buffer_minutes?: number
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          slot_duration_minutes?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          availability?: Json
+          buffer_minutes?: number
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          slot_duration_minutes?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendars_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           created_at: string
@@ -537,6 +663,117 @@ export type Database = {
           },
         ]
       }
+      conversation_messages: {
+        Row: {
+          attachments: Json
+          body: string
+          conversation_id: string
+          created_at: string
+          direction: string
+          id: string
+          organization_id: string
+          sender: string | null
+          sent_at: string
+        }
+        Insert: {
+          attachments?: Json
+          body: string
+          conversation_id: string
+          created_at?: string
+          direction?: string
+          id?: string
+          organization_id: string
+          sender?: string | null
+          sent_at?: string
+        }
+        Update: {
+          attachments?: Json
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          organization_id?: string
+          sender?: string | null
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          assigned_to: string | null
+          channel: string
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          lead_id: string | null
+          organization_id: string
+          status: string
+          subject: string | null
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          lead_id?: string | null
+          organization_id: string
+          status?: string
+          subject?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          lead_id?: string | null
+          organization_id?: string
+          status?: string
+          subject?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_roles: {
         Row: {
           base_role: Database["public"]["Enums"]["app_role"]
@@ -756,6 +993,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "expenses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnels: {
+        Row: {
+          conversions_count: number
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          name: string
+          organization_id: string
+          published_url: string | null
+          slug: string
+          status: string
+          steps: Json
+          updated_at: string
+          visits_count: number
+        }
+        Insert: {
+          conversions_count?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name: string
+          organization_id: string
+          published_url?: string | null
+          slug: string
+          status?: string
+          steps?: Json
+          updated_at?: string
+          visits_count?: number
+        }
+        Update: {
+          conversions_count?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          organization_id?: string
+          published_url?: string | null
+          slug?: string
+          status?: string
+          steps?: Json
+          updated_at?: string
+          visits_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnels_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1726,6 +2019,123 @@ export type Database = {
           {
             foreignKeyName: "reseller_plans_reseller_id_fkey"
             columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_requests: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          lead_id: string | null
+          organization_id: string
+          rating: number | null
+          responded_at: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          organization_id: string
+          rating?: number | null
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          organization_id?: string
+          rating?: number | null
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          content: string | null
+          created_at: string
+          external_url: string | null
+          id: string
+          lead_id: string | null
+          organization_id: string
+          posted_at: string
+          rating: number
+          replied: boolean
+          replied_at: string | null
+          reply_text: string | null
+          reviewer_avatar: string | null
+          reviewer_name: string | null
+          source: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          external_url?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id: string
+          posted_at?: string
+          rating?: number
+          replied?: boolean
+          replied_at?: string | null
+          reply_text?: string | null
+          reviewer_avatar?: string | null
+          reviewer_name?: string | null
+          source?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          external_url?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id?: string
+          posted_at?: string
+          rating?: number
+          replied?: boolean
+          replied_at?: string | null
+          reply_text?: string | null
+          reviewer_avatar?: string | null
+          reviewer_name?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_organization_id_fkey"
+            columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
