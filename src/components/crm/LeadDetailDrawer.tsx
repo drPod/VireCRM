@@ -734,15 +734,69 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           </button>
           <button
             onClick={() => setActiveTab("invoices")}
-            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === "invoices"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             Invoices
+            {billingSummary && billingSummary.count > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                {billingSummary.count}
+              </Badge>
+            )}
           </button>
         </div>
+
+        {/* Billing summary — visible on every tab once an invoice exists */}
+        {billingSummary && billingSummary.count > 0 && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("invoices")}
+            className="mt-3 w-full rounded-lg border border-border bg-card/60 px-3 py-2 text-left transition-colors hover:bg-muted/40"
+            title="View invoices for this lead"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <Calculator className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-success font-semibold tabular-nums">
+                      {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: billingSummary.currency,
+                      }).format(billingSummary.collectedCents / 100)}
+                    </span>
+                    <span className="text-muted-foreground">collected</span>
+                    {billingSummary.outstandingCents > 0 && (
+                      <>
+                        <span className="text-muted-foreground/50">·</span>
+                        <span className="text-warning font-semibold tabular-nums">
+                          {new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: billingSummary.currency,
+                          }).format(billingSummary.outstandingCents / 100)}
+                        </span>
+                        <span className="text-muted-foreground">due</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {billingSummary.count} {billingSummary.count === 1 ? "invoice" : "invoices"}
+                    {billingSummary.recurringActive > 0 &&
+                      ` · ${billingSummary.recurringActive} recurring`}
+                    {billingSummary.lastPaidAt &&
+                      ` · last paid ${new Date(billingSummary.lastPaidAt).toLocaleDateString()}`}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+          </button>
+        )}
 
         {activeTab === "details" ? (
           <div className="space-y-4 pt-4">
