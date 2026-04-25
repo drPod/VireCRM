@@ -338,7 +338,11 @@ async function syncConnectInvoice(
         ? "void"
         : eventType === "invoice.marked_uncollectible"
           ? "uncollectible"
-          : invoice.status || "open";
+          : eventType === "invoice.payment_failed"
+            ? "past_due"
+            : eventType === "invoice.finalized" || eventType === "invoice.sent"
+              ? "open"
+              : invoice.status || "open";
 
   const update: Record<string, unknown> = {
     status,
