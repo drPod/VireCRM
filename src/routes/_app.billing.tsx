@@ -14,6 +14,10 @@ import {
   ArrowRight,
   TrendingUp,
   TrendingDown,
+  Receipt,
+  Download,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -555,6 +559,7 @@ function BillingPage() {
           </div>
         </div>
       )}
+      <BillingHistorySection />
       {CheckoutDialog}
       <PlanSwitchConfirmDialog
         pendingTier={pendingTier}
@@ -569,6 +574,179 @@ function BillingPage() {
           }
         }}
       />
+    </div>
+  );
+}
+
+interface BillingHistoryItem {
+  id: string;
+  type: "invoice" | "charge";
+  number: string | null;
+  status: string;
+  amount_cents: number;
+  currency: string;
+  created: number;
+  description: string | null;
+  hosted_url: string | null;
+  pdf_url: string | null;
+  receipt_url: string | null;
+}
+
+function formatMoney(cents: number, currency: string) {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(cents / 100);
+  } catch {
+    return `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`;
+  }
+}
+
+function BillingHistorySection() {
+  const [items, setItems] = useState<BillingHistoryItem[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        "list-billing-history",
+        { body: { environment: getStripeEnvironment() } },
+      );
+      if (invokeError) throw new Error(invokeError.message);
+      if (data?.error) throw new Error(data.error);
+      setItems((data?.items ?? []) as BillingHistoryItem[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load billing history");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchHistory();
+  }, [fetchHistory]);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-sm font-medium text-foreground flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-primary" />
+            Billing history
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Download invoices and payment receipts for every plan purchase.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchHistory} disabled={loading}>
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Refresh"}
+        </Button>
+      </div>
+
+      {loading && !items && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-foreground flex items-start gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {!loading && !error && items && items.length === 0 && (
+        <p className="text-xs text-muted-foreground py-4 text-center">
+          No invoices or receipts yet. They'll appear here after your first payment.
+        </p>
+      )}
+
+      {items && items.length > 0 && (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/30">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="px-3 py-2 font-medium">Date</th>
+                <th className="px-3 py-2 font-medium">Description</th>
+                <th className="px-3 py-2 font-medium text-right">Amount</th>
+                <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-3 py-2 font-medium text-right">Download</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {items.map((item) => {
+                const isPaid =
+                  item.status === "paid" || item.status === "succeeded";
+                return (
+                  <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/20">
+                    <td className="px-3 py-2.5 text-foreground whitespace-nowrap">
+                      {formatDate(new Date(item.created * 1000).toISOString())}
+                    </td>
+                    <td className="px-3 py-2.5 text-foreground">
+                      <div className="flex items-center gap-1.5">
+                        {item.type === "invoice" ? (
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        ) : (
+                          <Receipt className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="truncate max-w-[200px]">
+                          {item.number
+                            ? `Invoice ${item.number}`
+                            : item.description || (item.type === "invoice" ? "Invoice" : "Payment")}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-medium text-foreground whitespace-nowrap">
+                      {formatMoney(item.amount_cents, item.currency)}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Badge
+                        variant={isPaid ? "default" : item.status === "open" ? "secondary" : "warning"}
+                        className="text-[10px] capitalize"
+                      >
+                        {item.status}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        {item.pdf_url && (
+                          <a
+                            href={item.pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-muted transition"
+                            title="Download PDF invoice"
+                          >
+                            <Download className="h-3 w-3" />
+                            PDF
+                          </a>
+                        )}
+                        {item.hosted_url && (
+                          <a
+                            href={item.hosted_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-muted transition"
+                            title={item.type === "invoice" ? "View invoice" : "View receipt"}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {item.type === "invoice" ? "View" : "Receipt"}
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
