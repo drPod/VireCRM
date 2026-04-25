@@ -165,6 +165,16 @@ function AppointmentsPage() {
       return;
     }
     try {
+      // access_password rules:
+      //   - undefined → leave existing password unchanged
+      //   - clear_password set → empty string clears it
+      //   - non-empty string → set/replace
+      let access_password: string | undefined;
+      if (editorState.clear_password) {
+        access_password = "";
+      } else if (editorState.access_password && editorState.access_password.length > 0) {
+        access_password = editorState.access_password;
+      }
       await upsertCal({
         data: {
           organizationId: orgId,
@@ -176,6 +186,7 @@ function AppointmentsPage() {
           slot_duration_minutes: editorState.slot_duration_minutes ?? 30,
           buffer_minutes: editorState.buffer_minutes ?? 0,
           availability: (editorState.availability as Availability) || defaultAvailability(),
+          access_password,
         },
       });
       toast.success("Calendar saved");
