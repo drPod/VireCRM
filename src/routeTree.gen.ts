@@ -30,6 +30,7 @@ import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calcul
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
 import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
@@ -169,6 +170,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSequencesRoute = AppSequencesRouteImport.update({
+  id: '/sequences',
+  path: '/sequences',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRevenueRoute = AppRevenueRouteImport.update({
@@ -387,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/payouts': typeof AppPayoutsRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
+  '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -444,6 +451,7 @@ export interface FileRoutesByTo {
   '/payouts': typeof AppPayoutsRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
+  '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -503,6 +511,7 @@ export interface FileRoutesById {
   '/_app/payouts': typeof AppPayoutsRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/revenue': typeof AppRevenueRoute
+  '/_app/sequences': typeof AppSequencesRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -562,6 +571,7 @@ export interface FileRouteTypes {
     | '/payouts'
     | '/reputation'
     | '/revenue'
+    | '/sequences'
     | '/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -619,6 +629,7 @@ export interface FileRouteTypes {
     | '/payouts'
     | '/reputation'
     | '/revenue'
+    | '/sequences'
     | '/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -677,6 +688,7 @@ export interface FileRouteTypes {
     | '/_app/payouts'
     | '/_app/reputation'
     | '/_app/revenue'
+    | '/_app/sequences'
     | '/_app/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -884,6 +896,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sequences': {
+      id: '/_app/sequences'
+      path: '/sequences'
+      fullPath: '/sequences'
+      preLoaderRoute: typeof AppSequencesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/revenue': {
@@ -1190,6 +1209,7 @@ interface AppRouteChildren {
   AppPayoutsRoute: typeof AppPayoutsRoute
   AppReputationRoute: typeof AppReputationRoute
   AppRevenueRoute: typeof AppRevenueRoute
+  AppSequencesRoute: typeof AppSequencesRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
   AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
@@ -1213,6 +1233,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPayoutsRoute: AppPayoutsRoute,
   AppReputationRoute: AppReputationRoute,
   AppRevenueRoute: AppRevenueRoute,
+  AppSequencesRoute: AppSequencesRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
   AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
   AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
