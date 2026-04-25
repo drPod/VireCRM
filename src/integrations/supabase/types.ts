@@ -1589,6 +1589,271 @@ export type Database = {
           },
         ]
       }
+      outreach_sequence_enrollments: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_step_index: number
+          enrolled_at: string
+          enrolled_by: string | null
+          id: string
+          last_sent_at: string | null
+          lead_id: string
+          next_send_at: string | null
+          organization_id: string
+          sequence_id: string
+          status: string
+          stop_reason: string | null
+          stopped_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_step_index?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          id?: string
+          last_sent_at?: string | null
+          lead_id: string
+          next_send_at?: string | null
+          organization_id: string
+          sequence_id: string
+          status?: string
+          stop_reason?: string | null
+          stopped_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_step_index?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          id?: string
+          last_sent_at?: string | null
+          lead_id?: string
+          next_send_at?: string | null
+          organization_id?: string
+          sequence_id?: string
+          status?: string
+          stop_reason?: string | null
+          stopped_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_sequence_enrollments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_sequence_enrollments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_sequence_step_log: {
+        Row: {
+          enrollment_id: string
+          error_message: string | null
+          id: string
+          lead_id: string
+          message_id: string | null
+          organization_id: string
+          sent_at: string
+          sequence_id: string
+          status: string
+          step_id: string | null
+          step_index: number
+          subject: string | null
+        }
+        Insert: {
+          enrollment_id: string
+          error_message?: string | null
+          id?: string
+          lead_id: string
+          message_id?: string | null
+          organization_id: string
+          sent_at?: string
+          sequence_id: string
+          status: string
+          step_id?: string | null
+          step_index: number
+          subject?: string | null
+        }
+        Update: {
+          enrollment_id?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string
+          message_id?: string | null
+          organization_id?: string
+          sent_at?: string
+          sequence_id?: string
+          status?: string
+          step_id?: string | null
+          step_index?: number
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_sequence_step_log_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_sequence_step_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_sequence_steps: {
+        Row: {
+          body_override: string | null
+          created_at: string
+          delay_days: number
+          delay_hours: number
+          id: string
+          is_active: boolean
+          organization_id: string
+          sequence_id: string
+          step_index: number
+          subject_override: string | null
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          body_override?: string | null
+          created_at?: string
+          delay_days?: number
+          delay_hours?: number
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          sequence_id: string
+          step_index: number
+          subject_override?: string | null
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body_override?: string | null
+          created_at?: string
+          delay_days?: number
+          delay_hours?: number
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          sequence_id?: string
+          step_index?: number
+          subject_override?: string | null
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_sequence_steps_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_sequence_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_sequences: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          send_on_weekends: boolean
+          send_window_end_hour: number
+          send_window_start_hour: number
+          status: string
+          stop_on_meeting_booked: boolean
+          stop_on_positive_sentiment: boolean
+          stop_on_reply: boolean
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          send_on_weekends?: boolean
+          send_window_end_hour?: number
+          send_window_start_hour?: number
+          status?: string
+          stop_on_meeting_booked?: boolean
+          stop_on_positive_sentiment?: boolean
+          stop_on_reply?: boolean
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          send_on_weekends?: boolean
+          send_window_end_hour?: number
+          send_window_start_hour?: number
+          status?: string
+          stop_on_meeting_booked?: boolean
+          stop_on_positive_sentiment?: boolean
+          stop_on_reply?: boolean
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_sequences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outreach_templates: {
         Row: {
           body: string
