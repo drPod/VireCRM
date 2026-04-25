@@ -609,14 +609,19 @@ export function WhiteLabelSettings() {
           </p>
         </div>
 
-        {/* Custom Domain */}
+        {/* Custom Domain — gated by the `custom_domain` feature flag */}
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Globe className="h-4 w-4 text-muted-foreground" />
-              <label className="text-sm font-medium text-foreground">Custom Domain</label>
+              <div>
+                <label className="text-sm font-medium text-foreground">Custom Domain</label>
+                <p className="text-xs text-muted-foreground">
+                  Serve the CRM under your own hostname (e.g. crm.yourbrand.com).
+                </p>
+              </div>
             </div>
-            {savedDomain && (
+            {customDomainEnabled && savedDomain && (
               isDomainVerified ? (
                 <Badge variant="secondary" className="gap-1">
                   <CheckCircle2 className="h-3 w-3" />
@@ -629,57 +634,81 @@ export function WhiteLabelSettings() {
                 </Badge>
               )
             )}
+            {!customDomainLoading && !customDomainEnabled && (
+              <Badge variant="warning" className="gap-1">
+                <Crown className="h-3 w-3" />
+                Add-on required
+              </Badge>
+            )}
           </div>
-          <input
-            type="text"
-            value={customDomain}
-            onChange={(e) => setCustomDomain(e.target.value.trim().toLowerCase())}
-            placeholder="crm.yourdomain.com"
-            className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
-          />
 
-          {savedDomain && !isDomainVerified && !domainChanged && (
-            <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-3">
-              <div>
-                <h4 className="text-xs font-semibold text-foreground mb-1">Step 1 — Point your domain</h4>
-                <p className="text-xs text-muted-foreground">
-                  Add a CNAME or A record at your DNS provider so <code className="text-foreground">{savedDomain}</code> points to this app.
-                </p>
-              </div>
-              <div>
-                <h4 className="text-xs font-semibold text-foreground mb-1">Step 2 — Add the verification TXT record</h4>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Create a TXT record at <code className="text-foreground">_vireon.{savedDomain}</code> with the value below:
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    readOnly
-                    value={verificationToken}
-                    className="h-9 flex-1 rounded-md border border-input bg-input px-2 text-xs text-foreground font-mono outline-none"
-                  />
-                  <Button variant="outline" size="sm" onClick={copyToken} className="gap-1.5">
-                    <Copy className="h-3.5 w-3.5" />
-                    Copy
+          {!customDomainLoading && !customDomainEnabled ? (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
+              <p className="text-xs text-foreground">
+                Custom domains are part of the <strong>Enterprise White-Label add-on</strong>.
+                Once enabled, you'll be able to point your own DNS at this CRM and we'll handle
+                SSL + ownership verification.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Already on Enterprise White-Label? Contact support to flip the switch — we
+                gate this manually so DNS goes live the same day you ask.
+              </p>
+            </div>
+          ) : (
+            <>
+              <input
+                type="text"
+                value={customDomain}
+                onChange={(e) => setCustomDomain(e.target.value.trim().toLowerCase())}
+                placeholder="crm.yourdomain.com"
+                disabled={!customDomainEnabled}
+                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+              />
+
+              {savedDomain && !isDomainVerified && !domainChanged && (
+                <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-3">
+                  <div>
+                    <h4 className="text-xs font-semibold text-foreground mb-1">Step 1 — Point your domain</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Add a CNAME or A record at your DNS provider so <code className="text-foreground">{savedDomain}</code> points to this app.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-foreground mb-1">Step 2 — Add the verification TXT record</h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Create a TXT record at <code className="text-foreground">_vireon.{savedDomain}</code> with the value below:
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        readOnly
+                        value={verificationToken}
+                        className="h-9 flex-1 rounded-md border border-input bg-input px-2 text-xs text-foreground font-mono outline-none"
+                      />
+                      <Button variant="outline" size="sm" onClick={copyToken} className="gap-1.5">
+                        <Copy className="h-3.5 w-3.5" />
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    variant="command"
+                    size="sm"
+                    className="w-full"
+                    onClick={verifyDomain}
+                    disabled={verifying}
+                  >
+                    {verifying && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                    Verify Domain
                   </Button>
                 </div>
-              </div>
-              <Button
-                variant="command"
-                size="sm"
-                className="w-full"
-                onClick={verifyDomain}
-                disabled={verifying}
-              >
-                {verifying && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                Verify Domain
-              </Button>
-            </div>
-          )}
+              )}
 
-          {domainChanged && customDomain && (
-            <p className="text-xs text-muted-foreground">
-              Save changes first, then complete verification below.
-            </p>
+              {domainChanged && customDomain && (
+                <p className="text-xs text-muted-foreground">
+                  Save changes first, then complete verification below.
+                </p>
+              )}
+            </>
           )}
         </div>
 
