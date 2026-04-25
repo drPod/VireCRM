@@ -32,6 +32,13 @@ export const FEATURE_CATALOG: FeatureDefinition[] = [
     category: "branding",
   },
   {
+    key: "custom_domain",
+    name: "Custom domain (white-label)",
+    description:
+      "Lets the client connect their own domain (e.g. crm.theirbrand.com) and serve the CRM under that hostname. Enforced by a database trigger — without this flag, the org cannot save a custom_domain value.",
+    category: "branding",
+  },
+  {
     key: "custom_workflow_nodes",
     name: "Custom workflow nodes",
     description: "Unlocks premium workflow node types (webhooks, conditional branching, delays).",
