@@ -20,6 +20,7 @@ import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
 import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
 import { AssigneeAvatars } from "./AssigneeAvatars";
+import { LeadInvoicesPanel } from "./LeadInvoicesPanel";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
@@ -70,7 +71,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>([]);
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails" | "invoices">("details");
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
   const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; role: string }>>([]);
   // Multi-assignee state — sourced from the lead_assignees join table.
@@ -646,6 +647,16 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </Badge>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab("invoices")}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "invoices"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Invoices
+          </button>
         </div>
 
         {activeTab === "details" ? (
@@ -1073,6 +1084,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               emailLogs.map((log) => <EmailLogEntryRow key={log.id} log={log} />)
             )}
           </div>
+        )}
+        {activeTab === "invoices" && lead && organization?.id && (
+          <LeadInvoicesPanel
+            leadId={lead.id}
+            leadName={form.name.trim() || lead.name}
+            leadEmail={form.email.trim() || lead.email || null}
+            organizationId={organization.id}
+          />
         )}
       </SheetContent>
       {lead && (form.email.trim() || lead.email) ? (

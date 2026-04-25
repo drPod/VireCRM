@@ -209,6 +209,164 @@ export type Database = {
           },
         ]
       }
+      client_invoices: {
+        Row: {
+          amount_due_cents: number
+          amount_paid_cents: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          due_date: string | null
+          environment: string
+          hosted_invoice_url: string | null
+          id: string
+          interval: string | null
+          invoice_pdf: string | null
+          is_recurring: boolean
+          lead_id: string | null
+          line_items: Json
+          number: string | null
+          organization_id: string
+          paid_at: string | null
+          sent_at: string | null
+          status: string
+          stripe_account_id: string
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          voided_at: string | null
+        }
+        Insert: {
+          amount_due_cents?: number
+          amount_paid_cents?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          environment?: string
+          hosted_invoice_url?: string | null
+          id?: string
+          interval?: string | null
+          invoice_pdf?: string | null
+          is_recurring?: boolean
+          lead_id?: string | null
+          line_items?: Json
+          number?: string | null
+          organization_id: string
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          stripe_account_id: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Update: {
+          amount_due_cents?: number
+          amount_paid_cents?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          environment?: string
+          hosted_invoice_url?: string | null
+          id?: string
+          interval?: string | null
+          invoice_pdf?: string | null
+          is_recurring?: boolean
+          lead_id?: string | null
+          line_items?: Json
+          number?: string | null
+          organization_id?: string
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          stripe_account_id?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invoices_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_stripe_accounts: {
+        Row: {
+          charges_enabled: boolean
+          country: string | null
+          created_at: string
+          created_by: string | null
+          default_currency: string | null
+          details_submitted: boolean
+          email: string | null
+          environment: string
+          id: string
+          organization_id: string
+          payouts_enabled: boolean
+          stripe_account_id: string
+          updated_at: string
+        }
+        Insert: {
+          charges_enabled?: boolean
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_currency?: string | null
+          details_submitted?: boolean
+          email?: string | null
+          environment?: string
+          id?: string
+          organization_id: string
+          payouts_enabled?: boolean
+          stripe_account_id: string
+          updated_at?: string
+        }
+        Update: {
+          charges_enabled?: boolean
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_currency?: string | null
+          details_submitted?: boolean
+          email?: string | null
+          environment?: string
+          id?: string
+          organization_id?: string
+          payouts_enabled?: boolean
+          stripe_account_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_stripe_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_earnings: {
         Row: {
           commission_cents: number
@@ -1031,6 +1189,8 @@ export type Database = {
           ai_tokens_limit: number
           ai_tokens_used: number
           audit_log_retention_days: number
+          auto_invoice_on_stage: string | null
+          auto_invoice_template: Json
           brand_name: string | null
           button_color: string | null
           commission_rate: number
@@ -1063,6 +1223,8 @@ export type Database = {
           ai_tokens_limit?: number
           ai_tokens_used?: number
           audit_log_retention_days?: number
+          auto_invoice_on_stage?: string | null
+          auto_invoice_template?: Json
           brand_name?: string | null
           button_color?: string | null
           commission_rate?: number
@@ -1095,6 +1257,8 @@ export type Database = {
           ai_tokens_limit?: number
           ai_tokens_used?: number
           audit_log_retention_days?: number
+          auto_invoice_on_stage?: string | null
+          auto_invoice_template?: Json
           brand_name?: string | null
           button_color?: string | null
           commission_rate?: number
