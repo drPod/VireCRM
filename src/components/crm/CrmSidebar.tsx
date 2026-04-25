@@ -43,6 +43,7 @@ const baseNavItems = [
   { to: "/sequences", icon: Send, label: "Sequences" },
   { to: "/workflows", icon: GitBranch, label: "Workflows" },
   { to: "/calendar", icon: CalendarDays, label: "Calendar" },
+  { to: "/appointments", icon: CalendarDays, label: "Appointments" },
   { to: "/funnels", icon: Globe, label: "Sites & Funnels" },
   { to: "/email-marketing", icon: Mail, label: "Email Marketing" },
   { to: "/revenue", icon: TrendingUp, label: "Revenue" },

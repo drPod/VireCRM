@@ -29,6 +29,7 @@ import { Route as HooksSendPendingWelcomesRouteImport } from './routes/hooks/sen
 import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calculate-payouts'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
@@ -46,6 +47,7 @@ import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppBillingRouteImport } from './routes/_app.billing'
+import { Route as AppAppointmentsRouteImport } from './routes/_app.appointments'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
 import { Route as RResellerSlugIndexRouteImport } from './routes/r.$resellerSlug.index'
@@ -167,6 +169,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookSlugRoute = BookSlugRouteImport.update({
+  id: '/book/$slug',
+  path: '/book/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -250,6 +257,11 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
 const AppBillingRoute = AppBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAppointmentsRoute = AppAppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
@@ -378,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/appointments': typeof AppAppointmentsRoute
   '/billing': typeof AppBillingRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRouteWithChildren
@@ -395,6 +408,7 @@ export interface FileRoutesByFullPath {
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -436,6 +450,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/appointments': typeof AppAppointmentsRoute
   '/billing': typeof AppBillingRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRouteWithChildren
@@ -453,6 +468,7 @@ export interface FileRoutesByTo {
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -496,6 +512,7 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/analytics': typeof AppAnalyticsRoute
+  '/_app/appointments': typeof AppAppointmentsRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRouteWithChildren
@@ -513,6 +530,7 @@ export interface FileRoutesById {
   '/_app/revenue': typeof AppRevenueRoute
   '/_app/sequences': typeof AppSequencesRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -556,6 +574,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/advisor'
     | '/analytics'
+    | '/appointments'
     | '/billing'
     | '/calendar'
     | '/campaigns'
@@ -573,6 +592,7 @@ export interface FileRouteTypes {
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
@@ -614,6 +634,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/advisor'
     | '/analytics'
+    | '/appointments'
     | '/billing'
     | '/calendar'
     | '/campaigns'
@@ -631,6 +652,7 @@ export interface FileRouteTypes {
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
@@ -673,6 +695,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/_app/advisor'
     | '/_app/analytics'
+    | '/_app/appointments'
     | '/_app/billing'
     | '/_app/calendar'
     | '/_app/campaigns'
@@ -690,6 +713,7 @@ export interface FileRouteTypes {
     | '/_app/revenue'
     | '/_app/sequences'
     | '/_app/settings'
+    | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
@@ -731,6 +755,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  BookSlugRoute: typeof BookSlugRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
@@ -891,6 +916,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/book/$slug': {
+      id: '/book/$slug'
+      path: '/book/$slug'
+      fullPath: '/book/$slug'
+      preLoaderRoute: typeof BookSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -1008,6 +1040,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/appointments': {
+      id: '/_app/appointments'
+      path: '/appointments'
+      fullPath: '/appointments'
+      preLoaderRoute: typeof AppAppointmentsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/analytics': {
@@ -1194,6 +1233,7 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppAppointmentsRoute: typeof AppAppointmentsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
@@ -1218,6 +1258,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppAppointmentsRoute: AppAppointmentsRoute,
   AppBillingRoute: AppBillingRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRouteWithChildren,
@@ -1258,6 +1299,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  BookSlugRoute: BookSlugRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
