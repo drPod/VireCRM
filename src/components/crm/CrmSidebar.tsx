@@ -23,6 +23,8 @@ import {
   X,
   TrendingUp,
   Wallet,
+  Inbox,
+  Globe,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
