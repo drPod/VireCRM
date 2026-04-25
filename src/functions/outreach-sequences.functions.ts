@@ -5,11 +5,12 @@ import { z } from "zod";
 /**
  * Outreach sequence server functions — CRUD for sequences, steps, and
  * enrollments. RLS enforces org isolation; we also defensively verify
- * org membership and manager/owner role for write operations.
+ * org membership before write operations.
  */
 
 export interface OutreachSequence {
   id: string;
+  organization_id: string;
   name: string;
   description: string | null;
   status: "draft" | "active" | "paused" | "archived";
@@ -22,6 +23,7 @@ export interface OutreachSequence {
   timezone: string;
   created_at: string;
   updated_at: string;
+  _counts?: { active: number; total: number };
 }
 
 export interface OutreachSequenceStep {
@@ -46,25 +48,42 @@ export interface SequenceEnrollment {
   stop_reason: string | null;
   enrolled_at: string;
   last_sent_at: string | null;
-  lead?: { id: string; name: string; email: string | null; company: string | null };
+  lead?: { id: string; name: string; email: string | null; company: string | null } | null;
+}
+
+export interface StepLogRow {
+  id: string;
+  enrollment_id: string;
+  step_index: number;
+  status: string;
+  subject: string | null;
+  error_message: string | null;
+  sent_at: string;
+  lead?: { name: string; email: string | null } | null;
 }
 
 const orgScope = z.object({ organizationId: z.string().uuid() });
+const seqScope = orgScope.extend({ sequenceId: z.string().uuid() });
+
+async function ensureMember(supabase: any, userId: string, organizationId: string) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!profile || profile.organization_id !== organizationId) {
+    throw new Error("Unauthorized: not a member of this organization");
+  }
+}
 
 // ---------- Sequences ----------
 
 export const listSequencesFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => orgScope.parse(input))
-  .handler(async ({ data }) => {
-    const { supabase, user } = await requireSupabaseAuth();
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (profile?.organization_id !== data.organizationId) {
-      throw new Error("Access denied");
-    }
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof orgScope>) => orgScope.parse(input))
+  .handler(async ({ data, context }): Promise<OutreachSequence[]> => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
 
     const { data: rows, error } = await supabase
       .from("outreach_sequences")
@@ -73,15 +92,14 @@ export const listSequencesFn = createServerFn({ method: "POST" })
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    // Attach counts per sequence
-    const ids = (rows || []).map((r) => r.id);
+    const ids = (rows || []).map((r: any) => r.id);
     const counts = new Map<string, { active: number; total: number }>();
     if (ids.length) {
       const { data: enrollRows } = await supabase
         .from("outreach_sequence_enrollments")
         .select("sequence_id, status")
         .in("sequence_id", ids);
-      for (const e of enrollRows || []) {
+      for (const e of (enrollRows || []) as Array<{ sequence_id: string; status: string }>) {
         const c = counts.get(e.sequence_id) || { active: 0, total: 0 };
         c.total += 1;
         if (e.status === "active") c.active += 1;
@@ -89,7 +107,7 @@ export const listSequencesFn = createServerFn({ method: "POST" })
       }
     }
 
-    return (rows || []).map((r) => ({
+    return (rows || []).map((r: any) => ({
       ...(r as OutreachSequence),
       _counts: counts.get(r.id) || { active: 0, total: 0 },
     }));
@@ -110,55 +128,64 @@ const upsertSequenceSchema = orgScope.extend({
 });
 
 export const upsertSequenceFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => upsertSequenceSchema.parse(input))
-  .handler(async ({ data }) => {
-    const { supabase, user } = await requireSupabaseAuth();
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof upsertSequenceSchema>) =>
+    upsertSequenceSchema.parse(input),
+  )
+  .handler(async ({ data, context }): Promise<OutreachSequence> => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
 
     const { id, organizationId, ...fields } = data;
-    const payload = { ...fields, organization_id: organizationId, created_by: user.id };
 
     if (id) {
       const { data: row, error } = await supabase
         .from("outreach_sequences")
-        .update(payload)
+        .update({ ...fields })
         .eq("id", id)
         .eq("organization_id", organizationId)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+      if (error || !row) throw new Error(error?.message || "Failed to update sequence");
       return row as OutreachSequence;
     }
 
     const { data: row, error } = await supabase
       .from("outreach_sequences")
-      .insert(payload)
+      .insert({ ...fields, organization_id: organizationId, created_by: userId })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error || !row) throw new Error(error?.message || "Failed to create sequence");
     return row as OutreachSequence;
   });
 
 export const deleteSequenceFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => orgScope.extend({ id: z.string().uuid() }).parse(input))
-  .handler(async ({ data }) => {
-    const { supabase } = await requireSupabaseAuth();
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof orgScope> & { id: string }) =>
+    orgScope.extend({ id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
+
     const { error } = await supabase
       .from("outreach_sequences")
       .delete()
       .eq("id", data.id)
       .eq("organization_id", data.organizationId);
     if (error) throw new Error(error.message);
-    return { success: true };
+    return { success: true as const };
   });
 
 // ---------- Steps ----------
 
 export const listStepsFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    orgScope.extend({ sequenceId: z.string().uuid() }).parse(input),
-  )
-  .handler(async ({ data }) => {
-    const { supabase } = await requireSupabaseAuth();
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
+  .handler(async ({ data, context }): Promise<OutreachSequenceStep[]> => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
+
     const { data: rows, error } = await supabase
       .from("outreach_sequence_steps")
       .select("*")
@@ -169,9 +196,8 @@ export const listStepsFn = createServerFn({ method: "POST" })
     return (rows || []) as OutreachSequenceStep[];
   });
 
-const upsertStepSchema = orgScope.extend({
+const upsertStepSchema = seqScope.extend({
   id: z.string().uuid().optional(),
-  sequenceId: z.string().uuid(),
   step_index: z.number().int().min(0).max(50),
   template_id: z.string().uuid().nullable().optional(),
   subject_override: z.string().max(200).nullable().optional(),
@@ -182,9 +208,14 @@ const upsertStepSchema = orgScope.extend({
 });
 
 export const upsertStepFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => upsertStepSchema.parse(input))
-  .handler(async ({ data }) => {
-    const { supabase } = await requireSupabaseAuth();
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof upsertStepSchema>) =>
+    upsertStepSchema.parse(input),
+  )
+  .handler(async ({ data, context }): Promise<OutreachSequenceStep> => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
+
     const { id, organizationId, sequenceId, ...fields } = data;
     const payload = {
       ...fields,
@@ -200,7 +231,7 @@ export const upsertStepFn = createServerFn({ method: "POST" })
         .eq("organization_id", organizationId)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+      if (error || !row) throw new Error(error?.message || "Failed to update step");
       return row as OutreachSequenceStep;
     }
 
@@ -209,58 +240,72 @@ export const upsertStepFn = createServerFn({ method: "POST" })
       .insert(payload)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error || !row) throw new Error(error?.message || "Failed to create step");
     return row as OutreachSequenceStep;
   });
 
 export const deleteStepFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof orgScope> & { id: string }) =>
     orgScope.extend({ id: z.string().uuid() }).parse(input),
   )
-  .handler(async ({ data }) => {
-    const { supabase } = await requireSupabaseAuth();
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
+
     const { error } = await supabase
       .from("outreach_sequence_steps")
       .delete()
       .eq("id", data.id)
       .eq("organization_id", data.organizationId);
     if (error) throw new Error(error.message);
-    return { success: true };
+    return { success: true as const };
   });
 
 // ---------- Enrollments ----------
 
 export const listEnrollmentsFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    orgScope.extend({ sequenceId: z.string().uuid() }).parse(input),
-  )
-  .handler(async ({ data }) => {
-    const { supabase } = await requireSupabaseAuth();
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
+  .handler(async ({ data, context }): Promise<SequenceEnrollment[]> => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
+
     const { data: rows, error } = await supabase
       .from("outreach_sequence_enrollments")
-      .select("id, sequence_id, lead_id, current_step_index, next_send_at, status, stop_reason, enrolled_at, last_sent_at, leads(id, name, email, company)")
+      .select(
+        "id, sequence_id, lead_id, current_step_index, next_send_at, status, stop_reason, enrolled_at, last_sent_at, leads(id, name, email, company)",
+      )
       .eq("organization_id", data.organizationId)
       .eq("sequence_id", data.sequenceId)
       .order("enrolled_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    return (rows || []).map((r) => ({
-      ...r,
+    return (rows || []).map((r: any) => ({
+      id: r.id,
+      sequence_id: r.sequence_id,
+      lead_id: r.lead_id,
+      current_step_index: r.current_step_index,
+      next_send_at: r.next_send_at,
+      status: r.status,
+      stop_reason: r.stop_reason,
+      enrolled_at: r.enrolled_at,
+      last_sent_at: r.last_sent_at,
       lead: r.leads,
-    })) as unknown as SequenceEnrollment[];
+    }));
   });
 
-const enrollSchema = orgScope.extend({
-  sequenceId: z.string().uuid(),
+const enrollSchema = seqScope.extend({
   leadIds: z.array(z.string().uuid()).min(1).max(500),
 });
 
 export const enrollLeadsFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => enrollSchema.parse(input))
-  .handler(async ({ data }) => {
-    const { supabase, user } = await requireSupabaseAuth();
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof enrollSchema>) => enrollSchema.parse(input))
+  .handler(async ({ data, context }): Promise<{ enrolled: number }> => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
 
-    // Find first step to determine initial next_send_at.
     const { data: firstStep } = await supabase
       .from("outreach_sequence_steps")
       .select("delay_days, delay_hours")
@@ -274,8 +319,8 @@ export const enrollLeadsFn = createServerFn({ method: "POST" })
     const nextSend = firstStep
       ? new Date(
           now.getTime() +
-            firstStep.delay_days * 24 * 60 * 60 * 1000 +
-            firstStep.delay_hours * 60 * 60 * 1000,
+            (firstStep as any).delay_days * 24 * 60 * 60 * 1000 +
+            (firstStep as any).delay_hours * 60 * 60 * 1000,
         ).toISOString()
       : now.toISOString();
 
@@ -286,7 +331,7 @@ export const enrollLeadsFn = createServerFn({ method: "POST" })
       current_step_index: 0,
       next_send_at: nextSend,
       status: "active",
-      enrolled_by: user.id,
+      enrolled_by: userId,
     }));
 
     const { data: inserted, error } = await supabase
@@ -294,19 +339,23 @@ export const enrollLeadsFn = createServerFn({ method: "POST" })
       .upsert(rows, { onConflict: "sequence_id,lead_id", ignoreDuplicates: true })
       .select("id");
     if (error) throw new Error(error.message);
-
     return { enrolled: inserted?.length || 0 };
   });
 
+const updateEnrollmentSchema = orgScope.extend({
+  id: z.string().uuid(),
+  status: z.enum(["active", "paused", "stopped"]),
+});
+
 export const updateEnrollmentStatusFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    orgScope.extend({
-      id: z.string().uuid(),
-      status: z.enum(["active", "paused", "stopped"]),
-    }).parse(input),
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof updateEnrollmentSchema>) =>
+    updateEnrollmentSchema.parse(input),
   )
-  .handler(async ({ data }) => {
-    const { supabase } = await requireSupabaseAuth();
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
+
     const update: Record<string, unknown> = { status: data.status };
     if (data.status === "stopped") {
       update.stopped_at = new Date().toISOString();
@@ -314,48 +363,46 @@ export const updateEnrollmentStatusFn = createServerFn({ method: "POST" })
       update.next_send_at = null;
     } else if (data.status === "paused") {
       update.next_send_at = null;
-    } else if (data.status === "active") {
-      // Resume — set next_send_at to now so dispatcher picks it up.
+    } else {
       update.next_send_at = new Date().toISOString();
     }
+
     const { error } = await supabase
       .from("outreach_sequence_enrollments")
       .update(update)
       .eq("id", data.id)
       .eq("organization_id", data.organizationId);
     if (error) throw new Error(error.message);
-    return { success: true };
+    return { success: true as const };
   });
 
-// ---------- Step log (history) ----------
-
-export interface StepLogRow {
-  id: string;
-  enrollment_id: string;
-  step_index: number;
-  status: string;
-  subject: string | null;
-  error_message: string | null;
-  sent_at: string;
-  lead?: { name: string; email: string | null };
-}
+// ---------- Step log ----------
 
 export const listSequenceLogFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    orgScope.extend({ sequenceId: z.string().uuid() }).parse(input),
-  )
-  .handler(async ({ data }) => {
-    const { supabase } = await requireSupabaseAuth();
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
+  .handler(async ({ data, context }): Promise<StepLogRow[]> => {
+    const { supabase, userId } = context;
+    await ensureMember(supabase, userId, data.organizationId);
+
     const { data: rows, error } = await supabase
       .from("outreach_sequence_step_log")
-      .select("id, enrollment_id, step_index, status, subject, error_message, sent_at, lead_id, leads(name, email)")
+      .select(
+        "id, enrollment_id, step_index, status, subject, error_message, sent_at, lead_id, leads(name, email)",
+      )
       .eq("organization_id", data.organizationId)
       .eq("sequence_id", data.sequenceId)
       .order("sent_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return (rows || []).map((r) => ({
-      ...r,
+    return (rows || []).map((r: any) => ({
+      id: r.id,
+      enrollment_id: r.enrollment_id,
+      step_index: r.step_index,
+      status: r.status,
+      subject: r.subject,
+      error_message: r.error_message,
+      sent_at: r.sent_at,
       lead: r.leads,
-    })) as unknown as StepLogRow[];
+    }));
   });
