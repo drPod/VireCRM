@@ -371,7 +371,7 @@ function AppointmentsPage() {
                       /book/{selected.slug}
                     </code>
                     {!selected.is_active && (
-                      <span className="text-amber-500">
+                      <span className="text-warning">
                         · link rejects new bookings until re-enabled
                       </span>
                     )}
