@@ -355,6 +355,9 @@ async function syncConnectInvoice(
   };
   if (status === "paid") update.paid_at = new Date().toISOString();
   if (status === "void") update.voided_at = new Date().toISOString();
+  if (eventType === "invoice.finalized" || eventType === "invoice.sent") {
+    update.sent_at = new Date().toISOString();
+  }
 
   // Update existing mirror row if present
   const { data: existing } = await supabase
