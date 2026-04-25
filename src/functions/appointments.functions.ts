@@ -2,7 +2,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { createHash } from "crypto";
 import { z } from "zod";
+
+async function hashPassword(plain: string): Promise<string> {
+  return createHash("sha256").update(plain.trim()).digest("hex");
+}
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
 
 /**
  * Appointment booking server functions.
