@@ -108,10 +108,14 @@ export const listCalendarsFn = createServerFn({ method: "POST" })
       .eq("organization_id", data.organizationId)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return (rows || []).map((r) => ({
-      ...(r as unknown as CalendarRow),
-      availability: (r.availability as unknown as Availability) || emptyAvailability(),
-    }));
+    return (rows || []).map((r) => {
+      const row = r as unknown as CalendarRow & { access_password_hash: string | null };
+      return {
+        ...row,
+        availability: (r.availability as unknown as Availability) || emptyAvailability(),
+        has_access_password: !!row.access_password_hash,
+      };
+    });
   });
 
 const upsertCalendarSchema = orgScope.extend({
