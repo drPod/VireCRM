@@ -547,6 +547,60 @@ function AppointmentsPage() {
                 <Label>Active (link accepts bookings)</Label>
               </div>
 
+              {/* Access password */}
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <Label className="flex items-center gap-1.5">
+                      <Lock className="h-3.5 w-3.5" /> Access password (optional)
+                    </Label>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      When set, visitors must enter this password before they can see slots or
+                      book.{" "}
+                      {editorState.id && editorState.has_access_password
+                        ? "A password is currently set."
+                        : "No password is currently set."}
+                    </p>
+                  </div>
+                  {editorState.id && editorState.has_access_password && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setEditorState({
+                          ...editorState,
+                          clear_password: !editorState.clear_password,
+                          access_password: "",
+                        })
+                      }
+                    >
+                      {editorState.clear_password ? "Keep password" : "Remove password"}
+                    </Button>
+                  )}
+                </div>
+                {!editorState.clear_password && (
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    value={editorState.access_password ?? ""}
+                    onChange={(e) =>
+                      setEditorState({ ...editorState, access_password: e.target.value })
+                    }
+                    placeholder={
+                      editorState.id && editorState.has_access_password
+                        ? "Leave blank to keep current password"
+                        : "Type a password to gate this booking link"
+                    }
+                  />
+                )}
+                {editorState.clear_password && (
+                  <p className="text-[11px] text-warning">
+                    Password will be removed on save — link becomes public.
+                  </p>
+                )}
+              </div>
+
               {/* Availability editor */}
               <div className="space-y-2">
                 <Label>Weekly availability (UTC)</Label>
