@@ -481,19 +481,15 @@ const publicBookSchema = z.object({
   email: z.string().email().max(200),
   phone: z.string().max(40).optional(),
   notes: z.string().max(2000).optional(),
+  password: z.string().max(200).optional(),
 });
 
 export const bookPublicAppointmentFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof publicBookSchema>) => publicBookSchema.parse(input))
   .handler(async ({ data }): Promise<{ id: string; starts_at: string; ends_at: string }> => {
     const supabase = getServiceClient();
-    const { data: cal, error: calErr } = await supabase
-      .from("calendars")
-      .select("id, organization_id, slot_duration_minutes, name, is_active")
-      .eq("id", data.calendarId)
-      .maybeSingle();
-    if (calErr) throw new Error(calErr.message);
-    if (!cal || !cal.is_active) throw new Error("Calendar not available");
+    // Validates calendar is active and password (if any) is correct.
+    const cal = await loadPublicCalendarOrThrow(supabase, data.calendarId, data.password);
 
     const startMs = new Date(data.starts_at).getTime();
     if (Number.isNaN(startMs)) throw new Error("Invalid start time");
