@@ -17,7 +17,24 @@ serve(async (req) => {
 
   try {
     const event = await verifyWebhook(req, env);
-    console.log("Stripe event:", event.type, "env:", env);
+    const connectAccount = (event as any).account as string | undefined;
+    console.log("Stripe event:", event.type, "env:", env, "connect:", connectAccount || "platform");
+
+    // Connect events: invoices our clients sent to their leads.
+    if (connectAccount && event.type.startsWith("invoice.")) {
+      await syncConnectInvoice(event.data.object, env, connectAccount, event.type);
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (connectAccount && event.type.startsWith("customer.subscription.")) {
+      await syncConnectSubscription(event.data.object, env, connectAccount, event.type);
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     switch (event.type) {
       case "checkout.session.completed":
