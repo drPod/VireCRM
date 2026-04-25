@@ -25,6 +25,7 @@ import {
   Wallet,
   Inbox,
   Globe,
+  Send,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -39,6 +40,7 @@ const baseNavItems = [
   { to: "/conversations", icon: Inbox, label: "Conversations" },
   { to: "/messages", icon: MessageSquare, label: "Messages" },
   { to: "/campaigns", icon: Zap, label: "Campaigns" },
+  { to: "/sequences", icon: Send, label: "Sequences" },
   { to: "/workflows", icon: GitBranch, label: "Workflows" },
   { to: "/calendar", icon: CalendarDays, label: "Calendar" },
   { to: "/funnels", icon: Globe, label: "Sites & Funnels" },
