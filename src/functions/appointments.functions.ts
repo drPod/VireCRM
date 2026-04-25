@@ -46,6 +46,7 @@ export interface CalendarRow {
   availability: Availability;
   created_at: string;
   updated_at: string;
+  has_access_password: boolean;
 }
 
 export interface AppointmentRow {
