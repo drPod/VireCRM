@@ -20,6 +20,7 @@ import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
 import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
 import { AssigneeAvatars } from "./AssigneeAvatars";
+import { LeadInvoicesPanel } from "./LeadInvoicesPanel";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
