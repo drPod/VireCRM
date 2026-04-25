@@ -38,6 +38,9 @@ import {
   Clock,
   Users,
   X,
+  Lock,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
