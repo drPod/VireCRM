@@ -29,6 +29,7 @@ import { Route as HooksSendPendingWelcomesRouteImport } from './routes/hooks/sen
 import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calculate-payouts'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
@@ -166,6 +167,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   id: '/checkout/return',
   path: '/checkout/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookSlugRoute = BookSlugRouteImport.update({
+  id: '/book/$slug',
+  path: '/book/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -402,6 +408,7 @@ export interface FileRoutesByFullPath {
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -461,6 +468,7 @@ export interface FileRoutesByTo {
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -522,6 +530,7 @@ export interface FileRoutesById {
   '/_app/revenue': typeof AppRevenueRoute
   '/_app/sequences': typeof AppSequencesRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
@@ -583,6 +592,7 @@ export interface FileRouteTypes {
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
@@ -642,6 +652,7 @@ export interface FileRouteTypes {
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
@@ -702,6 +713,7 @@ export interface FileRouteTypes {
     | '/_app/revenue'
     | '/_app/sequences'
     | '/_app/settings'
+    | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
@@ -743,6 +755,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  BookSlugRoute: typeof BookSlugRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
@@ -901,6 +914,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout/return'
       fullPath: '/checkout/return'
       preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$slug': {
+      id: '/book/$slug'
+      path: '/book/$slug'
+      fullPath: '/book/$slug'
+      preLoaderRoute: typeof BookSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/settings': {
@@ -1279,6 +1299,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  BookSlugRoute: BookSlugRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
