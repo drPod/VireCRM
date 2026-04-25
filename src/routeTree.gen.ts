@@ -46,6 +46,7 @@ import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppBillingRouteImport } from './routes/_app.billing'
+import { Route as AppAppointmentsRouteImport } from './routes/_app.appointments'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
 import { Route as RResellerSlugIndexRouteImport } from './routes/r.$resellerSlug.index'
@@ -252,6 +253,11 @@ const AppBillingRoute = AppBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAppointmentsRoute = AppAppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -378,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/appointments': typeof AppAppointmentsRoute
   '/billing': typeof AppBillingRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRouteWithChildren
@@ -436,6 +443,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/appointments': typeof AppAppointmentsRoute
   '/billing': typeof AppBillingRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRouteWithChildren
@@ -496,6 +504,7 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/analytics': typeof AppAnalyticsRoute
+  '/_app/appointments': typeof AppAppointmentsRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRouteWithChildren
@@ -556,6 +565,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/advisor'
     | '/analytics'
+    | '/appointments'
     | '/billing'
     | '/calendar'
     | '/campaigns'
@@ -614,6 +624,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/advisor'
     | '/analytics'
+    | '/appointments'
     | '/billing'
     | '/calendar'
     | '/campaigns'
@@ -673,6 +684,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/_app/advisor'
     | '/_app/analytics'
+    | '/_app/appointments'
     | '/_app/billing'
     | '/_app/calendar'
     | '/_app/campaigns'
@@ -1010,6 +1022,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBillingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/appointments': {
+      id: '/_app/appointments'
+      path: '/appointments'
+      fullPath: '/appointments'
+      preLoaderRoute: typeof AppAppointmentsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/analytics': {
       id: '/_app/analytics'
       path: '/analytics'
@@ -1194,6 +1213,7 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 interface AppRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppAppointmentsRoute: typeof AppAppointmentsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
@@ -1218,6 +1238,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppAppointmentsRoute: AppAppointmentsRoute,
   AppBillingRoute: AppBillingRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRouteWithChildren,
