@@ -160,22 +160,28 @@ export function WhiteLabelSettings() {
     }
     setSaving(true);
 
+    const updates: Record<string, unknown> = {
+      brand_name: brandName || null,
+      primary_color: primaryColor,
+      secondary_color: secondaryColor || null,
+      accent_color: accentColor || null,
+      sidebar_color: sidebarColor || null,
+      button_color: buttonColor || null,
+      logo_url: logoUrl || null,
+      favicon_url: faviconUrl || null,
+      font_family: fontFamily || null,
+      email_signature: emailSignature.trim() || null,
+      support_email: trimmedSupport || null,
+    };
+    // Only attempt to write custom_domain when the org actually has the
+    // entitlement — otherwise the DB trigger will reject the whole update.
+    if (customDomainEnabled) {
+      updates.custom_domain = customDomain || null;
+    }
+
     const { error } = await supabase
       .from("organizations")
-      .update({
-        brand_name: brandName || null,
-        primary_color: primaryColor,
-        secondary_color: secondaryColor || null,
-        accent_color: accentColor || null,
-        sidebar_color: sidebarColor || null,
-        button_color: buttonColor || null,
-        logo_url: logoUrl || null,
-        favicon_url: faviconUrl || null,
-        font_family: fontFamily || null,
-        email_signature: emailSignature.trim() || null,
-        custom_domain: customDomain || null,
-        support_email: trimmedSupport || null,
-      } as never)
+      .update(updates as never)
       .eq("id", organization.id);
     setSaving(false);
     if (error) {
