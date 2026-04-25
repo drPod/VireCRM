@@ -88,7 +88,9 @@ function AppointmentsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editorState, setEditorState] = useState<Partial<CalendarRow> | null>(null);
+  const [editorState, setEditorState] = useState<
+    (Partial<CalendarRow> & { access_password?: string; clear_password?: boolean }) | null
+  >(null);
 
   const refresh = useCallback(async () => {
     if (!orgId) return;
