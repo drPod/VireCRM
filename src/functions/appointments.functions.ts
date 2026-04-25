@@ -136,6 +136,11 @@ const upsertCalendarSchema = orgScope.extend({
       z.array(z.object({ start: z.string(), end: z.string() })),
     )
     .optional(),
+  // Access password control:
+  //   - undefined  → leave existing password unchanged
+  //   - ""         → clear (remove) any existing password
+  //   - "abc..."   → set a new password (hashed server-side)
+  access_password: z.string().max(200).optional(),
 });
 
 export const upsertCalendarFn = createServerFn({ method: "POST" })
@@ -147,22 +152,32 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await ensureMember(supabase, userId, data.organizationId);
 
-    const { id, organizationId, ...fields } = data;
+    const { id, organizationId, access_password, ...fields } = data;
+
+    // Translate the plain access_password into a stored hash (or clear it).
+    const passwordPatch: { access_password_hash?: string | null } = {};
+    if (access_password !== undefined) {
+      passwordPatch.access_password_hash =
+        access_password.trim().length > 0 ? await hashPassword(access_password) : null;
+    }
+
     if (id) {
       const { data: row, error } = await supabase
         .from("calendars")
-        .update(fields as never)
+        .update({ ...fields, ...passwordPatch } as never)
         .eq("id", id)
         .eq("organization_id", organizationId)
         .select()
         .single();
       if (error || !row) throw new Error(error?.message || "Update failed");
-      return row as unknown as CalendarRow;
+      const r = row as unknown as CalendarRow & { access_password_hash: string | null };
+      return { ...r, has_access_password: !!r.access_password_hash };
     }
     const { data: row, error } = await supabase
       .from("calendars")
       .insert({
         ...fields,
+        ...passwordPatch,
         availability: fields.availability || emptyAvailability(),
         organization_id: organizationId,
         created_by: userId,
@@ -170,7 +185,8 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error || !row) throw new Error(error?.message || "Create failed");
-    return row as unknown as CalendarRow;
+    const r = row as unknown as CalendarRow & { access_password_hash: string | null };
+    return { ...r, has_access_password: !!r.access_password_hash };
   });
 
 export const deleteCalendarFn = createServerFn({ method: "POST" })
