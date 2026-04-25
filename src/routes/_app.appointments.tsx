@@ -351,6 +351,14 @@ function AppointmentsPage() {
                     <Badge variant={selected.is_active ? "default" : "secondary"}>
                       {selected.is_active ? "Active" : "Disabled"}
                     </Badge>
+                    {selected.has_access_password && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 border-amber-500/40 text-amber-500"
+                      >
+                        <Lock className="h-3 w-3" /> Password
+                      </Badge>
+                    )}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                     <span>
@@ -362,10 +370,36 @@ function AppointmentsPage() {
                     <code className="rounded bg-secondary px-1.5 py-0.5 text-[11px]">
                       /book/{selected.slug}
                     </code>
+                    {!selected.is_active && (
+                      <span className="text-amber-500">
+                        · link rejects new bookings until re-enabled
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button size="sm" variant="outline" onClick={() => copyLink(selected.slug)}>
+                  <Button
+                    size="sm"
+                    variant={selected.is_active ? "outline" : "command"}
+                    onClick={() => handleToggleActive(selected)}
+                    title={selected.is_active ? "Disable booking link" : "Enable booking link"}
+                  >
+                    {selected.is_active ? (
+                      <>
+                        <PowerOff className="h-3.5 w-3.5" /> Disable
+                      </>
+                    ) : (
+                      <>
+                        <Power className="h-3.5 w-3.5" /> Enable
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyLink(selected.slug)}
+                    disabled={!selected.is_active}
+                  >
                     <Copy className="h-3.5 w-3.5" /> Copy link
                   </Button>
                   <a
