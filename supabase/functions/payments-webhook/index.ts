@@ -338,7 +338,11 @@ async function syncConnectInvoice(
         ? "void"
         : eventType === "invoice.marked_uncollectible"
           ? "uncollectible"
-          : invoice.status || "open";
+          : eventType === "invoice.payment_failed"
+            ? "past_due"
+            : eventType === "invoice.finalized" || eventType === "invoice.sent"
+              ? "open"
+              : invoice.status || "open";
 
   const update: Record<string, unknown> = {
     status,
@@ -351,6 +355,9 @@ async function syncConnectInvoice(
   };
   if (status === "paid") update.paid_at = new Date().toISOString();
   if (status === "void") update.voided_at = new Date().toISOString();
+  if (eventType === "invoice.finalized" || eventType === "invoice.sent") {
+    update.sent_at = new Date().toISOString();
+  }
 
   // Update existing mirror row if present
   const { data: existing } = await supabase
