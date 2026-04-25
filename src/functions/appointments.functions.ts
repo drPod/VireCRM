@@ -392,6 +392,23 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
   });
 
 /**
+ * Verifies an access password for a calendar. The public booking page calls
+ * this once when the visitor submits the password gate; afterwards it passes
+ * the password back into the slot/booking calls.
+ */
+export const verifyCalendarPasswordFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { calendarId: string; password: string }) =>
+    z
+      .object({ calendarId: z.string().uuid(), password: z.string().min(1).max(200) })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const supabase = getServiceClient();
+    await loadPublicCalendarOrThrow(supabase, data.calendarId, data.password);
+    return { ok: true as const };
+  });
+
+/**
  * Compute available slots for a given calendar between two dates.
  * Subtracts already-booked appointments (excluding cancelled).
  */
