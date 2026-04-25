@@ -1085,6 +1085,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
             )}
           </div>
         )}
+        {activeTab === "invoices" && lead && organization?.id && (
+          <LeadInvoicesPanel
+            leadId={lead.id}
+            leadName={form.name.trim() || lead.name}
+            leadEmail={form.email.trim() || lead.email || null}
+            organizationId={organization.id}
+          />
+        )}
       </SheetContent>
       {lead && (form.email.trim() || lead.email) ? (
         <OutreachPreviewDialog
