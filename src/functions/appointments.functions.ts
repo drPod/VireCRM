@@ -327,6 +327,36 @@ export interface PublicCalendar {
   organization_id: string;
   organization_name: string;
   brand_logo: string | null;
+  /** When true, the visitor must supply a password before slots/booking work. */
+  requires_password: boolean;
+}
+
+/**
+ * Verifies a calendar's optional access password. Returns the row if access is
+ * granted, or throws a consistent error if the calendar is missing/disabled or
+ * the password is wrong/missing.
+ */
+async function loadPublicCalendarOrThrow(
+  supabase: ReturnType<typeof createClient<Database>>,
+  calendarId: string,
+  password: string | undefined,
+) {
+  const { data: cal, error } = await supabase
+    .from("calendars")
+    .select(
+      "id, organization_id, slot_duration_minutes, buffer_minutes, availability, name, is_active, access_password_hash",
+    )
+    .eq("id", calendarId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!cal || !cal.is_active) throw new Error("Calendar not available");
+  const hash = (cal as { access_password_hash: string | null }).access_password_hash;
+  if (hash) {
+    if (!password) throw new Error("Password required");
+    const candidate = await hashPassword(password);
+    if (!timingSafeStringEqual(candidate, hash)) throw new Error("Incorrect password");
+  }
+  return cal;
 }
 
 export const getPublicCalendarFn = createServerFn({ method: "POST" })
@@ -338,7 +368,7 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("calendars")
       .select(
-        "id, name, slug, color, slot_duration_minutes, buffer_minutes, availability, organization_id, organizations(name, brand_name, logo_url)",
+        "id, name, slug, color, slot_duration_minutes, buffer_minutes, availability, organization_id, access_password_hash, organizations(name, brand_name, logo_url)",
       )
       .eq("slug", data.slug)
       .eq("is_active", true)
@@ -357,6 +387,7 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
       organization_id: row.organization_id,
       organization_name: org?.brand_name || org?.name || "Genesis",
       brand_logo: org?.logo_url || null,
+      requires_password: !!(row as { access_password_hash: string | null }).access_password_hash,
     };
   });
 
