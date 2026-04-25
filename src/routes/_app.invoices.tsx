@@ -388,7 +388,7 @@ function InvoicesPage() {
                                   {formatMoney(inv.amount_due_cents, inv.currency)}
                                 </p>
                                 {inv.amount_paid_cents > 0 && inv.status !== "paid" ? (
-                                  <p className="text-[10px] text-emerald-500">
+                                  <p className="text-[10px] text-primary">
                                     {formatMoney(inv.amount_paid_cents, inv.currency)} collected
                                   </p>
                                 ) : inv.status === "paid" && inv.paid_at ? (
