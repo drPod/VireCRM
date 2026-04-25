@@ -2,7 +2,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { createHash } from "crypto";
 import { z } from "zod";
+
+async function hashPassword(plain: string): Promise<string> {
+  return createHash("sha256").update(plain.trim()).digest("hex");
+}
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
 
 /**
  * Appointment booking server functions.
@@ -32,6 +46,7 @@ export interface CalendarRow {
   availability: Availability;
   created_at: string;
   updated_at: string;
+  has_access_password: boolean;
 }
 
 export interface AppointmentRow {
@@ -93,10 +108,14 @@ export const listCalendarsFn = createServerFn({ method: "POST" })
       .eq("organization_id", data.organizationId)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return (rows || []).map((r) => ({
-      ...(r as unknown as CalendarRow),
-      availability: (r.availability as unknown as Availability) || emptyAvailability(),
-    }));
+    return (rows || []).map((r) => {
+      const row = r as unknown as CalendarRow & { access_password_hash: string | null };
+      return {
+        ...row,
+        availability: (r.availability as unknown as Availability) || emptyAvailability(),
+        has_access_password: !!row.access_password_hash,
+      };
+    });
   });
 
 const upsertCalendarSchema = orgScope.extend({
@@ -117,6 +136,11 @@ const upsertCalendarSchema = orgScope.extend({
       z.array(z.object({ start: z.string(), end: z.string() })),
     )
     .optional(),
+  // Access password control:
+  //   - undefined  → leave existing password unchanged
+  //   - ""         → clear (remove) any existing password
+  //   - "abc..."   → set a new password (hashed server-side)
+  access_password: z.string().max(200).optional(),
 });
 
 export const upsertCalendarFn = createServerFn({ method: "POST" })
@@ -128,22 +152,32 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await ensureMember(supabase, userId, data.organizationId);
 
-    const { id, organizationId, ...fields } = data;
+    const { id, organizationId, access_password, ...fields } = data;
+
+    // Translate the plain access_password into a stored hash (or clear it).
+    const passwordPatch: { access_password_hash?: string | null } = {};
+    if (access_password !== undefined) {
+      passwordPatch.access_password_hash =
+        access_password.trim().length > 0 ? await hashPassword(access_password) : null;
+    }
+
     if (id) {
       const { data: row, error } = await supabase
         .from("calendars")
-        .update(fields as never)
+        .update({ ...fields, ...passwordPatch } as never)
         .eq("id", id)
         .eq("organization_id", organizationId)
         .select()
         .single();
       if (error || !row) throw new Error(error?.message || "Update failed");
-      return row as unknown as CalendarRow;
+      const r = row as unknown as CalendarRow & { access_password_hash: string | null };
+      return { ...r, has_access_password: !!r.access_password_hash };
     }
     const { data: row, error } = await supabase
       .from("calendars")
       .insert({
         ...fields,
+        ...passwordPatch,
         availability: fields.availability || emptyAvailability(),
         organization_id: organizationId,
         created_by: userId,
@@ -151,7 +185,8 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error || !row) throw new Error(error?.message || "Create failed");
-    return row as unknown as CalendarRow;
+    const r = row as unknown as CalendarRow & { access_password_hash: string | null };
+    return { ...r, has_access_password: !!r.access_password_hash };
   });
 
 export const deleteCalendarFn = createServerFn({ method: "POST" })
@@ -292,6 +327,36 @@ export interface PublicCalendar {
   organization_id: string;
   organization_name: string;
   brand_logo: string | null;
+  /** When true, the visitor must supply a password before slots/booking work. */
+  requires_password: boolean;
+}
+
+/**
+ * Verifies a calendar's optional access password. Returns the row if access is
+ * granted, or throws a consistent error if the calendar is missing/disabled or
+ * the password is wrong/missing.
+ */
+async function loadPublicCalendarOrThrow(
+  supabase: ReturnType<typeof createClient<Database>>,
+  calendarId: string,
+  password: string | undefined,
+) {
+  const { data: cal, error } = await supabase
+    .from("calendars")
+    .select(
+      "id, organization_id, slot_duration_minutes, buffer_minutes, availability, name, is_active, access_password_hash",
+    )
+    .eq("id", calendarId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!cal || !cal.is_active) throw new Error("Calendar not available");
+  const hash = (cal as { access_password_hash: string | null }).access_password_hash;
+  if (hash) {
+    if (!password) throw new Error("Password required");
+    const candidate = await hashPassword(password);
+    if (!timingSafeStringEqual(candidate, hash)) throw new Error("Incorrect password");
+  }
+  return cal;
 }
 
 export const getPublicCalendarFn = createServerFn({ method: "POST" })
@@ -303,7 +368,7 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("calendars")
       .select(
-        "id, name, slug, color, slot_duration_minutes, buffer_minutes, availability, organization_id, organizations(name, brand_name, logo_url)",
+        "id, name, slug, color, slot_duration_minutes, buffer_minutes, availability, organization_id, access_password_hash, organizations(name, brand_name, logo_url)",
       )
       .eq("slug", data.slug)
       .eq("is_active", true)
@@ -322,7 +387,25 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
       organization_id: row.organization_id,
       organization_name: org?.brand_name || org?.name || "Genesis",
       brand_logo: org?.logo_url || null,
+      requires_password: !!(row as { access_password_hash: string | null }).access_password_hash,
     };
+  });
+
+/**
+ * Verifies an access password for a calendar. The public booking page calls
+ * this once when the visitor submits the password gate; afterwards it passes
+ * the password back into the slot/booking calls.
+ */
+export const verifyCalendarPasswordFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { calendarId: string; password: string }) =>
+    z
+      .object({ calendarId: z.string().uuid(), password: z.string().min(1).max(200) })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const supabase = getServiceClient();
+    await loadPublicCalendarOrThrow(supabase, data.calendarId, data.password);
+    return { ok: true as const };
   });
 
 /**
@@ -330,23 +413,27 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
  * Subtracts already-booked appointments (excluding cancelled).
  */
 export const getAvailableSlotsFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { calendarId: string; from: string; to: string }) =>
-    z
-      .object({
-        calendarId: z.string().uuid(),
-        from: z.string(),
-        to: z.string(),
-      })
-      .parse(input),
+  .inputValidator(
+    (input: { calendarId: string; from: string; to: string; password?: string }) =>
+      z
+        .object({
+          calendarId: z.string().uuid(),
+          from: z.string(),
+          to: z.string(),
+          password: z.string().max(200).optional(),
+        })
+        .parse(input),
   )
   .handler(async ({ data }): Promise<{ slots: string[] }> => {
     const supabase = getServiceClient();
-    const { data: cal } = await supabase
-      .from("calendars")
-      .select("availability, slot_duration_minutes, buffer_minutes, is_active")
-      .eq("id", data.calendarId)
-      .maybeSingle();
-    if (!cal || !cal.is_active) return { slots: [] };
+    let cal;
+    try {
+      cal = await loadPublicCalendarOrThrow(supabase, data.calendarId, data.password);
+    } catch {
+      // Don't leak whether the password was wrong vs. calendar disabled — the
+      // public booking page handles the password gate up-front via getPublicCalendarFn.
+      return { slots: [] };
+    }
 
     const availability = (cal.availability as unknown as Availability) || emptyAvailability();
     const slotMs = cal.slot_duration_minutes * 60 * 1000;
@@ -411,19 +498,15 @@ const publicBookSchema = z.object({
   email: z.string().email().max(200),
   phone: z.string().max(40).optional(),
   notes: z.string().max(2000).optional(),
+  password: z.string().max(200).optional(),
 });
 
 export const bookPublicAppointmentFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof publicBookSchema>) => publicBookSchema.parse(input))
   .handler(async ({ data }): Promise<{ id: string; starts_at: string; ends_at: string }> => {
     const supabase = getServiceClient();
-    const { data: cal, error: calErr } = await supabase
-      .from("calendars")
-      .select("id, organization_id, slot_duration_minutes, name, is_active")
-      .eq("id", data.calendarId)
-      .maybeSingle();
-    if (calErr) throw new Error(calErr.message);
-    if (!cal || !cal.is_active) throw new Error("Calendar not available");
+    // Validates calendar is active and password (if any) is correct.
+    const cal = await loadPublicCalendarOrThrow(supabase, data.calendarId, data.password);
 
     const startMs = new Date(data.starts_at).getTime();
     if (Number.isNaN(startMs)) throw new Error("Invalid start time");

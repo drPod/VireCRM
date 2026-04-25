@@ -4,6 +4,7 @@ import {
   getPublicCalendarFn,
   getAvailableSlotsFn,
   bookPublicAppointmentFn,
+  verifyCalendarPasswordFn,
   type PublicCalendar,
 } from "@/functions/appointments.functions";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,15 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, Loader2, CheckCircle2, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import {
+  CalendarDays,
+  Loader2,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Lock,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/book/$slug")({
@@ -40,6 +49,11 @@ function PublicBookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<{ starts_at: string; ends_at: string } | null>(null);
 
+  // Password gate
+  const [passwordInput, setPasswordInput] = useState("");
+  const [unlockedPassword, setUnlockedPassword] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+
   // Load calendar
   useEffect(() => {
     setLoadingCal(true);
@@ -55,8 +69,11 @@ function PublicBookingPage() {
     return d;
   }, [weekStart]);
 
+  const isLocked = !!calendar?.requires_password && !unlockedPassword;
+
   const loadSlots = useCallback(async () => {
     if (!calendar) return;
+    if (calendar.requires_password && !unlockedPassword) return;
     setLoadingSlots(true);
     try {
       const res = await getAvailableSlotsFn({
@@ -64,6 +81,7 @@ function PublicBookingPage() {
           calendarId: calendar.id,
           from: weekStart.toISOString(),
           to: weekEnd.toISOString(),
+          password: unlockedPassword || undefined,
         },
       });
       setSlots(res.slots);
@@ -72,7 +90,7 @@ function PublicBookingPage() {
     } finally {
       setLoadingSlots(false);
     }
-  }, [calendar, weekStart, weekEnd]);
+  }, [calendar, weekStart, weekEnd, unlockedPassword]);
 
   useEffect(() => {
     void loadSlots();
@@ -93,6 +111,22 @@ function PublicBookingPage() {
     return map;
   }, [slots, weekStart]);
 
+  const handleUnlock = async () => {
+    if (!calendar || !passwordInput.trim()) return;
+    setVerifying(true);
+    try {
+      await verifyCalendarPasswordFn({
+        data: { calendarId: calendar.id, password: passwordInput.trim() },
+      });
+      setUnlockedPassword(passwordInput.trim());
+      setPasswordInput("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Incorrect password");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const handleBook = async () => {
     if (!calendar || !selectedSlot) return;
     if (!form.name.trim() || !form.email.trim()) {
@@ -109,6 +143,7 @@ function PublicBookingPage() {
           email: form.email.trim(),
           phone: form.phone.trim() || undefined,
           notes: form.notes.trim() || undefined,
+          password: unlockedPassword || undefined,
         },
       });
       setConfirmed({ starts_at: res.starts_at, ends_at: res.ends_at });
@@ -133,9 +168,10 @@ function PublicBookingPage() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full p-8 text-center">
           <CalendarDays className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <h1 className="text-xl font-semibold">Booking link not found</h1>
+          <h1 className="text-xl font-semibold">Booking link unavailable</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            This calendar may have been disabled or the link may be incorrect.
+            This calendar may have been disabled or the link may be incorrect. Reach out to the
+            person who shared the link with you.
           </p>
         </Card>
       </div>
@@ -208,139 +244,186 @@ function PublicBookingPage() {
               <p className="text-xs text-muted-foreground mt-0.5">
                 <Clock className="inline h-3 w-3 mr-1" />
                 {calendar.slot_duration_minutes} minutes
+                {calendar.requires_password && (
+                  <>
+                    <span className="mx-1.5">·</span>
+                    <Lock className="inline h-3 w-3 mr-1" />
+                    Private link
+                  </>
+                )}
               </p>
             </div>
           </div>
         </Card>
 
-        {/* Slot picker */}
-        <Card className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Pick a time (UTC)</h2>
+        {/* Password gate */}
+        {isLocked ? (
+          <Card className="p-6 space-y-3 max-w-md mx-auto">
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" onClick={goPrevWeek}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                {weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} —{" "}
-                {new Date(weekEnd.getTime() - 1).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
-              <Button size="sm" variant="ghost" onClick={goNextWeek}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <Lock className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold">Password required</h2>
             </div>
-          </div>
-          {loadingSlots ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-7 gap-2">
-              {Array.from(slotsByDay.entries()).map(([day, daySlots]) => {
-                const date = new Date(`${day}T00:00:00Z`);
-                return (
-                  <div key={day} className="space-y-1">
-                    <div className="text-center">
-                      <p className="text-[10px] uppercase text-muted-foreground">
-                        {date.toLocaleDateString(undefined, { weekday: "short" })}
-                      </p>
-                      <p className="text-sm font-medium">{date.getUTCDate()}</p>
-                    </div>
-                    <div className="space-y-1 max-h-80 overflow-y-auto">
-                      {daySlots.length === 0 ? (
-                        <p className="text-[10px] text-muted-foreground text-center py-2">—</p>
-                      ) : (
-                        daySlots.map((s) => {
-                          const isSelected = selectedSlot === s;
-                          return (
-                            <button
-                              key={s}
-                              onClick={() => setSelectedSlot(s)}
-                              className={`w-full rounded-md border px-1 py-1.5 text-[11px] transition-colors ${
-                                isSelected
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-border hover:bg-secondary"
-                              }`}
-                            >
-                              {new Date(s).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-
-        {/* Booking form */}
-        {selectedSlot && (
-          <Card className="p-4 space-y-3">
-            <h2 className="text-sm font-semibold">Your details</h2>
             <p className="text-xs text-muted-foreground">
-              Booking{" "}
-              <span className="font-medium text-foreground">
-                {new Date(selectedSlot).toLocaleString(undefined, {
-                  weekday: "long",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+              This booking link is private. Enter the password you were given to see available
+              times.
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Name</Label>
-                <Input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Jane Doe"
-                />
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="jane@company.com"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Phone (optional)</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>What would you like to discuss? (optional)</Label>
-              <Textarea
-                rows={3}
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
-            </div>
-            <Button
-              variant="command"
-              onClick={handleBook}
-              disabled={submitting}
-              className="w-full"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleUnlock();
+              }}
+              className="space-y-3"
             >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Confirm booking
-            </Button>
+              <Input
+                type="password"
+                autoFocus
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Access password"
+              />
+              <Button
+                type="submit"
+                variant="command"
+                disabled={verifying || !passwordInput.trim()}
+                className="w-full"
+              >
+                {verifying && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                Unlock
+              </Button>
+            </form>
           </Card>
+        ) : (
+          <>
+            {/* Slot picker */}
+            <Card className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Pick a time (UTC)</h2>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="ghost" onClick={goPrevWeek}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} —{" "}
+                    {new Date(weekEnd.getTime() - 1).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={goNextWeek}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              {loadingSlots ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-7 gap-2">
+                  {Array.from(slotsByDay.entries()).map(([day, daySlots]) => {
+                    const date = new Date(`${day}T00:00:00Z`);
+                    return (
+                      <div key={day} className="space-y-1">
+                        <div className="text-center">
+                          <p className="text-[10px] uppercase text-muted-foreground">
+                            {date.toLocaleDateString(undefined, { weekday: "short" })}
+                          </p>
+                          <p className="text-sm font-medium">{date.getUTCDate()}</p>
+                        </div>
+                        <div className="space-y-1 max-h-80 overflow-y-auto">
+                          {daySlots.length === 0 ? (
+                            <p className="text-[10px] text-muted-foreground text-center py-2">—</p>
+                          ) : (
+                            daySlots.map((s) => {
+                              const isSelected = selectedSlot === s;
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={() => setSelectedSlot(s)}
+                                  className={`w-full rounded-md border px-1 py-1.5 text-[11px] transition-colors ${
+                                    isSelected
+                                      ? "border-primary bg-primary text-primary-foreground"
+                                      : "border-border hover:bg-secondary"
+                                  }`}
+                                >
+                                  {new Date(s).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+
+            {/* Booking form */}
+            {selectedSlot && (
+              <Card className="p-4 space-y-3">
+                <h2 className="text-sm font-semibold">Your details</h2>
+                <p className="text-xs text-muted-foreground">
+                  Booking{" "}
+                  <span className="font-medium text-foreground">
+                    {new Date(selectedSlot).toLocaleString(undefined, {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Name</Label>
+                    <Input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      placeholder="Jane Doe"
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      placeholder="jane@company.com"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Phone (optional)</Label>
+                  <Input
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>What would you like to discuss? (optional)</Label>
+                  <Textarea
+                    rows={3}
+                    value={form.notes}
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  />
+                </div>
+                <Button
+                  variant="command"
+                  onClick={handleBook}
+                  disabled={submitting}
+                  className="w-full"
+                >
+                  {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                  Confirm booking
+                </Button>
+              </Card>
+            )}
+          </>
         )}
       </div>
     </div>

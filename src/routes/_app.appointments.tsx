@@ -38,6 +38,9 @@ import {
   Clock,
   Users,
   X,
+  Lock,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -88,7 +91,9 @@ function AppointmentsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editorState, setEditorState] = useState<Partial<CalendarRow> | null>(null);
+  const [editorState, setEditorState] = useState<
+    (Partial<CalendarRow> & { access_password?: string; clear_password?: boolean }) | null
+  >(null);
 
   const refresh = useCallback(async () => {
     if (!orgId) return;
@@ -163,6 +168,16 @@ function AppointmentsPage() {
       return;
     }
     try {
+      // access_password rules:
+      //   - undefined → leave existing password unchanged
+      //   - clear_password set → empty string clears it
+      //   - non-empty string → set/replace
+      let access_password: string | undefined;
+      if (editorState.clear_password) {
+        access_password = "";
+      } else if (editorState.access_password && editorState.access_password.length > 0) {
+        access_password = editorState.access_password;
+      }
       await upsertCal({
         data: {
           organizationId: orgId,
@@ -174,6 +189,7 @@ function AppointmentsPage() {
           slot_duration_minutes: editorState.slot_duration_minutes ?? 30,
           buffer_minutes: editorState.buffer_minutes ?? 0,
           availability: (editorState.availability as Availability) || defaultAvailability(),
+          access_password,
         },
       });
       toast.success("Calendar saved");
@@ -203,6 +219,29 @@ function AppointmentsPage() {
     if (!confirm(`Cancel appointment "${a.title}"?`)) return;
     try {
       await cancelAppt({ data: { organizationId: orgId, id: a.id } });
+      void refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  };
+
+  const handleToggleActive = async (cal: CalendarRow) => {
+    if (!orgId) return;
+    try {
+      await upsertCal({
+        data: {
+          organizationId: orgId,
+          id: cal.id,
+          name: cal.name,
+          slug: cal.slug,
+          color: cal.color,
+          is_active: !cal.is_active,
+          slot_duration_minutes: cal.slot_duration_minutes,
+          buffer_minutes: cal.buffer_minutes,
+          availability: cal.availability,
+        },
+      });
+      toast.success(cal.is_active ? "Booking link disabled" : "Booking link enabled");
       void refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -312,6 +351,14 @@ function AppointmentsPage() {
                     <Badge variant={selected.is_active ? "default" : "secondary"}>
                       {selected.is_active ? "Active" : "Disabled"}
                     </Badge>
+                    {selected.has_access_password && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 border-warning text-warning"
+                      >
+                        <Lock className="h-3 w-3" /> Password
+                      </Badge>
+                    )}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                     <span>
@@ -323,10 +370,36 @@ function AppointmentsPage() {
                     <code className="rounded bg-secondary px-1.5 py-0.5 text-[11px]">
                       /book/{selected.slug}
                     </code>
+                    {!selected.is_active && (
+                      <span className="text-warning">
+                        · link rejects new bookings until re-enabled
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button size="sm" variant="outline" onClick={() => copyLink(selected.slug)}>
+                  <Button
+                    size="sm"
+                    variant={selected.is_active ? "outline" : "command"}
+                    onClick={() => handleToggleActive(selected)}
+                    title={selected.is_active ? "Disable booking link" : "Enable booking link"}
+                  >
+                    {selected.is_active ? (
+                      <>
+                        <PowerOff className="h-3.5 w-3.5" /> Disable
+                      </>
+                    ) : (
+                      <>
+                        <Power className="h-3.5 w-3.5" /> Enable
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyLink(selected.slug)}
+                    disabled={!selected.is_active}
+                  >
                     <Copy className="h-3.5 w-3.5" /> Copy link
                   </Button>
                   <a
@@ -472,6 +545,60 @@ function AppointmentsPage() {
                   }
                 />
                 <Label>Active (link accepts bookings)</Label>
+              </div>
+
+              {/* Access password */}
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <Label className="flex items-center gap-1.5">
+                      <Lock className="h-3.5 w-3.5" /> Access password (optional)
+                    </Label>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      When set, visitors must enter this password before they can see slots or
+                      book.{" "}
+                      {editorState.id && editorState.has_access_password
+                        ? "A password is currently set."
+                        : "No password is currently set."}
+                    </p>
+                  </div>
+                  {editorState.id && editorState.has_access_password && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setEditorState({
+                          ...editorState,
+                          clear_password: !editorState.clear_password,
+                          access_password: "",
+                        })
+                      }
+                    >
+                      {editorState.clear_password ? "Keep password" : "Remove password"}
+                    </Button>
+                  )}
+                </div>
+                {!editorState.clear_password && (
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    value={editorState.access_password ?? ""}
+                    onChange={(e) =>
+                      setEditorState({ ...editorState, access_password: e.target.value })
+                    }
+                    placeholder={
+                      editorState.id && editorState.has_access_password
+                        ? "Leave blank to keep current password"
+                        : "Type a password to gate this booking link"
+                    }
+                  />
+                )}
+                {editorState.clear_password && (
+                  <p className="text-[11px] text-warning">
+                    Password will be removed on save — link becomes public.
+                  </p>
+                )}
               </div>
 
               {/* Availability editor */}
