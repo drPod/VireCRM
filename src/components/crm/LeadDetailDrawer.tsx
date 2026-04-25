@@ -83,6 +83,15 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     flat_cents: number;
     scope: "rep" | "org";
   } | null>(null);
+  const [billingSummary, setBillingSummary] = useState<{
+    count: number;
+    collectedCents: number;
+    outstandingCents: number;
+    recurringActive: number;
+    currency: string;
+    lastPaidAt: string | null;
+    lastInvoiceUrl: string | null;
+  } | null>(null);
 
   // Load org members so owners/managers can pick an assignee.
   useEffect(() => {
