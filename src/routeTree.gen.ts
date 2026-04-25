@@ -30,6 +30,7 @@ import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calcul
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
 import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
@@ -64,6 +65,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/public/hooks/purge-audit-log'
+import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -168,6 +170,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSequencesRoute = AppSequencesRouteImport.update({
+  id: '/sequences',
+  path: '/sequences',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRevenueRoute = AppRevenueRouteImport.update({
@@ -346,6 +353,12 @@ const ApiPublicHooksPurgeAuditLogRoute =
     path: '/api/public/hooks/purge-audit-log',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDispatchSequencesRoute =
+  ApiPublicHooksDispatchSequencesRouteImport.update({
+    id: '/api/public/hooks/dispatch-sequences',
+    path: '/api/public/hooks/dispatch-sequences',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -380,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/payouts': typeof AppPayoutsRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
+  '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -395,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -436,6 +451,7 @@ export interface FileRoutesByTo {
   '/payouts': typeof AppPayoutsRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
+  '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -451,6 +467,7 @@ export interface FileRoutesByTo {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -494,6 +511,7 @@ export interface FileRoutesById {
   '/_app/payouts': typeof AppPayoutsRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/revenue': typeof AppRevenueRoute
+  '/_app/sequences': typeof AppSequencesRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -509,6 +527,7 @@ export interface FileRoutesById {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -552,6 +571,7 @@ export interface FileRouteTypes {
     | '/payouts'
     | '/reputation'
     | '/revenue'
+    | '/sequences'
     | '/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -567,6 +587,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -608,6 +629,7 @@ export interface FileRouteTypes {
     | '/payouts'
     | '/reputation'
     | '/revenue'
+    | '/sequences'
     | '/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -623,6 +645,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows'
     | '/r/$resellerSlug'
+    | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -665,6 +688,7 @@ export interface FileRouteTypes {
     | '/_app/payouts'
     | '/_app/reputation'
     | '/_app/revenue'
+    | '/_app/sequences'
     | '/_app/settings'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -680,6 +704,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -714,6 +739,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   RResellerSlugIndexRoute: typeof RResellerSlugIndexRoute
+  ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -870,6 +896,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sequences': {
+      id: '/_app/sequences'
+      path: '/sequences'
+      fullPath: '/sequences'
+      preLoaderRoute: typeof AppSequencesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/revenue': {
@@ -1110,6 +1143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPurgeAuditLogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/dispatch-sequences': {
+      id: '/api/public/hooks/dispatch-sequences'
+      path: '/api/public/hooks/dispatch-sequences'
+      fullPath: '/api/public/hooks/dispatch-sequences'
+      preLoaderRoute: typeof ApiPublicHooksDispatchSequencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1169,6 +1209,7 @@ interface AppRouteChildren {
   AppPayoutsRoute: typeof AppPayoutsRoute
   AppReputationRoute: typeof AppReputationRoute
   AppRevenueRoute: typeof AppRevenueRoute
+  AppSequencesRoute: typeof AppSequencesRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
   AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
@@ -1192,6 +1233,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPayoutsRoute: AppPayoutsRoute,
   AppReputationRoute: AppReputationRoute,
   AppRevenueRoute: AppRevenueRoute,
+  AppSequencesRoute: AppSequencesRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
   AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
   AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
@@ -1224,6 +1266,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   RResellerSlugIndexRoute: RResellerSlugIndexRoute,
+  ApiPublicHooksDispatchSequencesRoute: ApiPublicHooksDispatchSequencesRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
