@@ -647,6 +647,16 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               </Badge>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab("invoices")}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "invoices"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Invoices
+          </button>
         </div>
 
         {activeTab === "details" ? (
