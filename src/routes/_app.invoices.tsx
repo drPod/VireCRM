@@ -387,16 +387,40 @@ function InvoicesPage() {
                                 <p className="font-semibold text-foreground">
                                   {formatMoney(inv.amount_due_cents, inv.currency)}
                                 </p>
-                                {inv.is_recurring && (
+                                {inv.amount_paid_cents > 0 && inv.status !== "paid" ? (
+                                  <p className="text-[10px] text-emerald-500">
+                                    {formatMoney(inv.amount_paid_cents, inv.currency)} collected
+                                  </p>
+                                ) : inv.status === "paid" && inv.paid_at ? (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Paid {new Date(inv.paid_at).toLocaleDateString()}
+                                  </p>
+                                ) : inv.is_recurring ? (
                                   <p className="text-[10px] text-muted-foreground">
                                     per {inv.interval || "month"}
                                   </p>
-                                )}
+                                ) : inv.due_date ? (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Due {new Date(inv.due_date).toLocaleDateString()}
+                                  </p>
+                                ) : null}
                               </div>
                               <Badge variant={cfg.variant} className="min-w-[110px] justify-center text-xs">
                                 {cfg.label}
                               </Badge>
-                              <div className="flex flex-col items-end gap-1 min-w-[64px]">
+                              <div className="flex flex-col items-end gap-1 min-w-[80px]">
+                                {inv.invoice_pdf && (
+                                  <a
+                                    href={inv.invoice_pdf}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    download
+                                    className="text-xs text-foreground hover:text-primary hover:underline inline-flex items-center gap-1"
+                                    title="Download invoice PDF"
+                                  >
+                                    <Download className="h-3 w-3" /> PDF
+                                  </a>
+                                )}
                                 {inv.hosted_invoice_url && (
                                   <a
                                     href={inv.hosted_invoice_url}
