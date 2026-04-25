@@ -356,7 +356,7 @@ export const updateEnrollmentStatusFn = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await ensureMember(supabase, userId, data.organizationId);
 
-    const update: Record<string, unknown> = { status: data.status };
+    const update: Record<string, any> = { status: data.status };
     if (data.status === "stopped") {
       update.stopped_at = new Date().toISOString();
       update.stop_reason = "manual";
