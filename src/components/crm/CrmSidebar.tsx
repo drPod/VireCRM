@@ -36,10 +36,12 @@ import { Button } from "@/components/ui/button";
 const baseNavItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/leads", icon: Users, label: "Leads" },
+  { to: "/conversations", icon: Inbox, label: "Conversations" },
   { to: "/messages", icon: MessageSquare, label: "Messages" },
   { to: "/campaigns", icon: Zap, label: "Campaigns" },
   { to: "/workflows", icon: GitBranch, label: "Workflows" },
   { to: "/calendar", icon: CalendarDays, label: "Calendar" },
+  { to: "/funnels", icon: Globe, label: "Sites & Funnels" },
   { to: "/email-marketing", icon: Mail, label: "Email Marketing" },
   { to: "/revenue", icon: TrendingUp, label: "Revenue" },
   { to: "/payouts", icon: Wallet, label: "Payouts" },
