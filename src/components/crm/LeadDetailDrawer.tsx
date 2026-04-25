@@ -339,6 +339,82 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     void refreshEmailLogs();
   }, [lead, activeTab, refreshEmailLogs]);
 
+  // Billing summary — counts + totals + last payment from client_invoices for this lead.
+  // Refreshes on lead change AND in realtime as Stripe webhooks update invoice rows.
+  const refreshBillingSummary = useCallback(async () => {
+    if (!lead?.id || !organization?.id) {
+      setBillingSummary(null);
+      return;
+    }
+    const { data } = await supabase
+      .from("client_invoices")
+      .select(
+        "amount_due_cents, amount_paid_cents, currency, status, is_recurring, paid_at, hosted_invoice_url, created_at",
+      )
+      .eq("lead_id", lead.id)
+      .eq("organization_id", organization.id)
+      .order("created_at", { ascending: false });
+    const rows = data || [];
+    if (rows.length === 0) {
+      setBillingSummary({
+        count: 0,
+        collectedCents: 0,
+        outstandingCents: 0,
+        recurringActive: 0,
+        currency: "USD",
+        lastPaidAt: null,
+        lastInvoiceUrl: null,
+      });
+      return;
+    }
+    let collected = 0;
+    let outstanding = 0;
+    let recurringActive = 0;
+    let lastPaidAt: string | null = null;
+    for (const r of rows) {
+      if (r.status === "paid") {
+        collected += r.amount_paid_cents || r.amount_due_cents;
+        if (r.paid_at && (!lastPaidAt || r.paid_at > lastPaidAt)) lastPaidAt = r.paid_at;
+      } else if (r.status === "open" || r.status === "past_due") {
+        outstanding += r.amount_due_cents;
+      }
+      if (r.is_recurring && (r.status === "active" || r.status === "open")) recurringActive += 1;
+    }
+    setBillingSummary({
+      count: rows.length,
+      collectedCents: collected,
+      outstandingCents: outstanding,
+      recurringActive,
+      currency: (rows[0].currency || "USD").toUpperCase(),
+      lastPaidAt,
+      lastInvoiceUrl: rows.find((r) => r.hosted_invoice_url)?.hosted_invoice_url ?? null,
+    });
+  }, [lead?.id, organization?.id]);
+
+  useEffect(() => {
+    void refreshBillingSummary();
+  }, [refreshBillingSummary]);
+
+  useEffect(() => {
+    if (!lead?.id || !organization?.id) return;
+    const channel = supabase
+      .channel(`lead_invoices_${lead.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "client_invoices",
+          filter: `lead_id=eq.${lead.id}`,
+        },
+        () => void refreshBillingSummary(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [lead?.id, organization?.id, refreshBillingSummary]);
+
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
