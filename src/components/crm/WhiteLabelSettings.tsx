@@ -64,6 +64,8 @@ export function WhiteLabelSettings() {
   const [togglingReseller, setTogglingReseller] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { enabled: customDomainEnabled, loading: customDomainLoading } =
+    useFeatureFlag("custom_domain");
 
   const verificationToken = orgExt?.domain_verification_token || "";
   const isDomainVerified = !!orgExt?.domain_verified_at;
