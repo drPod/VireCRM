@@ -237,6 +237,7 @@ export type Database = {
       }
       calendars: {
         Row: {
+          access_password_hash: string | null
           availability: Json
           buffer_minutes: number
           color: string | null
@@ -251,6 +252,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_password_hash?: string | null
           availability?: Json
           buffer_minutes?: number
           color?: string | null
@@ -265,6 +267,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_password_hash?: string | null
           availability?: Json
           buffer_minutes?: number
           color?: string | null
