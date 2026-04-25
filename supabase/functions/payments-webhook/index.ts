@@ -322,3 +322,98 @@ async function recordTransaction(
     { onConflict: "stripe_transaction_id" },
   );
 }
+
+// ====== Connect events: invoices our clients sent to their leads ======
+
+async function syncConnectInvoice(
+  invoice: any,
+  env: StripeEnv,
+  connectAccount: string,
+  eventType: string,
+) {
+  const status =
+    eventType === "invoice.payment_succeeded"
+      ? "paid"
+      : eventType === "invoice.voided"
+        ? "void"
+        : eventType === "invoice.marked_uncollectible"
+          ? "uncollectible"
+          : invoice.status || "open";
+
+  const update: Record<string, unknown> = {
+    status,
+    amount_due_cents: invoice.amount_due ?? 0,
+    amount_paid_cents: invoice.amount_paid ?? 0,
+    hosted_invoice_url: invoice.hosted_invoice_url || null,
+    invoice_pdf: invoice.invoice_pdf || null,
+    number: invoice.number || null,
+    updated_at: new Date().toISOString(),
+  };
+  if (status === "paid") update.paid_at = new Date().toISOString();
+  if (status === "void") update.voided_at = new Date().toISOString();
+
+  // Update existing mirror row if present
+  const { data: existing } = await supabase
+    .from("client_invoices")
+    .select("id, organization_id, lead_id")
+    .eq("stripe_invoice_id", invoice.id)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from("client_invoices").update(update).eq("id", existing.id);
+    // Mark the lead as won if invoice paid
+    if (status === "paid" && existing.lead_id) {
+      await supabase
+        .from("leads")
+        .update({ status: "won", updated_at: new Date().toISOString() })
+        .eq("id", existing.lead_id)
+        .neq("status", "won");
+    }
+    return;
+  }
+
+  // Otherwise insert (e.g. invoice created externally on the connected account)
+  const orgLookup = await supabase
+    .from("client_stripe_accounts")
+    .select("organization_id")
+    .eq("stripe_account_id", connectAccount)
+    .maybeSingle();
+  if (!orgLookup.data) {
+    console.log("Connect invoice for unknown account:", connectAccount);
+    return;
+  }
+  await supabase.from("client_invoices").insert({
+    organization_id: orgLookup.data.organization_id,
+    stripe_account_id: connectAccount,
+    stripe_invoice_id: invoice.id,
+    stripe_subscription_id: invoice.subscription || null,
+    stripe_customer_id: invoice.customer || null,
+    hosted_invoice_url: invoice.hosted_invoice_url,
+    invoice_pdf: invoice.invoice_pdf,
+    number: invoice.number,
+    description: invoice.description,
+    amount_due_cents: invoice.amount_due ?? 0,
+    amount_paid_cents: invoice.amount_paid ?? 0,
+    currency: (invoice.currency || "usd").toLowerCase(),
+    status,
+    environment: env,
+    line_items: invoice.lines?.data?.map((l: any) => ({
+      description: l.description,
+      amount_cents: l.amount,
+      quantity: l.quantity,
+    })) || [],
+  });
+}
+
+async function syncConnectSubscription(
+  subscription: any,
+  env: StripeEnv,
+  _connectAccount: string,
+  eventType: string,
+) {
+  const newStatus = eventType === "customer.subscription.deleted" ? "void" : subscription.status;
+  await supabase
+    .from("client_invoices")
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("stripe_subscription_id", subscription.id);
+}
