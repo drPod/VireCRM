@@ -9,8 +9,9 @@ import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
 import { N8nWebhookSettings } from "@/components/crm/N8nWebhookSettings";
 import { OutreachTemplatesManager } from "@/components/crm/OutreachTemplatesManager";
+import { StripeConnectCard } from "@/components/crm/StripeConnectCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Palette, Mail, Plug, FileText, Shield } from "lucide-react";
+import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const PLATFORM_ADMIN_EMAILS = ["solidsnake4ks@gmail.com"];
@@ -62,6 +63,10 @@ function SettingsPage() {
             <FileText className="h-4 w-4" />
             Outreach
           </TabsTrigger>
+          <TabsTrigger value="payments" className="gap-2">
+            <CreditCard className="h-4 w-4" />
+            Payments
+          </TabsTrigger>
           <TabsTrigger value="integrations" className="gap-2">
             <Plug className="h-4 w-4" />
             Integrations
@@ -93,6 +98,10 @@ function SettingsPage() {
 
         <TabsContent value="outreach">
           <OutreachTemplatesManager />
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-6">
+          <StripeConnectCard />
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6">
