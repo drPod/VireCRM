@@ -396,23 +396,27 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
  * Subtracts already-booked appointments (excluding cancelled).
  */
 export const getAvailableSlotsFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { calendarId: string; from: string; to: string }) =>
-    z
-      .object({
-        calendarId: z.string().uuid(),
-        from: z.string(),
-        to: z.string(),
-      })
-      .parse(input),
+  .inputValidator(
+    (input: { calendarId: string; from: string; to: string; password?: string }) =>
+      z
+        .object({
+          calendarId: z.string().uuid(),
+          from: z.string(),
+          to: z.string(),
+          password: z.string().max(200).optional(),
+        })
+        .parse(input),
   )
   .handler(async ({ data }): Promise<{ slots: string[] }> => {
     const supabase = getServiceClient();
-    const { data: cal } = await supabase
-      .from("calendars")
-      .select("availability, slot_duration_minutes, buffer_minutes, is_active")
-      .eq("id", data.calendarId)
-      .maybeSingle();
-    if (!cal || !cal.is_active) return { slots: [] };
+    let cal;
+    try {
+      cal = await loadPublicCalendarOrThrow(supabase, data.calendarId, data.password);
+    } catch {
+      // Don't leak whether the password was wrong vs. calendar disabled — the
+      // public booking page handles the password gate up-front via getPublicCalendarFn.
+      return { slots: [] };
+    }
 
     const availability = (cal.availability as unknown as Availability) || emptyAvailability();
     const slotMs = cal.slot_duration_minutes * 60 * 1000;
