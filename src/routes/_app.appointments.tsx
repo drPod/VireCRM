@@ -222,6 +222,29 @@ function AppointmentsPage() {
     }
   };
 
+  const handleToggleActive = async (cal: CalendarRow) => {
+    if (!orgId) return;
+    try {
+      await upsertCal({
+        data: {
+          organizationId: orgId,
+          id: cal.id,
+          name: cal.name,
+          slug: cal.slug,
+          color: cal.color,
+          is_active: !cal.is_active,
+          slot_duration_minutes: cal.slot_duration_minutes,
+          buffer_minutes: cal.buffer_minutes,
+          availability: cal.availability,
+        },
+      });
+      toast.success(cal.is_active ? "Booking link disabled" : "Booking link enabled");
+      void refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  };
+
   const bookingUrl = (slug: string) =>
     `${typeof window !== "undefined" ? window.location.origin : ""}/book/${slug}`;
 
