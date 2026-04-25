@@ -70,7 +70,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>([]);
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails" | "invoices">("details");
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
   const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; role: string }>>([]);
   // Multi-assignee state — sourced from the lead_assignees join table.
