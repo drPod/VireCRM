@@ -361,7 +361,7 @@ function ConversationsPage() {
           <Button variant="outline" size="sm">
             <Sparkles className="h-3.5 w-3.5" /> AI suggest reply
           </Button>
-          <Button variant="command" size="sm">
+          <Button variant="command" size="sm" onClick={openNewDialog}>
             <Plus className="h-3.5 w-3.5" /> New
           </Button>
         </div>
