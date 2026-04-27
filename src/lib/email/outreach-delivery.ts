@@ -60,6 +60,14 @@ export interface DeliverOutreachEmailInput {
   fontFamily?: string | null;
   /** Optional plain-text signature appended below the sign-off. */
   signature?: string | null;
+  /**
+   * Organization ID for credit enforcement. When provided, this function
+   * will refuse to send if the org has exhausted its monthly credit quota
+   * (unless `unlimited_credits` is enabled). Strongly recommended — leaving
+   * this unset bypasses the hard-stop and should only be used for system
+   * mail (auth emails, internal notifications) that doesn't bill credits.
+   */
+  organizationId?: string;
 }
 
 export type DeliverOutreachEmailResult =
@@ -68,7 +76,7 @@ export type DeliverOutreachEmailResult =
       channel: "resend" | "sendgrid" | "gmail" | "microsoft_outlook" | "lovable";
       label: string;
     }
-  | { success: false; reason: string; suppressed?: boolean };
+  | { success: false; reason: string; suppressed?: boolean; creditsExhausted?: boolean };
 
 const EMAIL_PROVIDER_PRIORITY: ConnectorProvider[] = ["gmail", "microsoft_outlook"];
 
