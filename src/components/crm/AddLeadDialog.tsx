@@ -24,7 +24,7 @@ export function AddLeadDialog({
   onOpenChange: controlledOnOpenChange,
   hideTrigger,
 }: AddLeadDialogProps) {
-  const { organization } = useAuth();
+  const { organization, user } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [internalOpen, setInternalOpen] = useState(false);
