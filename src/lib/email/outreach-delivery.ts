@@ -78,6 +78,28 @@ function plainTextToHtml(body: string): string {
     .join("\n");
 }
 
+/**
+ * Render the branded React Email outreach template to HTML so every external
+ * channel (Resend, SendGrid, Gmail, Outlook) sends the same polished, logo'd
+ * email instead of a raw plain-text wrapper.
+ */
+async function renderBrandedHtml(input: DeliverOutreachEmailInput): Promise<string> {
+  try {
+    const element = createElement(outreachTemplate.component, {
+      body: input.body,
+      brandName: input.brandName,
+      logoUrl: input.logoUrl ?? undefined,
+      accentColor: input.accentColor ?? undefined,
+      fontFamily: input.fontFamily ?? undefined,
+      signature: input.signature ?? undefined,
+    });
+    return await render(element, { pretty: false });
+  } catch {
+    // Never block a send on a render failure — fall back to a basic wrapper.
+    return plainTextToHtml(input.body);
+  }
+}
+
 function buildGmailRawMessage(opts: {
   from?: string | null;
   to: string;
