@@ -31,6 +31,12 @@ function ContactPage() {
             <p className="mt-3 text-lg text-muted-foreground">
               Tell us about your business and we'll craft a tailored Genesis CRM solution — starting at $14,000.
             </p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Prefer to talk?{" "}
+              <a href="tel:+19403656600" className="font-semibold text-foreground hover:text-primary">
+                +1 (940) 365-6600
+              </a>
+            </p>
           </div>
 
           <ContactForm />
