@@ -6,6 +6,7 @@ import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor, Key, Info } 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useNavigate } from "@tanstack/react-router";
+import { applyPromoDiscount } from "@/components/marketing/PromoBanner";
 import { getDisplayedPrice } from "@/lib/pricing-overrides";
 
 export interface PricingTier {
@@ -102,6 +103,7 @@ export const crmTiers: PricingTier[] = [
     description: "A fully bespoke CRM — tailored workflows, advanced automations, unique dashboards, and integrations built around your business.",
     badge: "Premium",
     isOwnership: true,
+    excludeFromPromo: true,
     ctaLink: "/contact",
     features: [
       { text: "Fully customized system", included: true },
@@ -171,6 +173,7 @@ export const whiteLabelTiers: PricingTier[] = [
     description: "Own the entire Genesis CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
+    excludeFromPromo: true,
     ctaLink: "/contact",
     features: [
       { text: "White-label branding", included: true },
@@ -192,6 +195,7 @@ export const whiteLabelTiers: PricingTier[] = [
     description: "Full ownership plus custom features built for your specific business needs and workflows.",
     badge: "Tailored",
     isOwnership: true,
+    excludeFromPromo: true,
     ctaLink: "/contact",
     features: [
       { text: "Everything in Full Ownership", included: true },
