@@ -1,4 +1,4 @@
-import { renderAsync } from "@react-email/render";
+import { render } from "@react-email/render";
 import { createElement } from "react";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getConnector } from "@/lib/connectors/catalog";
