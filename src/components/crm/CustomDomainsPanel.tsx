@@ -42,7 +42,10 @@ const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9
 
 export function CustomDomainsPanel({ organizationId }: Props) {
   const { enabled, loading: flagLoading } = useFeatureFlag("custom_domain");
+  const { role } = useAuth();
+  const isOwner = role?.role === "owner";
   const [rows, setRows] = useState<DomainRow[]>([]);
+  const [owners, setOwners] = useState<OwnerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [newHost, setNewHost] = useState("");
   const [adding, setAdding] = useState(false);
