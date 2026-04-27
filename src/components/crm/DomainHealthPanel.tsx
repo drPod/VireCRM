@@ -86,6 +86,7 @@ export function DomainHealthPanel({ organizationId }: Props) {
   const [results, setResults] = useState<DomainHealthResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
+  const [redirectGuide, setRedirectGuide] = useState<DomainHealthResult | null>(null);
   const [, setNowTick] = useState(0);
 
   // Tick once a minute so "Xs ago" stays accurate.
