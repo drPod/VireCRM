@@ -12,9 +12,12 @@ import {
   CheckCircle2,
   AlertCircle,
   Crown,
+  Lock,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type DomainRow = {
   id: string;
@@ -25,6 +28,12 @@ type DomainRow = {
   created_at: string;
 };
 
+type OwnerRow = {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+};
+
 interface Props {
   organizationId: string | undefined;
 }
@@ -33,7 +42,10 @@ const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9
 
 export function CustomDomainsPanel({ organizationId }: Props) {
   const { enabled, loading: flagLoading } = useFeatureFlag("custom_domain");
+  const { role } = useAuth();
+  const isOwner = role?.role === "owner";
   const [rows, setRows] = useState<DomainRow[]>([]);
+  const [owners, setOwners] = useState<OwnerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [newHost, setNewHost] = useState("");
   const [adding, setAdding] = useState(false);
@@ -42,18 +54,41 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   const refresh = async () => {
     if (!organizationId) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("org_custom_domains")
-      .select("id,hostname,is_primary,verification_token,verified_at,created_at")
-      .eq("organization_id", organizationId)
-      .order("is_primary", { ascending: false })
-      .order("created_at", { ascending: true });
+    const [domainsRes, rolesRes] = await Promise.all([
+      supabase
+        .from("org_custom_domains")
+        .select("id,hostname,is_primary,verification_token,verified_at,created_at")
+        .eq("organization_id", organizationId)
+        .order("is_primary", { ascending: false })
+        .order("created_at", { ascending: true }),
+      // Owner-role members of this org — shown so non-owners know who to ask.
+      supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("organization_id", organizationId)
+        .eq("role", "owner"),
+    ]);
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
+    if (domainsRes.error) {
+      toast.error(domainsRes.error.message);
       return;
     }
-    setRows((data ?? []) as DomainRow[]);
+    setRows((domainsRes.data ?? []) as DomainRow[]);
+
+    const ownerIds = (rolesRes.data ?? []).map((r) => r.user_id);
+    if (ownerIds.length > 0) {
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ownerIds);
+      const list: OwnerRow[] = ownerIds.map((uid) => {
+        const p = (profileRows ?? []).find((row) => row.user_id === uid);
+        return { user_id: uid, full_name: p?.full_name ?? null, email: null };
+      });
+      setOwners(list);
+    } else {
+      setOwners([]);
+    }
   };
 
   useEffect(() => {
@@ -186,23 +221,54 @@ export function CustomDomainsPanel({ organizationId }: Props) {
         </div>
       ) : (
         <>
-          {/* Add new hostname */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newHost}
-              onChange={(e) => setNewHost(e.target.value)}
-              placeholder="crm.yourbrand.com"
-              className="h-10 flex-1 rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void handleAdd();
-              }}
-            />
-            <Button variant="command" onClick={handleAdd} disabled={adding || !newHost.trim()} className="gap-1.5">
-              {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-              Add
-            </Button>
+          {/* Who can edit — surfaces the role-based restriction */}
+          <div className="rounded-lg border border-border bg-secondary/20 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+              {isOwner ? (
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+              <span>Allowed to edit hostnames</span>
+              <Badge variant="outline" className="ml-auto text-[10px]">Owner only</Badge>
+            </div>
+            {owners.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">No owners found for this organization.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {owners.map((o) => (
+                  <Badge key={o.user_id} variant="secondary" className="text-[11px] font-normal">
+                    {o.full_name || o.user_id.slice(0, 8)}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            {!isOwner && (
+              <p className="text-[11px] text-muted-foreground">
+                Your role can view hostnames but cannot add, verify, remove, or change the primary. Ask an owner above to make changes.
+              </p>
+            )}
           </div>
+
+          {/* Add new hostname — owner only */}
+          {isOwner && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newHost}
+                onChange={(e) => setNewHost(e.target.value)}
+                placeholder="crm.yourbrand.com"
+                className="h-10 flex-1 rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleAdd();
+                }}
+              />
+              <Button variant="command" onClick={handleAdd} disabled={adding || !newHost.trim()} className="gap-1.5">
+                {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Add
+              </Button>
+            </div>
+          )}
 
           {/* List */}
           {loading ? (
@@ -242,30 +308,32 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                           Pending
                         </Badge>
                       )}
-                      <div className="ml-auto flex gap-1.5">
-                        {verified && !row.is_primary && (
+                      {isOwner && (
+                        <div className="ml-auto flex gap-1.5">
+                          {verified && !row.is_primary && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void handleSetPrimary(row)}
+                              disabled={isBusy}
+                              className="gap-1.5"
+                            >
+                              <Star className="h-3.5 w-3.5" />
+                              Set primary
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => void handleSetPrimary(row)}
+                            onClick={() => void handleRemove(row)}
                             disabled={isBusy}
-                            className="gap-1.5"
+                            className="gap-1.5 text-destructive hover:text-destructive"
                           >
-                            <Star className="h-3.5 w-3.5" />
-                            Set primary
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remove
                           </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void handleRemove(row)}
-                          disabled={isBusy}
-                          className="gap-1.5 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Remove
-                        </Button>
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {!verified && (
@@ -305,10 +373,11 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                           size="sm"
                           className="w-full"
                           onClick={() => void handleVerify(row)}
-                          disabled={isBusy}
+                          disabled={isBusy || !isOwner}
+                          title={!isOwner ? "Only owners can verify hostnames" : undefined}
                         >
                           {isBusy && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                          Verify hostname
+                          {isOwner ? "Verify hostname" : "Verification requires an owner"}
                         </Button>
                       </div>
                     )}
