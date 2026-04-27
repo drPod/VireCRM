@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
-import { Zap, Infinity as InfinityIcon } from "lucide-react";
+import { Zap, Infinity as InfinityIcon, FlaskConical, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import {
+  simulateTierChangeFn,
+  type SimulateTierChangeResponse,
+} from "@/functions/simulate-tier-change.functions";
+import { toast } from "sonner";
 
 interface CreditUsageWidgetProps {
   organizationId?: string;
