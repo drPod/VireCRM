@@ -99,6 +99,10 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
     };
   }, [organizationId]);
 
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<SimulateTierChangeResponse | null>(null);
+  const runSimulate = useAuthedServerFn(simulateTierChangeFn);
+
   if (state.loading) {
     return (
       <div className="rounded-lg border border-border bg-card p-5">
@@ -110,6 +114,26 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
   const remaining = Math.max(state.quota - state.used, 0);
   const pct = state.quota > 0 ? Math.min((state.used / state.quota) * 100, 100) : 0;
   const lowOnCredits = !state.unlimited && state.quota > 0 && remaining / state.quota < 0.15;
+
+  const runTierTest = async (priceKey: string) => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await runSimulate({ data: { price_key: priceKey, restore: true } });
+      setTestResult(res);
+      if (res.passed) {
+        toast.success(
+          `Tier sim OK · ${priceKey} → quota ${res.step.actual.quota}${res.step.actual.unlimited ? " (unlimited)" : ""}`,
+        );
+      } else {
+        toast.error("Tier simulation mismatch — see details");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Simulation failed");
+    } finally {
+      setTesting(false);
+    }
+  };
 
   return (
     <div className="rounded-lg border border-border bg-card p-5">
@@ -180,6 +204,60 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
           </p>
         </>
       )}
+
+      <div className="mt-4 border-t border-border pt-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+            <FlaskConical className="h-3 w-3" /> Tier change simulation
+          </p>
+          {testing && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            { key: "crm_starter_monthly", label: "Starter" },
+            { key: "crm_growth_monthly", label: "Growth" },
+            { key: "crm_pro_monthly", label: "Pro" },
+            { key: "crm_ownership_onetime", label: "Ownership" },
+          ].map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              disabled={testing}
+              onClick={() => runTierTest(t.key)}
+              className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {testResult && (
+          <div
+            className={`mt-2 rounded-md border p-2 text-xs ${
+              testResult.passed
+                ? "border-primary/40 bg-primary/5 text-foreground"
+                : "border-destructive/40 bg-destructive/5 text-destructive"
+            }`}
+          >
+            <div>
+              <strong>{testResult.passed ? "✓ Passed" : "✗ Mismatch"}</strong> —{" "}
+              {testResult.step.price_key}
+            </div>
+            <div className="mt-1 text-muted-foreground">
+              expected quota {testResult.step.expected.quota}
+              {testResult.step.expected.unlimited ? " (∞)" : ""} · got{" "}
+              {testResult.step.actual.quota}
+              {testResult.step.actual.unlimited ? " (∞)" : ""} · plan{" "}
+              {testResult.step.actual.plan}
+            </div>
+            {testResult.restored && (
+              <div className="mt-1 text-muted-foreground">
+                restored to {testResult.restored.actual.plan} (quota{" "}
+                {testResult.restored.actual.quota})
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
