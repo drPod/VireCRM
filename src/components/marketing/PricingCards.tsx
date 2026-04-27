@@ -24,6 +24,8 @@ export interface PricingTier {
   /** Stripe price lookup_key (set in test, automatically synced to live). */
   stripePriceId?: string;
   setupFee?: string;
+  /** Skip the launch promo discount and show the full price as-is. */
+  excludeFromPromo?: boolean;
 }
 
 // CRM tiers (non-white-label — just want the CRM)
@@ -191,6 +193,7 @@ export const whiteLabelTiers: PricingTier[] = [
     description: "Full ownership plus custom features built for your specific business needs and workflows.",
     badge: "Tailored",
     isOwnership: true,
+    excludeFromPromo: true,
     ctaLink: "/contact",
     features: [
       { text: "Everything in Full Ownership", included: true },
@@ -254,7 +257,7 @@ function TierCard({
       <div className="mb-6">
         <h3 className="text-base font-semibold text-foreground">{tier.name}</h3>
         {(() => {
-          const discounted = applyPromoDiscount(displayedPrice);
+          const discounted = tier.excludeFromPromo ? null : applyPromoDiscount(displayedPrice);
           const isCustomQuote = displayedPrice.toLowerCase() === "custom";
           if (discounted) {
             return (
