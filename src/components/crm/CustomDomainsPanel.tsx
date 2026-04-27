@@ -19,6 +19,44 @@ import {
 import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { CustomDomainAuditLog } from "@/components/crm/CustomDomainAuditLog";
+
+// Fire-and-forget audit logger. Failures here must never block the user action,
+// so we just log them to the console for ops.
+async function logEvent(args: {
+  orgId: string;
+  domainId: string | null;
+  hostname: string;
+  eventType:
+    | "added"
+    | "removed"
+    | "set_primary"
+    | "verify_attempt"
+    | "verify_success"
+    | "verify_failed"
+    | "dns_lookup_failed"
+    | "auto_verify_started"
+    | "auto_verify_stopped";
+  status: "info" | "success" | "warning" | "error";
+  message?: string | null;
+  details?: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    // Cast params: generated RPC types treat NULLABLE params as `string` (required)
+    // because the SQL signature doesn't carry NULL info into the typegen.
+    await supabase.rpc("log_custom_domain_event", {
+      p_org_id: args.orgId,
+      p_domain_id: args.domainId,
+      p_hostname: args.hostname,
+      p_event_type: args.eventType,
+      p_status: args.status,
+      p_message: args.message ?? null,
+      p_details: (args.details ?? {}) as never,
+    } as never);
+  } catch (err) {
+    console.warn("[custom-domain audit] failed to log event", err);
+  }
+}
 
 type DomainRow = {
   id: string;
@@ -90,6 +128,9 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [autoState, setAutoState] = useState<Record<string, AutoState>>({});
+  // Bumped after each logged event so the audit log refreshes immediately.
+  const [auditTick, setAuditTick] = useState(0);
+  const bumpAudit = () => setAuditTick((n) => n + 1);
 
   // Track scheduled timers per-row so we can cancel on unmount/row removal.
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -196,9 +237,29 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   // Single attempt: lookup DNS, mark verified server-side on success.
   const runAttempt = async (row: DomainRow): Promise<boolean> => {
     updateAuto(row.id, { status: "checking", lastError: null });
+    if (organizationId) {
+      void logEvent({
+        orgId: organizationId,
+        domainId: row.id,
+        hostname: row.hostname,
+        eventType: "verify_attempt",
+        status: "info",
+        message: `Looking up TXT _vireon.${row.hostname}`,
+      }).then(bumpAudit);
+    }
     const { found, error } = await lookupTxt(row.hostname, row.verification_token);
     if (!found) {
       updateAuto(row.id, { lastError: error ?? "TXT record not visible yet" });
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: error ? "dns_lookup_failed" : "verify_failed",
+          status: error ? "error" : "warning",
+          message: error ?? "TXT record not visible yet",
+        }).then(bumpAudit);
+      }
       return false;
     }
     const { data, error: rpcErr } = await supabase.rpc("mark_custom_domain_verified", {
@@ -206,14 +267,44 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     });
     if (rpcErr) {
       updateAuto(row.id, { lastError: rpcErr.message });
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "verify_failed",
+          status: "error",
+          message: rpcErr.message,
+        }).then(bumpAudit);
+      }
       return false;
     }
     const result = data as { success: boolean; error?: string } | null;
     if (!result?.success) {
       updateAuto(row.id, { lastError: result?.error ?? "Verification failed" });
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "verify_failed",
+          status: "error",
+          message: result?.error ?? "Verification failed",
+        }).then(bumpAudit);
+      }
       return false;
     }
     updateAuto(row.id, { status: "verified", nextCheckAt: null, lastError: null });
+    if (organizationId) {
+      void logEvent({
+        orgId: organizationId,
+        domainId: row.id,
+        hostname: row.hostname,
+        eventType: "verify_success",
+        status: "success",
+        message: `Verified ${row.hostname}`,
+      }).then(bumpAudit);
+    }
     return true;
   };
 
@@ -231,6 +322,17 @@ export function CustomDomainsPanel({ organizationId }: Props) {
       nextCheckAt: Date.now() + RETRY_DELAYS_MS[0],
       lastError: null,
     });
+
+    if (organizationId) {
+      void logEvent({
+        orgId: organizationId,
+        domainId: row.id,
+        hostname: row.hostname,
+        eventType: "auto_verify_started",
+        status: "info",
+        message: `Auto-verification started — up to ${RETRY_DELAYS_MS.length} attempts`,
+      }).then(bumpAudit);
+    }
 
     const attemptAt = (idx: number) => {
       if (cancelledRef.current[row.id]) return;
@@ -251,6 +353,16 @@ export function CustomDomainsPanel({ organizationId }: Props) {
         const nextIdx = idx + 1;
         if (nextIdx >= RETRY_DELAYS_MS.length) {
           updateAuto(row.id, { status: "failed", nextCheckAt: null });
+          if (organizationId) {
+            void logEvent({
+              orgId: organizationId,
+              domainId: row.id,
+              hostname: row.hostname,
+              eventType: "auto_verify_stopped",
+              status: "warning",
+              message: `Stopped after ${RETRY_DELAYS_MS.length} attempts — DNS still not visible`,
+            }).then(bumpAudit);
+          }
           if (!opts?.silent) {
             toast.error(`Couldn't verify ${row.hostname} automatically — DNS still not visible.`);
           }
@@ -293,14 +405,38 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     setAdding(false);
     if (error) {
       toast.error(error.message);
+      void logEvent({
+        orgId: organizationId,
+        domainId: null,
+        hostname: clean,
+        eventType: "added",
+        status: "error",
+        message: error.message,
+      }).then(bumpAudit);
       return;
     }
-    const result = data as { success: boolean; error?: string } | null;
+    const result = data as { success: boolean; error?: string; id?: string } | null;
     if (!result?.success) {
       toast.error(result?.error || "Could not add hostname");
+      void logEvent({
+        orgId: organizationId,
+        domainId: null,
+        hostname: clean,
+        eventType: "added",
+        status: "error",
+        message: result?.error || "Could not add hostname",
+      }).then(bumpAudit);
       return;
     }
     toast.success("Hostname added — we'll keep checking DNS automatically");
+    void logEvent({
+      orgId: organizationId,
+      domainId: result.id ?? null,
+      hostname: clean,
+      eventType: "added",
+      status: "success",
+      message: `Added ${clean}`,
+    }).then(bumpAudit);
     setNewHost("");
     void refresh();
   };
@@ -332,14 +468,44 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     setBusyId(null);
     if (error) {
       toast.error(error.message);
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "set_primary",
+          status: "error",
+          message: error.message,
+        }).then(bumpAudit);
+      }
       return;
     }
     const result = data as { success: boolean; error?: string } | null;
     if (!result?.success) {
       toast.error(result?.error || "Could not set primary");
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "set_primary",
+          status: "error",
+          message: result?.error || "Could not set primary",
+        }).then(bumpAudit);
+      }
       return;
     }
     toast.success(`${row.hostname} is now primary`);
+    if (organizationId) {
+      void logEvent({
+        orgId: organizationId,
+        domainId: row.id,
+        hostname: row.hostname,
+        eventType: "set_primary",
+        status: "success",
+        message: `${row.hostname} promoted to primary`,
+      }).then(bumpAudit);
+    }
     void refresh();
   };
 
@@ -354,14 +520,45 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     setBusyId(null);
     if (error) {
       toast.error(error.message);
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "removed",
+          status: "error",
+          message: error.message,
+        }).then(bumpAudit);
+      }
       return;
     }
     const result = data as { success: boolean; error?: string } | null;
     if (!result?.success) {
       toast.error(result?.error || "Could not remove hostname");
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "removed",
+          status: "error",
+          message: result?.error || "Could not remove hostname",
+        }).then(bumpAudit);
+      }
       return;
     }
     toast.success("Hostname removed");
+    if (organizationId) {
+      // FK is ON DELETE SET NULL so the audit row is preserved without the domain ref.
+      void logEvent({
+        orgId: organizationId,
+        domainId: null,
+        hostname: row.hostname,
+        eventType: "removed",
+        status: "success",
+        message: `Removed ${row.hostname}`,
+      }).then(bumpAudit);
+    }
     void refresh();
   };
 
@@ -629,6 +826,15 @@ export function CustomDomainsPanel({ organizationId }: Props) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+export function CustomDomainsSection({ organizationId }: Props) {
+  return (
+    <div className="space-y-4">
+      <CustomDomainsPanel organizationId={organizationId} />
+      <CustomDomainAuditLog organizationId={organizationId} />
     </div>
   );
 }

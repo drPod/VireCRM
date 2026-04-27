@@ -27,7 +27,7 @@ import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SUPPORTED_FONTS } from "@/lib/white-label-theme";
-import { CustomDomainsPanel } from "@/components/crm/CustomDomainsPanel";
+import { CustomDomainsSection } from "@/components/crm/CustomDomainsPanel";
 
 type OrgWithDomain = {
   is_reseller?: boolean;
@@ -557,7 +557,7 @@ export function WhiteLabelSettings() {
         </div>
 
         {/* Custom Hostnames — primary + aliases, each verified independently */}
-        <CustomDomainsPanel organizationId={organization?.id} />
+        <CustomDomainsSection organizationId={organization?.id} />
 
         {/* Business / Reply-to Email */}
         <div className="rounded-xl border border-border bg-card p-5">
