@@ -60,6 +60,7 @@ export function LeadCard({
   selectable = false,
   selected = false,
   onSelectedChange,
+  onSendEmail,
 }: {
   lead: Lead;
   onClick?: () => void;
@@ -67,8 +68,11 @@ export function LeadCard({
   selectable?: boolean;
   selected?: boolean;
   onSelectedChange?: (next: boolean) => void;
+  /** When provided, renders a quick "Send email" action on the card. */
+  onSendEmail?: (lead: Lead) => void;
 }) {
   const status = statusConfig[lead.status];
+  const canSendEmail = Boolean(onSendEmail && lead.email);
 
   return (
     <div
