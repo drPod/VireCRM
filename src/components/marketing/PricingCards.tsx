@@ -6,6 +6,7 @@ import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor, Key, Info } 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useNavigate } from "@tanstack/react-router";
+import { applyPromoDiscount } from "@/components/marketing/PromoBanner";
 import { getDisplayedPrice } from "@/lib/pricing-overrides";
 
 export interface PricingTier {
@@ -102,6 +103,7 @@ export const crmTiers: PricingTier[] = [
     description: "A fully bespoke CRM — tailored workflows, advanced automations, unique dashboards, and integrations built around your business.",
     badge: "Premium",
     isOwnership: true,
+    excludeFromPromo: true,
     ctaLink: "/contact",
     features: [
       { text: "Fully customized system", included: true },
@@ -171,6 +173,7 @@ export const whiteLabelTiers: PricingTier[] = [
     description: "Own the entire Genesis CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
+    excludeFromPromo: true,
     ctaLink: "/contact",
     features: [
       { text: "White-label branding", included: true },
@@ -192,6 +195,7 @@ export const whiteLabelTiers: PricingTier[] = [
     description: "Full ownership plus custom features built for your specific business needs and workflows.",
     badge: "Tailored",
     isOwnership: true,
+    excludeFromPromo: true,
     ctaLink: "/contact",
     features: [
       { text: "Everything in Full Ownership", included: true },
@@ -254,15 +258,39 @@ function TierCard({
 
       <div className="mb-6">
         <h3 className="text-base font-semibold text-foreground">{tier.name}</h3>
-        <div className="mt-3 flex items-baseline gap-1">
-          <span className="text-3xl font-bold text-foreground">{displayedPrice}</span>
-          <span className="text-xs text-muted-foreground">{tier.period}</span>
-        </div>
-        {overridden && (
-          <div className="mt-1">
-            <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
-          </div>
-        )}
+        {(() => {
+          const discounted = tier.excludeFromPromo ? null : applyPromoDiscount(displayedPrice);
+          if (discounted) {
+            return (
+              <>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-foreground">{discounted}</span>
+                  <span className="text-xs text-muted-foreground">{tier.period}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground line-through">{displayedPrice}</span>
+                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">30% OFF</Badge>
+                  {overridden && (
+                    <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
+                  )}
+                </div>
+              </>
+            );
+          }
+          return (
+            <>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-foreground">{displayedPrice}</span>
+                <span className="text-xs text-muted-foreground">{tier.period}</span>
+              </div>
+              {overridden && (
+                <div className="mt-1">
+                  <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
+                </div>
+              )}
+            </>
+          );
+        })()}
         {tier.setupFee && (
           <p className="mt-1 text-xs font-medium text-primary/80">{tier.setupFee}</p>
         )}
