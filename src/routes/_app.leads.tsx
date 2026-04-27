@@ -264,6 +264,8 @@ function LeadsPage() {
                 ? nameByUserId.get(l.assigned_to) ?? null
                 : list[0]?.full_name ?? null,
               assignees: list,
+              createdBy: (l as { created_by?: string | null }).created_by ?? null,
+              shareCount: shareCountByLead.get(l.id) ?? 0,
             };
           })
         );
