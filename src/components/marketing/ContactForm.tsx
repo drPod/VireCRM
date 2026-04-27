@@ -129,7 +129,7 @@ export function ContactForm() {
           <Input
             id="phone"
             type="tel"
-            placeholder="+1 (555) 000-0000"
+            placeholder="+1 (940) 365-6600"
             value={form.phone}
             onChange={(e) => handleChange("phone", e.target.value)}
             maxLength={50}
