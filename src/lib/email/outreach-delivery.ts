@@ -245,8 +245,17 @@ async function isSuppressed(email: string): Promise<boolean> {
 }
 
 export async function deliverOutreachEmail(
-  input: DeliverOutreachEmailInput,
+  rawInput: DeliverOutreachEmailInput,
 ): Promise<DeliverOutreachEmailResult> {
+  // Normalize: if the org didn't set a logo or reply-to, fall back to the
+  // Genesis brand defaults so every outreach email arrives with a logo in
+  // the header and a real business inbox the recipient can reply to.
+  const input: DeliverOutreachEmailInput = {
+    ...rawInput,
+    logoUrl: toSafeLogoUrl(rawInput.logoUrl) ?? GENESIS_DEFAULT_LOGO_URL,
+    replyTo: toSafeEmail(rawInput.replyTo) ?? GENESIS_DEFAULT_REPLY_TO,
+  };
+
   const attemptedErrors: string[] = [];
 
   if (await isSuppressed(input.recipientEmail)) {
