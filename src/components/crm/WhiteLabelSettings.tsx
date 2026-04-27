@@ -126,11 +126,6 @@ export function WhiteLabelSettings() {
       email_signature: emailSignature.trim() || null,
       support_email: trimmedSupport || null,
     };
-    // Only attempt to write custom_domain when the org actually has the
-    // entitlement — otherwise the DB trigger will reject the whole update.
-    if (customDomainEnabled) {
-      updates.custom_domain = customDomain || null;
-    }
 
     const { error } = await supabase
       .from("organizations")
