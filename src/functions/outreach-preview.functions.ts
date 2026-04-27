@@ -61,8 +61,20 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!org) throw new Error("Organization not found");
-    if (org.ai_tokens_used >= org.ai_tokens_limit) {
-      throw new Error("AI token limit reached. Upgrade your plan for more.");
+
+    // Charge 1 credit for the AI preview generation. Ownership tiers
+    // (`unlimited_credits`) bypass this in the RPC.
+    const aiCredit = await supabaseAdmin.rpc("consume_credit", {
+      p_org_id: data.organizationId,
+      p_count: 1,
+    });
+    const aiCreditPayload = (aiCredit.data ?? {}) as Record<string, unknown>;
+    if (aiCredit.error || aiCreditPayload.ok === false) {
+      throw new Error(
+        aiCreditPayload.error === "credits_exhausted"
+          ? "You've used all your monthly credits. Upgrade your plan or wait for the next billing period."
+          : "Could not verify your credit balance. Please try again.",
+      );
     }
 
     const businessName = org.brand_name || org.name;
