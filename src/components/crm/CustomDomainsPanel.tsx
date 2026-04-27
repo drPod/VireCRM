@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { CustomDomainAuditLog } from "@/components/crm/CustomDomainAuditLog";
+import { DomainHealthPanel } from "@/components/crm/DomainHealthPanel";
 
 // Fire-and-forget audit logger. Failures here must never block the user action,
 // so we just log them to the console for ops.
