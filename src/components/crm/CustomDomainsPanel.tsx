@@ -323,6 +323,17 @@ export function CustomDomainsPanel({ organizationId }: Props) {
       lastError: null,
     });
 
+    if (organizationId) {
+      void logEvent({
+        orgId: organizationId,
+        domainId: row.id,
+        hostname: row.hostname,
+        eventType: "auto_verify_started",
+        status: "info",
+        message: `Auto-verification started — up to ${RETRY_DELAYS_MS.length} attempts`,
+      }).then(bumpAudit);
+    }
+
     const attemptAt = (idx: number) => {
       if (cancelledRef.current[row.id]) return;
       const delay = RETRY_DELAYS_MS[idx] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
@@ -342,6 +353,16 @@ export function CustomDomainsPanel({ organizationId }: Props) {
         const nextIdx = idx + 1;
         if (nextIdx >= RETRY_DELAYS_MS.length) {
           updateAuto(row.id, { status: "failed", nextCheckAt: null });
+          if (organizationId) {
+            void logEvent({
+              orgId: organizationId,
+              domainId: row.id,
+              hostname: row.hostname,
+              eventType: "auto_verify_stopped",
+              status: "warning",
+              message: `Stopped after ${RETRY_DELAYS_MS.length} attempts — DNS still not visible`,
+            }).then(bumpAudit);
+          }
           if (!opts?.silent) {
             toast.error(`Couldn't verify ${row.hostname} automatically — DNS still not visible.`);
           }
