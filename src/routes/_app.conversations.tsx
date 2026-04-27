@@ -183,19 +183,23 @@ function ConversationsPage() {
     let cancelled = false;
     (async () => {
       setLoadingMessages(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("conversation_messages")
         .select("id, direction, sender, body, sent_at")
         .eq("conversation_id", activeId)
         .order("sent_at", { ascending: true })
         .limit(200);
+      if (error) {
+        toast.error("Failed to load messages", { description: error.message });
+      }
       if (!cancelled) {
         setMessages((data || []) as ConversationMessage[]);
-        // Mark as read
-        await supabase
-          .from("conversations")
-          .update({ unread_count: 0 })
-          .eq("id", activeId);
+        // Mark as read (best-effort; ignore if RLS blocks)
+        void supabase.from("conversations").update({ unread_count: 0 }).eq("id", activeId);
+        // Optimistically reflect locally
+        setConversations((prev) =>
+          prev.map((c) => (c.id === activeId ? { ...c, unread_count: 0 } : c)),
+        );
         setLoadingMessages(false);
       }
     })();
