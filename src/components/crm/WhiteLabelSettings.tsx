@@ -557,7 +557,7 @@ export function WhiteLabelSettings() {
         </div>
 
         {/* Custom Hostnames — primary + aliases, each verified independently */}
-        <CustomDomainsPanel organizationId={organization?.id} />
+        <CustomDomainsSection organizationId={organization?.id} />
 
         {/* Business / Reply-to Email */}
         <div className="rounded-xl border border-border bg-card p-5">
