@@ -399,6 +399,7 @@ const ACTION_META: Record<
   update_lead_status: { label: "Lead status", Icon: ArrowRightLeft },
   log_message: { label: "Logged message", Icon: MessageSquare },
   schedule_follow_up: { label: "Follow-up", Icon: CalendarClock },
+  create_lead: { label: "New lead", Icon: UserPlus },
 };
 
 function ExecutionResults({ data }: { data: ExecuteCommandResponse }) {
