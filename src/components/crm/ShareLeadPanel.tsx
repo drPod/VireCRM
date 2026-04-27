@@ -111,7 +111,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
       const { data, error } = await supabase.rpc("share_lead", {
         p_lead_id: leadId,
         p_recipient_user_id: recipientId,
-        p_message: message.trim() || null,
+        p_message: message.trim() || undefined,
       });
       if (error) throw error;
       const result = data as { success: boolean; error?: string };
