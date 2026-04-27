@@ -193,6 +193,7 @@ export const whiteLabelTiers: PricingTier[] = [
     description: "Full ownership plus custom features built for your specific business needs and workflows.",
     badge: "Tailored",
     isOwnership: true,
+    excludeFromPromo: true,
     ctaLink: "/contact",
     features: [
       { text: "Everything in Full Ownership", included: true },
