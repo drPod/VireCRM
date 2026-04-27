@@ -19,6 +19,42 @@ import {
 import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { CustomDomainAuditLog } from "@/components/crm/CustomDomainAuditLog";
+
+// Fire-and-forget audit logger. Failures here must never block the user action,
+// so we just log them to the console for ops.
+async function logEvent(args: {
+  orgId: string;
+  domainId: string | null;
+  hostname: string;
+  eventType:
+    | "added"
+    | "removed"
+    | "set_primary"
+    | "verify_attempt"
+    | "verify_success"
+    | "verify_failed"
+    | "dns_lookup_failed"
+    | "auto_verify_started"
+    | "auto_verify_stopped";
+  status: "info" | "success" | "warning" | "error";
+  message?: string | null;
+  details?: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    await supabase.rpc("log_custom_domain_event", {
+      p_org_id: args.orgId,
+      p_domain_id: args.domainId,
+      p_hostname: args.hostname,
+      p_event_type: args.eventType,
+      p_status: args.status,
+      p_message: args.message ?? null,
+      p_details: (args.details ?? {}) as never,
+    });
+  } catch (err) {
+    console.warn("[custom-domain audit] failed to log event", err);
+  }
+}
 
 type DomainRow = {
   id: string;
