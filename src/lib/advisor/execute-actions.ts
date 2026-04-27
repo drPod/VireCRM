@@ -58,6 +58,16 @@ export interface ScheduleFollowUpAction {
   channel?: "email" | "call" | "meeting" | "task";
   notes?: string;
 }
+export interface CreateLeadAction {
+  type: "create_lead";
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  source?: string;
+  status?: "new" | "contacted" | "qualified" | "negotiation" | "won" | "lost";
+  notes?: string;
+}
 
 export type AgentAction =
   | CreateTaskAction
@@ -68,7 +78,8 @@ export type AgentAction =
   | NoteAction
   | UpdateLeadStatusAction
   | LogMessageAction
-  | ScheduleFollowUpAction;
+  | ScheduleFollowUpAction
+  | CreateLeadAction;
 
 export interface AgentPlan {
   summary: string;
