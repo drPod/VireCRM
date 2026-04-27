@@ -373,10 +373,11 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                           size="sm"
                           className="w-full"
                           onClick={() => void handleVerify(row)}
-                          disabled={isBusy}
+                          disabled={isBusy || !isOwner}
+                          title={!isOwner ? "Only owners can verify hostnames" : undefined}
                         >
                           {isBusy && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                          Verify hostname
+                          {isOwner ? "Verify hostname" : "Verification requires an owner"}
                         </Button>
                       </div>
                     )}
