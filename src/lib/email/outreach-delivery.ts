@@ -8,6 +8,12 @@ import { template as outreachTemplate } from "@/lib/email-templates/outreach-ema
 import { sendResendEmail } from "@/lib/resend";
 import { sendSendgridEmail } from "@/lib/sendgrid";
 
+// Genesis platform defaults — used when an org hasn't configured its own
+// brand assets. Replies are routed to the business inbox so leads can hit
+// "reply" and reach a real person.
+const GENESIS_DEFAULT_REPLY_TO = "Genesis@genesisx.space";
+const GENESIS_DEFAULT_LOGO_URL = "https://genesisx.space/genesis-logo.png";
+
 type ConnectorProvider = "gmail" | "microsoft_outlook";
 
 interface AvailableConnectorChannel {
