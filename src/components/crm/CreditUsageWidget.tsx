@@ -103,6 +103,56 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
   const [testResult, setTestResult] = useState<SimulateTierChangeResponse | null>(null);
   const runSimulate = useAuthedServerFn(simulateTierChangeFn);
 
+  // ----- Audit log -----
+  const [logOpen, setLogOpen] = useState(false);
+  const [logRows, setLogRows] = useState<CreditLogRow[] | null>(null);
+  const [logLoading, setLogLoading] = useState(false);
+  const [actorNames, setActorNames] = useState<Record<string, string>>({});
+
+  const loadLog = useCallback(async () => {
+    if (!organizationId) return;
+    setLogLoading(true);
+    const { data, error } = await supabase
+      .from("credit_usage_log")
+      .select(
+        "id, user_id, action, command_id, lead_id, credits_charged, credits_before, credits_after, quota, unlimited, status, metadata, created_at",
+      )
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(25);
+
+    if (error) {
+      toast.error("Could not load credit usage log");
+      setLogLoading(false);
+      return;
+    }
+
+    const rows = (data ?? []) as CreditLogRow[];
+    setLogRows(rows);
+
+    const userIds = Array.from(
+      new Set(rows.map((r) => r.user_id).filter((v): v is string => !!v && !(v in actorNames))),
+    );
+    if (userIds.length) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      if (profiles) {
+        setActorNames((prev) => {
+          const next = { ...prev };
+          for (const p of profiles) next[p.user_id] = p.full_name ?? "Member";
+          return next;
+        });
+      }
+    }
+    setLogLoading(false);
+  }, [organizationId, actorNames]);
+
+  useEffect(() => {
+    if (logOpen && logRows === null) loadLog();
+  }, [logOpen, logRows, loadLog]);
+
   if (state.loading) {
     return (
       <div className="rounded-lg border border-border bg-card p-5">
