@@ -19,6 +19,7 @@ import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.f
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
 import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
+import { ShareLeadPanel } from "./ShareLeadPanel";
 import { AssigneeAvatars } from "./AssigneeAvatars";
 import { LeadInvoicesPanel } from "./LeadInvoicesPanel";
 import type { Lead } from "./LeadCard";
@@ -935,6 +936,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 <p className="text-xs italic text-muted-foreground">Unassigned</p>
               )}
             </div>
+
+            {lead && (
+              <ShareLeadPanel
+                leadId={lead.id}
+                createdBy={lead.createdBy ?? null}
+                assignedTo={lead.assignedTo ?? null}
+              />
+            )}
 
             <div
               className={`rounded-lg border p-3 space-y-3 ${

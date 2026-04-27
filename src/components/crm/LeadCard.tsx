@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users } from "lucide-react";
+import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users, Share2 } from "lucide-react";
 import { AssigneeAvatars, type AssigneeLite } from "./AssigneeAvatars";
 
 export interface Lead {
@@ -21,10 +21,14 @@ export interface Lead {
   currentSupplier?: string | null;
   /** UUID of the org member this lead is primarily assigned to (legacy). */
   assignedTo?: string | null;
+  /** UUID of the employee who created the lead (lead "owner" for sharing). */
+  createdBy?: string | null;
   /** Display name of the primary assignee (resolved from profiles). */
   assigneeName?: string | null;
   /** All assignees (multi-assign join table). Includes the primary one. */
   assignees?: AssigneeLite[];
+  /** Number of teammates this lead is currently shared with. */
+  shareCount?: number;
 }
 
 const statusConfig: Record<Lead["status"], { label: string; variant: "default" | "secondary" | "success" | "warning" | "info" | "destructive" }> = {
@@ -158,6 +162,14 @@ export function LeadCard({
           }
           return null;
         })()}
+        {typeof lead.shareCount === "number" && lead.shareCount > 0 && (
+          <div className="flex items-center gap-2 text-xs text-primary/80">
+            <Share2 className="h-3 w-3" />
+            <span>
+              Shared with {lead.shareCount} teammate{lead.shareCount === 1 ? "" : "s"}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="mt-3 flex items-center justify-between">

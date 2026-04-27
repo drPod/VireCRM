@@ -24,7 +24,7 @@ export function AddLeadDialog({
   onOpenChange: controlledOnOpenChange,
   hideTrigger,
 }: AddLeadDialogProps) {
-  const { organization } = useAuth();
+  const { organization, user } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -85,6 +85,7 @@ export function AddLeadDialog({
     try {
       const { error, data: inserted } = await supabase.from("leads").insert({
         organization_id: organization.id,
+        created_by: user?.id ?? null,
         name: form.name.trim(),
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,

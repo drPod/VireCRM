@@ -1212,6 +1212,44 @@ export type Database = {
           },
         ]
       }
+      lead_shares: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          message: string | null
+          organization_id: string
+          shared_by_user_id: string
+          shared_with_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          message?: string | null
+          organization_id: string
+          shared_by_user_id: string
+          shared_with_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          message?: string | null
+          organization_id?: string
+          shared_by_user_id?: string
+          shared_with_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_shares_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_sync_log: {
         Row: {
           created_at: string
@@ -1281,6 +1319,7 @@ export type Database = {
           company: string | null
           contract_end_date: string | null
           created_at: string
+          created_by: string | null
           current_supplier: string | null
           deal_currency: string
           deal_value_cents: number | null
@@ -1305,6 +1344,7 @@ export type Database = {
           company?: string | null
           contract_end_date?: string | null
           created_at?: string
+          created_by?: string | null
           current_supplier?: string | null
           deal_currency?: string
           deal_value_cents?: number | null
@@ -1329,6 +1369,7 @@ export type Database = {
           company?: string | null
           contract_end_date?: string | null
           created_at?: string
+          created_by?: string | null
           current_supplier?: string | null
           deal_currency?: string
           deal_value_cents?: number | null
@@ -3018,8 +3059,20 @@ export type Database = {
         Args: { p_domain_id: string }
         Returns: Json
       }
+      share_lead: {
+        Args: {
+          p_lead_id: string
+          p_message?: string
+          p_recipient_user_id: string
+        }
+        Returns: Json
+      }
       signup_under_reseller: {
         Args: { p_company_name: string; p_reseller_slug: string }
+        Returns: Json
+      }
+      unshare_lead: {
+        Args: { p_lead_id: string; p_recipient_user_id: string }
         Returns: Json
       }
       update_member_role: {
@@ -3031,6 +3084,10 @@ export type Database = {
       }
       user_belongs_to_org: {
         Args: { p_org_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      user_can_access_lead: {
+        Args: { p_lead_id: string; p_user_id: string }
         Returns: boolean
       }
       user_has_permission: {
