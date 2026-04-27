@@ -217,7 +217,7 @@ export async function runAdvisorActions({
               due_date: dueDateFromDays(action.due_in_days),
               lead_id: lead?.id ?? null,
               assigned_to: userId,
-              status: "pending",
+              status: "todo",
             })
             .select("id")
             .single();
