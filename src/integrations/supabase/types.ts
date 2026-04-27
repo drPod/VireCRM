@@ -777,6 +777,60 @@ export type Database = {
           },
         ]
       }
+      custom_domain_audit_log: {
+        Row: {
+          created_at: string
+          details: Json
+          domain_id: string | null
+          event_type: string
+          hostname: string
+          id: string
+          message: string | null
+          organization_id: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          domain_id?: string | null
+          event_type: string
+          hostname: string
+          id?: string
+          message?: string | null
+          organization_id: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          domain_id?: string | null
+          event_type?: string
+          hostname?: string
+          id?: string
+          message?: string | null
+          organization_id?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_domain_audit_log_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "org_custom_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_domain_audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_roles: {
         Row: {
           base_role: Database["public"]["Enums"]["app_role"]
@@ -2910,6 +2964,18 @@ export type Database = {
           plan_id: string
           slug: string
         }[]
+      }
+      log_custom_domain_event: {
+        Args: {
+          p_details: Json
+          p_domain_id: string
+          p_event_type: string
+          p_hostname: string
+          p_message: string
+          p_org_id: string
+          p_status: string
+        }
+        Returns: string
       }
       mark_custom_domain_verified: {
         Args: { p_domain_id: string }
