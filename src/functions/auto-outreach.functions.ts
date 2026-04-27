@@ -127,6 +127,21 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       }
     }
 
+    // ----- Pre-flight credit check: 1 credit for the AI generation call.
+    // Ownership / one-time tiers (`unlimited_credits = true`) bypass this.
+    const aiCredit = await supabaseAdmin.rpc("consume_credit", {
+      p_org_id: data.organizationId,
+      p_count: 1,
+    });
+    const aiCreditPayload = (aiCredit.data ?? {}) as Record<string, unknown>;
+    if (aiCredit.error || aiCreditPayload.ok === false) {
+      throw new Error(
+        aiCreditPayload.error === "credits_exhausted"
+          ? "You've used all your monthly credits. Upgrade your plan or wait for the next billing period."
+          : "Could not verify your credit balance. Please try again.",
+      );
+    }
+
     // ----- 1. Generate copy in one AI call (cheaper + more consistent voice) -----
     const result = await callAiWithFallback<{ emails?: GeneratedEmail[] }>({
       featureLabel: "Auto-outreach",
