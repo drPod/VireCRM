@@ -257,7 +257,7 @@ function TierCard({
       <div className="mb-6">
         <h3 className="text-base font-semibold text-foreground">{tier.name}</h3>
         {(() => {
-          const discounted = applyPromoDiscount(displayedPrice);
+          const discounted = tier.excludeFromPromo ? null : applyPromoDiscount(displayedPrice);
           const isCustomQuote = displayedPrice.toLowerCase() === "custom";
           if (discounted) {
             return (
