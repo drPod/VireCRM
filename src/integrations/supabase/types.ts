@@ -777,6 +777,65 @@ export type Database = {
           },
         ]
       }
+      credit_usage_log: {
+        Row: {
+          action: string
+          command_id: string | null
+          created_at: string
+          credits_after: number | null
+          credits_before: number | null
+          credits_charged: number
+          id: string
+          lead_id: string | null
+          metadata: Json
+          organization_id: string
+          quota: number | null
+          status: string
+          unlimited: boolean
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          command_id?: string | null
+          created_at?: string
+          credits_after?: number | null
+          credits_before?: number | null
+          credits_charged?: number
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          organization_id: string
+          quota?: number | null
+          status?: string
+          unlimited?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          command_id?: string | null
+          created_at?: string
+          credits_after?: number | null
+          credits_before?: number | null
+          credits_charged?: number
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          organization_id?: string
+          quota?: number | null
+          status?: string
+          unlimited?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_usage_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_domain_audit_log: {
         Row: {
           created_at: string
@@ -2952,10 +3011,20 @@ export type Database = {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json
       }
-      consume_credit: {
-        Args: { p_count?: number; p_org_id: string }
-        Returns: Json
-      }
+      consume_credit:
+        | { Args: { p_count?: number; p_org_id: string }; Returns: Json }
+        | {
+            Args: {
+              p_action?: string
+              p_command_id?: string
+              p_count?: number
+              p_lead_id?: string
+              p_metadata?: Json
+              p_org_id: string
+              p_user_id?: string
+            }
+            Returns: Json
+          }
       consume_platform_lead_quota: {
         Args: { p_count?: number; p_org_id: string }
         Returns: Json
