@@ -217,6 +217,21 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
           throw new Error(insertErr?.message || "Failed to save message");
         }
 
+        // Charge 1 credit per email send. If exhausted mid-batch, mark this
+        // message as failed and stop the loop so the user gets a clean error
+        // instead of silently dropping later leads.
+        const sendCredit = await supabaseAdmin.rpc("consume_credit", {
+          p_org_id: data.organizationId,
+          p_count: 1,
+        });
+        const sendCreditPayload = (sendCredit.data ?? {}) as Record<string, unknown>;
+        if (sendCredit.error || sendCreditPayload.ok === false) {
+          await supabase.from("messages").update({ status: "failed" }).eq("id", inserted.id);
+          skipped++;
+          errors.push(`${lead.name}: out of monthly credits — upgrade to keep sending`);
+          break;
+        }
+
         const dispatch = await deliverOutreachEmail({
           recipientEmail: lead.email,
           subject: email.subject,
