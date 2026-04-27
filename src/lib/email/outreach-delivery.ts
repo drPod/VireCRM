@@ -1,7 +1,10 @@
+import { renderAsync } from "@react-email/render";
+import { createElement } from "react";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getConnector } from "@/lib/connectors/catalog";
 import { callGateway } from "@/lib/connectors/gateway";
 import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
+import { template as outreachTemplate } from "@/lib/email-templates/outreach-email";
 import { sendResendEmail } from "@/lib/resend";
 import { sendSendgridEmail } from "@/lib/sendgrid";
 
