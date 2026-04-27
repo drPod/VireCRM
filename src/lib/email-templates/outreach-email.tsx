@@ -59,23 +59,27 @@ const OutreachEmail = ({
     <Html lang="en" dir="ltr">
       <Head />
       <Preview>{paragraphs[0]?.slice(0, 90) || `A note from ${fromBrand}`}</Preview>
-      <Body style={{ backgroundColor: '#ffffff', fontFamily: fontStack }}>
-        <Container style={container}>
+      <Body style={{ backgroundColor: '#f6f8fb', fontFamily: fontStack, margin: 0, padding: '24px 0' }}>
+        <Container style={card}>
           {logoUrl ? (
-            <Img
-              src={logoUrl}
-              alt={fromBrand}
-              height="32"
-              style={{ marginBottom: '20px', objectFit: 'contain' }}
-            />
-          ) : null}
+            <div style={logoWrap}>
+              <Img
+                src={logoUrl}
+                alt={fromBrand}
+                height="40"
+                style={{ maxHeight: '40px', objectFit: 'contain' }}
+              />
+            </div>
+          ) : (
+            <div style={{ ...logoWrap, ...brandWordmark, color: accent }}>{fromBrand}</div>
+          )}
+          <div style={{ borderTop: `3px solid ${accent}`, width: '48px', margin: '4px 0 22px' }} />
           {paragraphs.map((p, i) => (
             <Text key={i} style={text}>
               {p}
             </Text>
           ))}
-          <div style={{ borderTop: `2px solid ${accent}`, width: '40px', margin: '24px 0 16px' }} />
-          <Text style={footer}>{signOff}</Text>
+          <Text style={signOffStyle}>{signOff}</Text>
           {signature
             ? signature
                 .split(/\n/)
@@ -86,6 +90,11 @@ const OutreachEmail = ({
                   </Text>
                 ))
             : null}
+          <div style={divider} />
+          <Text style={legalFooter}>
+            You received this email because {fromBrand} is reaching out about a potential fit.
+            If this isn't relevant, just reply and let us know — a real person will read it.
+          </Text>
         </Container>
       </Body>
     </Html>
@@ -110,22 +119,45 @@ export const template = {
   },
 } satisfies TemplateEntry
 
-const container = { padding: '32px 24px', maxWidth: '560px' }
+const card = {
+  padding: '36px 32px',
+  maxWidth: '600px',
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  margin: '0 auto',
+  border: '1px solid #e5e9f0',
+}
+const logoWrap = { marginBottom: '14px' }
+const brandWordmark = {
+  fontSize: '20px',
+  fontWeight: 700,
+  letterSpacing: '-0.01em',
+}
 const text = {
-  fontSize: '14px',
+  fontSize: '15px',
   color: '#0b0f1c',
-  lineHeight: '1.65',
+  lineHeight: '1.7',
   margin: '0 0 14px',
 }
-const footer = {
-  fontSize: '13px',
-  color: '#64748b',
-  margin: '0 0 4px',
+const signOffStyle = {
+  fontSize: '14px',
+  color: '#0b0f1c',
+  margin: '24px 0 4px',
   lineHeight: '1.5',
 }
 const signatureLine = {
-  fontSize: '12px',
-  color: '#94a3b8',
+  fontSize: '13px',
+  color: '#64748b',
   margin: '0 0 2px',
   lineHeight: '1.5',
+}
+const divider = {
+  borderTop: '1px solid #e5e9f0',
+  margin: '28px 0 16px',
+}
+const legalFooter = {
+  fontSize: '11px',
+  color: '#94a3b8',
+  lineHeight: '1.5',
+  margin: 0,
 }
