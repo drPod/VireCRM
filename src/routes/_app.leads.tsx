@@ -607,6 +607,18 @@ function LeadsPage() {
               selectable={isOwner}
               selected={selectedLeadIds.includes(lead.id)}
               onSelectedChange={(next) => toggleLeadSelected(lead.id, next)}
+              onSendEmail={
+                isOwner
+                  ? (l) => {
+                      if (!l.email) {
+                        toast.info("This lead has no email address.");
+                        return;
+                      }
+                      setOutreachLead(l);
+                      setOutreachOpen(true);
+                    }
+                  : undefined
+              }
               onClick={() => {
                 // Per org policy, only the owner can open the full lead
                 // detail drawer. Reps and managers see the card data only.
