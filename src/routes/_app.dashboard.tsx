@@ -24,6 +24,7 @@ import {
   BarChart3,
   ArrowRightLeft,
   CalendarClock,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandBar } from "@/components/crm/CommandBar";
