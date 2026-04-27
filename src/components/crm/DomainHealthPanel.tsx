@@ -313,6 +313,11 @@ export function DomainHealthPanel({ organizationId }: Props) {
           ))}
         </div>
       )}
+
+      <RedirectGuideDialog
+        result={redirectGuide}
+        onClose={() => setRedirectGuide(null)}
+      />
     </div>
   );
 }
