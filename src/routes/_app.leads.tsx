@@ -5,6 +5,7 @@ import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
 import { AutoFindLeadsDialog } from "@/components/crm/AutoFindLeadsDialog";
 import { ImportApolloListDialog } from "@/components/crm/ImportApolloListDialog";
 import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
+import { OutreachPreviewDialog } from "@/components/crm/OutreachPreviewDialog";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
 import { AssigneeMultiSelect, type AssigneeOption } from "@/components/crm/AssigneeMultiSelect";
 import { Button } from "@/components/ui/button";
