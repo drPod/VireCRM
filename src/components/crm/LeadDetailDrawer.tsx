@@ -937,6 +937,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
               )}
             </div>
 
+            {lead && (
+              <ShareLeadPanel
+                leadId={lead.id}
+                createdBy={lead.createdBy ?? null}
+                assignedTo={lead.assignedTo ?? null}
+              />
+            )}
+
             <div
               className={`rounded-lg border p-3 space-y-3 ${
                 form.status === "won"
