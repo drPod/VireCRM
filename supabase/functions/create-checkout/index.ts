@@ -35,19 +35,6 @@ serve(async (req) => {
     const env = (environment || "sandbox") as StripeEnv;
     const stripe = createStripeClient(env);
 
-    // Ensure the launch promo coupon exists (30% off, forever for subscriptions).
-    const PROMO_COUPON_ID = "launch30";
-    try {
-      await stripe.coupons.retrieve(PROMO_COUPON_ID);
-    } catch {
-      await stripe.coupons.create({
-        id: PROMO_COUPON_ID,
-        percent_off: 30,
-        duration: "forever",
-        name: "Launch promo — 30% off",
-      });
-    }
-
     const prices = await stripe.prices.list({ lookup_keys: [priceId] });
     if (!prices.data.length) {
       return new Response(JSON.stringify({ error: "Price not found" }), {
@@ -67,7 +54,6 @@ serve(async (req) => {
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded",
-      discounts: [{ coupon: PROMO_COUPON_ID }],
       return_url:
         returnUrl ||
         `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
