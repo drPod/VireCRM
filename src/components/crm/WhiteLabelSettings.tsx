@@ -27,7 +27,7 @@ import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SUPPORTED_FONTS } from "@/lib/white-label-theme";
-import { CustomDomainsPanel } from "@/components/crm/CustomDomainsPanel";
+import { CustomDomainsSection } from "@/components/crm/CustomDomainsPanel";
 
 type OrgWithDomain = {
   is_reseller?: boolean;
