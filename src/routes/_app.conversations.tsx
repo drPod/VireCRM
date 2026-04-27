@@ -21,6 +21,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
@@ -94,6 +110,13 @@ function ConversationsPage() {
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread" | Channel>("all");
   const [search, setSearch] = useState("");
+  const [newOpen, setNewOpen] = useState(false);
+  const [leadOptions, setLeadOptions] = useState<{ id: string; name: string }[]>([]);
+  const [newLeadId, setNewLeadId] = useState<string>("");
+  const [newChannel, setNewChannel] = useState<Channel>("email");
+  const [newSubject, setNewSubject] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [creating, setCreating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
@@ -160,19 +183,23 @@ function ConversationsPage() {
     let cancelled = false;
     (async () => {
       setLoadingMessages(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("conversation_messages")
         .select("id, direction, sender, body, sent_at")
         .eq("conversation_id", activeId)
         .order("sent_at", { ascending: true })
         .limit(200);
+      if (error) {
+        toast.error("Failed to load messages", { description: error.message });
+      }
       if (!cancelled) {
         setMessages((data || []) as ConversationMessage[]);
-        // Mark as read
-        await supabase
-          .from("conversations")
-          .update({ unread_count: 0 })
-          .eq("id", activeId);
+        // Mark as read (best-effort; ignore if RLS blocks)
+        void supabase.from("conversations").update({ unread_count: 0 }).eq("id", activeId);
+        // Optimistically reflect locally
+        setConversations((prev) =>
+          prev.map((c) => (c.id === activeId ? { ...c, unread_count: 0 } : c)),
+        );
         setLoadingMessages(false);
       }
     })();
@@ -211,17 +238,27 @@ function ConversationsPage() {
     setSending(true);
     const body = draft.trim();
     setDraft("");
-    const { error } = await supabase.from("conversation_messages").insert({
-      conversation_id: active.id,
-      organization_id: organization.id,
-      direction: "outbound",
-      sender: user?.email || "You",
-      body,
-    });
+    const { data: inserted, error } = await supabase
+      .from("conversation_messages")
+      .insert({
+        conversation_id: active.id,
+        organization_id: organization.id,
+        direction: "outbound",
+        sender: user?.email || "You",
+        body,
+      })
+      .select("id, direction, sender, body, sent_at")
+      .single();
     if (error) {
-      toast.error("Failed to send");
+      toast.error("Failed to send", { description: error.message });
       setDraft(body);
     } else {
+      // Optimistic append (realtime may also deliver — dedupe by id)
+      if (inserted) {
+        setMessages((prev) =>
+          prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted as ConversationMessage],
+        );
+      }
       await supabase
         .from("conversations")
         .update({
@@ -235,8 +272,73 @@ function ConversationsPage() {
 
   const closeConversation = async () => {
     if (!active) return;
-    await supabase.from("conversations").update({ status: "closed" }).eq("id", active.id);
+    const { error } = await supabase
+      .from("conversations")
+      .update({ status: "closed" })
+      .eq("id", active.id);
+    if (error) {
+      toast.error("Failed to close", { description: error.message });
+      return;
+    }
     toast.success("Conversation closed");
+  };
+
+  const openNewDialog = async () => {
+    if (!organization?.id) return;
+    setNewOpen(true);
+    setNewBody("");
+    setNewSubject("");
+    setNewLeadId("");
+    const { data } = await supabase
+      .from("leads")
+      .select("id, name")
+      .eq("organization_id", organization.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setLeadOptions((data || []) as { id: string; name: string }[]);
+  };
+
+  const createConversation = async () => {
+    if (!organization?.id || !newLeadId || !newBody.trim()) {
+      toast.error("Pick a lead and write a message");
+      return;
+    }
+    setCreating(true);
+    const preview = newBody.trim().slice(0, 120);
+    const { data: conv, error: convErr } = await supabase
+      .from("conversations")
+      .insert({
+        organization_id: organization.id,
+        lead_id: newLeadId,
+        channel: newChannel,
+        subject: newSubject.trim() || null,
+        status: "open",
+        last_message_preview: preview,
+        last_message_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (convErr || !conv) {
+      toast.error("Failed to create conversation", { description: convErr?.message });
+      setCreating(false);
+      return;
+    }
+    const { error: msgErr } = await supabase.from("conversation_messages").insert({
+      conversation_id: conv.id,
+      organization_id: organization.id,
+      direction: "outbound",
+      sender: user?.email || "You",
+      body: newBody.trim(),
+    });
+    if (msgErr) {
+      toast.error("Conversation created but message failed", { description: msgErr.message });
+    } else {
+      toast.success("Conversation started");
+    }
+    setCreating(false);
+    setNewOpen(false);
+    setActiveId(conv.id);
+    void refresh();
   };
 
   const stats = useMemo(() => {
@@ -259,7 +361,7 @@ function ConversationsPage() {
           <Button variant="outline" size="sm">
             <Sparkles className="h-3.5 w-3.5" /> AI suggest reply
           </Button>
-          <Button variant="command" size="sm">
+          <Button variant="command" size="sm" onClick={openNewDialog}>
             <Plus className="h-3.5 w-3.5" /> New
           </Button>
         </div>
@@ -517,6 +619,82 @@ function ConversationsPage() {
           )}
         </div>
       </div>
+
+      {/* New conversation dialog */}
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New conversation</DialogTitle>
+            <DialogDescription>
+              Start a thread with one of your leads on any channel.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Lead</Label>
+              <Select value={newLeadId} onValueChange={setNewLeadId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={leadOptions.length ? "Pick a lead" : "No leads found"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {leadOptions.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Channel</Label>
+              <Select value={newChannel} onValueChange={(v) => setNewChannel(v as Channel)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(CHANNEL_META) as Channel[]).map((ch) => (
+                    <SelectItem key={ch} value={ch}>
+                      {CHANNEL_META[ch].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {newChannel === "email" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Subject (optional)</Label>
+                <Input
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  placeholder="Quick question…"
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Message</Label>
+              <Textarea
+                value={newBody}
+                onChange={(e) => setNewBody(e.target.value)}
+                placeholder="Write your first message…"
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNewOpen(false)} disabled={creating}>
+              Cancel
+            </Button>
+            <Button
+              variant="command"
+              onClick={createConversation}
+              disabled={creating || !newLeadId || !newBody.trim()}
+            >
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Start conversation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
