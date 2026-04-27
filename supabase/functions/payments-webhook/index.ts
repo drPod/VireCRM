@@ -258,6 +258,30 @@ async function upsertSubscription(subscription: any, env: StripeEnv) {
     },
     { onConflict: "stripe_subscription_id" },
   );
+
+  // Sync the org's credit allowance to match this subscription's tier.
+  // Custom CRM / Full Ownership lookup keys map to unlimited; standard
+  // tiers map to their monthly credit quota. No-op on cancel/past_due.
+  if (
+    priceId &&
+    (subscription.status === "active" || subscription.status === "trialing")
+  ) {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profile?.organization_id) {
+        await supabase.rpc("apply_credit_plan", {
+          p_org_id: profile.organization_id,
+          p_price_key: priceId,
+        });
+      }
+    } catch (e) {
+      console.error("[credit-plan] failed to sync org credit allowance", e);
+    }
+  }
 }
 
 async function markSubscriptionDeleted(subscription: any, env: StripeEnv) {
