@@ -259,6 +259,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       replyTo,
       idempotencyKey: `outreach-${inserted.id}`,
       channels,
+      organizationId: data.organizationId,
       logoUrl: (org as any).logo_url ?? null,
       accentColor: (org as any).primary_color ?? null,
       fontFamily: (org as any).font_family ?? null,

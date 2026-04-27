@@ -240,6 +240,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
           replyTo: businessReplyTo ?? undefined,
           idempotencyKey: `outreach-${inserted.id}`,
           channels: deliveryChannels,
+          organizationId: data.organizationId,
           logoUrl: (org as any).logo_url ?? null,
           accentColor: (org as any).primary_color ?? null,
           fontFamily: (org as any).font_family ?? null,
