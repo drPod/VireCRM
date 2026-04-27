@@ -32,6 +32,7 @@ import { MetricCard } from "@/components/crm/MetricCard";
 import { ActivityFeed } from "@/components/crm/ActivityFeed";
 import { PipelineView } from "@/components/crm/PipelineView";
 import { WonDealsWidget } from "@/components/crm/WonDealsWidget";
+import { CreditUsageWidget } from "@/components/crm/CreditUsageWidget";
 import { TaskStatusPanel, type TaskStatusItem } from "@/components/crm/TaskStatusPanel";
 import { AdvisorAuditLog } from "@/components/crm/AdvisorAuditLog";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
@@ -369,7 +370,10 @@ function Dashboard() {
         />
       </div>
 
-      <WonDealsWidget organizationId={organization?.id} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <CreditUsageWidget organizationId={organization?.id} />
+        <WonDealsWidget organizationId={organization?.id} />
+      </div>
 
       <div>
         <div className="mb-4 flex items-center gap-2">
