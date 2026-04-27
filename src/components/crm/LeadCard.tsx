@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users, Share2 } from "lucide-react";
+import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users, Share2, Send } from "lucide-react";
 import { AssigneeAvatars, type AssigneeLite } from "./AssigneeAvatars";
 
 export interface Lead {
@@ -59,6 +60,7 @@ export function LeadCard({
   selectable = false,
   selected = false,
   onSelectedChange,
+  onSendEmail,
 }: {
   lead: Lead;
   onClick?: () => void;
@@ -66,8 +68,11 @@ export function LeadCard({
   selectable?: boolean;
   selected?: boolean;
   onSelectedChange?: (next: boolean) => void;
+  /** When provided, renders a quick "Send email" action on the card. */
+  onSendEmail?: (lead: Lead) => void;
 }) {
   const status = statusConfig[lead.status];
+  const canSendEmail = Boolean(onSendEmail && lead.email);
 
   return (
     <div
@@ -172,9 +177,27 @@ export function LeadCard({
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">Lead Score</span>
-        <ScoreBar score={lead.score} />
+        <div className="flex items-center gap-2">
+          <ScoreBar score={lead.score} />
+          {canSendEmail && (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="h-7 px-2 text-xs gap-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSendEmail?.(lead);
+              }}
+              aria-label={`Send email to ${lead.name}`}
+            >
+              <Send className="h-3 w-3" />
+              Send email
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

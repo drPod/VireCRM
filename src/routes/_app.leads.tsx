@@ -5,6 +5,7 @@ import { ImportLeadsDialog } from "@/components/crm/ImportLeadsDialog";
 import { AutoFindLeadsDialog } from "@/components/crm/AutoFindLeadsDialog";
 import { ImportApolloListDialog } from "@/components/crm/ImportApolloListDialog";
 import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
+import { OutreachPreviewDialog } from "@/components/crm/OutreachPreviewDialog";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
 import { AssigneeMultiSelect, type AssigneeOption } from "@/components/crm/AssigneeMultiSelect";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,10 @@ function LeadsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Lead picked for the inline "Send email" action — separate from the
+  // detail drawer so opening the email composer doesn't open the drawer too.
+  const [outreachLead, setOutreachLead] = useState<Lead | null>(null);
+  const [outreachOpen, setOutreachOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [autoFindOpen, setAutoFindOpen] = useState(false);
@@ -602,6 +607,18 @@ function LeadsPage() {
               selectable={isOwner}
               selected={selectedLeadIds.includes(lead.id)}
               onSelectedChange={(next) => toggleLeadSelected(lead.id, next)}
+              onSendEmail={
+                isOwner
+                  ? (l) => {
+                      if (!l.email) {
+                        toast.info("This lead has no email address.");
+                        return;
+                      }
+                      setOutreachLead(l);
+                      setOutreachOpen(true);
+                    }
+                  : undefined
+              }
               onClick={() => {
                 // Per org policy, only the owner can open the full lead
                 // detail drawer. Reps and managers see the card data only.
@@ -628,6 +645,27 @@ function LeadsPage() {
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
           onUpdated={handleLeadAdded}
+        />
+      )}
+
+      {isOwner && outreachLead && (
+        <OutreachPreviewDialog
+          open={outreachOpen}
+          onOpenChange={(next) => {
+            setOutreachOpen(next);
+            if (!next) setOutreachLead(null);
+          }}
+          lead={{
+            id: outreachLead.id,
+            name: outreachLead.name,
+            email: outreachLead.email,
+            company: outreachLead.company ?? null,
+          }}
+          onSent={() => {
+            setOutreachOpen(false);
+            setOutreachLead(null);
+            handleLeadAdded();
+          }}
         />
       )}
 
