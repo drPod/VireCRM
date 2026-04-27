@@ -8,6 +8,12 @@ import { template as outreachTemplate } from "@/lib/email-templates/outreach-ema
 import { sendResendEmail } from "@/lib/resend";
 import { sendSendgridEmail } from "@/lib/sendgrid";
 
+// Genesis platform defaults — used when an org hasn't configured its own
+// brand assets. Replies are routed to the business inbox so leads can hit
+// "reply" and reach a real person.
+const GENESIS_DEFAULT_REPLY_TO = "Genesis@genesisx.space";
+const GENESIS_DEFAULT_LOGO_URL = "https://genesisx.space/genesis-logo.png";
+
 type ConnectorProvider = "gmail" | "microsoft_outlook";
 
 interface AvailableConnectorChannel {
@@ -157,6 +163,14 @@ function toSafeEmail(value: unknown): string | null {
     : null;
 }
 
+function toSafeLogoUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  // Only accept https URLs — email clients block http and protocol-relative.
+  return /^https:\/\/[^\s<>"']+$/i.test(trimmed) ? trimmed : null;
+}
+
 export async function loadOutreachDeliveryChannels(
   organizationId: string,
 ): Promise<OutreachDeliveryChannels> {
@@ -239,8 +253,17 @@ async function isSuppressed(email: string): Promise<boolean> {
 }
 
 export async function deliverOutreachEmail(
-  input: DeliverOutreachEmailInput,
+  rawInput: DeliverOutreachEmailInput,
 ): Promise<DeliverOutreachEmailResult> {
+  // Normalize: if the org didn't set a logo or reply-to, fall back to the
+  // Genesis brand defaults so every outreach email arrives with a logo in
+  // the header and a real business inbox the recipient can reply to.
+  const input: DeliverOutreachEmailInput = {
+    ...rawInput,
+    logoUrl: toSafeLogoUrl(rawInput.logoUrl) ?? GENESIS_DEFAULT_LOGO_URL,
+    replyTo: toSafeEmail(rawInput.replyTo) ?? GENESIS_DEFAULT_REPLY_TO,
+  };
+
   const attemptedErrors: string[] = [];
 
   if (await isSuppressed(input.recipientEmail)) {

@@ -127,6 +127,21 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       }
     }
 
+    // ----- Pre-flight credit check: 1 credit for the AI generation call.
+    // Ownership / one-time tiers (`unlimited_credits = true`) bypass this.
+    const aiCredit = await supabaseAdmin.rpc("consume_credit", {
+      p_org_id: data.organizationId,
+      p_count: 1,
+    });
+    const aiCreditPayload = (aiCredit.data ?? {}) as Record<string, unknown>;
+    if (aiCredit.error || aiCreditPayload.ok === false) {
+      throw new Error(
+        aiCreditPayload.error === "credits_exhausted"
+          ? "You've used all your monthly credits. Upgrade your plan or wait for the next billing period."
+          : "Could not verify your credit balance. Please try again.",
+      );
+    }
+
     // ----- 1. Generate copy in one AI call (cheaper + more consistent voice) -----
     const result = await callAiWithFallback<{ emails?: GeneratedEmail[] }>({
       featureLabel: "Auto-outreach",
@@ -200,6 +215,21 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
 
         if (insertErr || !inserted) {
           throw new Error(insertErr?.message || "Failed to save message");
+        }
+
+        // Charge 1 credit per email send. If exhausted mid-batch, mark this
+        // message as failed and stop the loop so the user gets a clean error
+        // instead of silently dropping later leads.
+        const sendCredit = await supabaseAdmin.rpc("consume_credit", {
+          p_org_id: data.organizationId,
+          p_count: 1,
+        });
+        const sendCreditPayload = (sendCredit.data ?? {}) as Record<string, unknown>;
+        if (sendCredit.error || sendCreditPayload.ok === false) {
+          await supabase.from("messages").update({ status: "failed" }).eq("id", inserted.id);
+          skipped++;
+          errors.push(`${lead.name}: out of monthly credits — upgrade to keep sending`);
+          break;
         }
 
         const dispatch = await deliverOutreachEmail({
