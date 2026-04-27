@@ -54,7 +54,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   const refresh = async () => {
     if (!organizationId) return;
     setLoading(true);
-    const [domainsRes, ownersRes] = await Promise.all([
+    const [domainsRes, rolesRes] = await Promise.all([
       supabase
         .from("org_custom_domains")
         .select("id,hostname,is_primary,verification_token,verified_at,created_at")
@@ -64,7 +64,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
       // Owner-role members of this org — shown so non-owners know who to ask.
       supabase
         .from("user_roles")
-        .select("user_id, profiles!inner(full_name)")
+        .select("user_id")
         .eq("organization_id", organizationId)
         .eq("role", "owner"),
     ]);
@@ -74,15 +74,20 @@ export function CustomDomainsPanel({ organizationId }: Props) {
       return;
     }
     setRows((domainsRes.data ?? []) as DomainRow[]);
-    if (!ownersRes.error && ownersRes.data) {
-      const list: OwnerRow[] = (
-        ownersRes.data as Array<{ user_id: string; profiles: { full_name: string | null } | null }>
-      ).map((r) => ({
-        user_id: r.user_id,
-        full_name: r.profiles?.full_name ?? null,
-        email: null,
-      }));
+
+    const ownerIds = (rolesRes.data ?? []).map((r) => r.user_id);
+    if (ownerIds.length > 0) {
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ownerIds);
+      const list: OwnerRow[] = ownerIds.map((uid) => {
+        const p = (profileRows ?? []).find((row) => row.user_id === uid);
+        return { user_id: uid, full_name: p?.full_name ?? null, email: null };
+      });
       setOwners(list);
+    } else {
+      setOwners([]);
     }
   };
 
