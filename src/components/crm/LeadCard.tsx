@@ -162,6 +162,14 @@ export function LeadCard({
           }
           return null;
         })()}
+        {typeof lead.shareCount === "number" && lead.shareCount > 0 && (
+          <div className="flex items-center gap-2 text-xs text-primary/80">
+            <Share2 className="h-3 w-3" />
+            <span>
+              Shared with {lead.shareCount} teammate{lead.shareCount === 1 ? "" : "s"}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="mt-3 flex items-center justify-between">
