@@ -21,6 +21,37 @@ interface CreditState {
   loading: boolean;
 }
 
+interface CreditLogRow {
+  id: string;
+  user_id: string | null;
+  action: string;
+  command_id: string | null;
+  lead_id: string | null;
+  credits_charged: number;
+  credits_before: number | null;
+  credits_after: number | null;
+  quota: number | null;
+  unlimited: boolean;
+  status: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+function formatActionLabel(action: string): string {
+  return action.replace(/_/g, " ");
+}
+
+function formatRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
 const INITIAL: CreditState = {
   quota: 0,
   used: 0,
