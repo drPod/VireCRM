@@ -11,7 +11,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "clean": "rm -rf node_modules/.vite node_modules/.cache .tanstack dist .vinxi src/routeTree.gen.ts tsconfig.tsbuildinfo .tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "typecheck:fresh": "bun run clean && tsc --noEmit"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
