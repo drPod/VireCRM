@@ -206,21 +206,31 @@ function LeadsPage() {
         if (p.user_id) nameByUserId.set(p.user_id, p.full_name ?? "Unnamed");
       });
 
-      // Fetch all assignees for the visible leads in one round-trip.
+      // Fetch all assignees + share counts for the visible leads in one round-trip.
       const leadIds = (data ?? []).map((l) => l.id);
       const assigneesByLead = new Map<string, Array<{ user_id: string; full_name: string }>>();
+      const shareCountByLead = new Map<string, number>();
       if (leadIds.length > 0) {
-        const { data: assigneeRows } = await supabase
-          .from("lead_assignees")
-          .select("lead_id, user_id")
-          .in("lead_id", leadIds);
-        assigneeRows?.forEach((r) => {
+        const [assigneeRes, sharesRes] = await Promise.all([
+          supabase
+            .from("lead_assignees")
+            .select("lead_id, user_id")
+            .in("lead_id", leadIds),
+          supabase
+            .from("lead_shares")
+            .select("lead_id")
+            .in("lead_id", leadIds),
+        ]);
+        assigneeRes.data?.forEach((r) => {
           const list = assigneesByLead.get(r.lead_id) ?? [];
           list.push({
             user_id: r.user_id,
             full_name: nameByUserId.get(r.user_id) ?? "Unnamed",
           });
           assigneesByLead.set(r.lead_id, list);
+        });
+        sharesRes.data?.forEach((r) => {
+          shareCountByLead.set(r.lead_id, (shareCountByLead.get(r.lead_id) ?? 0) + 1);
         });
       }
 
