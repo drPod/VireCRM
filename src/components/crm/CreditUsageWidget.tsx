@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Zap, Infinity as InfinityIcon, FlaskConical, Loader2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Zap, Infinity as InfinityIcon, FlaskConical, Loader2, History, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
