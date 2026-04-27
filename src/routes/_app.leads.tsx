@@ -648,6 +648,27 @@ function LeadsPage() {
         />
       )}
 
+      {isOwner && outreachLead && (
+        <OutreachPreviewDialog
+          open={outreachOpen}
+          onOpenChange={(next) => {
+            setOutreachOpen(next);
+            if (!next) setOutreachLead(null);
+          }}
+          lead={{
+            id: outreachLead.id,
+            name: outreachLead.name,
+            email: outreachLead.email,
+            company: outreachLead.company ?? null,
+          }}
+          onSent={() => {
+            setOutreachOpen(false);
+            setOutreachLead(null);
+            handleLeadAdded();
+          }}
+        />
+      )}
+
       <AlertDialog open={confirmRoundRobinOpen} onOpenChange={setConfirmRoundRobinOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
