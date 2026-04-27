@@ -266,6 +266,11 @@ function TierCard({
         {tier.setupFee && (
           <p className="mt-1 text-xs font-medium text-primary/80">{tier.setupFee}</p>
         )}
+        {tier.cta === "Contact Us" && (
+          <p className="mt-2 text-[11px] font-medium text-muted-foreground/80">
+            Invoiced after a discovery call — never charged at checkout.
+          </p>
+        )}
         <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
       </div>
 
