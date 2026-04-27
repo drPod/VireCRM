@@ -48,7 +48,7 @@ export const simulateTierChangeFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data, context }): Promise<SimulateTierChangeResponse> => {
     const userId = context.userId;
-    const admin = supabaseAdmin();
+    const admin = supabaseAdmin;
 
     // Resolve org + verify owner
     const { data: profile, error: profErr } = await admin
