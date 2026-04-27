@@ -65,13 +65,57 @@ function PricingPage() {
                   q: "What's the Custom CRM build?",
                   a: "A fully bespoke system starting at $10K — tailored workflows, unique dashboards, and integrations built specifically for your business. Contact us to discuss your needs.",
                 },
+                {
+                  q: "Why are Custom CRM and Full Ownership invoiced after a call instead of using Stripe checkout?",
+                  a: "These tiers are bespoke engagements, not fixed SaaS subscriptions. Before we charge anything, we run a short discovery call to confirm scope (workflows, integrations, source-code handoff, ownership terms), agree on the final price, and prepare a written statement of work. Once that's signed, we send a secure Stripe invoice — so you only pay for exactly what was scoped, with a paper trail. Charging $7K+ through a public self-serve button without that conversation would be the suspicious move; an invoice tied to a signed SOW is the standard, safe way to do high-ticket custom work.",
+                },
+                {
+                  q: "How do I reach you?",
+                  a: (
+                    <>
+                      Call or text us at{" "}
+                      <a href="tel:+19403656600" className="font-medium text-primary hover:underline">
+                        +1 (940) 365-6600
+                      </a>{" "}
+                      or email{" "}
+                      <a href="mailto:Genesis@genesisx.space" className="font-medium text-primary hover:underline">
+                        Genesis@genesisx.space
+                      </a>
+                      . We typically reply within one business day.
+                    </>
+                  ),
+                },
               ].map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-border bg-card p-5">
                   <h3 className="text-sm font-semibold text-foreground">{faq.q}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{faq.a}</p>
+                  <div className="mt-2 text-sm text-muted-foreground">{faq.a}</div>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Direct contact strip — phone + email for high-ticket tier prospects */}
+      <section className="border-t border-border bg-card/30 py-12">
+        <div className="mx-auto max-w-3xl px-6 text-center">
+          <h2 className="text-xl font-bold text-foreground">Talk to a human about Custom CRM or Full Ownership</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Skip the form — call, text, or email us directly to book a discovery call.
+          </p>
+          <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <a
+              href="tel:+19403656600"
+              className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-5 py-2.5 text-sm font-medium text-foreground hover:bg-primary/20 transition-colors"
+            >
+              📞 +1 (940) 365-6600
+            </a>
+            <a
+              href="mailto:Genesis@genesisx.space"
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground hover:border-primary/40 transition-colors"
+            >
+              ✉️ Genesis@genesisx.space
+            </a>
           </div>
         </div>
       </section>
