@@ -128,6 +128,9 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [autoState, setAutoState] = useState<Record<string, AutoState>>({});
+  // Bumped after each logged event so the audit log refreshes immediately.
+  const [auditTick, setAuditTick] = useState(0);
+  const bumpAudit = () => setAuditTick((n) => n + 1);
 
   // Track scheduled timers per-row so we can cancel on unmount/row removal.
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
