@@ -417,6 +417,9 @@ export function IntegrationsSettings() {
       {/* Sender identity (Reply-To) — applies on every plan */}
       <BusinessEmailCard sendgridConnected={statuses.sendgrid.configured} />
 
+      {/* SPF / DKIM / DMARC verification for the sender domain */}
+      <EmailDeliverabilityPanel organizationId={organization?.id} />
+
       {/* Resend — workspace-level connector + per-org from address */}
       <ResendSettingsCard />
 
