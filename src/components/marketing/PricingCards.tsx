@@ -24,6 +24,8 @@ export interface PricingTier {
   /** Stripe price lookup_key (set in test, automatically synced to live). */
   stripePriceId?: string;
   setupFee?: string;
+  /** Skip the launch promo discount and show the full price as-is. */
+  excludeFromPromo?: boolean;
 }
 
 // CRM tiers (non-white-label — just want the CRM)
