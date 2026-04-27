@@ -60,6 +60,14 @@ export interface DeliverOutreachEmailInput {
   fontFamily?: string | null;
   /** Optional plain-text signature appended below the sign-off. */
   signature?: string | null;
+  /**
+   * Organization ID for credit enforcement. When provided, this function
+   * will refuse to send if the org has exhausted its monthly credit quota
+   * (unless `unlimited_credits` is enabled). Strongly recommended — leaving
+   * this unset bypasses the hard-stop and should only be used for system
+   * mail (auth emails, internal notifications) that doesn't bill credits.
+   */
+  organizationId?: string;
 }
 
 export type DeliverOutreachEmailResult =
@@ -68,7 +76,7 @@ export type DeliverOutreachEmailResult =
       channel: "resend" | "sendgrid" | "gmail" | "microsoft_outlook" | "lovable";
       label: string;
     }
-  | { success: false; reason: string; suppressed?: boolean };
+  | { success: false; reason: string; suppressed?: boolean; creditsExhausted?: boolean };
 
 const EMAIL_PROVIDER_PRIORITY: ConnectorProvider[] = ["gmail", "microsoft_outlook"];
 
@@ -265,6 +273,49 @@ export async function deliverOutreachEmail(
   };
 
   const attemptedErrors: string[] = [];
+
+  // Hard stop: refuse to send when the org has exhausted its monthly credit
+  // quota. Ownership / Custom CRM tiers (`unlimited_credits = true`) bypass
+  // this entirely. Callers still consume the credit explicitly via the
+  // `consume_credit` RPC; this is defense-in-depth in case a future call
+  // path forgets to pre-check.
+  if (input.organizationId) {
+    const { data: org, error } = await supabaseAdmin
+      .from("organizations")
+      .select("monthly_credit_quota, credits_used_this_period, unlimited_credits, credit_period_start")
+      .eq("id", input.organizationId)
+      .maybeSingle();
+
+    if (error) {
+      return {
+        success: false,
+        reason: "Could not verify your credit balance before sending.",
+      };
+    }
+
+    if (org && !org.unlimited_credits) {
+      // Treat a rolled-over period as zero used; the next consume_credit RPC
+      // will persist the reset.
+      const periodStart = org.credit_period_start ? new Date(org.credit_period_start) : null;
+      const currentMonth = new Date();
+      currentMonth.setUTCDate(1);
+      currentMonth.setUTCHours(0, 0, 0, 0);
+      const used =
+        periodStart && periodStart < currentMonth
+          ? 0
+          : org.credits_used_this_period ?? 0;
+      const quota = org.monthly_credit_quota ?? 0;
+
+      if (used >= quota) {
+        return {
+          success: false,
+          creditsExhausted: true,
+          reason:
+            "You've used all your monthly credits. Upgrade your plan or wait for the next billing period to send more outreach.",
+        };
+      }
+    }
+  }
 
   if (await isSuppressed(input.recipientEmail)) {
     return {
