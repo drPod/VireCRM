@@ -21,7 +21,8 @@ export type N8nActionType =
   | "note"
   | "update_lead_status"
   | "log_message"
-  | "schedule_follow_up";
+  | "schedule_follow_up"
+  | "create_lead";
 
 interface N8nConnectorConfig {
   webhooks?: Partial<Record<N8nActionType, string>>;
