@@ -4,20 +4,52 @@ import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
+  Copy,
+  ExternalLink,
   Globe,
   Loader2,
   RefreshCw,
   ShieldCheck,
   ShieldAlert,
+  Route as RouteIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
   checkDomainHealth,
+  type DomainHealthIssue,
   type DomainHealthResult,
 } from "@/functions/domain-health.functions";
+
+// Lovable hosting A-record target. Documented in the custom-domain setup flow.
+const LOVABLE_A_RECORD = "185.158.133.1";
+
+interface Props {
+  organizationId: string | undefined;
+}
+
+async function copyToClipboard(value: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  } catch {
+    toast.error("Couldn't copy — copy manually");
+  }
+}
+
+function openExternal(url: string) {
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 
 interface Props {
   organizationId: string | undefined;
@@ -54,6 +86,7 @@ export function DomainHealthPanel({ organizationId }: Props) {
   const [results, setResults] = useState<DomainHealthResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
+  const [redirectGuide, setRedirectGuide] = useState<DomainHealthResult | null>(null);
   const [, setNowTick] = useState(0);
 
   // Tick once a minute so "Xs ago" stays accurate.
@@ -213,24 +246,63 @@ export function DomainHealthPanel({ organizationId }: Props) {
                         key={idx}
                         className={
                           isError
-                            ? "flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-[11px] text-destructive"
-                            : "flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-400"
+                            ? "rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-[11px] text-destructive"
+                            : "rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-700 dark:text-amber-400"
                         }
                       >
-                        {isError ? (
-                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                        ) : (
-                          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                        )}
-                        <div className="space-y-0.5">
-                          <p className="font-medium">{issue.message}</p>
-                          {issue.hint && <p className="opacity-80">{issue.hint}</p>}
+                        <div className="flex items-start gap-2">
+                          {isError ? (
+                            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                          ) : (
+                            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                          )}
+                          <div className="space-y-0.5 flex-1">
+                            <p className="font-medium">{issue.message}</p>
+                            {issue.hint && <p className="opacity-80">{issue.hint}</p>}
+                          </div>
                         </div>
+                        <IssueActions
+                          issue={issue}
+                          hostname={r.hostname}
+                          onShowRedirectGuide={() => setRedirectGuide(r)}
+                        />
                       </div>
                     );
                   })}
                 </div>
               )}
+
+              {/* Always-available quick actions per row */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[11px]"
+                  onClick={() => openExternal(`https://${r.hostname}/`)}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open hostname
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[11px]"
+                  onClick={() => openExternal(`https://dnschecker.org/#A/${r.hostname}`)}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  DNS checker
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[11px]"
+                  onClick={() => setRedirectGuide(r)}
+                >
+                  <RouteIcon className="h-3 w-3" />
+                  Expected routes
+                </Button>
+              </div>
+
 
               {r.redirected && r.finalUrl && (
                 <p className="text-[11px] text-muted-foreground">
@@ -241,6 +313,11 @@ export function DomainHealthPanel({ organizationId }: Props) {
           ))}
         </div>
       )}
+
+      <RedirectGuideDialog
+        result={redirectGuide}
+        onClose={() => setRedirectGuide(null)}
+      />
     </div>
   );
 }
@@ -269,6 +346,225 @@ function CheckPill({
       )}
       <span className="font-medium">{label}</span>
       {!ok && <span className="opacity-80">· {failLabel}</span>}
+    </div>
+  );
+}
+
+// Per-issue one-click actions: copy DNS values, open external diagnostics,
+// or jump into the expected-redirects guide.
+function IssueActions({
+  issue,
+  hostname,
+  onShowRedirectGuide,
+}: {
+  issue: DomainHealthIssue;
+  hostname: string;
+  onShowRedirectGuide: () => void;
+}) {
+  const buttons: { label: string; icon: React.ReactNode; onClick: () => void }[] = [];
+
+  // DNS / unreachable / wrong content → DNS-fix actions.
+  if (
+    issue.check === "https" ||
+    issue.check === "app_match"
+  ) {
+    buttons.push({
+      label: "Copy A record value",
+      icon: <Copy className="h-3 w-3" />,
+      onClick: () => void copyToClipboard(LOVABLE_A_RECORD, "A record"),
+    });
+    buttons.push({
+      label: "Copy hostname",
+      icon: <Copy className="h-3 w-3" />,
+      onClick: () => void copyToClipboard(hostname, "Hostname"),
+    });
+    buttons.push({
+      label: "DNS checker",
+      icon: <ExternalLink className="h-3 w-3" />,
+      onClick: () => openExternal(`https://dnschecker.org/#A/${hostname}`),
+    });
+  }
+
+  // SSL → certificate transparency log + SSL Labs report.
+  if (issue.check === "ssl") {
+    buttons.push({
+      label: "Open cert log (crt.sh)",
+      icon: <ExternalLink className="h-3 w-3" />,
+      onClick: () => openExternal(`https://crt.sh/?q=${encodeURIComponent(hostname)}`),
+    });
+    buttons.push({
+      label: "SSL Labs report",
+      icon: <ExternalLink className="h-3 w-3" />,
+      onClick: () =>
+        openExternal(
+          `https://www.ssllabs.com/ssltest/analyze.html?d=${encodeURIComponent(hostname)}&hideResults=on`,
+        ),
+    });
+  }
+
+  // Unexpected redirect → show the expected-routes dialog.
+  if (issue.check === "redirect") {
+    buttons.push({
+      label: "Show expected redirects",
+      icon: <RouteIcon className="h-3 w-3" />,
+      onClick: onShowRedirectGuide,
+    });
+  }
+
+  if (buttons.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5 pl-5">
+      {buttons.map((b, i) => (
+        <Button
+          key={i}
+          variant="outline"
+          size="sm"
+          className="h-6 gap-1 px-2 text-[10px] font-medium"
+          onClick={b.onClick}
+        >
+          {b.icon}
+          {b.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+// Spells out the expected DNS + redirect setup for a hostname so the user
+// can copy/paste exact values into their registrar.
+function RedirectGuideDialog({
+  result,
+  onClose,
+}: {
+  result: DomainHealthResult | null;
+  onClose: () => void;
+}) {
+  if (!result) return null;
+  const host = result.hostname;
+  const isWww = host.toLowerCase().startsWith("www.");
+  const apex = isWww ? host.slice(4) : host;
+  const wwwHost = `www.${apex}`;
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Expected DNS & redirect rules</DialogTitle>
+          <DialogDescription>
+            Configure these records at your DNS registrar for{" "}
+            <code className="text-foreground">{host}</code>. Copy any value with one click.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 text-sm">
+          <RecordRow
+            label="A record (root domain)"
+            type="A"
+            name="@"
+            value={LOVABLE_A_RECORD}
+            note={`Points ${apex} at this app.`}
+          />
+          <RecordRow
+            label="A record (www subdomain)"
+            type="A"
+            name="www"
+            value={LOVABLE_A_RECORD}
+            note={`Points ${wwwHost} at this app.`}
+          />
+          <RecordRow
+            label="Verification TXT"
+            type="TXT"
+            name="_lovable"
+            value="lovable_verify=…"
+            note="Use the token shown when you added the hostname (not this placeholder)."
+          />
+
+          <div className="rounded-md border border-border bg-secondary/20 p-3 text-xs space-y-2">
+            <p className="font-medium text-foreground">Redirect strategy</p>
+            <p className="text-muted-foreground">
+              Add <code className="text-foreground">{apex}</code> AND{" "}
+              <code className="text-foreground">{wwwHost}</code> as separate
+              hostnames. Mark one as <strong>Primary</strong> — the other will
+              automatically redirect to it. Don't add a 301 at your registrar;
+              the app handles it.
+            </p>
+            <ul className="list-disc pl-5 text-muted-foreground space-y-0.5">
+              <li>
+                Visiting <code className="text-foreground">http://{host}</code> →
+                redirects to <code className="text-foreground">https://{host}</code>
+              </li>
+              <li>
+                Visiting <code className="text-foreground">https://{isWww ? apex : wwwHost}</code> →
+                redirects to <code className="text-foreground">https://{host}</code>{" "}
+                (when {host} is primary)
+              </li>
+            </ul>
+          </div>
+
+          {result.redirected && result.finalUrl && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+              <p className="font-medium">Currently redirecting to</p>
+              <code className="text-foreground">{result.finalUrl}</code>
+              <p className="mt-1 opacity-80">
+                If this isn't the URL you expect, remove any 301/302 rules at
+                your registrar or upstream proxy.
+              </p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RecordRow({
+  label,
+  type,
+  name,
+  value,
+  note,
+}: {
+  label: string;
+  type: string;
+  name: string;
+  value: string;
+  note: string;
+}) {
+  return (
+    <div className="rounded-md border border-border bg-secondary/20 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-foreground">{label}</p>
+        <Badge variant="outline" className="text-[10px]">{type}</Badge>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <CopyField label="Name" value={name} />
+        <CopyField label="Value" value={value} />
+      </div>
+      <p className="text-[11px] text-muted-foreground">{note}</p>
+    </div>
+  );
+}
+
+function CopyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="flex gap-1">
+        <input
+          readOnly
+          value={value}
+          className="h-8 flex-1 rounded-md border border-input bg-input px-2 text-xs font-mono text-foreground outline-none"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 px-2"
+          onClick={() => void copyToClipboard(value, label)}
+        >
+          <Copy className="h-3 w-3" />
+        </Button>
+      </div>
     </div>
   );
 }
