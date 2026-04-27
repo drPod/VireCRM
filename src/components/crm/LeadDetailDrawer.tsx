@@ -19,6 +19,7 @@ import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.f
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
 import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
+import { ShareLeadPanel } from "./ShareLeadPanel";
 import { AssigneeAvatars } from "./AssigneeAvatars";
 import { LeadInvoicesPanel } from "./LeadInvoicesPanel";
 import type { Lead } from "./LeadCard";
