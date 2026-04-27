@@ -237,9 +237,29 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   // Single attempt: lookup DNS, mark verified server-side on success.
   const runAttempt = async (row: DomainRow): Promise<boolean> => {
     updateAuto(row.id, { status: "checking", lastError: null });
+    if (organizationId) {
+      void logEvent({
+        orgId: organizationId,
+        domainId: row.id,
+        hostname: row.hostname,
+        eventType: "verify_attempt",
+        status: "info",
+        message: `Looking up TXT _vireon.${row.hostname}`,
+      }).then(bumpAudit);
+    }
     const { found, error } = await lookupTxt(row.hostname, row.verification_token);
     if (!found) {
       updateAuto(row.id, { lastError: error ?? "TXT record not visible yet" });
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: error ? "dns_lookup_failed" : "verify_failed",
+          status: error ? "error" : "warning",
+          message: error ?? "TXT record not visible yet",
+        }).then(bumpAudit);
+      }
       return false;
     }
     const { data, error: rpcErr } = await supabase.rpc("mark_custom_domain_verified", {
@@ -247,14 +267,44 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     });
     if (rpcErr) {
       updateAuto(row.id, { lastError: rpcErr.message });
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "verify_failed",
+          status: "error",
+          message: rpcErr.message,
+        }).then(bumpAudit);
+      }
       return false;
     }
     const result = data as { success: boolean; error?: string } | null;
     if (!result?.success) {
       updateAuto(row.id, { lastError: result?.error ?? "Verification failed" });
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "verify_failed",
+          status: "error",
+          message: result?.error ?? "Verification failed",
+        }).then(bumpAudit);
+      }
       return false;
     }
     updateAuto(row.id, { status: "verified", nextCheckAt: null, lastError: null });
+    if (organizationId) {
+      void logEvent({
+        orgId: organizationId,
+        domainId: row.id,
+        hostname: row.hostname,
+        eventType: "verify_success",
+        status: "success",
+        message: `Verified ${row.hostname}`,
+      }).then(bumpAudit);
+    }
     return true;
   };
 
