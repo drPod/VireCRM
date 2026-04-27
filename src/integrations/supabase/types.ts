@@ -1393,6 +1393,50 @@ export type Database = {
           },
         ]
       }
+      org_custom_domains: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          hostname: string
+          id: string
+          is_primary: boolean
+          organization_id: string
+          updated_at: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          hostname: string
+          id?: string
+          is_primary?: boolean
+          organization_id: string
+          updated_at?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          hostname?: string
+          id?: string
+          is_primary?: boolean
+          organization_id?: string
+          updated_at?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_custom_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_features: {
         Row: {
           config: Json
@@ -2785,6 +2829,10 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
+      add_custom_domain: {
+        Args: { p_hostname: string; p_org_id: string }
+        Returns: Json
+      }
       assign_custom_role: {
         Args: { p_custom_role_id: string; p_user_id: string }
         Returns: Json
@@ -2863,6 +2911,10 @@ export type Database = {
           slug: string
         }[]
       }
+      mark_custom_domain_verified: {
+        Args: { p_domain_id: string }
+        Returns: Json
+      }
       mark_domain_verified: { Args: { p_org_id: string }; Returns: Json }
       mark_earning_paid: {
         Args: { p_earning_id: string; p_payment_reference?: string }
@@ -2894,7 +2946,12 @@ export type Database = {
           read_ct: number
         }[]
       }
+      remove_custom_domain: { Args: { p_domain_id: string }; Returns: Json }
       remove_org_member: { Args: { p_user_id: string }; Returns: Json }
+      set_primary_custom_domain: {
+        Args: { p_domain_id: string }
+        Returns: Json
+      }
       signup_under_reseller: {
         Args: { p_company_name: string; p_reseller_slug: string }
         Returns: Json

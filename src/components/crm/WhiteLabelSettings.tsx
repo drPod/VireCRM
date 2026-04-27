@@ -27,7 +27,7 @@ import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SUPPORTED_FONTS } from "@/lib/white-label-theme";
-import { useFeatureFlag } from "@/hooks/useFeatureFlag";
+import { CustomDomainsPanel } from "@/components/crm/CustomDomainsPanel";
 
 type OrgWithDomain = {
   is_reseller?: boolean;
@@ -56,60 +56,12 @@ export function WhiteLabelSettings() {
   const [faviconUrl, setFaviconUrl] = useState(orgExt?.favicon_url || "");
   const [fontFamily, setFontFamily] = useState(orgExt?.font_family || "");
   const [emailSignature, setEmailSignature] = useState(orgExt?.email_signature || "");
-  const [customDomain, setCustomDomain] = useState(organization?.custom_domain || "");
   const [supportEmail, setSupportEmail] = useState(orgExt?.support_email || "");
   const initialIsReseller = !!orgExt?.is_reseller;
   const [isReseller, setIsReseller] = useState(initialIsReseller);
   const [saving, setSaving] = useState(false);
   const [togglingReseller, setTogglingReseller] = useState(false);
-  const [verifying, setVerifying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { enabled: customDomainEnabled, loading: customDomainLoading } =
-    useFeatureFlag("custom_domain");
-
-  const verificationToken = orgExt?.domain_verification_token || "";
-  const isDomainVerified = !!orgExt?.domain_verified_at;
-  const savedDomain = organization?.custom_domain || "";
-  const domainChanged = customDomain !== savedDomain;
-
-  const verifyDomain = async () => {
-    if (!organization?.id || !savedDomain) return;
-    setVerifying(true);
-    try {
-      // Use Cloudflare DNS-over-HTTPS to look up TXT records for _vireon.<domain>
-      const lookupHost = `_vireon.${savedDomain}`;
-      const res = await fetch(
-        `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(lookupHost)}&type=TXT`,
-        { headers: { Accept: "application/dns-json" } }
-      );
-      const dns = (await res.json()) as { Answer?: { data: string }[] };
-      const records = (dns.Answer || []).map((a) => a.data.replace(/^"|"$/g, ""));
-      const matched = records.some((r) => r.includes(verificationToken));
-
-      if (!matched) {
-        toast.error(`No matching TXT record found at _vireon.${savedDomain}. DNS can take up to a few minutes to propagate.`);
-        return;
-      }
-
-      const { data, error } = await supabase.rpc("mark_domain_verified", {
-        p_org_id: organization.id,
-      });
-      if (error) throw error;
-      const result = data as { success: boolean; error?: string } | null;
-      if (!result?.success) throw new Error(result?.error || "Verification failed");
-      toast.success("Domain verified! Your custom domain is now active.");
-      await refreshProfile();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Verification failed");
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const copyToken = () => {
-    void navigator.clipboard.writeText(verificationToken);
-    toast.success("Verification token copied");
-  };
 
   const isEnterprise = organization?.plan === "enterprise";
   const isOwner = role?.role === "owner";
@@ -173,11 +125,6 @@ export function WhiteLabelSettings() {
       email_signature: emailSignature.trim() || null,
       support_email: trimmedSupport || null,
     };
-    // Only attempt to write custom_domain when the org actually has the
-    // entitlement — otherwise the DB trigger will reject the whole update.
-    if (customDomainEnabled) {
-      updates.custom_domain = customDomain || null;
-    }
 
     const { error } = await supabase
       .from("organizations")
@@ -609,108 +556,8 @@ export function WhiteLabelSettings() {
           </p>
         </div>
 
-        {/* Custom Domain — gated by the `custom_domain` feature flag */}
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Globe className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <label className="text-sm font-medium text-foreground">Custom Domain</label>
-                <p className="text-xs text-muted-foreground">
-                  Serve the CRM under your own hostname (e.g. crm.yourbrand.com).
-                </p>
-              </div>
-            </div>
-            {customDomainEnabled && savedDomain && (
-              isDomainVerified ? (
-                <Badge variant="secondary" className="gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Verified
-                </Badge>
-              ) : (
-                <Badge variant="warning" className="gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Pending verification
-                </Badge>
-              )
-            )}
-            {!customDomainLoading && !customDomainEnabled && (
-              <Badge variant="warning" className="gap-1">
-                <Crown className="h-3 w-3" />
-                Add-on required
-              </Badge>
-            )}
-          </div>
-
-          {!customDomainLoading && !customDomainEnabled ? (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
-              <p className="text-xs text-foreground">
-                Custom domains are part of the <strong>Enterprise White-Label add-on</strong>.
-                Once enabled, you'll be able to point your own DNS at this CRM and we'll handle
-                SSL + ownership verification.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Already on Enterprise White-Label? Contact support to flip the switch — we
-                gate this manually so DNS goes live the same day you ask.
-              </p>
-            </div>
-          ) : (
-            <>
-              <input
-                type="text"
-                value={customDomain}
-                onChange={(e) => setCustomDomain(e.target.value.trim().toLowerCase())}
-                placeholder="crm.yourdomain.com"
-                disabled={!customDomainEnabled}
-                className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-              />
-
-              {savedDomain && !isDomainVerified && !domainChanged && (
-                <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-3">
-                  <div>
-                    <h4 className="text-xs font-semibold text-foreground mb-1">Step 1 — Point your domain</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Add a CNAME or A record at your DNS provider so <code className="text-foreground">{savedDomain}</code> points to this app.
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-foreground mb-1">Step 2 — Add the verification TXT record</h4>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Create a TXT record at <code className="text-foreground">_vireon.{savedDomain}</code> with the value below:
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        readOnly
-                        value={verificationToken}
-                        className="h-9 flex-1 rounded-md border border-input bg-input px-2 text-xs text-foreground font-mono outline-none"
-                      />
-                      <Button variant="outline" size="sm" onClick={copyToken} className="gap-1.5">
-                        <Copy className="h-3.5 w-3.5" />
-                        Copy
-                      </Button>
-                    </div>
-                  </div>
-                  <Button
-                    variant="command"
-                    size="sm"
-                    className="w-full"
-                    onClick={verifyDomain}
-                    disabled={verifying}
-                  >
-                    {verifying && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                    Verify Domain
-                  </Button>
-                </div>
-              )}
-
-              {domainChanged && customDomain && (
-                <p className="text-xs text-muted-foreground">
-                  Save changes first, then complete verification below.
-                </p>
-              )}
-            </>
-          )}
-        </div>
+        {/* Custom Hostnames — primary + aliases, each verified independently */}
+        <CustomDomainsPanel organizationId={organization?.id} />
 
         {/* Business / Reply-to Email */}
         <div className="rounded-xl border border-border bg-card p-5">
