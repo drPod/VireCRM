@@ -258,15 +258,39 @@ function TierCard({
 
       <div className="mb-6">
         <h3 className="text-base font-semibold text-foreground">{tier.name}</h3>
-        <div className="mt-3 flex items-baseline gap-1">
-          <span className="text-3xl font-bold text-foreground">{displayedPrice}</span>
-          <span className="text-xs text-muted-foreground">{tier.period}</span>
-        </div>
-        {overridden && (
-          <div className="mt-1">
-            <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
-          </div>
-        )}
+        {(() => {
+          const discounted = tier.excludeFromPromo ? null : applyPromoDiscount(displayedPrice);
+          if (discounted) {
+            return (
+              <>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-foreground">{discounted}</span>
+                  <span className="text-xs text-muted-foreground">{tier.period}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground line-through">{displayedPrice}</span>
+                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">30% OFF</Badge>
+                  {overridden && (
+                    <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
+                  )}
+                </div>
+              </>
+            );
+          }
+          return (
+            <>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-foreground">{displayedPrice}</span>
+                <span className="text-xs text-muted-foreground">{tier.period}</span>
+              </div>
+              {overridden && (
+                <div className="mt-1">
+                  <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
+                </div>
+              )}
+            </>
+          );
+        })()}
         {tier.setupFee && (
           <p className="mt-1 text-xs font-medium text-primary/80">{tier.setupFee}</p>
         )}
