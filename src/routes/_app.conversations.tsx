@@ -238,17 +238,27 @@ function ConversationsPage() {
     setSending(true);
     const body = draft.trim();
     setDraft("");
-    const { error } = await supabase.from("conversation_messages").insert({
-      conversation_id: active.id,
-      organization_id: organization.id,
-      direction: "outbound",
-      sender: user?.email || "You",
-      body,
-    });
+    const { data: inserted, error } = await supabase
+      .from("conversation_messages")
+      .insert({
+        conversation_id: active.id,
+        organization_id: organization.id,
+        direction: "outbound",
+        sender: user?.email || "You",
+        body,
+      })
+      .select("id, direction, sender, body, sent_at")
+      .single();
     if (error) {
-      toast.error("Failed to send");
+      toast.error("Failed to send", { description: error.message });
       setDraft(body);
     } else {
+      // Optimistic append (realtime may also deliver — dedupe by id)
+      if (inserted) {
+        setMessages((prev) =>
+          prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted as ConversationMessage],
+        );
+      }
       await supabase
         .from("conversations")
         .update({
@@ -262,8 +272,73 @@ function ConversationsPage() {
 
   const closeConversation = async () => {
     if (!active) return;
-    await supabase.from("conversations").update({ status: "closed" }).eq("id", active.id);
+    const { error } = await supabase
+      .from("conversations")
+      .update({ status: "closed" })
+      .eq("id", active.id);
+    if (error) {
+      toast.error("Failed to close", { description: error.message });
+      return;
+    }
     toast.success("Conversation closed");
+  };
+
+  const openNewDialog = async () => {
+    if (!organization?.id) return;
+    setNewOpen(true);
+    setNewBody("");
+    setNewSubject("");
+    setNewLeadId("");
+    const { data } = await supabase
+      .from("leads")
+      .select("id, name")
+      .eq("organization_id", organization.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setLeadOptions((data || []) as { id: string; name: string }[]);
+  };
+
+  const createConversation = async () => {
+    if (!organization?.id || !newLeadId || !newBody.trim()) {
+      toast.error("Pick a lead and write a message");
+      return;
+    }
+    setCreating(true);
+    const preview = newBody.trim().slice(0, 120);
+    const { data: conv, error: convErr } = await supabase
+      .from("conversations")
+      .insert({
+        organization_id: organization.id,
+        lead_id: newLeadId,
+        channel: newChannel,
+        subject: newSubject.trim() || null,
+        status: "open",
+        last_message_preview: preview,
+        last_message_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (convErr || !conv) {
+      toast.error("Failed to create conversation", { description: convErr?.message });
+      setCreating(false);
+      return;
+    }
+    const { error: msgErr } = await supabase.from("conversation_messages").insert({
+      conversation_id: conv.id,
+      organization_id: organization.id,
+      direction: "outbound",
+      sender: user?.email || "You",
+      body: newBody.trim(),
+    });
+    if (msgErr) {
+      toast.error("Conversation created but message failed", { description: msgErr.message });
+    } else {
+      toast.success("Conversation started");
+    }
+    setCreating(false);
+    setNewOpen(false);
+    setActiveId(conv.id);
+    void refresh();
   };
 
   const stats = useMemo(() => {
