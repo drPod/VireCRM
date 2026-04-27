@@ -619,6 +619,82 @@ function ConversationsPage() {
           )}
         </div>
       </div>
+
+      {/* New conversation dialog */}
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New conversation</DialogTitle>
+            <DialogDescription>
+              Start a thread with one of your leads on any channel.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Lead</Label>
+              <Select value={newLeadId} onValueChange={setNewLeadId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={leadOptions.length ? "Pick a lead" : "No leads found"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {leadOptions.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Channel</Label>
+              <Select value={newChannel} onValueChange={(v) => setNewChannel(v as Channel)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(CHANNEL_META) as Channel[]).map((ch) => (
+                    <SelectItem key={ch} value={ch}>
+                      {CHANNEL_META[ch].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {newChannel === "email" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Subject (optional)</Label>
+                <Input
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  placeholder="Quick question…"
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Message</Label>
+              <Textarea
+                value={newBody}
+                onChange={(e) => setNewBody(e.target.value)}
+                placeholder="Write your first message…"
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNewOpen(false)} disabled={creating}>
+              Cancel
+            </Button>
+            <Button
+              variant="command"
+              onClick={createConversation}
+              disabled={creating || !newLeadId || !newBody.trim()}
+            >
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Start conversation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
