@@ -32,6 +32,9 @@ export function MarketingFooter() {
             <div className="mt-3 flex flex-col gap-2">
               <span className="text-sm text-muted-foreground">About</span>
               <span className="text-sm text-muted-foreground">Careers</span>
+              <a href="tel:+19403656600" className="text-sm text-muted-foreground hover:text-foreground">
+                +1 (940) 365-6600
+              </a>
             </div>
           </div>
 
