@@ -405,14 +405,38 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     setAdding(false);
     if (error) {
       toast.error(error.message);
+      void logEvent({
+        orgId: organizationId,
+        domainId: null,
+        hostname: clean,
+        eventType: "added",
+        status: "error",
+        message: error.message,
+      }).then(bumpAudit);
       return;
     }
-    const result = data as { success: boolean; error?: string } | null;
+    const result = data as { success: boolean; error?: string; id?: string } | null;
     if (!result?.success) {
       toast.error(result?.error || "Could not add hostname");
+      void logEvent({
+        orgId: organizationId,
+        domainId: null,
+        hostname: clean,
+        eventType: "added",
+        status: "error",
+        message: result?.error || "Could not add hostname",
+      }).then(bumpAudit);
       return;
     }
     toast.success("Hostname added — we'll keep checking DNS automatically");
+    void logEvent({
+      orgId: organizationId,
+      domainId: result.id ?? null,
+      hostname: clean,
+      eventType: "added",
+      status: "success",
+      message: `Added ${clean}`,
+    }).then(bumpAudit);
     setNewHost("");
     void refresh();
   };
@@ -444,14 +468,44 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     setBusyId(null);
     if (error) {
       toast.error(error.message);
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "set_primary",
+          status: "error",
+          message: error.message,
+        }).then(bumpAudit);
+      }
       return;
     }
     const result = data as { success: boolean; error?: string } | null;
     if (!result?.success) {
       toast.error(result?.error || "Could not set primary");
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "set_primary",
+          status: "error",
+          message: result?.error || "Could not set primary",
+        }).then(bumpAudit);
+      }
       return;
     }
     toast.success(`${row.hostname} is now primary`);
+    if (organizationId) {
+      void logEvent({
+        orgId: organizationId,
+        domainId: row.id,
+        hostname: row.hostname,
+        eventType: "set_primary",
+        status: "success",
+        message: `${row.hostname} promoted to primary`,
+      }).then(bumpAudit);
+    }
     void refresh();
   };
 
@@ -466,14 +520,45 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     setBusyId(null);
     if (error) {
       toast.error(error.message);
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "removed",
+          status: "error",
+          message: error.message,
+        }).then(bumpAudit);
+      }
       return;
     }
     const result = data as { success: boolean; error?: string } | null;
     if (!result?.success) {
       toast.error(result?.error || "Could not remove hostname");
+      if (organizationId) {
+        void logEvent({
+          orgId: organizationId,
+          domainId: row.id,
+          hostname: row.hostname,
+          eventType: "removed",
+          status: "error",
+          message: result?.error || "Could not remove hostname",
+        }).then(bumpAudit);
+      }
       return;
     }
     toast.success("Hostname removed");
+    if (organizationId) {
+      // FK is ON DELETE SET NULL so the audit row is preserved without the domain ref.
+      void logEvent({
+        orgId: organizationId,
+        domainId: null,
+        hostname: row.hostname,
+        eventType: "removed",
+        status: "success",
+        message: `Removed ${row.hostname}`,
+      }).then(bumpAudit);
+    }
     void refresh();
   };
 
