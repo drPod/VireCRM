@@ -1,7 +1,10 @@
+import { render } from "@react-email/render";
+import { createElement } from "react";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getConnector } from "@/lib/connectors/catalog";
 import { callGateway } from "@/lib/connectors/gateway";
 import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
+import { template as outreachTemplate } from "@/lib/email-templates/outreach-email";
 import { sendResendEmail } from "@/lib/resend";
 import { sendSendgridEmail } from "@/lib/sendgrid";
 
@@ -75,25 +78,70 @@ function plainTextToHtml(body: string): string {
     .join("\n");
 }
 
+/**
+ * Render the branded React Email outreach template to HTML so every external
+ * channel (Resend, SendGrid, Gmail, Outlook) sends the same polished, logo'd
+ * email instead of a raw plain-text wrapper.
+ */
+async function renderBrandedHtml(input: DeliverOutreachEmailInput): Promise<string> {
+  try {
+    const element = createElement(outreachTemplate.component, {
+      body: input.body,
+      brandName: input.brandName,
+      logoUrl: input.logoUrl ?? undefined,
+      accentColor: input.accentColor ?? undefined,
+      fontFamily: input.fontFamily ?? undefined,
+      signature: input.signature ?? undefined,
+    });
+    return await render(element, { pretty: false });
+  } catch {
+    // Never block a send on a render failure — fall back to a basic wrapper.
+    return plainTextToHtml(input.body);
+  }
+}
+
+function encodeHeader(value: string): string {
+  // Use MIME encoded-word for any non-ASCII subjects.
+  return /[^\x20-\x7E]/.test(value)
+    ? `=?UTF-8?B?${Buffer.from(value, "utf-8").toString("base64")}?=`
+    : value;
+}
+
 function buildGmailRawMessage(opts: {
   from?: string | null;
   to: string;
   subject: string;
-  body: string;
+  text: string;
+  html: string;
   replyTo?: string | null;
 }) {
-  const lines = [
+  const boundary = `=_lov_${Math.random().toString(36).slice(2)}`;
+  const headerLines = [
     opts.from ? `From: ${opts.from}` : null,
     opts.replyTo ? `Reply-To: ${opts.replyTo}` : null,
     `To: ${opts.to}`,
+    `Subject: ${encodeHeader(opts.subject)}`,
     "MIME-Version: 1.0",
-    'Content-Type: text/plain; charset="UTF-8"',
-    `Subject: ${opts.subject}`,
-    "",
-    opts.body,
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
   ].filter(Boolean) as string[];
 
-  return Buffer.from(lines.join("\r\n"), "utf-8")
+  const body = [
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    opts.text,
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    opts.html,
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+
+  return Buffer.from(headerLines.join("\r\n") + body, "utf-8")
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
@@ -203,6 +251,11 @@ export async function deliverOutreachEmail(
     };
   }
 
+  // Render the branded React Email template once and reuse for every external
+  // channel so emails always include the org's logo, brand color, font, and
+  // signature — not raw plain-text wrapped in <p> tags.
+  const brandedHtml = await renderBrandedHtml(input);
+
   // Resend goes first — it's the most recently-wired channel and users who
   // configured it explicitly opted into it for outreach.
   if (input.channels.resend) {
@@ -211,7 +264,7 @@ export async function deliverOutreachEmail(
         from: input.channels.resend.fromAddress,
         to: input.recipientEmail,
         subject: input.subject,
-        html: plainTextToHtml(input.body),
+        html: brandedHtml,
         replyTo:
           toSafeEmail(input.replyTo) ??
           toSafeEmail(input.channels.resend.replyTo) ??
@@ -253,7 +306,7 @@ export async function deliverOutreachEmail(
         from: input.channels.sendgrid.fromAddress,
         to: input.recipientEmail,
         subject: input.subject,
-        html: plainTextToHtml(input.body),
+        html: brandedHtml,
         replyTo: toSafeEmail(input.replyTo) ?? undefined,
       });
       return { success: true, channel: "sendgrid", label: "SendGrid" };
@@ -269,7 +322,8 @@ export async function deliverOutreachEmail(
           from: connector.fromAddress,
           to: input.recipientEmail,
           subject: input.subject,
-          body: input.body,
+          text: input.body,
+          html: brandedHtml,
           replyTo: input.replyTo,
         });
 
@@ -290,7 +344,7 @@ export async function deliverOutreachEmail(
         body: {
           message: {
             subject: input.subject,
-            body: { contentType: "Text", content: input.body },
+            body: { contentType: "HTML", content: brandedHtml },
             toRecipients: [{ emailAddress: { address: input.recipientEmail } }],
             ...(toSafeEmail(input.replyTo)
               ? {
