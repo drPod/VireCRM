@@ -21,10 +21,14 @@ export interface Lead {
   currentSupplier?: string | null;
   /** UUID of the org member this lead is primarily assigned to (legacy). */
   assignedTo?: string | null;
+  /** UUID of the employee who created the lead (lead "owner" for sharing). */
+  createdBy?: string | null;
   /** Display name of the primary assignee (resolved from profiles). */
   assigneeName?: string | null;
   /** All assignees (multi-assign join table). Includes the primary one. */
   assignees?: AssigneeLite[];
+  /** Number of teammates this lead is currently shared with. */
+  shareCount?: number;
 }
 
 const statusConfig: Record<Lead["status"], { label: string; variant: "default" | "secondary" | "success" | "warning" | "info" | "destructive" }> = {
