@@ -100,25 +100,48 @@ async function renderBrandedHtml(input: DeliverOutreachEmailInput): Promise<stri
   }
 }
 
+function encodeHeader(value: string): string {
+  // Use MIME encoded-word for any non-ASCII subjects.
+  return /[^\x20-\x7E]/.test(value)
+    ? `=?UTF-8?B?${Buffer.from(value, "utf-8").toString("base64")}?=`
+    : value;
+}
+
 function buildGmailRawMessage(opts: {
   from?: string | null;
   to: string;
   subject: string;
-  body: string;
+  text: string;
+  html: string;
   replyTo?: string | null;
 }) {
-  const lines = [
+  const boundary = `=_lov_${Math.random().toString(36).slice(2)}`;
+  const headerLines = [
     opts.from ? `From: ${opts.from}` : null,
     opts.replyTo ? `Reply-To: ${opts.replyTo}` : null,
     `To: ${opts.to}`,
+    `Subject: ${encodeHeader(opts.subject)}`,
     "MIME-Version: 1.0",
-    'Content-Type: text/plain; charset="UTF-8"',
-    `Subject: ${opts.subject}`,
-    "",
-    opts.body,
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
   ].filter(Boolean) as string[];
 
-  return Buffer.from(lines.join("\r\n"), "utf-8")
+  const body = [
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    opts.text,
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    opts.html,
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+
+  return Buffer.from(headerLines.join("\r\n") + body, "utf-8")
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
