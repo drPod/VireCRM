@@ -58,6 +58,16 @@ export interface ScheduleFollowUpAction {
   channel?: "email" | "call" | "meeting" | "task";
   notes?: string;
 }
+export interface CreateLeadAction {
+  type: "create_lead";
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  source?: string;
+  status?: "new" | "contacted" | "qualified" | "negotiation" | "won" | "lost";
+  notes?: string;
+}
 
 export type AgentAction =
   | CreateTaskAction
@@ -68,7 +78,8 @@ export type AgentAction =
   | NoteAction
   | UpdateLeadStatusAction
   | LogMessageAction
-  | ScheduleFollowUpAction;
+  | ScheduleFollowUpAction
+  | CreateLeadAction;
 
 export interface AgentPlan {
   summary: string;
@@ -206,7 +217,7 @@ export async function runAdvisorActions({
               due_date: dueDateFromDays(action.due_in_days),
               lead_id: lead?.id ?? null,
               assigned_to: userId,
-              status: "pending",
+              status: "todo",
             })
             .select("id")
             .single();
@@ -433,6 +444,62 @@ export async function runAdvisorActions({
             status: "ok",
             message: `Follow-up scheduled with ${lead.name} in ${days} day${days === 1 ? "" : "s"} via ${channel}`,
             meta: { task_id: row.id, lead_id: lead.id, in_days: days },
+          });
+          break;
+        }
+
+        case "create_lead": {
+          const name = (action.name ?? "").trim();
+          if (!name) {
+            results.push({
+              type: "create_lead",
+              status: "skipped",
+              message: "No name provided for new lead.",
+            });
+            break;
+          }
+          const email = action.email?.trim() || null;
+          // De-dupe by email within the org if one is provided.
+          if (email) {
+            const { data: existing } = await supabase
+              .from("leads")
+              .select("id, name")
+              .eq("organization_id", orgId)
+              .eq("email", email)
+              .maybeSingle();
+            if (existing) {
+              results.push({
+                type: "create_lead",
+                status: "skipped",
+                message: `Lead already exists for ${email} (${existing.name})`,
+                meta: { lead_id: existing.id },
+              });
+              break;
+            }
+          }
+          const { data: row, error } = await supabaseAdmin
+            .from("leads")
+            .insert({
+              organization_id: orgId,
+              name: name.slice(0, 200),
+              company: action.company?.slice(0, 200) ?? null,
+              email,
+              phone: action.phone?.slice(0, 50) ?? null,
+              source: action.source?.slice(0, 100) ?? "ai_command_center",
+              status: action.status ?? "new",
+              notes: action.notes?.slice(0, 2000) ?? null,
+              created_by: userId,
+              assigned_to: userId,
+              score: 50,
+            })
+            .select("id")
+            .single();
+          if (error) throw error;
+          results.push({
+            type: "create_lead",
+            status: "ok",
+            message: `Created lead "${name}"${action.company ? ` @ ${action.company}` : ""}`,
+            meta: { lead_id: row.id },
           });
           break;
         }
