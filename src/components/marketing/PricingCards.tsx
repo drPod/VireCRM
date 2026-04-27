@@ -298,7 +298,16 @@ function TierCard({
         <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
       </div>
 
-      {tier.ctaLink ? (
+      {tier.cta === "Contact Us" ? (
+        // "Contact Us" tiers dial the sales line directly so prospects can
+        // reach a human in one tap instead of going through a form first.
+        <a href="tel:+19403656600">
+          <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
+            {tier.cta}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </a>
+      ) : tier.ctaLink ? (
         <Link to={tier.ctaLink}>
           <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
             {tier.cta}
