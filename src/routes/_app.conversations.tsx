@@ -110,6 +110,13 @@ function ConversationsPage() {
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread" | Channel>("all");
   const [search, setSearch] = useState("");
+  const [newOpen, setNewOpen] = useState(false);
+  const [leadOptions, setLeadOptions] = useState<{ id: string; name: string }[]>([]);
+  const [newLeadId, setNewLeadId] = useState<string>("");
+  const [newChannel, setNewChannel] = useState<Channel>("email");
+  const [newSubject, setNewSubject] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [creating, setCreating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
