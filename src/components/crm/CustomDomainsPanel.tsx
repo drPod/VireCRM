@@ -308,30 +308,32 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                           Pending
                         </Badge>
                       )}
-                      <div className="ml-auto flex gap-1.5">
-                        {verified && !row.is_primary && (
+                      {isOwner && (
+                        <div className="ml-auto flex gap-1.5">
+                          {verified && !row.is_primary && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void handleSetPrimary(row)}
+                              disabled={isBusy}
+                              className="gap-1.5"
+                            >
+                              <Star className="h-3.5 w-3.5" />
+                              Set primary
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => void handleSetPrimary(row)}
+                            onClick={() => void handleRemove(row)}
                             disabled={isBusy}
-                            className="gap-1.5"
+                            className="gap-1.5 text-destructive hover:text-destructive"
                           >
-                            <Star className="h-3.5 w-3.5" />
-                            Set primary
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remove
                           </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void handleRemove(row)}
-                          disabled={isBusy}
-                          className="gap-1.5 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Remove
-                        </Button>
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {!verified && (
