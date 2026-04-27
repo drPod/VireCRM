@@ -163,6 +163,14 @@ function toSafeEmail(value: unknown): string | null {
     : null;
 }
 
+function toSafeLogoUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  // Only accept https URLs — email clients block http and protocol-relative.
+  return /^https:\/\/[^\s<>"']+$/i.test(trimmed) ? trimmed : null;
+}
+
 export async function loadOutreachDeliveryChannels(
   organizationId: string,
 ): Promise<OutreachDeliveryChannels> {
