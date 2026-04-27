@@ -835,6 +835,7 @@ export function CustomDomainsSection({ organizationId }: Props) {
   return (
     <div className="space-y-4">
       <CustomDomainsPanel organizationId={organizationId} />
+      <DomainHealthPanel organizationId={organizationId} />
       <CustomDomainAuditLog organizationId={organizationId} />
     </div>
   );
