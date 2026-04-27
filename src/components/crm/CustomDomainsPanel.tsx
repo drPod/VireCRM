@@ -829,3 +829,12 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     </div>
   );
 }
+
+export function CustomDomainsSection({ organizationId }: Props) {
+  return (
+    <div className="space-y-4">
+      <CustomDomainsPanel organizationId={organizationId} />
+      <CustomDomainAuditLog organizationId={organizationId} />
+    </div>
+  );
+}
