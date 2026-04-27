@@ -246,24 +246,63 @@ export function DomainHealthPanel({ organizationId }: Props) {
                         key={idx}
                         className={
                           isError
-                            ? "flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-[11px] text-destructive"
-                            : "flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-400"
+                            ? "rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-[11px] text-destructive"
+                            : "rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-700 dark:text-amber-400"
                         }
                       >
-                        {isError ? (
-                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                        ) : (
-                          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                        )}
-                        <div className="space-y-0.5">
-                          <p className="font-medium">{issue.message}</p>
-                          {issue.hint && <p className="opacity-80">{issue.hint}</p>}
+                        <div className="flex items-start gap-2">
+                          {isError ? (
+                            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                          ) : (
+                            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                          )}
+                          <div className="space-y-0.5 flex-1">
+                            <p className="font-medium">{issue.message}</p>
+                            {issue.hint && <p className="opacity-80">{issue.hint}</p>}
+                          </div>
                         </div>
+                        <IssueActions
+                          issue={issue}
+                          hostname={r.hostname}
+                          onShowRedirectGuide={() => setRedirectGuide(r)}
+                        />
                       </div>
                     );
                   })}
                 </div>
               )}
+
+              {/* Always-available quick actions per row */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[11px]"
+                  onClick={() => openExternal(`https://${r.hostname}/`)}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open hostname
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[11px]"
+                  onClick={() => openExternal(`https://dnschecker.org/#A/${r.hostname}`)}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  DNS checker
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[11px]"
+                  onClick={() => setRedirectGuide(r)}
+                >
+                  <RouteIcon className="h-3 w-3" />
+                  Expected routes
+                </Button>
+              </div>
+
 
               {r.redirected && r.finalUrl && (
                 <p className="text-[11px] text-muted-foreground">
