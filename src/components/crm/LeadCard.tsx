@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users, Share2 } from "lucide-react";
+import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users, Share2, Send } from "lucide-react";
 import { AssigneeAvatars, type AssigneeLite } from "./AssigneeAvatars";
 
 export interface Lead {
