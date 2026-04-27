@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SUPPORTED_FONTS } from "@/lib/white-label-theme";
 import { CustomDomainsSection } from "@/components/crm/CustomDomainsPanel";
+import { CustomerDomainOnboardingDialog } from "@/components/crm/CustomerDomainOnboardingDialog";
 
 type OrgWithDomain = {
   is_reseller?: boolean;
@@ -557,6 +558,9 @@ export function WhiteLabelSettings() {
         </div>
 
         {/* Custom Hostnames — primary + aliases, each verified independently */}
+        <div className="flex justify-end">
+          <CustomerDomainOnboardingDialog />
+        </div>
         <CustomDomainsSection organizationId={organization?.id} />
 
         {/* Business / Reply-to Email */}
