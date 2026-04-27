@@ -221,23 +221,54 @@ export function CustomDomainsPanel({ organizationId }: Props) {
         </div>
       ) : (
         <>
-          {/* Add new hostname */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newHost}
-              onChange={(e) => setNewHost(e.target.value)}
-              placeholder="crm.yourbrand.com"
-              className="h-10 flex-1 rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void handleAdd();
-              }}
-            />
-            <Button variant="command" onClick={handleAdd} disabled={adding || !newHost.trim()} className="gap-1.5">
-              {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-              Add
-            </Button>
+          {/* Who can edit — surfaces the role-based restriction */}
+          <div className="rounded-lg border border-border bg-secondary/20 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+              {isOwner ? (
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+              <span>Allowed to edit hostnames</span>
+              <Badge variant="outline" className="ml-auto text-[10px]">Owner only</Badge>
+            </div>
+            {owners.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">No owners found for this organization.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {owners.map((o) => (
+                  <Badge key={o.user_id} variant="secondary" className="text-[11px] font-normal">
+                    {o.full_name || o.user_id.slice(0, 8)}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            {!isOwner && (
+              <p className="text-[11px] text-muted-foreground">
+                Your role can view hostnames but cannot add, verify, remove, or change the primary. Ask an owner above to make changes.
+              </p>
+            )}
           </div>
+
+          {/* Add new hostname — owner only */}
+          {isOwner && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newHost}
+                onChange={(e) => setNewHost(e.target.value)}
+                placeholder="crm.yourbrand.com"
+                className="h-10 flex-1 rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleAdd();
+                }}
+              />
+              <Button variant="command" onClick={handleAdd} disabled={adding || !newHost.trim()} className="gap-1.5">
+                {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Add
+              </Button>
+            </div>
+          )}
 
           {/* List */}
           {loading ? (
