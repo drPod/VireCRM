@@ -32,6 +32,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ConnectorIntegrations } from "./ConnectorIntegrations";
 import { BusinessEmailCard } from "./BusinessEmailCard";
+import { EmailDeliverabilityPanel } from "./EmailDeliverabilityPanel";
 import { ResendSettingsCard } from "./ResendSettingsCard";
 import { SendTestEmailControl } from "./SendTestEmailControl";
 import { TestResultPanel, type TestResult } from "./TestResultPanel";
