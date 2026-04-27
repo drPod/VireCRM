@@ -68,6 +68,10 @@ function LeadsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Lead picked for the inline "Send email" action — separate from the
+  // detail drawer so opening the email composer doesn't open the drawer too.
+  const [outreachLead, setOutreachLead] = useState<Lead | null>(null);
+  const [outreachOpen, setOutreachOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [autoFindOpen, setAutoFindOpen] = useState(false);
