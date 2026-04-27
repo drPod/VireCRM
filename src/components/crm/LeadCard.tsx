@@ -177,9 +177,27 @@ export function LeadCard({
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">Lead Score</span>
-        <ScoreBar score={lead.score} />
+        <div className="flex items-center gap-2">
+          <ScoreBar score={lead.score} />
+          {canSendEmail && (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="h-7 px-2 text-xs gap-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSendEmail?.(lead);
+              }}
+              aria-label={`Send email to ${lead.name}`}
+            >
+              <Send className="h-3 w-3" />
+              Send email
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
