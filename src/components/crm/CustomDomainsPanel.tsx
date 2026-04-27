@@ -42,6 +42,8 @@ async function logEvent(args: {
   details?: Record<string, unknown>;
 }): Promise<void> {
   try {
+    // Cast params: generated RPC types treat NULLABLE params as `string` (required)
+    // because the SQL signature doesn't carry NULL info into the typegen.
     await supabase.rpc("log_custom_domain_event", {
       p_org_id: args.orgId,
       p_domain_id: args.domainId,
@@ -50,7 +52,7 @@ async function logEvent(args: {
       p_status: args.status,
       p_message: args.message ?? null,
       p_details: (args.details ?? {}) as never,
-    });
+    } as never);
   } catch (err) {
     console.warn("[custom-domain audit] failed to log event", err);
   }
