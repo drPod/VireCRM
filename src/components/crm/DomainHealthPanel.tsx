@@ -4,20 +4,52 @@ import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
+  Copy,
+  ExternalLink,
   Globe,
   Loader2,
   RefreshCw,
   ShieldCheck,
   ShieldAlert,
+  Route as RouteIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
   checkDomainHealth,
+  type DomainHealthIssue,
   type DomainHealthResult,
 } from "@/functions/domain-health.functions";
+
+// Lovable hosting A-record target. Documented in the custom-domain setup flow.
+const LOVABLE_A_RECORD = "185.158.133.1";
+
+interface Props {
+  organizationId: string | undefined;
+}
+
+async function copyToClipboard(value: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  } catch {
+    toast.error("Couldn't copy — copy manually");
+  }
+}
+
+function openExternal(url: string) {
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 
 interface Props {
   organizationId: string | undefined;
