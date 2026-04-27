@@ -217,6 +217,24 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       throw new Error(insertErr?.message || "Failed to save message");
     }
 
+    // Charge 1 credit per outreach send. Ownership tiers (`unlimited_credits`)
+    // bypass this in the RPC.
+    const sendCredit = await supabaseAdmin.rpc("consume_credit", {
+      p_org_id: data.organizationId,
+      p_count: 1,
+    });
+    const sendCreditPayload = (sendCredit.data ?? {}) as Record<string, unknown>;
+    if (sendCredit.error || sendCreditPayload.ok === false) {
+      await supabase.from("messages").update({ status: "failed" }).eq("id", inserted.id);
+      return {
+        success: false,
+        reason:
+          sendCreditPayload.error === "credits_exhausted"
+            ? "You've used all your monthly credits. Upgrade your plan or wait for the next billing period."
+            : "Could not verify your credit balance.",
+      };
+    }
+
     const channels = await loadOutreachDeliveryChannels(data.organizationId);
 
     // 2. Deliver using the best available channel in priority order:
