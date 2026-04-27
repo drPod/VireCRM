@@ -2940,6 +2940,10 @@ export type Database = {
         Args: { p_hostname: string; p_org_id: string }
         Returns: Json
       }
+      apply_credit_plan: {
+        Args: { p_org_id: string; p_price_key: string }
+        Returns: Json
+      }
       assign_custom_role: {
         Args: { p_custom_role_id: string; p_user_id: string }
         Returns: Json
@@ -2956,6 +2960,7 @@ export type Database = {
         Args: { p_count?: number; p_org_id: string }
         Returns: Json
       }
+      credit_plan_for_price: { Args: { p_price_key: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
