@@ -251,6 +251,11 @@ export async function deliverOutreachEmail(
     };
   }
 
+  // Render the branded React Email template once and reuse for every external
+  // channel so emails always include the org's logo, brand color, font, and
+  // signature — not raw plain-text wrapped in <p> tags.
+  const brandedHtml = await renderBrandedHtml(input);
+
   // Resend goes first — it's the most recently-wired channel and users who
   // configured it explicitly opted into it for outreach.
   if (input.channels.resend) {
@@ -259,7 +264,7 @@ export async function deliverOutreachEmail(
         from: input.channels.resend.fromAddress,
         to: input.recipientEmail,
         subject: input.subject,
-        html: plainTextToHtml(input.body),
+        html: brandedHtml,
         replyTo:
           toSafeEmail(input.replyTo) ??
           toSafeEmail(input.channels.resend.replyTo) ??
@@ -301,7 +306,7 @@ export async function deliverOutreachEmail(
         from: input.channels.sendgrid.fromAddress,
         to: input.recipientEmail,
         subject: input.subject,
-        html: plainTextToHtml(input.body),
+        html: brandedHtml,
         replyTo: toSafeEmail(input.replyTo) ?? undefined,
       });
       return { success: true, channel: "sendgrid", label: "SendGrid" };
@@ -317,7 +322,8 @@ export async function deliverOutreachEmail(
           from: connector.fromAddress,
           to: input.recipientEmail,
           subject: input.subject,
-          body: input.body,
+          text: input.body,
+          html: brandedHtml,
           replyTo: input.replyTo,
         });
 
@@ -338,7 +344,7 @@ export async function deliverOutreachEmail(
         body: {
           message: {
             subject: input.subject,
-            body: { contentType: "Text", content: input.body },
+            body: { contentType: "HTML", content: brandedHtml },
             toRecipients: [{ emailAddress: { address: input.recipientEmail } }],
             ...(toSafeEmail(input.replyTo)
               ? {
