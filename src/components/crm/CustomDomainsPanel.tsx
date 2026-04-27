@@ -12,9 +12,12 @@ import {
   CheckCircle2,
   AlertCircle,
   Crown,
+  Lock,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type DomainRow = {
   id: string;
@@ -23,6 +26,12 @@ type DomainRow = {
   verification_token: string;
   verified_at: string | null;
   created_at: string;
+};
+
+type OwnerRow = {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
 };
 
 interface Props {
