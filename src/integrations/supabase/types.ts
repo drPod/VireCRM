@@ -1630,6 +1630,8 @@ export type Database = {
           button_color: string | null
           commission_rate: number
           created_at: string
+          credit_period_start: string
+          credits_used_this_period: number
           custom_domain: string | null
           domain_verification_token: string
           domain_verified_at: string | null
@@ -1641,6 +1643,7 @@ export type Database = {
           lead_period_start: string
           leads_used_this_period: number
           logo_url: string | null
+          monthly_credit_quota: number
           monthly_lead_quota: number
           name: string
           notes: string | null
@@ -1651,6 +1654,7 @@ export type Database = {
           sidebar_color: string | null
           slug: string
           support_email: string | null
+          unlimited_credits: boolean
           updated_at: string
         }
         Insert: {
@@ -1664,6 +1668,8 @@ export type Database = {
           button_color?: string | null
           commission_rate?: number
           created_at?: string
+          credit_period_start?: string
+          credits_used_this_period?: number
           custom_domain?: string | null
           domain_verification_token?: string
           domain_verified_at?: string | null
@@ -1675,6 +1681,7 @@ export type Database = {
           lead_period_start?: string
           leads_used_this_period?: number
           logo_url?: string | null
+          monthly_credit_quota?: number
           monthly_lead_quota?: number
           name: string
           notes?: string | null
@@ -1685,6 +1692,7 @@ export type Database = {
           sidebar_color?: string | null
           slug: string
           support_email?: string | null
+          unlimited_credits?: boolean
           updated_at?: string
         }
         Update: {
@@ -1698,6 +1706,8 @@ export type Database = {
           button_color?: string | null
           commission_rate?: number
           created_at?: string
+          credit_period_start?: string
+          credits_used_this_period?: number
           custom_domain?: string | null
           domain_verification_token?: string
           domain_verified_at?: string | null
@@ -1709,6 +1719,7 @@ export type Database = {
           lead_period_start?: string
           leads_used_this_period?: number
           logo_url?: string | null
+          monthly_credit_quota?: number
           monthly_lead_quota?: number
           name?: string
           notes?: string | null
@@ -1719,6 +1730,7 @@ export type Database = {
           sidebar_color?: string | null
           slug?: string
           support_email?: string | null
+          unlimited_credits?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -2936,6 +2948,10 @@ export type Database = {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json
       }
+      consume_credit: {
+        Args: { p_count?: number; p_org_id: string }
+        Returns: Json
+      }
       consume_platform_lead_quota: {
         Args: { p_count?: number; p_org_id: string }
         Returns: Json
@@ -2948,6 +2964,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_credit_usage: { Args: { p_org_id: string }; Returns: Json }
       get_lead_usage: { Args: { p_org_id: string }; Returns: Json }
       get_org_by_domain: { Args: { p_hostname: string }; Returns: Json }
       get_reseller_branding: { Args: { p_slug: string }; Returns: Json }
