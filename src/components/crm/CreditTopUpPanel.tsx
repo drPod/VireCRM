@@ -98,7 +98,7 @@ export function CreditTopUpPanel({
     setLoading(true);
     const { data: packs } = await supabase
       .from("credit_packs")
-      .select("id, pack_key, credits_remaining, credits_total, expires_at")
+      .select("id, pack_key, credits_remaining, credits_total, expires_at, receipt_url, hosted_invoice_url")
       .eq("organization_id", organizationId)
       .gt("credits_remaining", 0)
       .gt("expires_at", new Date().toISOString())
