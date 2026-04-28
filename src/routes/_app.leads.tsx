@@ -56,7 +56,7 @@ export const Route = createFileRoute("/_app/leads")({
 const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
 
 function LeadsPage() {
-  const { organization, role } = useAuth();
+  const { organization, role, user } = useAuth();
   const isOwner = role?.role === "owner";
   const navigate = useNavigate();
   const { q, action, ai_desc, ai_industry } = Route.useSearch();
@@ -619,6 +619,21 @@ function LeadsPage() {
                     }
                   : undefined
               }
+              canDelete={isOwner || lead.createdBy === user?.id}
+              onDelete={async (l) => {
+                const { error } = await supabase
+                  .from("leads")
+                  .delete()
+                  .eq("id", l.id);
+                if (error) {
+                  toast.error("Couldn't delete lead", { description: error.message });
+                  return;
+                }
+                toast.success(`Deleted ${l.name}`);
+                setLeads((prev) => prev.filter((x) => x.id !== l.id));
+                setSelectedLeadIds((prev) => prev.filter((id) => id !== l.id));
+                setTotalCount((c) => Math.max(0, c - 1));
+              }}
               onClick={() => {
                 // Per org policy, only the owner can open the full lead
                 // detail drawer. Reps and managers see the card data only.
