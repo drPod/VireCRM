@@ -264,6 +264,27 @@ GUARDRAILS — you must obey:
       userId,
       command: data.command,
       actions: plan.actions ?? [],
+      chargeCredit: async (action) => {
+        const charge = await supabaseAdmin.rpc("consume_credit", {
+          p_org_id: orgId,
+          p_count: 1,
+          p_user_id: userId,
+          p_action: `cmd_${action.type}`,
+          p_command_id: commandId,
+          p_metadata: { command: data.command.slice(0, 200) },
+        });
+        const payload = (charge.data ?? {}) as Record<string, unknown>;
+        if (charge.error || payload.ok === false) {
+          return {
+            ok: false,
+            reason:
+              payload.error === "credits_exhausted"
+                ? "Skipped — credits exhausted. Top up in Settings → Billing."
+                : "Skipped — credit charge failed.",
+          };
+        }
+        return { ok: true };
+      },
     });
     plan.actions = sanitizedActions;
 
