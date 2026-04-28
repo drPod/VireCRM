@@ -106,6 +106,22 @@ export const ALLOWED_ACTIONS = new Set<AgentAction["type"]>([
   "update_lead_status",
   "log_message",
   "schedule_follow_up",
+  "create_lead",
+]);
+
+/**
+ * Action types that perform a real CRM mutation and should be metered against
+ * the org's credit balance. Read-only / explanatory actions are free.
+ */
+export const BILLABLE_ACTIONS = new Set<AgentAction["type"]>([
+  "create_task",
+  "draft_message",
+  "score_leads",
+  "create_campaign",
+  "update_lead_status",
+  "log_message",
+  "schedule_follow_up",
+  "create_lead",
 ]);
 
 function priorityValue(p?: string): "low" | "medium" | "high" | "urgent" {
