@@ -91,7 +91,22 @@ function AppLayout() {
     return <LoadingShell />;
   }
 
-  if (!user) return <LoadingShell />;
+  if (!user) {
+    // Auth check resolved → user is anonymous. The redirect effect above will
+    // bounce to /login on the next tick; render a friendly stub instead of an
+    // indefinite spinner so deep-linked visitors aren't stuck on a blank page.
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-3 text-center">
+        <p className="text-sm text-muted-foreground">Redirecting to sign in…</p>
+        <a
+          href="/login"
+          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Go to sign in
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
