@@ -201,6 +201,22 @@ export async function runAdvisorActions({
   }
 
   for (const action of sanitizedActions) {
+    // Credit gate: charge billable actions BEFORE any side-effect runs.
+    if (chargeCredit && BILLABLE_ACTIONS.has(action.type)) {
+      const charge = await chargeCredit(action);
+      if (!charge.ok) {
+        results.push({
+          type: action.type,
+          status: "skipped",
+          handler: "in_app",
+          message:
+            charge.reason ??
+            "Skipped — your workspace is out of credits. Top up in Settings → Billing to run this action.",
+        });
+        continue;
+      }
+    }
+
     if (action.type !== "note") {
       const webhook = n8nWebhooks[action.type];
       if (webhook) {
