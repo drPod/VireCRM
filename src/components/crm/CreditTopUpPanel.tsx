@@ -95,6 +95,7 @@ export function CreditTopUpPanel({
   const [savedCardLast4, setSavedCardLast4] = useState<string | null>(null);
   const [hasPaymentMethod, setHasPaymentMethod] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
   const [pendingThreshold, setPendingThreshold] = useState<number>(20);
   const [pendingPack, setPendingPack] = useState<string>(DEFAULT_AUTO_PACK);
   const [lowBalance, setLowBalance] = useState<LowBalanceSettings>({ enabled: true, threshold: 50 });
