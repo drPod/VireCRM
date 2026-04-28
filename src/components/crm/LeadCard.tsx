@@ -1,8 +1,19 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users, Share2, Send } from "lucide-react";
+import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users, Share2, Send, Trash2 } from "lucide-react";
 import { AssigneeAvatars, type AssigneeLite } from "./AssigneeAvatars";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export interface Lead {
   id: string;
@@ -61,6 +72,8 @@ export function LeadCard({
   selected = false,
   onSelectedChange,
   onSendEmail,
+  onDelete,
+  canDelete = false,
 }: {
   lead: Lead;
   onClick?: () => void;
@@ -70,9 +83,14 @@ export function LeadCard({
   onSelectedChange?: (next: boolean) => void;
   /** When provided, renders a quick "Send email" action on the card. */
   onSendEmail?: (lead: Lead) => void;
+  /** When provided AND `canDelete` is true, renders a delete button with confirmation. */
+  onDelete?: (lead: Lead) => void | Promise<void>;
+  /** Whether the current user has permission to delete this lead (owner or creator). */
+  canDelete?: boolean;
 }) {
   const status = statusConfig[lead.status];
   const canSendEmail = Boolean(onSendEmail && lead.email);
+  const showDelete = Boolean(canDelete && onDelete);
 
   return (
     <div
@@ -196,6 +214,45 @@ export function LeadCard({
               <Send className="h-3 w-3" />
               Send email
             </Button>
+          )}
+          {showDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Delete ${lead.name}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes <strong>{lead.name}</strong>
+                    {lead.company ? ` (${lead.company})` : ""} and all their
+                    notes, messages, and activity from your CRM. This can't be
+                    undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void onDelete?.(lead);
+                    }}
+                  >
+                    Delete lead
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
