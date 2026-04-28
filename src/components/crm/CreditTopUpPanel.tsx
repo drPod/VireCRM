@@ -460,17 +460,31 @@ export function CreditTopUpPanel({
         {!loading && balance && balance.packs.length > 0 && (
           <div className="mt-3 space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Active packs</p>
-            {balance.packs.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between text-xs text-muted-foreground"
-              >
-                <span>
-                  {p.credits_remaining.toLocaleString()} / {p.credits_total.toLocaleString()}{" "}
-                  · expires {new Date(p.expires_at).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
+            {balance.packs.map((p) => {
+              const url = p.receipt_url ?? p.hosted_invoice_url;
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
+                >
+                  <span className="truncate">
+                    {p.credits_remaining.toLocaleString()} / {p.credits_total.toLocaleString()}{" "}
+                    · expires {new Date(p.expires_at).toLocaleDateString()}
+                  </span>
+                  {url && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-primary hover:text-primary/80 font-medium shrink-0"
+                    >
+                      <Download className="h-3 w-3" />
+                      Receipt
+                    </a>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
