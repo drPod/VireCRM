@@ -9,6 +9,7 @@ export interface StripeCheckoutBaseProps {
   customerEmail?: string;
   userId?: string;
   returnUrl?: string;
+  organizationId?: string;
 }
 
 export interface StripePriceCheckoutProps extends StripeCheckoutBaseProps {
@@ -62,6 +63,7 @@ export function StripeEmbeddedCheckoutForm(
           userId: props.userId,
           returnUrl: props.returnUrl,
           environment,
+          organizationId: props.organizationId,
         },
       },
     );
