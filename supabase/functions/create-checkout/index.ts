@@ -19,6 +19,7 @@ serve(async (req) => {
       environment,
       attributedResellerId,
       resellerPlanId,
+      organizationId,
     } = await req.json();
 
     if (
@@ -35,17 +36,22 @@ serve(async (req) => {
     const env = (environment || "sandbox") as StripeEnv;
     const stripe = createStripeClient(env);
 
+    // Credit pack top-ups skip the launch promo (one-time top-ups, full price).
+    const isCreditPack = priceId.startsWith("credit_pack_");
+
     // Ensure the launch promo coupon exists (30% off, forever for subscriptions).
     const PROMO_COUPON_ID = "launch30";
-    try {
-      await stripe.coupons.retrieve(PROMO_COUPON_ID);
-    } catch {
-      await stripe.coupons.create({
-        id: PROMO_COUPON_ID,
-        percent_off: 30,
-        duration: "forever",
-        name: "Launch promo — 30% off",
-      });
+    if (!isCreditPack) {
+      try {
+        await stripe.coupons.retrieve(PROMO_COUPON_ID);
+      } catch {
+        await stripe.coupons.create({
+          id: PROMO_COUPON_ID,
+          percent_off: 30,
+          duration: "forever",
+          name: "Launch promo — 30% off",
+        });
+      }
     }
 
     const prices = await stripe.prices.list({ lookup_keys: [priceId] });
@@ -58,25 +64,25 @@ serve(async (req) => {
     const stripePrice = prices.data[0];
     const isRecurring = stripePrice.type === "recurring";
 
-    const metadata: Record<string, string> = {};
+    const metadata: Record<string, string> = { priceId };
     if (userId) metadata.userId = userId;
     if (attributedResellerId) metadata.attributedResellerId = attributedResellerId;
     if (resellerPlanId) metadata.resellerPlanId = resellerPlanId;
+    if (organizationId) metadata.organizationId = organizationId;
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded",
-      discounts: [{ coupon: PROMO_COUPON_ID }],
+      ...(!isCreditPack && { discounts: [{ coupon: PROMO_COUPON_ID }] }),
       return_url:
         returnUrl ||
         `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
       ...(customerEmail && { customer_email: customerEmail }),
-      ...(Object.keys(metadata).length > 0 && {
-        metadata,
-        ...(isRecurring && { subscription_data: { metadata } }),
-      }),
+      metadata,
+      ...(isRecurring && { subscription_data: { metadata } }),
     });
+
 
     return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
