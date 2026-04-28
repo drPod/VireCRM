@@ -5,18 +5,20 @@ import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
-export const CREDIT_PACKS = [
+type CreditPack = {
+  key: string;
+  label: string;
+  credits: number;
+  priceCents: number;
+  highlight?: boolean;
+};
+
+export const CREDIT_PACKS: CreditPack[] = [
   { key: "credit_pack_small_onetime", label: "Starter", credits: 100, priceCents: 1500 },
   { key: "credit_pack_medium_onetime", label: "Growth", credits: 500, priceCents: 6000 },
-  {
-    key: "credit_pack_large_onetime",
-    label: "Pro",
-    credits: 2000,
-    priceCents: 20000,
-    highlight: true,
-  },
+  { key: "credit_pack_large_onetime", label: "Pro", credits: 2000, priceCents: 20000, highlight: true },
   { key: "credit_pack_bulk_onetime", label: "Bulk", credits: 10000, priceCents: 80000 },
-] as const;
+];
 
 interface CreditTopUpPanelProps {
   organizationId: string;
