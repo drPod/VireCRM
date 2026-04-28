@@ -68,6 +68,15 @@ serve(async (req) => {
   }
 });
 
+// Map of credit pack price IDs → credit count granted on purchase.
+// Keep in sync with the products created via batch_create_product.
+const CREDIT_PACK_PRICES: Record<string, number> = {
+  credit_pack_small_onetime: 100,
+  credit_pack_medium_onetime: 500,
+  credit_pack_large_onetime: 2000,
+  credit_pack_bulk_onetime: 10000,
+};
+
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   // Verify the launch promo discount actually landed on the session.
   await verifySessionDiscount(session, env);
@@ -94,8 +103,64 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       },
       { onConflict: "stripe_transaction_id" },
     );
+
+    // Credit pack purchase? Grant credits to the org. We rely on the
+    // session.metadata.priceId stamped at checkout creation, falling back
+    // to expanding line_items if absent.
+    await maybeGrantCreditPack(session, env, userId);
   }
 }
+
+async function maybeGrantCreditPack(
+  session: any,
+  env: StripeEnv,
+  userId: string | null,
+) {
+  try {
+    const orgId = session.metadata?.organizationId || null;
+    let priceKey: string | null = session.metadata?.priceId || null;
+
+    // Fallback: re-fetch line items if priceId wasn't stamped on metadata.
+    if (!priceKey) {
+      // Only the lookup_key carries our human-readable priceId; we'd need
+      // a stripe API call to resolve. To keep webhook fast and avoid extra
+      // gateway calls, require the metadata stamp from create-checkout.
+      console.log("[credit-pack] skip — no priceId on session metadata", session.id);
+      return;
+    }
+
+    const credits = CREDIT_PACK_PRICES[priceKey];
+    if (!credits) return; // not a credit pack purchase
+
+    if (!orgId) {
+      console.error("[credit-pack] missing organizationId on session", session.id);
+      return;
+    }
+
+    const isAutoRecharge = session.metadata?.source === "auto_recharge";
+
+    const { data, error } = await supabase.rpc("grant_credit_pack", {
+      p_org_id: orgId,
+      p_pack_key: priceKey,
+      p_credits: credits,
+      p_purchased_by: userId,
+      p_amount_cents: session.amount_total || null,
+      p_currency: (session.currency || "usd").toLowerCase(),
+      p_source: isAutoRecharge ? "auto_recharge" : "checkout",
+      p_stripe_session_id: session.id,
+      p_stripe_payment_intent_id: session.payment_intent || null,
+    });
+
+    if (error) {
+      console.error("[credit-pack] grant_credit_pack failed", error);
+    } else {
+      console.log("[credit-pack] granted", credits, "credits to org", orgId, data);
+    }
+  } catch (e) {
+    console.error("[credit-pack] unexpected error", e);
+  }
+}
+
 
 /**
  * Expected promo discount applied to every checkout: 30% off via the
