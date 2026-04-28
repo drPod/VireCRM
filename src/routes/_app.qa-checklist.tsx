@@ -342,7 +342,64 @@ function QaChecklistPage() {
     );
   };
 
-  const resetAll = () => {
+  /**
+   * Run a single step's verifier, pre-fill pass/fail, and append the
+   * detail string to that step's notes (prefixed with a timestamp so a
+   * tester can re-run and see history).
+   */
+  const verifyStep = async (sectionId: string, stepId: string): Promise<VerifyResult | null> => {
+    const verifier = VERIFIERS[stepId];
+    if (!verifier) {
+      toast.info("No automated check for this step", { description: stepId });
+      return null;
+    }
+    setVerifying((prev) => ({ ...prev, [stepId]: true }));
+    try {
+      const result = await verifier();
+      const stamp = new Date().toLocaleTimeString();
+      const line = `[${stamp}] ${result.status.toUpperCase()} — ${result.detail}`;
+      setNotes((prev) => ({
+        ...prev,
+        [stepId]: prev[stepId] ? `${line}\n${prev[stepId]}` : line,
+      }));
+      setStatuses((prev) => ({ ...prev, [stepId]: result.status }));
+      setLog((prev) =>
+        [
+          { ts: new Date().toISOString(), sectionId, stepId, status: result.status, note: `auto: ${result.detail}` },
+          ...prev,
+        ].slice(0, 200),
+      );
+      toast[result.status === "pass" ? "success" : "error"](
+        result.status === "pass" ? "Verified pass" : "Verified fail",
+        { description: result.detail },
+      );
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Verifier crashed", { description: msg });
+      return { status: "fail", detail: msg };
+    } finally {
+      setVerifying((prev) => ({ ...prev, [stepId]: false }));
+    }
+  };
+
+  /** Run every step's verifier sequentially so logs stay readable. */
+  const verifyAll = async () => {
+    setVerifyingAll(true);
+    let pass = 0;
+    let fail = 0;
+    try {
+      for (const { section, step } of allSteps) {
+        if (!VERIFIERS[step.id]) continue;
+        const r = await verifyStep(section.id, step.id);
+        if (r?.status === "pass") pass += 1;
+        else if (r?.status === "fail") fail += 1;
+      }
+      toast.info("Verify all complete", { description: `${pass} pass · ${fail} fail` });
+    } finally {
+      setVerifyingAll(false);
+    }
+  };
     setStatuses({});
     setNotes({});
     setLog([]);
