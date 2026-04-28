@@ -35,6 +35,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
+import { Route as AppQaChecklistRouteImport } from './routes/_app.qa-checklist'
 import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
@@ -198,6 +199,11 @@ const AppRevenueRoute = AppRevenueRouteImport.update({
 const AppReputationRoute = AppReputationRouteImport.update({
   id: '/reputation',
   path: '/reputation',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppQaChecklistRoute = AppQaChecklistRouteImport.update({
+  id: '/qa-checklist',
+  path: '/qa-checklist',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPayoutsRoute = AppPayoutsRouteImport.update({
@@ -410,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/payouts': typeof AppPayoutsRoute
+  '/qa-checklist': typeof AppQaChecklistRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
@@ -471,6 +478,7 @@ export interface FileRoutesByTo {
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/payouts': typeof AppPayoutsRoute
+  '/qa-checklist': typeof AppQaChecklistRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
@@ -534,6 +542,7 @@ export interface FileRoutesById {
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
   '/_app/payouts': typeof AppPayoutsRoute
+  '/_app/qa-checklist': typeof AppQaChecklistRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/revenue': typeof AppRevenueRoute
   '/_app/sequences': typeof AppSequencesRoute
@@ -597,6 +606,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/messages'
     | '/payouts'
+    | '/qa-checklist'
     | '/reputation'
     | '/revenue'
     | '/sequences'
@@ -658,6 +668,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/messages'
     | '/payouts'
+    | '/qa-checklist'
     | '/reputation'
     | '/revenue'
     | '/sequences'
@@ -720,6 +731,7 @@ export interface FileRouteTypes {
     | '/_app/leads'
     | '/_app/messages'
     | '/_app/payouts'
+    | '/_app/qa-checklist'
     | '/_app/reputation'
     | '/_app/revenue'
     | '/_app/sequences'
@@ -969,6 +981,13 @@ declare module '@tanstack/react-router' {
       path: '/reputation'
       fullPath: '/reputation'
       preLoaderRoute: typeof AppReputationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/qa-checklist': {
+      id: '/_app/qa-checklist'
+      path: '/qa-checklist'
+      fullPath: '/qa-checklist'
+      preLoaderRoute: typeof AppQaChecklistRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/payouts': {
@@ -1267,6 +1286,7 @@ interface AppRouteChildren {
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
   AppPayoutsRoute: typeof AppPayoutsRoute
+  AppQaChecklistRoute: typeof AppQaChecklistRoute
   AppReputationRoute: typeof AppReputationRoute
   AppRevenueRoute: typeof AppRevenueRoute
   AppSequencesRoute: typeof AppSequencesRoute
@@ -1292,6 +1312,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,
   AppPayoutsRoute: AppPayoutsRoute,
+  AppQaChecklistRoute: AppQaChecklistRoute,
   AppReputationRoute: AppReputationRoute,
   AppRevenueRoute: AppRevenueRoute,
   AppSequencesRoute: AppSequencesRoute,
