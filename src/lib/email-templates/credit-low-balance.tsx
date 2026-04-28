@@ -47,10 +47,8 @@ const CreditLowBalanceEmail = ({
 
           <Section style={statCard}>
             <Text style={statLabel}>Current balance</Text>
-            <Text style={statValue}>{balance.toLocaleString()} credits</Text>
-            <Text style={statSubtle}>
-              Threshold: {threshold.toLocaleString()} credits
-            </Text>
+            <Text style={statValue}>{`${balance.toLocaleString()} credits`}</Text>
+            <Text style={statSubtle}>{`Threshold: ${threshold.toLocaleString()} credits`}</Text>
           </Section>
 
           {autoRechargeEnabled ? (
