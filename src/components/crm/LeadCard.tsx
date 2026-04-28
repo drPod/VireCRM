@@ -233,23 +233,46 @@ export function LeadCard({
               <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This permanently removes <strong>{lead.name}</strong>
-                    {lead.company ? ` (${lead.company})` : ""} and all their
-                    notes, messages, and activity from your CRM. This can't be
-                    undone.
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3 text-sm">
+                      <p>
+                        Choose how to remove <strong>{lead.name}</strong>
+                        {lead.company ? ` (${lead.company})` : ""} from your CRM.
+                      </p>
+                      <div className="rounded-md border border-border bg-muted/30 p-3 text-xs space-y-2">
+                        <p>
+                          <strong className="text-foreground">Archive</strong> — hides the lead
+                          from lists but <em>keeps</em> all related tasks, messages,
+                          conversations, and appointments for historical reference.
+                        </p>
+                        <p>
+                          <strong className="text-destructive">Permanently delete</strong> —
+                          removes the lead <em>and</em> every related task, message,
+                          conversation, and appointment. This can&apos;t be undone.
+                        </p>
+                      </div>
+                    </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
+                <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void onDelete?.(lead, "soft");
+                    }}
+                  >
+                    Archive
+                  </AlertDialogAction>
                   <AlertDialogAction
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     onClick={(e) => {
                       e.stopPropagation();
-                      void onDelete?.(lead);
+                      void onDelete?.(lead, "hard");
                     }}
                   >
-                    Delete lead
+                    Permanently delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
