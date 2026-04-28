@@ -406,7 +406,7 @@ export function CreditTopUpPanel({
                   setPendingPack(auto.pack_key);
                   setConfirmOpen(true);
                 } else {
-                  persistAuto({ ...auto, enabled: false });
+                  setConfirmDisableOpen(true);
                 }
               }}
               disabled={savingAuto}
