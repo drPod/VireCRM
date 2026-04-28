@@ -15,6 +15,7 @@ type LedgerEntry = {
   label: string;
   detail?: string;
   meta?: string;
+  receiptUrl?: string | null;
 };
 
 const PAGE_SIZE = 25;
