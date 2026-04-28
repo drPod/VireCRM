@@ -17,6 +17,7 @@ import { template as outreachEmail } from './outreach-email'
 import { template as contactInquiry } from './contact-inquiry'
 import { template as contactAcknowledgment } from './contact-acknowledgment'
 import { template as teamInvite } from './team-invite'
+import { template as creditLowBalance } from './credit-low-balance'
 
 /**
  * Template registry — maps template names to their React Email components.
@@ -31,4 +32,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'contact-inquiry': contactInquiry,
   'contact-acknowledgment': contactAcknowledgment,
   'team-invite': teamInvite,
+  'credit-low-balance': creditLowBalance,
 }
