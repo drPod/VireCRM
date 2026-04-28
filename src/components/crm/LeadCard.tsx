@@ -83,8 +83,9 @@ export function LeadCard({
   onSelectedChange?: (next: boolean) => void;
   /** When provided, renders a quick "Send email" action on the card. */
   onSendEmail?: (lead: Lead) => void;
-  /** When provided AND `canDelete` is true, renders a delete button with confirmation. */
-  onDelete?: (lead: Lead) => void | Promise<void>;
+  /** When provided AND `canDelete` is true, renders a delete button with a confirm dialog
+   *  that lets the user choose between archiving (soft) or permanently deleting (hard). */
+  onDelete?: (lead: Lead, mode: "soft" | "hard") => void | Promise<void>;
   /** Whether the current user has permission to delete this lead (owner or creator). */
   canDelete?: boolean;
 }) {
