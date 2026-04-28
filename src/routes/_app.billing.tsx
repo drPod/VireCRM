@@ -273,7 +273,7 @@ async function openCustomerPortal() {
 }
 
 function BillingPage() {
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
   const search = Route.useSearch();
   const navigate = useNavigate();
   const { subscription, hasAccess, inGrace, loading } = useSubscription(user?.id);
