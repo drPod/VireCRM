@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { Coins, Sparkles, Zap, Loader2, Check, CreditCard, AlertTriangle, Download } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Coins, Sparkles, Zap, Loader2, Check, CreditCard, AlertTriangle, Download, Bell, BellOff, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { Switch } from "@/components/ui/switch";
@@ -56,6 +56,11 @@ interface AutoRechargeSettings {
   enabled: boolean;
   pack_key: string;
   threshold_pct: number;
+}
+
+interface LowBalanceSettings {
+  enabled: boolean;
+  threshold: number;
 }
 
 const DEFAULT_AUTO_PACK = "credit_pack_medium_onetime";
