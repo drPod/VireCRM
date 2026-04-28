@@ -46,6 +46,44 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 
+// Client-side guard so a hung tool call still surfaces to the user instead of
+// spinning forever. Server-side timeouts may still be longer; this is the UX
+// floor.
+const COMMAND_TIMEOUT_MS = 45_000;
+
+type CommandErrorKind = "credits" | "rate_limit" | "timeout" | "network" | "auth" | "api";
+
+function classifyCommandError(err: unknown): { kind: CommandErrorKind; title: string; message: string } {
+  const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "Unknown error";
+  const lower = raw.toLowerCase();
+  if (lower.includes("timeout") || lower.includes("timed out") || lower.includes("aborted")) {
+    return { kind: "timeout", title: "Command timed out", message: "The AI took too long to respond. Try again or simplify the command." };
+  }
+  if (lower.includes("credit") || lower.includes("402") || lower.includes("exhausted") || lower.includes("insufficient")) {
+    return { kind: "credits", title: "Out of credits", message: "Top up your workspace credits to keep running commands." };
+  }
+  if (lower.includes("429") || lower.includes("rate") ) {
+    return { kind: "rate_limit", title: "Rate limited", message: "AI is rate-limited. Wait a few seconds and retry." };
+  }
+  if (lower.includes("401") || lower.includes("unauthor") || lower.includes("forbidden") || lower.includes("403")) {
+    return { kind: "auth", title: "Not authorized", message: raw };
+  }
+  if (lower.includes("network") || lower.includes("fetch") || lower.includes("failed to fetch")) {
+    return { kind: "network", title: "Network error", message: "Check your connection and retry." };
+  }
+  return { kind: "api", title: "Command failed", message: raw };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
 function DashboardErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   return (
