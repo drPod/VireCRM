@@ -295,6 +295,9 @@ function QaChecklistPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [log, setLog] = useState<LogEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  /** Per-step verifier in-flight state, keyed by step id. */
+  const [verifying, setVerifying] = useState<Record<string, boolean>>({});
+  const [verifyingAll, setVerifyingAll] = useState(false);
 
   useEffect(() => {
     const initial = loadState();
