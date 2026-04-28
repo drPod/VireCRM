@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Coins, ArrowDownCircle, ArrowUpCircle, Clock, AlertCircle, Loader2, History } from "lucide-react";
+import { Coins, ArrowDownCircle, ArrowUpCircle, Clock, AlertCircle, Loader2, History, Download } from "lucide-react";
 import { CREDIT_PACKS } from "./CreditTopUpPanel";
 
 interface Props {
@@ -15,6 +15,7 @@ type LedgerEntry = {
   label: string;
   detail?: string;
   meta?: string;
+  receiptUrl?: string | null;
 };
 
 const PAGE_SIZE = 25;
@@ -61,7 +62,7 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
     const [packsRes, usageRes] = await Promise.all([
       supabase
         .from("credit_packs")
-        .select("id, pack_key, credits_total, credits_remaining, purchased_at, expires_at, amount_cents, source")
+        .select("id, pack_key, credits_total, credits_remaining, purchased_at, expires_at, amount_cents, source, receipt_url, hosted_invoice_url")
         .eq("organization_id", organizationId)
         .order("purchased_at", { ascending: false })
         .limit(200),
@@ -85,6 +86,8 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
         expires_at: string;
         amount_cents: number | null;
         source: string;
+        receipt_url: string | null;
+        hosted_invoice_url: string | null;
       };
       // Purchase entry
       merged.push({
@@ -95,6 +98,7 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
         label: `${packLabel(pack.pack_key)} pack purchased`,
         detail: pack.amount_cents != null ? `$${(pack.amount_cents / 100).toFixed(2)} · ${pack.credits_total.toLocaleString()} credits` : `${pack.credits_total.toLocaleString()} credits`,
         meta: pack.source === "auto_recharge" ? "auto-recharge" : undefined,
+        receiptUrl: pack.receipt_url ?? pack.hosted_invoice_url ?? null,
       });
 
       // Expiry entry — only if already expired with credits left unconsumed
@@ -234,6 +238,20 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
                           <>
                             <span className="text-muted-foreground/60">·</span>
                             <span className="px-1.5 py-0.5 rounded bg-muted/40 text-[10px] uppercase tracking-wider">{e.meta}</span>
+                          </>
+                        )}
+                        {e.receiptUrl && (
+                          <>
+                            <span className="text-muted-foreground/60">·</span>
+                            <a
+                              href={e.receiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-primary hover:text-primary/80 font-medium"
+                            >
+                              <Download className="h-3 w-3" />
+                              Receipt
+                            </a>
                           </>
                         )}
                       </div>

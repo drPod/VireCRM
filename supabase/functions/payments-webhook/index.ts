@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, verifyWebhook } from "../_shared/stripe.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -139,6 +139,34 @@ async function maybeGrantCreditPack(
 
     const isAutoRecharge = session.metadata?.source === "auto_recharge";
 
+    // Resolve the receipt URL from the underlying PaymentIntent → latest charge.
+    // Falls back to the hosted invoice URL if the session generated an invoice.
+    let receiptUrl: string | null = null;
+    let hostedInvoiceUrl: string | null = null;
+    try {
+      const stripe = createStripeClient(env);
+      if (session.payment_intent) {
+        const pi = await stripe.paymentIntents.retrieve(
+          session.payment_intent as string,
+          { expand: ["latest_charge"] },
+        );
+        const charge = (pi as any).latest_charge as any;
+        if (charge && typeof charge === "object") {
+          receiptUrl = charge.receipt_url ?? null;
+        }
+      }
+      if (session.invoice) {
+        const inv = await stripe.invoices.retrieve(session.invoice as string);
+        hostedInvoiceUrl = (inv as any).hosted_invoice_url ?? null;
+        if (!receiptUrl) {
+          // Stripe-hosted invoice page also offers a PDF receipt download.
+          receiptUrl = hostedInvoiceUrl;
+        }
+      }
+    } catch (e) {
+      console.warn("[credit-pack] failed to resolve receipt URL", e);
+    }
+
     const { data, error } = await supabase.rpc("grant_credit_pack", {
       p_org_id: orgId,
       p_pack_key: priceKey,
@@ -149,6 +177,8 @@ async function maybeGrantCreditPack(
       p_source: isAutoRecharge ? "auto_recharge" : "checkout",
       p_stripe_session_id: session.id,
       p_stripe_payment_intent_id: session.payment_intent || null,
+      p_receipt_url: receiptUrl,
+      p_hosted_invoice_url: hostedInvoiceUrl,
     });
 
     if (error) {

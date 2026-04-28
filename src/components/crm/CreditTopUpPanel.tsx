@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Coins, Sparkles, Zap, Loader2, Check, CreditCard, AlertTriangle } from "lucide-react";
+import { Coins, Sparkles, Zap, Loader2, Check, CreditCard, AlertTriangle, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { Switch } from "@/components/ui/switch";
@@ -47,6 +47,8 @@ interface PackBalance {
     credits_remaining: number;
     credits_total: number;
     expires_at: string;
+    receipt_url: string | null;
+    hosted_invoice_url: string | null;
   }>;
 }
 
@@ -96,7 +98,7 @@ export function CreditTopUpPanel({
     setLoading(true);
     const { data: packs } = await supabase
       .from("credit_packs")
-      .select("id, pack_key, credits_remaining, credits_total, expires_at")
+      .select("id, pack_key, credits_remaining, credits_total, expires_at, receipt_url, hosted_invoice_url")
       .eq("organization_id", organizationId)
       .gt("credits_remaining", 0)
       .gt("expires_at", new Date().toISOString())
@@ -458,17 +460,31 @@ export function CreditTopUpPanel({
         {!loading && balance && balance.packs.length > 0 && (
           <div className="mt-3 space-y-1">
             <p className="text-xs font-medium text-muted-foreground">Active packs</p>
-            {balance.packs.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between text-xs text-muted-foreground"
-              >
-                <span>
-                  {p.credits_remaining.toLocaleString()} / {p.credits_total.toLocaleString()}{" "}
-                  · expires {new Date(p.expires_at).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
+            {balance.packs.map((p) => {
+              const url = p.receipt_url ?? p.hosted_invoice_url;
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
+                >
+                  <span className="truncate">
+                    {p.credits_remaining.toLocaleString()} / {p.credits_total.toLocaleString()}{" "}
+                    · expires {new Date(p.expires_at).toLocaleDateString()}
+                  </span>
+                  {url && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-primary hover:text-primary/80 font-medium shrink-0"
+                    >
+                      <Download className="h-3 w-3" />
+                      Receipt
+                    </a>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
