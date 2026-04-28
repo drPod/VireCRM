@@ -786,11 +786,13 @@ export type Database = {
           currency: string | null
           exhausted_at: string | null
           expires_at: string
+          hosted_invoice_url: string | null
           id: string
           organization_id: string
           pack_key: string
           purchased_at: string
           purchased_by: string | null
+          receipt_url: string | null
           source: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -804,11 +806,13 @@ export type Database = {
           currency?: string | null
           exhausted_at?: string | null
           expires_at?: string
+          hosted_invoice_url?: string | null
           id?: string
           organization_id: string
           pack_key: string
           purchased_at?: string
           purchased_by?: string | null
+          receipt_url?: string | null
           source?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -822,11 +826,13 @@ export type Database = {
           currency?: string | null
           exhausted_at?: string | null
           expires_at?: string
+          hosted_invoice_url?: string | null
           id?: string
           organization_id?: string
           pack_key?: string
           purchased_at?: string
           purchased_by?: string | null
+          receipt_url?: string | null
           source?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -3183,20 +3189,37 @@ export type Database = {
         Returns: Json
       }
       get_user_org_id: { Args: { p_user_id: string }; Returns: string }
-      grant_credit_pack: {
-        Args: {
-          p_amount_cents?: number
-          p_credits: number
-          p_currency?: string
-          p_org_id: string
-          p_pack_key: string
-          p_purchased_by?: string
-          p_source?: string
-          p_stripe_payment_intent_id?: string
-          p_stripe_session_id?: string
-        }
-        Returns: Json
-      }
+      grant_credit_pack:
+        | {
+            Args: {
+              p_amount_cents?: number
+              p_credits: number
+              p_currency?: string
+              p_org_id: string
+              p_pack_key: string
+              p_purchased_by?: string
+              p_source?: string
+              p_stripe_payment_intent_id?: string
+              p_stripe_session_id?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount_cents?: number
+              p_credits: number
+              p_currency?: string
+              p_hosted_invoice_url?: string
+              p_org_id: string
+              p_pack_key: string
+              p_purchased_by?: string
+              p_receipt_url?: string
+              p_source?: string
+              p_stripe_payment_intent_id?: string
+              p_stripe_session_id?: string
+            }
+            Returns: Json
+          }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
