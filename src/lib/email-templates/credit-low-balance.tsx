@@ -34,9 +34,7 @@ const CreditLowBalanceEmail = ({
   return (
     <Html lang="en" dir="ltr">
       <Head />
-      <Preview>
-        Your {SITE_NAME} credit balance is low — {balance} credits remaining.
-      </Preview>
+      <Preview>{`Your ${SITE_NAME} credit balance is low — ${balance} credits remaining.`}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Heading style={h1}>Your credit balance is running low</Heading>
