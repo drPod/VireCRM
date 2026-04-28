@@ -339,6 +339,101 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
           </div>
         )}
       </div>
+
+      <div className="mt-4 border-t border-border pt-3">
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setLogOpen((v) => !v)}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <History className="h-3 w-3" />
+            Recent credit activity
+            <span className="text-muted-foreground/60">{logOpen ? "▾" : "▸"}</span>
+          </button>
+          {logOpen && (
+            <button
+              type="button"
+              onClick={loadLog}
+              disabled={logLoading}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3 w-3 ${logLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          )}
+        </div>
+
+        {logOpen && (
+          <div className="space-y-1.5 max-h-72 overflow-y-auto">
+            {logLoading && logRows === null ? (
+              <div className="py-3 text-center text-xs text-muted-foreground">Loading…</div>
+            ) : !logRows || logRows.length === 0 ? (
+              <div className="py-3 text-center text-xs text-muted-foreground">
+                No credit activity yet.
+              </div>
+            ) : (
+              logRows.map((row) => {
+                const actor = row.user_id
+                  ? actorNames[row.user_id] ?? "Member"
+                  : "System";
+                const isReject = row.status === "rejected_quota";
+                const isUnlim = row.status === "bypass_unlimited";
+                return (
+                  <div
+                    key={row.id}
+                    className={`rounded-md border p-2 text-xs ${
+                      isReject
+                        ? "border-destructive/30 bg-destructive/5"
+                        : "border-border bg-muted/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-foreground capitalize">
+                        {formatActionLabel(row.action)}
+                      </span>
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                          isReject
+                            ? "bg-destructive/20 text-destructive"
+                            : isUnlim
+                              ? "bg-primary/15 text-primary"
+                              : "bg-foreground/10 text-foreground"
+                        }`}
+                      >
+                        {isReject
+                          ? "Blocked"
+                          : isUnlim
+                            ? "Unlimited"
+                            : `−${row.credits_charged}`}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted-foreground">
+                      <span>{actor}</span>
+                      <span>·</span>
+                      <span>{formatRelative(row.created_at)}</span>
+                      {row.credits_before !== null && row.credits_after !== null && (
+                        <>
+                          <span>·</span>
+                          <span>
+                            {row.credits_before} → {row.credits_after}
+                            {row.quota !== null ? ` / ${row.quota}` : ""}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {row.command_id && (
+                      <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground/70">
+                        cmd: {row.command_id}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
