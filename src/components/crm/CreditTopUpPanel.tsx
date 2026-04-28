@@ -47,6 +47,8 @@ interface PackBalance {
     credits_remaining: number;
     credits_total: number;
     expires_at: string;
+    receipt_url: string | null;
+    hosted_invoice_url: string | null;
   }>;
 }
 
