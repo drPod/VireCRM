@@ -440,6 +440,14 @@ function QaChecklistPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" onClick={verifyAll} disabled={verifyingAll}>
+            {verifyingAll ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4 mr-1.5" />
+            )}
+            Verify all
+          </Button>
           <Button variant="outline" size="sm" onClick={resetAll}>
             <RotateCcw className="h-4 w-4 mr-1.5" /> Reset
           </Button>
