@@ -20,6 +20,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CreditTopUpPanel } from "@/components/crm/CreditTopUpPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
