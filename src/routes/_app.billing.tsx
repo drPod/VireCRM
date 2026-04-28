@@ -517,6 +517,11 @@ function BillingPage() {
         />
       )}
 
+      {/* Credits ledger timeline */}
+      {organization?.id && (
+        <CreditLedgerTimeline organizationId={organization.id} />
+      )}
+
       {/* Manage subscription via Stripe portal */}
       {!isManual && (
         <div className="rounded-xl border border-border bg-card p-6 flex items-start justify-between gap-3">
