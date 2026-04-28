@@ -1627,6 +1627,10 @@ export type Database = {
           last_auto_recharge_at: string | null
           last_auto_recharge_error: string | null
           last_auto_recharge_status: string | null
+          low_balance_last_notified_at: string | null
+          low_balance_last_notified_balance: number | null
+          low_balance_notify_enabled: boolean
+          low_balance_threshold: number
           organization_id: string
           stripe_customer_id: string | null
           stripe_payment_method_id: string | null
@@ -1640,6 +1644,10 @@ export type Database = {
           last_auto_recharge_at?: string | null
           last_auto_recharge_error?: string | null
           last_auto_recharge_status?: string | null
+          low_balance_last_notified_at?: string | null
+          low_balance_last_notified_balance?: number | null
+          low_balance_notify_enabled?: boolean
+          low_balance_threshold?: number
           organization_id: string
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
@@ -1653,6 +1661,10 @@ export type Database = {
           last_auto_recharge_at?: string | null
           last_auto_recharge_error?: string | null
           last_auto_recharge_status?: string | null
+          low_balance_last_notified_at?: string | null
+          low_balance_last_notified_balance?: number | null
+          low_balance_notify_enabled?: boolean
+          low_balance_threshold?: number
           organization_id?: string
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
@@ -3132,6 +3144,7 @@ export type Database = {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json
       }
+      check_and_mark_low_balance: { Args: { p_org_id: string }; Returns: Json }
       consume_credit:
         | { Args: { p_count?: number; p_org_id: string }; Returns: Json }
         | {
