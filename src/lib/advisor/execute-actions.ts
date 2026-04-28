@@ -164,12 +164,6 @@ export async function runAdvisorActions({
   actions,
   chargeCredit,
 }: RunActionsArgs): Promise<{
-  supabase,
-  organizationId: orgId,
-  userId,
-  command,
-  actions,
-}: RunActionsArgs): Promise<{
   sanitizedActions: AgentAction[];
   results: ExecutionResult[];
 }> {
