@@ -174,7 +174,7 @@ function Dashboard() {
         description: info.message,
         duration: 8000,
         action: isCredits
-          ? { label: "Top up", onClick: () => router.navigate({ to: "/billing" }) }
+          ? { label: "Top up", onClick: () => router.navigate({ to: "/billing", search: { required: undefined, plan: undefined } as never }) }
           : { label: "Retry", onClick: () => void handleCommand(command) },
       });
     } finally {
