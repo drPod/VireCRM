@@ -175,6 +175,11 @@ export function CreditTopUpPanel({
   };
 
   const persistAuto = async (next: AutoRechargeSettings) => {
+    const prev = auto;
+    const enabledChanged = prev.enabled !== next.enabled;
+    const thresholdChanged = prev.threshold_pct !== next.threshold_pct;
+    const packChanged = prev.pack_key !== next.pack_key;
+
     setSavingAuto(true);
     const { error } = await supabase.from("org_credit_settings").upsert(
       {
@@ -187,14 +192,42 @@ export function CreditTopUpPanel({
     );
     setSavingAuto(false);
     if (error) {
-      toast.error("Could not save auto-recharge settings");
+      if (enabledChanged) {
+        toast.error(
+          next.enabled
+            ? "Couldn't enable auto-recharge — please try again"
+            : "Couldn't disable auto-recharge — please try again",
+        );
+      } else if (packChanged) {
+        toast.error(`Couldn't switch auto-recharge pack to ${packLabel(next.pack_key)}`);
+      } else if (thresholdChanged) {
+        toast.error(`Couldn't update threshold to ${next.threshold_pct}%`);
+      } else {
+        toast.error("Could not save auto-recharge settings");
+      }
     } else {
-      toast.success(
-        next.enabled
-          ? "Auto-recharge enabled"
-          : "Auto-recharge disabled",
-      );
       setAuto(next);
+      if (enabledChanged) {
+        if (next.enabled) {
+          toast.success("Auto-recharge enabled", {
+            description: `We'll auto-buy the ${packLabel(next.pack_key)} pack when balance drops below ${next.threshold_pct}% of quota.`,
+          });
+        } else {
+          toast.success("Auto-recharge disabled", {
+            description: "Your saved card won't be charged automatically.",
+          });
+        }
+      } else if (packChanged) {
+        toast.success(`Auto-recharge pack set to ${packLabel(next.pack_key)}`, {
+          description: "This pack will be charged the next time your balance falls below the threshold.",
+        });
+      } else if (thresholdChanged) {
+        toast.success(`Threshold updated to ${next.threshold_pct}%`, {
+          description: `Auto-recharge will trigger when balance drops below ${next.threshold_pct}% of monthly quota.`,
+        });
+      } else {
+        toast.success("Auto-recharge settings saved");
+      }
     }
   };
 
