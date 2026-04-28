@@ -31,6 +31,8 @@ interface Organization {
   plan: string;
   ai_tokens_used: number;
   ai_tokens_limit: number;
+  unlimited_credits?: boolean | null;
+  monthly_credit_quota?: number | null;
 }
 
 interface AuthContextType {
