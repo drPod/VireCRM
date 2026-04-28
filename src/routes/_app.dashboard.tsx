@@ -238,8 +238,13 @@ function Dashboard() {
       const okCount = result.results.filter((r) => r.status === "ok").length;
       const errCount = result.results.filter((r) => r.status === "error").length;
       if (errCount > 0) {
+        const firstErr = result.results.find((r) => r.status === "error");
         toast.warning(`Completed with ${errCount} issue${errCount === 1 ? "" : "s"}`, {
-          description: `${okCount} action${okCount === 1 ? "" : "s"} applied.`,
+          description: firstErr?.message
+            ? `${okCount} applied. First error: ${firstErr.message}`
+            : `${okCount} action${okCount === 1 ? "" : "s"} applied.`,
+          duration: 9000,
+          action: { label: "Retry failed", onClick: () => void handleExecute() },
         });
       } else {
         toast.success(result.summary, {
@@ -247,12 +252,19 @@ function Dashboard() {
         });
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Execution failed";
-      toast.error(message);
+      const info = classifyCommandError(err);
+      const isCredits = info.kind === "credits";
+      toast.error(info.title, {
+        description: info.message,
+        duration: 9000,
+        action: isCredits
+          ? { label: "Top up", onClick: () => router.navigate({ to: "/billing", search: { required: undefined, plan: undefined } as never }) }
+          : { label: "Retry", onClick: () => void handleExecute() },
+      });
       setTaskStatuses((prev) =>
         prev.map((s) =>
           s.status === "running" || s.status === "queued"
-            ? { ...s, status: "failed" as const, message }
+            ? { ...s, status: "failed" as const, message: info.message }
             : s,
         ),
       );
