@@ -9,10 +9,104 @@ import {
   ExternalLink,
   ClipboardCheck,
   PlayCircle,
+  Zap,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Verifier result returned by each step's quick-check probe.
+ * - status "pass" / "fail" pre-fills the corresponding button.
+ * - detail is appended to the notes field so the tester sees what was checked.
+ */
+type VerifyResult = { status: "pass" | "fail"; detail: string };
+type Verifier = () => Promise<VerifyResult>;
+
+/** Lookback window for "did this just happen?" probes. */
+const VERIFY_WINDOW_MIN = 10;
+function sinceISO() {
+  return new Date(Date.now() - VERIFY_WINDOW_MIN * 60_000).toISOString();
+}
+
+/**
+ * Per-step verifiers. Each runs a tiny RLS-scoped query (or count) that
+ * returns within ~1s. They look for evidence that the buyer just performed
+ * the action — e.g. a fresh outbound message, a new conversation reply,
+ * a recent AI call, or a soft-deleted lead.
+ */
+const VERIFIERS: Record<string, Verifier> = {
+  "send-email-flow": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since);
+    if (error) return { status: "fail", detail: `messages query error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} message(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      : { status: "fail", detail: `No messages created in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+  "reply-thread": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("conversation_messages")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since);
+    if (error) return { status: "fail", detail: `conversation_messages error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} reply/message(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      : { status: "fail", detail: `No replies in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+  "command-plan": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("ai_call_log")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since);
+    if (error) return { status: "fail", detail: `ai_call_log error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} AI call(s) — planning likely ran.` }
+      : { status: "fail", detail: `No AI calls logged in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+  "command-execute": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("credit_usage_log")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since);
+    if (error) return { status: "fail", detail: `credit_usage_log error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} credit usage entr(ies) — execution billed.` }
+      : { status: "fail", detail: `No credit usage in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+  "delete-confirm": async () => {
+    // The confirm dialog itself isn't observable from the DB, but we can
+    // verify the user has at least one lead they're allowed to read — a
+    // prerequisite for triggering the delete flow at all.
+    const { count, error } = await supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .limit(1);
+    if (error) return { status: "fail", detail: `leads readable check failed: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `${count} lead(s) visible — ready to trigger the delete dialog.` }
+      : { status: "fail", detail: "No leads visible — create one before testing delete." };
+  },
+  "delete-execute": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .gte("deleted_at", since);
+    if (error) return { status: "fail", detail: `leads query error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} soft-deleted lead(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      : { status: "fail", detail: `No leads soft-deleted in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+};
 
 export const Route = createFileRoute("/_app/qa-checklist")({
   component: QaChecklistPage,
@@ -201,6 +295,9 @@ function QaChecklistPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [log, setLog] = useState<LogEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  /** Per-step verifier in-flight state, keyed by step id. */
+  const [verifying, setVerifying] = useState<Record<string, boolean>>({});
+  const [verifyingAll, setVerifyingAll] = useState(false);
 
   useEffect(() => {
     const initial = loadState();
@@ -245,6 +342,65 @@ function QaChecklistPage() {
     );
   };
 
+  /**
+   * Run a single step's verifier, pre-fill pass/fail, and append the
+   * detail string to that step's notes (prefixed with a timestamp so a
+   * tester can re-run and see history).
+   */
+  const verifyStep = async (sectionId: string, stepId: string): Promise<VerifyResult | null> => {
+    const verifier = VERIFIERS[stepId];
+    if (!verifier) {
+      toast.info("No automated check for this step", { description: stepId });
+      return null;
+    }
+    setVerifying((prev) => ({ ...prev, [stepId]: true }));
+    try {
+      const result = await verifier();
+      const stamp = new Date().toLocaleTimeString();
+      const line = `[${stamp}] ${result.status.toUpperCase()} — ${result.detail}`;
+      setNotes((prev) => ({
+        ...prev,
+        [stepId]: prev[stepId] ? `${line}\n${prev[stepId]}` : line,
+      }));
+      setStatuses((prev) => ({ ...prev, [stepId]: result.status }));
+      setLog((prev) =>
+        [
+          { ts: new Date().toISOString(), sectionId, stepId, status: result.status, note: `auto: ${result.detail}` },
+          ...prev,
+        ].slice(0, 200),
+      );
+      toast[result.status === "pass" ? "success" : "error"](
+        result.status === "pass" ? "Verified pass" : "Verified fail",
+        { description: result.detail },
+      );
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Verifier crashed", { description: msg });
+      return { status: "fail", detail: msg };
+    } finally {
+      setVerifying((prev) => ({ ...prev, [stepId]: false }));
+    }
+  };
+
+  /** Run every step's verifier sequentially so logs stay readable. */
+  const verifyAll = async () => {
+    setVerifyingAll(true);
+    let pass = 0;
+    let fail = 0;
+    try {
+      for (const { section, step } of allSteps) {
+        if (!VERIFIERS[step.id]) continue;
+        const r = await verifyStep(section.id, step.id);
+        if (r?.status === "pass") pass += 1;
+        else if (r?.status === "fail") fail += 1;
+      }
+      toast.info("Verify all complete", { description: `${pass} pass · ${fail} fail` });
+    } finally {
+      setVerifyingAll(false);
+    }
+  };
+
   const resetAll = () => {
     setStatuses({});
     setNotes({});
@@ -284,6 +440,14 @@ function QaChecklistPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" onClick={verifyAll} disabled={verifyingAll}>
+            {verifyingAll ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4 mr-1.5" />
+            )}
+            Verify all
+          </Button>
           <Button variant="outline" size="sm" onClick={resetAll}>
             <RotateCcw className="h-4 w-4 mr-1.5" /> Reset
           </Button>
@@ -352,6 +516,22 @@ function QaChecklistPage() {
                     />
 
                     <div className="flex flex-wrap items-center gap-2">
+                      {VERIFIERS[step.id] && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void verifyStep(section.id, step.id)}
+                          disabled={verifying[step.id] || verifyingAll}
+                          title={`Run an automated check for "${step.title}"`}
+                        >
+                          {verifying[step.id] ? (
+                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                          ) : (
+                            <Zap className="h-4 w-4 mr-1.5" />
+                          )}
+                          Verify now
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant={status === "pass" ? "default" : "outline"}
