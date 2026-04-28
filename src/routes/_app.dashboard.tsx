@@ -151,9 +151,11 @@ function Dashboard() {
     setTaskStatuses([]);
 
     try {
-      const result = await execCommand({
-        data: { command },
-      });
+      const result = await withTimeout(
+        execCommand({ data: { command } }),
+        COMMAND_TIMEOUT_MS,
+        "Planning",
+      );
       setPlan(result);
       // Seed the status panel with planned steps as soon as the AI responds.
       setTaskStatuses(
@@ -165,8 +167,15 @@ function Dashboard() {
         })),
       );
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Command failed";
-      toast.error(message);
+      const info = classifyCommandError(err);
+      const isCredits = info.kind === "credits";
+      toast.error(info.title, {
+        description: info.message,
+        duration: 8000,
+        action: isCredits
+          ? { label: "Top up", onClick: () => router.navigate({ to: "/billing" }) }
+          : { label: "Retry", onClick: () => void handleCommand(command) },
+      });
     } finally {
       setIsProcessing(false);
     }
