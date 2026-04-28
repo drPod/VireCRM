@@ -97,6 +97,11 @@ export function CreditTopUpPanel({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingThreshold, setPendingThreshold] = useState<number>(20);
   const [pendingPack, setPendingPack] = useState<string>(DEFAULT_AUTO_PACK);
+  const [lowBalance, setLowBalance] = useState<LowBalanceSettings>({ enabled: true, threshold: 50 });
+  const [thresholdInput, setThresholdInput] = useState<string>("50");
+  const [savingLow, setSavingLow] = useState(false);
+  const [testingLow, setTestingLow] = useState(false);
+  const lastNotifyCheckRef = useRef<number>(0);
 
   const loadBalance = useCallback(async () => {
     if (!organizationId) return;
@@ -117,7 +122,7 @@ export function CreditTopUpPanel({
 
     const { data: settings } = await supabase
       .from("org_credit_settings")
-      .select("auto_recharge_enabled, auto_recharge_pack_key, auto_recharge_threshold_pct, stripe_payment_method_id")
+      .select("auto_recharge_enabled, auto_recharge_pack_key, auto_recharge_threshold_pct, stripe_payment_method_id, low_balance_notify_enabled, low_balance_threshold")
       .eq("organization_id", organizationId)
       .maybeSingle();
 
