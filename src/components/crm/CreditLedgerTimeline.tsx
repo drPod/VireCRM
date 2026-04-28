@@ -240,6 +240,20 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
                             <span className="px-1.5 py-0.5 rounded bg-muted/40 text-[10px] uppercase tracking-wider">{e.meta}</span>
                           </>
                         )}
+                        {e.receiptUrl && (
+                          <>
+                            <span className="text-muted-foreground/60">·</span>
+                            <a
+                              href={e.receiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-primary hover:text-primary/80 font-medium"
+                            >
+                              <Download className="h-3 w-3" />
+                              Receipt
+                            </a>
+                          </>
+                        )}
                       </div>
                     </div>
                     <span className={`text-sm font-mono font-semibold tabular-nums shrink-0 ${positive ? "text-emerald-400" : e.kind === "expiry" ? "text-amber-400" : "text-foreground"}`}>
