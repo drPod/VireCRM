@@ -20,6 +20,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CreditTopUpPanel } from "@/components/crm/CreditTopUpPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
@@ -273,7 +274,7 @@ async function openCustomerPortal() {
 }
 
 function BillingPage() {
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
   const search = Route.useSearch();
   const navigate = useNavigate();
   const { subscription, hasAccess, inGrace, loading } = useSubscription(user?.id);
@@ -505,6 +506,15 @@ function BillingPage() {
           </div>
         )}
       </div>
+
+      {/* Credit top-up packs */}
+      {organization?.id && !organization.unlimited_credits && (
+        <CreditTopUpPanel
+          organizationId={organization.id}
+          userId={user?.id}
+          customerEmail={user?.email}
+        />
+      )}
 
       {/* Manage subscription via Stripe portal */}
       {!isManual && (
