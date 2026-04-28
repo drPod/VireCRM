@@ -206,7 +206,11 @@ function Dashboard() {
     }, Math.max(400, Math.min(1200, Math.floor(2400 / Math.max(1, totalSteps)))));
 
     try {
-      const result = await runCommand({ data: { command: lastCommand } });
+      const result = await withTimeout(
+        runCommand({ data: { command: lastCommand } }),
+        COMMAND_TIMEOUT_MS,
+        "Execution",
+      );
       setExecution(result);
 
       // Map server results back onto the planned steps positionally.
