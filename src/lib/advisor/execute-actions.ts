@@ -143,6 +143,12 @@ interface RunActionsArgs {
   userId: string;
   command: string;
   actions: AgentAction[];
+  /**
+   * Optional credit-gating callback. Called once per BILLABLE action right
+   * before execution. Return `{ ok: true }` to proceed, or `{ ok: false,
+   * reason }` to skip the action and emit a "credits exhausted" result.
+   */
+  chargeCredit?: (action: AgentAction) => Promise<{ ok: boolean; reason?: string }>;
 }
 
 /**
@@ -151,6 +157,13 @@ interface RunActionsArgs {
  * loop in `executeCommandActionsFn` so replays use identical guardrails.
  */
 export async function runAdvisorActions({
+  supabase,
+  organizationId: orgId,
+  userId,
+  command,
+  actions,
+  chargeCredit,
+}: RunActionsArgs): Promise<{
   supabase,
   organizationId: orgId,
   userId,
