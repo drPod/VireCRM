@@ -777,6 +777,71 @@ export type Database = {
           },
         ]
       }
+      credit_packs: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          credits_remaining: number
+          credits_total: number
+          currency: string | null
+          exhausted_at: string | null
+          expires_at: string
+          id: string
+          organization_id: string
+          pack_key: string
+          purchased_at: string
+          purchased_by: string | null
+          source: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          credits_remaining: number
+          credits_total: number
+          currency?: string | null
+          exhausted_at?: string | null
+          expires_at?: string
+          id?: string
+          organization_id: string
+          pack_key: string
+          purchased_at?: string
+          purchased_by?: string | null
+          source?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          credits_remaining?: number
+          credits_total?: number
+          currency?: string | null
+          exhausted_at?: string | null
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          pack_key?: string
+          purchased_at?: string
+          purchased_by?: string | null
+          source?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_packs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_usage_log: {
         Row: {
           action: string
@@ -1542,6 +1607,56 @@ export type Database = {
             foreignKeyName: "org_connectors_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_credit_settings: {
+        Row: {
+          auto_recharge_enabled: boolean
+          auto_recharge_pack_key: string | null
+          auto_recharge_threshold_pct: number
+          created_at: string
+          last_auto_recharge_at: string | null
+          last_auto_recharge_error: string | null
+          last_auto_recharge_status: string | null
+          organization_id: string
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_recharge_enabled?: boolean
+          auto_recharge_pack_key?: string | null
+          auto_recharge_threshold_pct?: number
+          created_at?: string
+          last_auto_recharge_at?: string | null
+          last_auto_recharge_error?: string | null
+          last_auto_recharge_status?: string | null
+          organization_id: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_recharge_enabled?: boolean
+          auto_recharge_pack_key?: string | null
+          auto_recharge_threshold_pct?: number
+          created_at?: string
+          last_auto_recharge_at?: string | null
+          last_auto_recharge_error?: string | null
+          last_auto_recharge_status?: string | null
+          organization_id?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_credit_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -3041,6 +3156,7 @@ export type Database = {
       get_credit_usage: { Args: { p_org_id: string }; Returns: Json }
       get_lead_usage: { Args: { p_org_id: string }; Returns: Json }
       get_org_by_domain: { Args: { p_hostname: string }; Returns: Json }
+      get_pack_credit_balance: { Args: { p_org_id: string }; Returns: number }
       get_reseller_branding: { Args: { p_slug: string }; Returns: Json }
       get_reseller_clients: {
         Args: { p_reseller_id: string }
@@ -3067,6 +3183,20 @@ export type Database = {
         Returns: Json
       }
       get_user_org_id: { Args: { p_user_id: string }; Returns: string }
+      grant_credit_pack: {
+        Args: {
+          p_amount_cents?: number
+          p_credits: number
+          p_currency?: string
+          p_org_id: string
+          p_pack_key: string
+          p_purchased_by?: string
+          p_source?: string
+          p_stripe_payment_intent_id?: string
+          p_stripe_session_id?: string
+        }
+        Returns: Json
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
