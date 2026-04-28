@@ -46,6 +46,44 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 
+// Client-side guard so a hung tool call still surfaces to the user instead of
+// spinning forever. Server-side timeouts may still be longer; this is the UX
+// floor.
+const COMMAND_TIMEOUT_MS = 45_000;
+
+type CommandErrorKind = "credits" | "rate_limit" | "timeout" | "network" | "auth" | "api";
+
+function classifyCommandError(err: unknown): { kind: CommandErrorKind; title: string; message: string } {
+  const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "Unknown error";
+  const lower = raw.toLowerCase();
+  if (lower.includes("timeout") || lower.includes("timed out") || lower.includes("aborted")) {
+    return { kind: "timeout", title: "Command timed out", message: "The AI took too long to respond. Try again or simplify the command." };
+  }
+  if (lower.includes("credit") || lower.includes("402") || lower.includes("exhausted") || lower.includes("insufficient")) {
+    return { kind: "credits", title: "Out of credits", message: "Top up your workspace credits to keep running commands." };
+  }
+  if (lower.includes("429") || lower.includes("rate") ) {
+    return { kind: "rate_limit", title: "Rate limited", message: "AI is rate-limited. Wait a few seconds and retry." };
+  }
+  if (lower.includes("401") || lower.includes("unauthor") || lower.includes("forbidden") || lower.includes("403")) {
+    return { kind: "auth", title: "Not authorized", message: raw };
+  }
+  if (lower.includes("network") || lower.includes("fetch") || lower.includes("failed to fetch")) {
+    return { kind: "network", title: "Network error", message: "Check your connection and retry." };
+  }
+  return { kind: "api", title: "Command failed", message: raw };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
 function DashboardErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   return (
@@ -104,6 +142,7 @@ function Dashboard() {
   const [taskStatuses, setTaskStatuses] = useState<TaskStatusItem[]>([]);
   const execCommand = useAuthedServerFn(executeCommandFn);
   const runCommand = useAuthedServerFn(executeCommandActionsFn);
+  const router = useRouter();
 
   const handleCommand = async (command: string) => {
     setIsProcessing(true);
@@ -113,9 +152,11 @@ function Dashboard() {
     setTaskStatuses([]);
 
     try {
-      const result = await execCommand({
-        data: { command },
-      });
+      const result = await withTimeout(
+        execCommand({ data: { command } }),
+        COMMAND_TIMEOUT_MS,
+        "Planning",
+      );
       setPlan(result);
       // Seed the status panel with planned steps as soon as the AI responds.
       setTaskStatuses(
@@ -127,8 +168,15 @@ function Dashboard() {
         })),
       );
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Command failed";
-      toast.error(message);
+      const info = classifyCommandError(err);
+      const isCredits = info.kind === "credits";
+      toast.error(info.title, {
+        description: info.message,
+        duration: 8000,
+        action: isCredits
+          ? { label: "Top up", onClick: () => router.navigate({ to: "/billing", search: { required: undefined, plan: undefined } as never }) }
+          : { label: "Retry", onClick: () => void handleCommand(command) },
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -158,7 +206,11 @@ function Dashboard() {
     }, Math.max(400, Math.min(1200, Math.floor(2400 / Math.max(1, totalSteps)))));
 
     try {
-      const result = await runCommand({ data: { command: lastCommand } });
+      const result = await withTimeout(
+        runCommand({ data: { command: lastCommand } }),
+        COMMAND_TIMEOUT_MS,
+        "Execution",
+      );
       setExecution(result);
 
       // Map server results back onto the planned steps positionally.
@@ -186,8 +238,13 @@ function Dashboard() {
       const okCount = result.results.filter((r) => r.status === "ok").length;
       const errCount = result.results.filter((r) => r.status === "error").length;
       if (errCount > 0) {
+        const firstErr = result.results.find((r) => r.status === "error");
         toast.warning(`Completed with ${errCount} issue${errCount === 1 ? "" : "s"}`, {
-          description: `${okCount} action${okCount === 1 ? "" : "s"} applied.`,
+          description: firstErr?.message
+            ? `${okCount} applied. First error: ${firstErr.message}`
+            : `${okCount} action${okCount === 1 ? "" : "s"} applied.`,
+          duration: 9000,
+          action: { label: "Retry failed", onClick: () => void handleExecute() },
         });
       } else {
         toast.success(result.summary, {
@@ -195,12 +252,19 @@ function Dashboard() {
         });
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Execution failed";
-      toast.error(message);
+      const info = classifyCommandError(err);
+      const isCredits = info.kind === "credits";
+      toast.error(info.title, {
+        description: info.message,
+        duration: 9000,
+        action: isCredits
+          ? { label: "Top up", onClick: () => router.navigate({ to: "/billing", search: { required: undefined, plan: undefined } as never }) }
+          : { label: "Retry", onClick: () => void handleExecute() },
+      });
       setTaskStatuses((prev) =>
         prev.map((s) =>
           s.status === "running" || s.status === "queued"
-            ? { ...s, status: "failed" as const, message }
+            ? { ...s, status: "failed" as const, message: info.message }
             : s,
         ),
       );
