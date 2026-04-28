@@ -81,6 +81,11 @@ export function CreditTopUpPanel({
     threshold_pct: 20,
   });
   const [savingAuto, setSavingAuto] = useState(false);
+  const [savedCardLast4, setSavedCardLast4] = useState<string | null>(null);
+  const [hasPaymentMethod, setHasPaymentMethod] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingThreshold, setPendingThreshold] = useState<number>(20);
+  const [pendingPack, setPendingPack] = useState<string>(DEFAULT_AUTO_PACK);
 
   const loadBalance = useCallback(async () => {
     if (!organizationId) return;
@@ -101,16 +106,24 @@ export function CreditTopUpPanel({
 
     const { data: settings } = await supabase
       .from("org_credit_settings")
-      .select("auto_recharge_enabled, auto_recharge_pack_key, auto_recharge_threshold_pct")
+      .select("auto_recharge_enabled, auto_recharge_pack_key, auto_recharge_threshold_pct, stripe_payment_method_id")
       .eq("organization_id", organizationId)
       .maybeSingle();
 
     if (settings) {
-      setAuto({
+      const next = {
         enabled: settings.auto_recharge_enabled ?? false,
         pack_key: settings.auto_recharge_pack_key ?? DEFAULT_AUTO_PACK,
         threshold_pct: settings.auto_recharge_threshold_pct ?? 20,
-      });
+      };
+      setAuto(next);
+      setPendingThreshold(next.threshold_pct);
+      setPendingPack(next.pack_key);
+      const pmId = settings.stripe_payment_method_id ?? null;
+      setHasPaymentMethod(!!pmId);
+      // pmId looks like pm_xxxxxxxxxxxxxxxx — show last 4 chars as a stable hint;
+      // the real card brand/last4 would require a Stripe call we surface elsewhere.
+      setSavedCardLast4(pmId ? pmId.slice(-4) : null);
     }
     setLoading(false);
   }, [organizationId]);
