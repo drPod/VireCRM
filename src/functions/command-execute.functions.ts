@@ -52,6 +52,49 @@ export const executeCommandActionsFn = createServerFn({ method: "POST" })
     if (!profile) throw new Error("No organization found for user");
     const orgId = profile.organization_id;
     const startedAt = Date.now();
+    const commandId = `cmd-${orgId}-${startedAt}`;
+
+    // ----- Pre-flight credit: 1 credit for the AI planning call.
+    // Unlimited tier bypasses this in the RPC.
+    const planCredit = await supabaseAdmin.rpc("consume_credit", {
+      p_org_id: orgId,
+      p_count: 1,
+      p_user_id: userId,
+      p_action: "command_ai_plan",
+      p_command_id: commandId,
+      p_metadata: { command: data.command.slice(0, 200) },
+    });
+    const planCreditPayload = (planCredit.data ?? {}) as Record<string, unknown>;
+    if (planCredit.error || planCreditPayload.ok === false) {
+      const exhausted = planCreditPayload.error === "credits_exhausted";
+      const blocked: ExecuteCommandResponse = {
+        summary: exhausted
+          ? "You're out of credits — top up in Settings → Billing to run AI commands."
+          : "Could not verify your credit balance. Please try again.",
+        results: [
+          {
+            type: "note",
+            status: "skipped",
+            handler: "in_app",
+            message: exhausted
+              ? "AI Command Center needs at least 1 credit to plan a response."
+              : "Credit check failed before the AI plan ran.",
+          },
+        ],
+      };
+      await logAdvisorExecution({
+        supabase: supabaseAdmin,
+        organizationId: orgId,
+        userId,
+        command: data.command,
+        summary: blocked.summary,
+        plan: { blocked_by: "credits" } as unknown,
+        results: blocked.results,
+        durationMs: Date.now() - startedAt,
+        errorMessage: exhausted ? "credits_exhausted" : "credit_check_failed",
+      });
+      return blocked;
+    }
 
     const [{ count: leadCount }, { count: campaignCount }, { data: recentLeads }] =
       await Promise.all([
@@ -221,6 +264,27 @@ GUARDRAILS — you must obey:
       userId,
       command: data.command,
       actions: plan.actions ?? [],
+      chargeCredit: async (action) => {
+        const charge = await supabaseAdmin.rpc("consume_credit", {
+          p_org_id: orgId,
+          p_count: 1,
+          p_user_id: userId,
+          p_action: `cmd_${action.type}`,
+          p_command_id: commandId,
+          p_metadata: { command: data.command.slice(0, 200) },
+        });
+        const payload = (charge.data ?? {}) as Record<string, unknown>;
+        if (charge.error || payload.ok === false) {
+          return {
+            ok: false,
+            reason:
+              payload.error === "credits_exhausted"
+                ? "Skipped — credits exhausted. Top up in Settings → Billing."
+                : "Skipped — credit charge failed.",
+          };
+        }
+        return { ok: true };
+      },
     });
     plan.actions = sanitizedActions;
 
@@ -283,12 +347,34 @@ export const replayCommandPlanFn = createServerFn({ method: "POST" })
     }
 
     const replayCommand = `[replay] ${entry.command}`;
+    const replayCommandId = `replay-${entry.id}-${startedAt}`;
     const { sanitizedActions, results } = await runAdvisorActions({
       supabase,
       organizationId: orgId,
       userId,
       command: replayCommand,
       actions: planObj.actions as AgentAction[],
+      chargeCredit: async (action) => {
+        const charge = await supabaseAdmin.rpc("consume_credit", {
+          p_org_id: orgId,
+          p_count: 1,
+          p_user_id: userId,
+          p_action: `cmd_replay_${action.type}`,
+          p_command_id: replayCommandId,
+          p_metadata: { audit_id: entry.id },
+        });
+        const payload = (charge.data ?? {}) as Record<string, unknown>;
+        if (charge.error || payload.ok === false) {
+          return {
+            ok: false,
+            reason:
+              payload.error === "credits_exhausted"
+                ? "Skipped — credits exhausted. Top up in Settings → Billing."
+                : "Skipped — credit charge failed.",
+          };
+        }
+        return { ok: true };
+      },
     });
 
     const summary = `Replayed ${sanitizedActions.length} action${sanitizedActions.length === 1 ? "" : "s"} from "${entry.command}"`;

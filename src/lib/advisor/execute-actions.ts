@@ -106,6 +106,22 @@ export const ALLOWED_ACTIONS = new Set<AgentAction["type"]>([
   "update_lead_status",
   "log_message",
   "schedule_follow_up",
+  "create_lead",
+]);
+
+/**
+ * Action types that perform a real CRM mutation and should be metered against
+ * the org's credit balance. Read-only / explanatory actions are free.
+ */
+export const BILLABLE_ACTIONS = new Set<AgentAction["type"]>([
+  "create_task",
+  "draft_message",
+  "score_leads",
+  "create_campaign",
+  "update_lead_status",
+  "log_message",
+  "schedule_follow_up",
+  "create_lead",
 ]);
 
 function priorityValue(p?: string): "low" | "medium" | "high" | "urgent" {
@@ -127,6 +143,12 @@ interface RunActionsArgs {
   userId: string;
   command: string;
   actions: AgentAction[];
+  /**
+   * Optional credit-gating callback. Called once per BILLABLE action right
+   * before execution. Return `{ ok: true }` to proceed, or `{ ok: false,
+   * reason }` to skip the action and emit a "credits exhausted" result.
+   */
+  chargeCredit?: (action: AgentAction) => Promise<{ ok: boolean; reason?: string }>;
 }
 
 /**
@@ -140,6 +162,7 @@ export async function runAdvisorActions({
   userId,
   command,
   actions,
+  chargeCredit,
 }: RunActionsArgs): Promise<{
   sanitizedActions: AgentAction[];
   results: ExecutionResult[];
@@ -178,6 +201,22 @@ export async function runAdvisorActions({
   }
 
   for (const action of sanitizedActions) {
+    // Credit gate: charge billable actions BEFORE any side-effect runs.
+    if (chargeCredit && BILLABLE_ACTIONS.has(action.type)) {
+      const charge = await chargeCredit(action);
+      if (!charge.ok) {
+        results.push({
+          type: action.type,
+          status: "skipped",
+          handler: "in_app",
+          message:
+            charge.reason ??
+            "Skipped — your workspace is out of credits. Top up in Settings → Billing to run this action.",
+        });
+        continue;
+      }
+    }
+
     if (action.type !== "note") {
       const webhook = n8nWebhooks[action.type];
       if (webhook) {
