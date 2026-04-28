@@ -64,9 +64,15 @@ export const previewOutreachFn = createServerFn({ method: "POST" })
 
     // Charge 1 credit for the AI preview generation. Ownership tiers
     // (`unlimited_credits`) bypass this in the RPC.
+    const previewCommandId = `outreach_preview-${data.lead.id}-${Date.now()}`;
     const aiCredit = await supabaseAdmin.rpc("consume_credit", {
       p_org_id: data.organizationId,
       p_count: 1,
+      p_user_id: userId,
+      p_action: "outreach_preview_ai",
+      p_command_id: previewCommandId,
+      p_lead_id: data.lead.id,
+      p_metadata: { templateId: data.templateId ?? null, leadName: data.lead.name },
     });
     const aiCreditPayload = (aiCredit.data ?? {}) as Record<string, unknown>;
     if (aiCredit.error || aiCreditPayload.ok === false) {
@@ -231,9 +237,15 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
 
     // Charge 1 credit per outreach send. Ownership tiers (`unlimited_credits`)
     // bypass this in the RPC.
+    const sendCommandId = `outreach_send-${inserted.id}`;
     const sendCredit = await supabaseAdmin.rpc("consume_credit", {
       p_org_id: data.organizationId,
       p_count: 1,
+      p_user_id: userId,
+      p_action: "outreach_send",
+      p_command_id: sendCommandId,
+      p_lead_id: lead.id,
+      p_metadata: { messageId: inserted.id, recipient: data.recipientEmail, subject: data.subject },
     });
     const sendCreditPayload = (sendCredit.data ?? {}) as Record<string, unknown>;
     if (sendCredit.error || sendCreditPayload.ok === false) {

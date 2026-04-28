@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Zap, Infinity as InfinityIcon, FlaskConical, Loader2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Zap, Infinity as InfinityIcon, FlaskConical, Loader2, History, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
@@ -19,6 +19,37 @@ interface CreditState {
   periodStart: string | null;
   plan: string;
   loading: boolean;
+}
+
+interface CreditLogRow {
+  id: string;
+  user_id: string | null;
+  action: string;
+  command_id: string | null;
+  lead_id: string | null;
+  credits_charged: number;
+  credits_before: number | null;
+  credits_after: number | null;
+  quota: number | null;
+  unlimited: boolean;
+  status: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+function formatActionLabel(action: string): string {
+  return action.replace(/_/g, " ");
+}
+
+function formatRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }
 
 const INITIAL: CreditState = {
@@ -102,6 +133,56 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<SimulateTierChangeResponse | null>(null);
   const runSimulate = useAuthedServerFn(simulateTierChangeFn);
+
+  // ----- Audit log -----
+  const [logOpen, setLogOpen] = useState(false);
+  const [logRows, setLogRows] = useState<CreditLogRow[] | null>(null);
+  const [logLoading, setLogLoading] = useState(false);
+  const [actorNames, setActorNames] = useState<Record<string, string>>({});
+
+  const loadLog = useCallback(async () => {
+    if (!organizationId) return;
+    setLogLoading(true);
+    const { data, error } = await supabase
+      .from("credit_usage_log")
+      .select(
+        "id, user_id, action, command_id, lead_id, credits_charged, credits_before, credits_after, quota, unlimited, status, metadata, created_at",
+      )
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(25);
+
+    if (error) {
+      toast.error("Could not load credit usage log");
+      setLogLoading(false);
+      return;
+    }
+
+    const rows = (data ?? []) as CreditLogRow[];
+    setLogRows(rows);
+
+    const userIds = Array.from(
+      new Set(rows.map((r) => r.user_id).filter((v): v is string => !!v && !(v in actorNames))),
+    );
+    if (userIds.length) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      if (profiles) {
+        setActorNames((prev) => {
+          const next = { ...prev };
+          for (const p of profiles) next[p.user_id] = p.full_name ?? "Member";
+          return next;
+        });
+      }
+    }
+    setLogLoading(false);
+  }, [organizationId, actorNames]);
+
+  useEffect(() => {
+    if (logOpen && logRows === null) loadLog();
+  }, [logOpen, logRows, loadLog]);
 
   if (state.loading) {
     return (
@@ -254,6 +335,101 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
                 restored to {testResult.restored.actual.plan} (quota{" "}
                 {testResult.restored.actual.quota})
               </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 border-t border-border pt-3">
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setLogOpen((v) => !v)}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <History className="h-3 w-3" />
+            Recent credit activity
+            <span className="text-muted-foreground/60">{logOpen ? "▾" : "▸"}</span>
+          </button>
+          {logOpen && (
+            <button
+              type="button"
+              onClick={loadLog}
+              disabled={logLoading}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3 w-3 ${logLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          )}
+        </div>
+
+        {logOpen && (
+          <div className="space-y-1.5 max-h-72 overflow-y-auto">
+            {logLoading && logRows === null ? (
+              <div className="py-3 text-center text-xs text-muted-foreground">Loading…</div>
+            ) : !logRows || logRows.length === 0 ? (
+              <div className="py-3 text-center text-xs text-muted-foreground">
+                No credit activity yet.
+              </div>
+            ) : (
+              logRows.map((row) => {
+                const actor = row.user_id
+                  ? actorNames[row.user_id] ?? "Member"
+                  : "System";
+                const isReject = row.status === "rejected_quota";
+                const isUnlim = row.status === "bypass_unlimited";
+                return (
+                  <div
+                    key={row.id}
+                    className={`rounded-md border p-2 text-xs ${
+                      isReject
+                        ? "border-destructive/30 bg-destructive/5"
+                        : "border-border bg-muted/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-foreground capitalize">
+                        {formatActionLabel(row.action)}
+                      </span>
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                          isReject
+                            ? "bg-destructive/20 text-destructive"
+                            : isUnlim
+                              ? "bg-primary/15 text-primary"
+                              : "bg-foreground/10 text-foreground"
+                        }`}
+                      >
+                        {isReject
+                          ? "Blocked"
+                          : isUnlim
+                            ? "Unlimited"
+                            : `−${row.credits_charged}`}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted-foreground">
+                      <span>{actor}</span>
+                      <span>·</span>
+                      <span>{formatRelative(row.created_at)}</span>
+                      {row.credits_before !== null && row.credits_after !== null && (
+                        <>
+                          <span>·</span>
+                          <span>
+                            {row.credits_before} → {row.credits_after}
+                            {row.quota !== null ? ` / ${row.quota}` : ""}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {row.command_id && (
+                      <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground/70">
+                        cmd: {row.command_id}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         )}

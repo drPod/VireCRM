@@ -129,9 +129,14 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
 
     // ----- Pre-flight credit check: 1 credit for the AI generation call.
     // Ownership / one-time tiers (`unlimited_credits = true`) bypass this.
+    const batchCommandId = `auto_outreach-${data.organizationId}-${Date.now()}`;
     const aiCredit = await supabaseAdmin.rpc("consume_credit", {
       p_org_id: data.organizationId,
       p_count: 1,
+      p_user_id: userId,
+      p_action: "auto_outreach_ai_batch",
+      p_command_id: batchCommandId,
+      p_metadata: { leadCount: leadsWithEmail.length, templateId: data.templateId ?? null },
     });
     const aiCreditPayload = (aiCredit.data ?? {}) as Record<string, unknown>;
     if (aiCredit.error || aiCreditPayload.ok === false) {
@@ -223,6 +228,11 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
         const sendCredit = await supabaseAdmin.rpc("consume_credit", {
           p_org_id: data.organizationId,
           p_count: 1,
+          p_user_id: userId,
+          p_action: "auto_outreach_send",
+          p_command_id: `${batchCommandId}:${inserted.id}`,
+          p_lead_id: lead.id,
+          p_metadata: { messageId: inserted.id, recipient: lead.email, subject: email.subject },
         });
         const sendCreditPayload = (sendCredit.data ?? {}) as Record<string, unknown>;
         if (sendCredit.error || sendCreditPayload.ok === false) {
