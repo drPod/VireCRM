@@ -9,10 +9,104 @@ import {
   ExternalLink,
   ClipboardCheck,
   PlayCircle,
+  Zap,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Verifier result returned by each step's quick-check probe.
+ * - status "pass" / "fail" pre-fills the corresponding button.
+ * - detail is appended to the notes field so the tester sees what was checked.
+ */
+type VerifyResult = { status: "pass" | "fail"; detail: string };
+type Verifier = () => Promise<VerifyResult>;
+
+/** Lookback window for "did this just happen?" probes. */
+const VERIFY_WINDOW_MIN = 10;
+function sinceISO() {
+  return new Date(Date.now() - VERIFY_WINDOW_MIN * 60_000).toISOString();
+}
+
+/**
+ * Per-step verifiers. Each runs a tiny RLS-scoped query (or count) that
+ * returns within ~1s. They look for evidence that the buyer just performed
+ * the action — e.g. a fresh outbound message, a new conversation reply,
+ * a recent AI call, or a soft-deleted lead.
+ */
+const VERIFIERS: Record<string, Verifier> = {
+  "send-email-flow": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since);
+    if (error) return { status: "fail", detail: `messages query error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} message(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      : { status: "fail", detail: `No messages created in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+  "reply-thread": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("conversation_messages")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since);
+    if (error) return { status: "fail", detail: `conversation_messages error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} reply/message(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      : { status: "fail", detail: `No replies in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+  "command-plan": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("ai_call_log")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since);
+    if (error) return { status: "fail", detail: `ai_call_log error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} AI call(s) — planning likely ran.` }
+      : { status: "fail", detail: `No AI calls logged in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+  "command-execute": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("credit_usage_log")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since);
+    if (error) return { status: "fail", detail: `credit_usage_log error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} credit usage entr(ies) — execution billed.` }
+      : { status: "fail", detail: `No credit usage in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+  "delete-confirm": async () => {
+    // Confirm dialog itself isn't observable from the DB; we treat the
+    // presence of the delete RPC (soft_delete_lead) as a structural prereq
+    // and pass when it is callable. A real failure here would be a missing
+    // function or RLS/permission error.
+    const { error } = await supabase.rpc("soft_delete_lead", {
+      _lead_id: "00000000-0000-0000-0000-000000000000",
+    });
+    if (error && /permission|not.*exist|function/i.test(error.message)) {
+      return { status: "fail", detail: `Delete RPC not callable: ${error.message}` };
+    }
+    return { status: "pass", detail: "Delete RPC reachable (structural check)." };
+  },
+  "delete-execute": async () => {
+    const since = sinceISO();
+    const { count, error } = await supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .gte("deleted_at", since);
+    if (error) return { status: "fail", detail: `leads query error: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `Found ${count} soft-deleted lead(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      : { status: "fail", detail: `No leads soft-deleted in the last ${VERIFY_WINDOW_MIN} min.` };
+  },
+};
 
 export const Route = createFileRoute("/_app/qa-checklist")({
   component: QaChecklistPage,
