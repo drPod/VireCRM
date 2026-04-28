@@ -142,6 +142,7 @@ function Dashboard() {
   const [taskStatuses, setTaskStatuses] = useState<TaskStatusItem[]>([]);
   const execCommand = useAuthedServerFn(executeCommandFn);
   const runCommand = useAuthedServerFn(executeCommandActionsFn);
+  const router = useRouter();
 
   const handleCommand = async (command: string) => {
     setIsProcessing(true);
