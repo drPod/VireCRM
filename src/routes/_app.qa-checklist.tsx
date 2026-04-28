@@ -83,17 +83,17 @@ const VERIFIERS: Record<string, Verifier> = {
       : { status: "fail", detail: `No credit usage in the last ${VERIFY_WINDOW_MIN} min.` };
   },
   "delete-confirm": async () => {
-    // Confirm dialog itself isn't observable from the DB; we treat the
-    // presence of the delete RPC (soft_delete_lead) as a structural prereq
-    // and pass when it is callable. A real failure here would be a missing
-    // function or RLS/permission error.
-    const { error } = await supabase.rpc("soft_delete_lead", {
-      _lead_id: "00000000-0000-0000-0000-000000000000",
-    });
-    if (error && /permission|not.*exist|function/i.test(error.message)) {
-      return { status: "fail", detail: `Delete RPC not callable: ${error.message}` };
-    }
-    return { status: "pass", detail: "Delete RPC reachable (structural check)." };
+    // The confirm dialog itself isn't observable from the DB, but we can
+    // verify the user has at least one lead they're allowed to read — a
+    // prerequisite for triggering the delete flow at all.
+    const { count, error } = await supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .limit(1);
+    if (error) return { status: "fail", detail: `leads readable check failed: ${error.message}` };
+    return (count ?? 0) > 0
+      ? { status: "pass", detail: `${count} lead(s) visible — ready to trigger the delete dialog.` }
+      : { status: "fail", detail: "No leads visible — create one before testing delete." };
   },
   "delete-execute": async () => {
     const since = sinceISO();
