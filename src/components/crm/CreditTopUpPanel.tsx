@@ -95,6 +95,7 @@ export function CreditTopUpPanel({
   const [savedCardLast4, setSavedCardLast4] = useState<string | null>(null);
   const [hasPaymentMethod, setHasPaymentMethod] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
   const [pendingThreshold, setPendingThreshold] = useState<number>(20);
   const [pendingPack, setPendingPack] = useState<string>(DEFAULT_AUTO_PACK);
   const [lowBalance, setLowBalance] = useState<LowBalanceSettings>({ enabled: true, threshold: 50 });
@@ -405,7 +406,7 @@ export function CreditTopUpPanel({
                   setPendingPack(auto.pack_key);
                   setConfirmOpen(true);
                 } else {
-                  persistAuto({ ...auto, enabled: false });
+                  setConfirmDisableOpen(true);
                 }
               }}
               disabled={savingAuto}
@@ -688,6 +689,49 @@ export function CreditTopUpPanel({
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   "Enable auto-recharge"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Confirm-disable dialog */}
+        <AlertDialog open={confirmDisableOpen} onOpenChange={setConfirmDisableOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Turn off auto-recharge?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <p>
+                    Your saved card will no longer be charged automatically when your balance drops below{" "}
+                    <span className="font-semibold text-foreground">{auto.threshold_pct}%</span> of your monthly quota.
+                  </p>
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 flex gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      If your balance runs out mid-campaign, outreach and AI actions may pause until you manually buy more credits.
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    You can re-enable auto-recharge anytime — your threshold and pack preferences will be remembered.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={savingAuto}>Keep auto-recharge on</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={savingAuto}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  await persistAuto({ ...auto, enabled: false });
+                  setConfirmDisableOpen(false);
+                }}
+              >
+                {savingAuto ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Turn off"
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>
