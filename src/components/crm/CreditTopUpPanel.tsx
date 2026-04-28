@@ -140,6 +140,13 @@ export function CreditTopUpPanel({
       // pmId looks like pm_xxxxxxxxxxxxxxxx — show last 4 chars as a stable hint;
       // the real card brand/last4 would require a Stripe call we surface elsewhere.
       setSavedCardLast4(pmId ? pmId.slice(-4) : null);
+
+      const lb = {
+        enabled: settings.low_balance_notify_enabled ?? true,
+        threshold: settings.low_balance_threshold ?? 50,
+      };
+      setLowBalance(lb);
+      setThresholdInput(String(lb.threshold));
     }
     setLoading(false);
   }, [organizationId]);
@@ -190,6 +197,82 @@ export function CreditTopUpPanel({
       setAuto(next);
     }
   };
+
+  const persistLow = async (next: LowBalanceSettings) => {
+    setSavingLow(true);
+    const { error } = await supabase.from("org_credit_settings").upsert(
+      {
+        organization_id: organizationId,
+        low_balance_notify_enabled: next.enabled,
+        low_balance_threshold: next.threshold,
+      },
+      { onConflict: "organization_id" },
+    );
+    setSavingLow(false);
+    if (error) {
+      toast.error("Could not save low-balance alert settings");
+    } else {
+      setLowBalance(next);
+      toast.success(next.enabled ? "Low-balance alerts updated" : "Low-balance alerts disabled");
+    }
+  };
+
+  const callNotifyEndpoint = async (force = false): Promise<{
+    success: boolean;
+    notified?: boolean;
+    reason?: string;
+    queued?: number;
+  } | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return null;
+    try {
+      const res = await fetch(`/api/notify-low-balance${force ? "?force=1" : ""}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ organizationId }),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
+  const sendTestLow = async () => {
+    setTestingLow(true);
+    const result = await callNotifyEndpoint();
+    setTestingLow(false);
+    if (!result) {
+      toast.error("Could not run low-balance check");
+      return;
+    }
+    if (result.notified) {
+      toast.success(`Alert email queued to ${result.queued ?? 1} owner(s)`);
+    } else if (result.reason === "above_threshold") {
+      toast.info("Balance is above threshold — no alert needed");
+    } else if (result.reason === "cooldown") {
+      toast.info("An alert was already sent in the last 24h — skipped");
+    } else if (result.reason === "disabled") {
+      toast.info("Low-balance alerts are turned off");
+    } else {
+      toast.info("No alert sent");
+    }
+  };
+
+  // Auto-evaluate after balance loads (debounced — once per minute per mount).
+  useEffect(() => {
+    if (loading || unlimited || !balance) return;
+    if (!lowBalance.enabled) return;
+    if (balance.total >= lowBalance.threshold) return;
+    const now = Date.now();
+    if (now - lastNotifyCheckRef.current < 60_000) return;
+    lastNotifyCheckRef.current = now;
+    callNotifyEndpoint();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, unlimited, balance, lowBalance.enabled, lowBalance.threshold]);
 
   if (unlimited) return null;
 
