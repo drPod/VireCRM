@@ -347,7 +347,7 @@ function QaChecklistPage() {
    * detail string to that step's notes (prefixed with a timestamp so a
    * tester can re-run and see history).
    */
-  const verifyStep = async (sectionId: string, stepId: string): Promise<VerifyResult | null> => {
+  const verifyStep = async (sectionId: string, stepId: string) => {
     const verifier = VERIFIERS[stepId];
     if (!verifier) {
       toast.info("No automated check for this step", { description: stepId });
