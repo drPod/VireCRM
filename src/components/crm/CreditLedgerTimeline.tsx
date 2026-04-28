@@ -62,7 +62,7 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
     const [packsRes, usageRes] = await Promise.all([
       supabase
         .from("credit_packs")
-        .select("id, pack_key, credits_total, credits_remaining, purchased_at, expires_at, amount_cents, source")
+        .select("id, pack_key, credits_total, credits_remaining, purchased_at, expires_at, amount_cents, source, receipt_url, hosted_invoice_url")
         .eq("organization_id", organizationId)
         .order("purchased_at", { ascending: false })
         .limit(200),
@@ -86,6 +86,8 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
         expires_at: string;
         amount_cents: number | null;
         source: string;
+        receipt_url: string | null;
+        hosted_invoice_url: string | null;
       };
       // Purchase entry
       merged.push({
@@ -96,6 +98,7 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
         label: `${packLabel(pack.pack_key)} pack purchased`,
         detail: pack.amount_cents != null ? `$${(pack.amount_cents / 100).toFixed(2)} · ${pack.credits_total.toLocaleString()} credits` : `${pack.credits_total.toLocaleString()} credits`,
         meta: pack.source === "auto_recharge" ? "auto-recharge" : undefined,
+        receiptUrl: pack.receipt_url ?? pack.hosted_invoice_url ?? null,
       });
 
       // Expiry entry — only if already expired with credits left unconsumed
