@@ -516,6 +516,22 @@ function QaChecklistPage() {
                     />
 
                     <div className="flex flex-wrap items-center gap-2">
+                      {VERIFIERS[step.id] && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void verifyStep(section.id, step.id)}
+                          disabled={verifying[step.id] || verifyingAll}
+                          title={`Run an automated check for "${step.title}"`}
+                        >
+                          {verifying[step.id] ? (
+                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                          ) : (
+                            <Zap className="h-4 w-4 mr-1.5" />
+                          )}
+                          Verify now
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant={status === "pass" ? "default" : "outline"}
