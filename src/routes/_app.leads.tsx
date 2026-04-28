@@ -620,16 +620,34 @@ function LeadsPage() {
                   : undefined
               }
               canDelete={isOwner || lead.createdBy === user?.id}
-              onDelete={async (l) => {
-                const { error } = await supabase
-                  .from("leads")
-                  .delete()
-                  .eq("id", l.id);
+              onDelete={async (l, mode) => {
+                const { data, error } = await supabase.rpc("delete_lead", {
+                  p_lead_id: l.id,
+                  p_mode: mode,
+                });
                 if (error) {
-                  toast.error("Couldn't delete lead", { description: error.message });
+                  toast.error(
+                    mode === "hard" ? "Couldn't delete lead" : "Couldn't archive lead",
+                    { description: error.message },
+                  );
                   return;
                 }
-                toast.success(`Deleted ${l.name}`);
+                if (mode === "hard") {
+                  const removed = (data as { removed?: Record<string, number> } | null)?.removed;
+                  const counts = removed
+                    ? Object.entries(removed)
+                        .filter(([, n]) => n > 0)
+                        .map(([k, n]) => `${n} ${k.replace(/_/g, " ")}`)
+                        .join(", ")
+                    : "";
+                  toast.success(`Deleted ${l.name}`, {
+                    description: counts ? `Also removed ${counts}.` : "No related records to remove.",
+                  });
+                } else {
+                  toast.success(`Archived ${l.name}`, {
+                    description: "Tasks, messages, and conversations were preserved.",
+                  });
+                }
                 setLeads((prev) => prev.filter((x) => x.id !== l.id));
                 setSelectedLeadIds((prev) => prev.filter((id) => id !== l.id));
                 setTotalCount((c) => Math.max(0, c - 1));

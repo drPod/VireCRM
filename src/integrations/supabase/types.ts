@@ -1453,6 +1453,7 @@ export type Database = {
           current_supplier: string | null
           deal_currency: string
           deal_value_cents: number | null
+          deleted_at: string | null
           email: string | null
           id: string
           last_contact: string | null
@@ -1478,6 +1479,7 @@ export type Database = {
           current_supplier?: string | null
           deal_currency?: string
           deal_value_cents?: number | null
+          deleted_at?: string | null
           email?: string | null
           id?: string
           last_contact?: string | null
@@ -1503,6 +1505,7 @@ export type Database = {
           current_supplier?: string | null
           deal_currency?: string
           deal_value_cents?: number | null
+          deleted_at?: string | null
           email?: string | null
           id?: string
           last_contact?: string | null
@@ -3167,6 +3170,10 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      delete_lead: {
+        Args: { p_lead_id: string; p_mode?: string }
+        Returns: Json
       }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
