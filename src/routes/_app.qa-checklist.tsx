@@ -400,6 +400,8 @@ function QaChecklistPage() {
       setVerifyingAll(false);
     }
   };
+
+  const resetAll = () => {
     setStatuses({});
     setNotes({});
     setLog([]);
