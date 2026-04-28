@@ -1,8 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
-import { Coins, Sparkles, Zap, Loader2, Check } from "lucide-react";
+import { Coins, Sparkles, Zap, Loader2, Check, CreditCard, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 type CreditPack = {
@@ -55,6 +66,10 @@ function perCredit(cents: number, credits: number) {
   return `$${(cents / 100 / credits).toFixed(3)}/credit`;
 }
 
+function packLabel(key: string): string {
+  return CREDIT_PACKS.find((p) => p.key === key)?.label ?? key;
+}
+
 export function CreditTopUpPanel({
   organizationId,
   userId,
@@ -70,6 +85,11 @@ export function CreditTopUpPanel({
     threshold_pct: 20,
   });
   const [savingAuto, setSavingAuto] = useState(false);
+  const [savedCardLast4, setSavedCardLast4] = useState<string | null>(null);
+  const [hasPaymentMethod, setHasPaymentMethod] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingThreshold, setPendingThreshold] = useState<number>(20);
+  const [pendingPack, setPendingPack] = useState<string>(DEFAULT_AUTO_PACK);
 
   const loadBalance = useCallback(async () => {
     if (!organizationId) return;
@@ -90,16 +110,24 @@ export function CreditTopUpPanel({
 
     const { data: settings } = await supabase
       .from("org_credit_settings")
-      .select("auto_recharge_enabled, auto_recharge_pack_key, auto_recharge_threshold_pct")
+      .select("auto_recharge_enabled, auto_recharge_pack_key, auto_recharge_threshold_pct, stripe_payment_method_id")
       .eq("organization_id", organizationId)
       .maybeSingle();
 
     if (settings) {
-      setAuto({
+      const next = {
         enabled: settings.auto_recharge_enabled ?? false,
         pack_key: settings.auto_recharge_pack_key ?? DEFAULT_AUTO_PACK,
         threshold_pct: settings.auto_recharge_threshold_pct ?? 20,
-      });
+      };
+      setAuto(next);
+      setPendingThreshold(next.threshold_pct);
+      setPendingPack(next.pack_key);
+      const pmId = settings.stripe_payment_method_id ?? null;
+      setHasPaymentMethod(!!pmId);
+      // pmId looks like pm_xxxxxxxxxxxxxxxx — show last 4 chars as a stable hint;
+      // the real card brand/last4 would require a Stripe call we surface elsewhere.
+      setSavedCardLast4(pmId ? pmId.slice(-4) : null);
     }
     setLoading(false);
   }, [organizationId]);
@@ -223,52 +251,209 @@ export function CreditTopUpPanel({
                 {savingAuto && (
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                 )}
+                {auto.enabled && (
+                  <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                    ON
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Automatically buy a pack when remaining credits drop below{" "}
-                {auto.threshold_pct}%.
+                {auto.enabled ? (
+                  <>
+                    Auto-buys the {packLabel(auto.pack_key)} pack when balance drops below{" "}
+                    <span className="font-semibold text-foreground">{auto.threshold_pct}%</span> of monthly quota.
+                  </>
+                ) : (
+                  <>Automatically buy a pack when your balance gets low — never run out mid-campaign.</>
+                )}
               </p>
             </div>
             <Switch
               checked={auto.enabled}
-              onCheckedChange={(checked) => persistAuto({ ...auto, enabled: checked })}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  // Open confirm dialog instead of persisting immediately
+                  setPendingThreshold(auto.threshold_pct);
+                  setPendingPack(auto.pack_key);
+                  setConfirmOpen(true);
+                } else {
+                  persistAuto({ ...auto, enabled: false });
+                }
+              }}
               disabled={savingAuto}
             />
           </div>
 
           {auto.enabled && (
-            <div className="mt-3 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">
-                Auto-buy pack
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {CREDIT_PACKS.map((pack) => {
-                  const active = auto.pack_key === pack.key;
-                  return (
-                    <button
-                      key={pack.key}
-                      type="button"
-                      disabled={savingAuto}
-                      onClick={() => persistAuto({ ...auto, pack_key: pack.key })}
-                      className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${
-                        active
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:bg-accent"
-                      }`}
-                    >
-                      {active && <Check className="h-3 w-3" />}
-                      {pack.credits.toLocaleString()} · {formatPrice(pack.priceCents)}
-                    </button>
-                  );
-                })}
+            <div className="mt-3 space-y-3 border-t border-border/60 pt-3">
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Trigger threshold
+                  </p>
+                  <span className="text-xs font-semibold text-foreground tabular-nums">
+                    {auto.threshold_pct}%
+                  </span>
+                </div>
+                <Slider
+                  value={[auto.threshold_pct]}
+                  min={5}
+                  max={50}
+                  step={5}
+                  disabled={savingAuto}
+                  onValueChange={(v) => setAuto((a) => ({ ...a, threshold_pct: v[0] }))}
+                  onValueCommit={(v) => persistAuto({ ...auto, threshold_pct: v[0] })}
+                />
+                <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+                  <span>5%</span>
+                  <span>50%</span>
+                </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                You&apos;ll be charged on the card from your last successful purchase.
-                Manage your card via Billing.
-              </p>
+
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                  Auto-buy pack
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {CREDIT_PACKS.map((pack) => {
+                    const active = auto.pack_key === pack.key;
+                    return (
+                      <button
+                        key={pack.key}
+                        type="button"
+                        disabled={savingAuto}
+                        onClick={() => persistAuto({ ...auto, pack_key: pack.key })}
+                        className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:bg-accent"
+                        }`}
+                      >
+                        {active && <Check className="h-3 w-3" />}
+                        {pack.credits.toLocaleString()} · {formatPrice(pack.priceCents)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-md bg-background/60 px-2.5 py-2 text-xs">
+                <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                {hasPaymentMethod ? (
+                  <span className="text-muted-foreground">
+                    Charges saved card{savedCardLast4 ? ` (•••• ${savedCardLast4})` : ""}
+                  </span>
+                ) : (
+                  <span className="text-amber-400">
+                    No saved card — first manual purchase will be used for future charges.
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
+
+        {/* Confirm-enable dialog */}
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Enable auto-recharge?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <p>
+                    When your balance drops below{" "}
+                    <span className="font-semibold text-foreground">{pendingThreshold}%</span> of your monthly quota,
+                    we&apos;ll automatically charge your saved card for the{" "}
+                    <span className="font-semibold text-foreground">{packLabel(pendingPack)}</span> pack.
+                  </p>
+
+                  <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Trigger threshold
+                        </span>
+                        <span className="text-xs font-semibold text-foreground tabular-nums">
+                          {pendingThreshold}%
+                        </span>
+                      </div>
+                      <Slider
+                        value={[pendingThreshold]}
+                        min={5}
+                        max={50}
+                        step={5}
+                        onValueChange={(v) => setPendingThreshold(v[0])}
+                      />
+                    </div>
+
+                    <div>
+                      <p className="mb-1.5 text-xs font-medium text-muted-foreground">Pack</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CREDIT_PACKS.map((pack) => {
+                          const active = pendingPack === pack.key;
+                          return (
+                            <button
+                              key={pack.key}
+                              type="button"
+                              onClick={() => setPendingPack(pack.key)}
+                              className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${
+                                active
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border hover:bg-accent"
+                              }`}
+                            >
+                              {active && <Check className="h-3 w-3" />}
+                              {pack.credits.toLocaleString()} · {formatPrice(pack.priceCents)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 rounded-md bg-background/60 px-2.5 py-2 text-xs">
+                      <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                      {hasPaymentMethod ? (
+                        <span className="text-muted-foreground">
+                          Charges saved card{savedCardLast4 ? ` (•••• ${savedCardLast4})` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-amber-400 flex items-center gap-1.5">
+                          <AlertTriangle className="h-3 w-3" />
+                          No saved card yet — auto-recharge activates after your next manual purchase.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    You can change the threshold, swap the pack, or disable this anytime.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={savingAuto}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={savingAuto}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  await persistAuto({
+                    enabled: true,
+                    pack_key: pendingPack,
+                    threshold_pct: pendingThreshold,
+                  });
+                  setConfirmOpen(false);
+                }}
+              >
+                {savingAuto ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Enable auto-recharge"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {!loading && balance && balance.packs.length > 0 && (
           <div className="mt-3 space-y-1">
