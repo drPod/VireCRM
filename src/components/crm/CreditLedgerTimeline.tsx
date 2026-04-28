@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Coins, ArrowDownCircle, ArrowUpCircle, Clock, AlertCircle, Loader2, History } from "lucide-react";
+import { Coins, ArrowDownCircle, ArrowUpCircle, Clock, AlertCircle, Loader2, History, Download } from "lucide-react";
 import { CREDIT_PACKS } from "./CreditTopUpPanel";
 
 interface Props {
