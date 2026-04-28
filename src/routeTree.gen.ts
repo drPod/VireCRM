@@ -30,6 +30,7 @@ import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calcul
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
+import { Route as ApiNotifyLowBalanceRouteImport } from './routes/api/notify-low-balance'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
@@ -172,6 +173,11 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
 const BookSlugRoute = BookSlugRouteImport.update({
   id: '/book/$slug',
   path: '/book/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNotifyLowBalanceRoute = ApiNotifyLowBalanceRouteImport.update({
+  id: '/api/notify-low-balance',
+  path: '/api/notify-low-balance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -408,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -468,6 +475,7 @@ export interface FileRoutesByTo {
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -530,6 +538,7 @@ export interface FileRoutesById {
   '/_app/revenue': typeof AppRevenueRoute
   '/_app/sequences': typeof AppSequencesRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -592,6 +601,7 @@ export interface FileRouteTypes {
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -652,6 +662,7 @@ export interface FileRouteTypes {
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -713,6 +724,7 @@ export interface FileRouteTypes {
     | '/_app/revenue'
     | '/_app/sequences'
     | '/_app/settings'
+    | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
@@ -755,6 +767,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  ApiNotifyLowBalanceRoute: typeof ApiNotifyLowBalanceRoute
   BookSlugRoute: typeof BookSlugRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
@@ -921,6 +934,13 @@ declare module '@tanstack/react-router' {
       path: '/book/$slug'
       fullPath: '/book/$slug'
       preLoaderRoute: typeof BookSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/notify-low-balance': {
+      id: '/api/notify-low-balance'
+      path: '/api/notify-low-balance'
+      fullPath: '/api/notify-low-balance'
+      preLoaderRoute: typeof ApiNotifyLowBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/settings': {
@@ -1299,6 +1319,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  ApiNotifyLowBalanceRoute: ApiNotifyLowBalanceRoute,
   BookSlugRoute: BookSlugRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
