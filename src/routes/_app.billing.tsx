@@ -507,6 +507,15 @@ function BillingPage() {
         )}
       </div>
 
+      {/* Credit top-up packs */}
+      {organization?.id && !organization.unlimited_credits && (
+        <CreditTopUpPanel
+          organizationId={organization.id}
+          userId={user?.id}
+          customerEmail={user?.email}
+        />
+      )}
+
       {/* Manage subscription via Stripe portal */}
       {!isManual && (
         <div className="rounded-xl border border-border bg-card p-6 flex items-start justify-between gap-3">
