@@ -66,6 +66,10 @@ function perCredit(cents: number, credits: number) {
   return `$${(cents / 100 / credits).toFixed(3)}/credit`;
 }
 
+function packLabel(key: string): string {
+  return CREDIT_PACKS.find((p) => p.key === key)?.label ?? key;
+}
+
 export function CreditTopUpPanel({
   organizationId,
   userId,
