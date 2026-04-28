@@ -347,12 +347,34 @@ export const replayCommandPlanFn = createServerFn({ method: "POST" })
     }
 
     const replayCommand = `[replay] ${entry.command}`;
+    const replayCommandId = `replay-${entry.id}-${startedAt}`;
     const { sanitizedActions, results } = await runAdvisorActions({
       supabase,
       organizationId: orgId,
       userId,
       command: replayCommand,
       actions: planObj.actions as AgentAction[],
+      chargeCredit: async (action) => {
+        const charge = await supabaseAdmin.rpc("consume_credit", {
+          p_org_id: orgId,
+          p_count: 1,
+          p_user_id: userId,
+          p_action: `cmd_replay_${action.type}`,
+          p_command_id: replayCommandId,
+          p_metadata: { audit_id: entry.id },
+        });
+        const payload = (charge.data ?? {}) as Record<string, unknown>;
+        if (charge.error || payload.ok === false) {
+          return {
+            ok: false,
+            reason:
+              payload.error === "credits_exhausted"
+                ? "Skipped — credits exhausted. Top up in Settings → Billing."
+                : "Skipped — credit charge failed.",
+          };
+        }
+        return { ok: true };
+      },
     });
 
     const summary = `Replayed ${sanitizedActions.length} action${sanitizedActions.length === 1 ? "" : "s"} from "${entry.command}"`;
