@@ -88,6 +88,7 @@ export function ContactForm() {
 
       if (!res.ok || body.success === false) {
         toast.error(body.error || "Something went wrong. Please try again.");
+        refreshCaptcha();
         return;
       }
 
