@@ -251,20 +251,23 @@ async function executeNode(
     }
 
     if (kind === "action.send_email") {
-      // We don't ship transactional email here; queue it as an outbound message draft.
+      // We don't ship transactional email here; queue it as a draft outbound message.
       if (!leadId) return done(start, "skipped", "no lead", {});
       const subject = String(config.subject ?? "");
       const body = String(config.body ?? "");
       if (!subject && !body) return done(start, "skipped", "empty email", {});
+      const { data: lead } = await admin.from("leads").select("organization_id").eq("id", leadId).maybeSingle();
+      if (!lead?.organization_id) return done(start, "error", "lead has no org", {});
       await admin.from("messages").insert({
+        organization_id: lead.organization_id,
         lead_id: leadId,
-        channel: "email",
+        type: "email",
         direction: "outbound",
         subject,
         content: body,
-        status: "queued",
+        status: "draft",
       });
-      return done(start, "ok", "email queued", { subject });
+      return done(start, "ok", "email drafted", { subject });
     }
 
     if (kind === "action.wait") {
