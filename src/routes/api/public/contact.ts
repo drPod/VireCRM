@@ -191,7 +191,7 @@ export const Route = createFileRoute('/api/public/contact')({
         // Failure here must NEVER block delivery — log and continue.
         const userAgent = request.headers.get('user-agent')
         const origin = request.headers.get('origin')
-        const { error: crmInsertErr } = await supabase
+        const { data: submissionRow, error: crmInsertErr } = await supabase
           .from('contact_submissions')
           .insert({
             name: payload.name,
@@ -210,8 +210,30 @@ export const Route = createFileRoute('/api/public/contact')({
               intended_recipient: testMode.enabled ? intendedRecipient : undefined,
             },
           } as any)
+          .select('id')
+          .single()
         if (crmInsertErr) {
           console.warn('contact: failed to persist CRM submission (non-fatal)', crmInsertErr)
+        }
+
+        // Best-effort: create or update a CRM Lead from this submission so
+        // sales can pick it up directly in the pipeline. Requires the
+        // MARKETING_INBOUND_ORG_ID env var to be set to the destination
+        // organization's UUID. Failure here must NEVER block delivery.
+        if (submissionRow?.id) {
+          try {
+            await upsertLeadFromSubmission({
+              supabase,
+              submissionId: submissionRow.id,
+              name: payload.name,
+              email: payload.email,
+              company: payload.company || null,
+              phone: payload.phone || null,
+              message: payload.message,
+            })
+          } catch (leadErr) {
+            console.warn('contact: lead upsert failed (non-fatal)', leadErr)
+          }
         }
 
         // Stamp the log row with the IP so the rate limiter above can see it.
