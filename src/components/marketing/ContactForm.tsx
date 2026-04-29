@@ -1,16 +1,28 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle } from "lucide-react";
+import { Send, CheckCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
+
+// Simple math CAPTCHA — no third-party dep, no PII, no tracking.
+// Defends against naive bots that bypass the honeypot. Server still
+// enforces honeypot + per-IP rate limit as defense in depth.
+function generateCaptcha() {
+  const a = Math.floor(Math.random() * 9) + 1; // 1-9
+  const b = Math.floor(Math.random() * 9) + 1; // 1-9
+  return { a, b, answer: a + b };
+}
 
 export function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [captcha, setCaptcha] = useState(() => generateCaptcha());
+  const [captchaInput, setCaptchaInput] = useState("");
+  const captchaPrompt = useMemo(() => `What is ${captcha.a} + ${captcha.b}?`, [captcha]);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -21,6 +33,11 @@ export function ContactForm() {
     // Honeypot — real users never see/fill this. Bots do.
     website: "",
   });
+
+  const refreshCaptcha = () => {
+    setCaptcha(generateCaptcha());
+    setCaptchaInput("");
+  };
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -40,6 +57,13 @@ export function ContactForm() {
       return;
     }
 
+    const expected = String(captcha.answer);
+    if (captchaInput.trim() !== expected) {
+      toast.error("Incorrect answer to the security question. Please try again.");
+      refreshCaptcha();
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/public/contact", {
@@ -53,6 +77,7 @@ export function ContactForm() {
           budget: form.budget || null,
           message: form.message.trim(),
           website: form.website, // honeypot
+          captcha: { a: captcha.a, b: captcha.b, answer: Number(captchaInput.trim()) },
         }),
       });
 
@@ -63,6 +88,7 @@ export function ContactForm() {
 
       if (!res.ok || body.success === false) {
         toast.error(body.error || "Something went wrong. Please try again.");
+        refreshCaptcha();
         return;
       }
 
@@ -185,6 +211,37 @@ export function ContactForm() {
           value={form.website}
           onChange={(e) => handleChange("website", e.target.value)}
         />
+      </div>
+
+      {/* Math CAPTCHA — blocks naive scripted submissions. */}
+      <div className="space-y-2">
+        <Label htmlFor="captcha">Security check *</Label>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+            {captchaPrompt}
+          </div>
+          <Input
+            id="captcha"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Answer"
+            value={captchaInput}
+            onChange={(e) => setCaptchaInput(e.target.value.replace(/[^0-9-]/g, "").slice(0, 4))}
+            maxLength={4}
+            className="w-28"
+            required
+            aria-label="Answer to the security question"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={refreshCaptcha}
+            aria-label="Get a new security question"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <Button type="submit" variant="command" size="lg" className="w-full gap-2" disabled={loading}>
