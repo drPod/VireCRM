@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 
 export const Route = createFileRoute("/refund-policy")({
   component: RefundPolicyPage,
@@ -44,7 +45,7 @@ function RefundPolicyPage() {
               <ol className="mt-2 list-decimal pl-6 space-y-1">
                 <li>
                   Email us at{" "}
-                  <a href="mailto:genesis@genesisx.space" className="text-primary hover:underline">genesis@genesisx.space</a>{" "}
+                  <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>{" "}
                   with the subject line "Refund Request".
                 </li>
                 <li>Include your account email address and the reason for your refund.</li>
@@ -78,7 +79,7 @@ function RefundPolicyPage() {
               <h2 className="text-lg font-semibold text-foreground">Contact Us</h2>
               <p className="mt-2">
                 If you have questions about our refund policy, please contact us at{" "}
-                <a href="mailto:genesis@genesisx.space" className="text-primary hover:underline">genesis@genesisx.space</a>.
+                <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
               </p>
             </section>
           </div>

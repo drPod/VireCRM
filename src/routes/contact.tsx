@@ -3,6 +3,7 @@ import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { ContactForm } from "@/components/marketing/ContactForm";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 
 export const Route = createFileRoute("/contact")({
   component: ContactPage,
@@ -39,8 +40,8 @@ function ContactPage() {
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Or email us at{" "}
-              <a href="mailto:genesis@genesisx.space" className="font-semibold text-foreground hover:text-primary">
-                genesis@genesisx.space
+              <a href={SUPPORT_MAILTO} className="font-semibold text-foreground hover:text-primary">
+                {SUPPORT_EMAIL}
               </a>
             </p>
           </div>

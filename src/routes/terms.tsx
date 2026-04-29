@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 
 export const Route = createFileRoute("/terms")({
   component: TermsPage,
@@ -191,8 +192,8 @@ function TermsPage() {
               </p>
               <p className="mt-2">
                 Email:{" "}
-                <a href="mailto:genesis@genesisx.space" className="text-primary hover:underline">
-                  genesis@genesisx.space
+                <a href={SUPPORT_MAILTO} className="text-primary hover:underline">
+                  {SUPPORT_EMAIL}
                 </a>
               </p>
               <p className="mt-2">
