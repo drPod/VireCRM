@@ -78,6 +78,7 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/public/hooks/purge-audit-log'
 import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
+import { Route as ApiPublicHooksDispatchFollowupsRouteImport } from './routes/api/public/hooks/dispatch-followups'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -431,6 +432,12 @@ const ApiPublicHooksDispatchSequencesRoute =
     path: '/api/public/hooks/dispatch-sequences',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDispatchFollowupsRoute =
+  ApiPublicHooksDispatchFollowupsRouteImport.update({
+    id: '/api/public/hooks/dispatch-followups',
+    path: '/api/public/hooks/dispatch-followups',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -493,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -563,6 +571,7 @@ export interface FileRoutesByTo {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -635,6 +644,7 @@ export interface FileRoutesById {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -707,6 +717,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
@@ -777,6 +788,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows'
     | '/r/$resellerSlug'
+    | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
@@ -848,6 +860,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
@@ -885,6 +898,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   RResellerSlugIndexRoute: typeof RResellerSlugIndexRoute
+  ApiPublicHooksDispatchFollowupsRoute: typeof ApiPublicHooksDispatchFollowupsRoute
   ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1380,6 +1394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchSequencesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/dispatch-followups': {
+      id: '/api/public/hooks/dispatch-followups'
+      path: '/api/public/hooks/dispatch-followups'
+      fullPath: '/api/public/hooks/dispatch-followups'
+      preLoaderRoute: typeof ApiPublicHooksDispatchFollowupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1528,6 +1549,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   RResellerSlugIndexRoute: RResellerSlugIndexRoute,
+  ApiPublicHooksDispatchFollowupsRoute: ApiPublicHooksDispatchFollowupsRoute,
   ApiPublicHooksDispatchSequencesRoute: ApiPublicHooksDispatchSequencesRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
