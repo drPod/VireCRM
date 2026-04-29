@@ -33,6 +33,10 @@ interface Organization {
   ai_tokens_limit: number;
   unlimited_credits?: boolean | null;
   monthly_credit_quota?: number | null;
+  industry_template?: string | null;
+  enabled_modules?: string[] | null;
+  strict_lead_isolation?: boolean | null;
+  onboarding_completed_at?: string | null;
 }
 
 interface AuthContextType {
