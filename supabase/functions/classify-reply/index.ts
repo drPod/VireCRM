@@ -88,5 +88,4 @@ Deno.serve(withAgent(async (req, ctx) => {
   }
 
   return jsonResponse({ ok: true, lead_id: leadId, ...result });
-});
-);
+}));

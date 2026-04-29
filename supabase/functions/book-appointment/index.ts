@@ -114,5 +114,4 @@ Propose a slot.`,
     appointment_id: appointmentId,
     booked: !!appointmentId,
   });
-});
-);
+}));

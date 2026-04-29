@@ -68,5 +68,4 @@ Rewrite to feel personal to this lead.`,
   });
 
   return jsonResponse({ ok: true, ...result });
-});
-);
+}));

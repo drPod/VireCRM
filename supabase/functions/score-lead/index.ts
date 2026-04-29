@@ -64,5 +64,4 @@ Score this lead now.`,
     .eq("id", leadId);
 
   return jsonResponse({ ok: true, score: clamped, reason: result.reason, signals: result.signals });
-});
-);
+}));
