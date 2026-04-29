@@ -280,6 +280,16 @@ export async function runAdvisorActions({
         }
 
         case "draft_message": {
+          const subject = typeof action.subject === "string" ? action.subject.trim() : "";
+          const body = typeof action.body === "string" ? action.body : "";
+          if (!subject && !body) {
+            results.push({
+              type: "draft_message",
+              status: "skipped",
+              message: "AI did not provide a subject or body for the draft.",
+            });
+            break;
+          }
           const lead = await resolveLead(action.lead_match);
           const { data: row, error } = await supabaseAdmin
             .from("messages")
@@ -288,8 +298,8 @@ export async function runAdvisorActions({
               lead_id: lead?.id ?? null,
               type: "email",
               status: "draft",
-              subject: action.subject.slice(0, 200),
-              content: action.body.slice(0, 5000),
+              subject: (subject || "(no subject)").slice(0, 200),
+              content: body.slice(0, 5000),
             })
             .select("id")
             .single();
@@ -297,7 +307,7 @@ export async function runAdvisorActions({
           results.push({
             type: "draft_message",
             status: "ok",
-            message: `Email draft saved${lead ? ` for ${lead.name}` : ""}: "${action.subject}"`,
+            message: `Email draft saved${lead ? ` for ${lead.name}` : ""}: "${subject || "(no subject)"}"`,
             meta: { message_id: row.id, lead_id: lead?.id ?? null },
           });
           break;
