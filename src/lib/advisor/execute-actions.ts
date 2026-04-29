@@ -359,12 +359,21 @@ export async function runAdvisorActions({
         }
 
         case "create_campaign": {
+          const campaignName = typeof action.name === "string" ? action.name.trim() : "";
+          if (!campaignName) {
+            results.push({
+              type: "create_campaign",
+              status: "skipped",
+              message: "AI did not provide a campaign name.",
+            });
+            break;
+          }
           const { data: row, error } = await supabaseAdmin
             .from("campaigns")
             .insert({
               organization_id: orgId,
-              name: action.name.slice(0, 200),
-              objective: action.objective?.slice(0, 500) ?? null,
+              name: campaignName.slice(0, 200),
+              objective: typeof action.objective === "string" ? action.objective.slice(0, 500) : null,
               status: "draft",
             })
             .select("id")
@@ -373,7 +382,7 @@ export async function runAdvisorActions({
           results.push({
             type: "create_campaign",
             status: "ok",
-            message: `Campaign created: "${action.name}"`,
+            message: `Campaign created: "${campaignName}"`,
             meta: { campaign_id: row.id },
           });
           break;
