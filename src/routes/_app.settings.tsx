@@ -10,6 +10,7 @@ import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
 import { N8nWebhookSettings } from "@/components/crm/N8nWebhookSettings";
 import { OutreachTemplatesManager } from "@/components/crm/OutreachTemplatesManager";
 import { StripeConnectCard } from "@/components/crm/StripeConnectCard";
+import { IndustryTemplatePanel } from "@/components/onboarding/IndustryTemplatePanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -86,7 +87,8 @@ function SettingsPage() {
           <CustomRolesPanel />
         </TabsContent>
 
-        <TabsContent value="branding">
+        <TabsContent value="branding" className="space-y-6">
+          <IndustryTemplatePanel />
           <WhiteLabelSettings />
         </TabsContent>
 

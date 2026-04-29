@@ -60,6 +60,12 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as ApiPublicContactRouteImport } from './routes/api/public/contact'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
 import { Route as AppSettingsBrandingPreviewRouteImport } from './routes/_app.settings.branding-preview'
+import { Route as AppEnergyUsageRouteImport } from './routes/_app.energy.usage'
+import { Route as AppEnergySuppliersRouteImport } from './routes/_app.energy.suppliers'
+import { Route as AppEnergyRenewalsRouteImport } from './routes/_app.energy.renewals'
+import { Route as AppEnergyPricingRouteImport } from './routes/_app.energy.pricing'
+import { Route as AppEnergyLoaRouteImport } from './routes/_app.energy.loa'
+import { Route as AppEnergyContractsRouteImport } from './routes/_app.energy.contracts'
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as AppCampaignsAnalyticsRouteImport } from './routes/_app.campaigns.analytics'
@@ -328,6 +334,36 @@ const AppSettingsBrandingPreviewRoute =
     path: '/branding-preview',
     getParentRoute: () => AppSettingsRoute,
   } as any)
+const AppEnergyUsageRoute = AppEnergyUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => AppEnergyRoute,
+} as any)
+const AppEnergySuppliersRoute = AppEnergySuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => AppEnergyRoute,
+} as any)
+const AppEnergyRenewalsRoute = AppEnergyRenewalsRouteImport.update({
+  id: '/renewals',
+  path: '/renewals',
+  getParentRoute: () => AppEnergyRoute,
+} as any)
+const AppEnergyPricingRoute = AppEnergyPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => AppEnergyRoute,
+} as any)
+const AppEnergyLoaRoute = AppEnergyLoaRouteImport.update({
+  id: '/loa',
+  path: '/loa',
+  getParentRoute: () => AppEnergyRoute,
+} as any)
+const AppEnergyContractsRoute = AppEnergyContractsRouteImport.update({
+  id: '/contracts',
+  path: '/contracts',
+  getParentRoute: () => AppEnergyRoute,
+} as any)
 const AppClientsPlansRoute = AppClientsPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
@@ -416,7 +452,7 @@ export interface FileRoutesByFullPath {
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
-  '/energy': typeof AppEnergyRoute
+  '/energy': typeof AppEnergyRouteWithChildren
   '/expenses': typeof AppExpensesRoute
   '/funnels': typeof AppFunnelsRoute
   '/invoices': typeof AppInvoicesRoute
@@ -437,6 +473,12 @@ export interface FileRoutesByFullPath {
   '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
+  '/energy/contracts': typeof AppEnergyContractsRoute
+  '/energy/loa': typeof AppEnergyLoaRoute
+  '/energy/pricing': typeof AppEnergyPricingRoute
+  '/energy/renewals': typeof AppEnergyRenewalsRoute
+  '/energy/suppliers': typeof AppEnergySuppliersRoute
+  '/energy/usage': typeof AppEnergyUsageRoute
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -479,7 +521,7 @@ export interface FileRoutesByTo {
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
-  '/energy': typeof AppEnergyRoute
+  '/energy': typeof AppEnergyRouteWithChildren
   '/expenses': typeof AppExpensesRoute
   '/funnels': typeof AppFunnelsRoute
   '/invoices': typeof AppInvoicesRoute
@@ -500,6 +542,12 @@ export interface FileRoutesByTo {
   '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
+  '/energy/contracts': typeof AppEnergyContractsRoute
+  '/energy/loa': typeof AppEnergyLoaRoute
+  '/energy/pricing': typeof AppEnergyPricingRoute
+  '/energy/renewals': typeof AppEnergyRenewalsRoute
+  '/energy/suppliers': typeof AppEnergySuppliersRoute
+  '/energy/usage': typeof AppEnergyUsageRoute
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -544,7 +592,7 @@ export interface FileRoutesById {
   '/_app/conversations': typeof AppConversationsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
-  '/_app/energy': typeof AppEnergyRoute
+  '/_app/energy': typeof AppEnergyRouteWithChildren
   '/_app/expenses': typeof AppExpensesRoute
   '/_app/funnels': typeof AppFunnelsRoute
   '/_app/invoices': typeof AppInvoicesRoute
@@ -565,6 +613,12 @@ export interface FileRoutesById {
   '/_app/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
+  '/_app/energy/contracts': typeof AppEnergyContractsRoute
+  '/_app/energy/loa': typeof AppEnergyLoaRoute
+  '/_app/energy/pricing': typeof AppEnergyPricingRoute
+  '/_app/energy/renewals': typeof AppEnergyRenewalsRoute
+  '/_app/energy/suppliers': typeof AppEnergySuppliersRoute
+  '/_app/energy/usage': typeof AppEnergyUsageRoute
   '/_app/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -630,6 +684,12 @@ export interface FileRouteTypes {
     | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
+    | '/energy/contracts'
+    | '/energy/loa'
+    | '/energy/pricing'
+    | '/energy/renewals'
+    | '/energy/suppliers'
+    | '/energy/usage'
     | '/settings/branding-preview'
     | '/workflows/$workflowId'
     | '/api/public/contact'
@@ -693,6 +753,12 @@ export interface FileRouteTypes {
     | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
+    | '/energy/contracts'
+    | '/energy/loa'
+    | '/energy/pricing'
+    | '/energy/renewals'
+    | '/energy/suppliers'
+    | '/energy/usage'
     | '/settings/branding-preview'
     | '/workflows/$workflowId'
     | '/api/public/contact'
@@ -757,6 +823,12 @@ export interface FileRouteTypes {
     | '/_app/campaigns/analytics'
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
+    | '/_app/energy/contracts'
+    | '/_app/energy/loa'
+    | '/_app/energy/pricing'
+    | '/_app/energy/renewals'
+    | '/_app/energy/suppliers'
+    | '/_app/energy/usage'
     | '/_app/settings/branding-preview'
     | '/_app/workflows/$workflowId'
     | '/api/public/contact'
@@ -1170,6 +1242,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsBrandingPreviewRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    '/_app/energy/usage': {
+      id: '/_app/energy/usage'
+      path: '/usage'
+      fullPath: '/energy/usage'
+      preLoaderRoute: typeof AppEnergyUsageRouteImport
+      parentRoute: typeof AppEnergyRoute
+    }
+    '/_app/energy/suppliers': {
+      id: '/_app/energy/suppliers'
+      path: '/suppliers'
+      fullPath: '/energy/suppliers'
+      preLoaderRoute: typeof AppEnergySuppliersRouteImport
+      parentRoute: typeof AppEnergyRoute
+    }
+    '/_app/energy/renewals': {
+      id: '/_app/energy/renewals'
+      path: '/renewals'
+      fullPath: '/energy/renewals'
+      preLoaderRoute: typeof AppEnergyRenewalsRouteImport
+      parentRoute: typeof AppEnergyRoute
+    }
+    '/_app/energy/pricing': {
+      id: '/_app/energy/pricing'
+      path: '/pricing'
+      fullPath: '/energy/pricing'
+      preLoaderRoute: typeof AppEnergyPricingRouteImport
+      parentRoute: typeof AppEnergyRoute
+    }
+    '/_app/energy/loa': {
+      id: '/_app/energy/loa'
+      path: '/loa'
+      fullPath: '/energy/loa'
+      preLoaderRoute: typeof AppEnergyLoaRouteImport
+      parentRoute: typeof AppEnergyRoute
+    }
+    '/_app/energy/contracts': {
+      id: '/_app/energy/contracts'
+      path: '/contracts'
+      fullPath: '/energy/contracts'
+      preLoaderRoute: typeof AppEnergyContractsRouteImport
+      parentRoute: typeof AppEnergyRoute
+    }
     '/_app/clients/plans': {
       id: '/_app/clients/plans'
       path: '/plans'
@@ -1276,6 +1390,28 @@ const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
   AppClientsRouteChildren,
 )
 
+interface AppEnergyRouteChildren {
+  AppEnergyContractsRoute: typeof AppEnergyContractsRoute
+  AppEnergyLoaRoute: typeof AppEnergyLoaRoute
+  AppEnergyPricingRoute: typeof AppEnergyPricingRoute
+  AppEnergyRenewalsRoute: typeof AppEnergyRenewalsRoute
+  AppEnergySuppliersRoute: typeof AppEnergySuppliersRoute
+  AppEnergyUsageRoute: typeof AppEnergyUsageRoute
+}
+
+const AppEnergyRouteChildren: AppEnergyRouteChildren = {
+  AppEnergyContractsRoute: AppEnergyContractsRoute,
+  AppEnergyLoaRoute: AppEnergyLoaRoute,
+  AppEnergyPricingRoute: AppEnergyPricingRoute,
+  AppEnergyRenewalsRoute: AppEnergyRenewalsRoute,
+  AppEnergySuppliersRoute: AppEnergySuppliersRoute,
+  AppEnergyUsageRoute: AppEnergyUsageRoute,
+}
+
+const AppEnergyRouteWithChildren = AppEnergyRoute._addFileChildren(
+  AppEnergyRouteChildren,
+)
+
 interface AppSettingsRouteChildren {
   AppSettingsBrandingPreviewRoute: typeof AppSettingsBrandingPreviewRoute
 }
@@ -1299,7 +1435,7 @@ interface AppRouteChildren {
   AppConversationsRoute: typeof AppConversationsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
-  AppEnergyRoute: typeof AppEnergyRoute
+  AppEnergyRoute: typeof AppEnergyRouteWithChildren
   AppExpensesRoute: typeof AppExpensesRoute
   AppFunnelsRoute: typeof AppFunnelsRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
@@ -1326,7 +1462,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConversationsRoute: AppConversationsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
-  AppEnergyRoute: AppEnergyRoute,
+  AppEnergyRoute: AppEnergyRouteWithChildren,
   AppExpensesRoute: AppExpensesRoute,
   AppFunnelsRoute: AppFunnelsRoute,
   AppInvoicesRoute: AppInvoicesRoute,
