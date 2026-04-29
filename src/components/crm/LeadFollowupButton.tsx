@@ -36,7 +36,6 @@ interface Suggestion {
 export function LeadFollowupButton({ leadId }: { leadId: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [savingInbox, setSavingInbox] = useState(false);
   const [draft, setDraft] = useState<Suggestion | null>(null);
 
   const generate = async () => {
