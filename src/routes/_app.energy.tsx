@@ -6,7 +6,7 @@
  * queries, so the numbers automatically reflect what each user is actually
  * allowed to see (vs. what's in the org).
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { FileText, Gauge, DollarSign, FileSignature, Building2, RefreshCw, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,12 +20,12 @@ export const Route = createFileRoute("/_app/energy")({
 });
 
 const MODULES = [
-  { key: "loa_requests", label: "LOA Requests", icon: FileText, table: "loa_requests" as const, hint: "Letter of Authorization tracking" },
-  { key: "usage_requests", label: "Usage Requests", icon: Gauge, table: "usage_requests" as const, hint: "Utility usage data pulls" },
-  { key: "pricing_requests", label: "Pricing Requests", icon: DollarSign, table: "pricing_requests" as const, hint: "Supplier pricing comparisons" },
-  { key: "contract_requests", label: "Contract Requests", icon: FileSignature, table: "contract_requests" as const, hint: "Contract submission pipeline" },
-  { key: "energy_suppliers", label: "Suppliers", icon: Building2, table: "energy_suppliers" as const, hint: "Supplier directory & terms" },
-  { key: "renewals", label: "Renewals", icon: RefreshCw, table: "renewals" as const, hint: "Upcoming renewal opportunities" },
+  { key: "loa_requests", label: "LOA Requests", icon: FileText, table: "loa_requests" as const, hint: "Letter of Authorization tracking", to: "/energy/loa" },
+  { key: "usage_requests", label: "Usage Requests", icon: Gauge, table: "usage_requests" as const, hint: "Utility usage data pulls", to: "/energy/usage" },
+  { key: "pricing_requests", label: "Pricing Requests", icon: DollarSign, table: "pricing_requests" as const, hint: "Supplier pricing comparisons", to: "/energy/pricing" },
+  { key: "contract_requests", label: "Contract Requests", icon: FileSignature, table: "contract_requests" as const, hint: "Contract submission pipeline", to: "/energy/contracts" },
+  { key: "energy_suppliers", label: "Suppliers", icon: Building2, table: "energy_suppliers" as const, hint: "Supplier directory & terms", to: "/energy/suppliers" },
+  { key: "renewals", label: "Renewals", icon: RefreshCw, table: "renewals" as const, hint: "Upcoming renewal opportunities", to: "/energy/renewals" },
 ];
 
 function EnergyHub() {
