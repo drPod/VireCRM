@@ -14,6 +14,7 @@ export function NodePalette({ hasTrigger }: NodePaletteProps) {
     trigger: NODE_TYPES.filter((n) => n.category === "trigger"),
     action: NODE_TYPES.filter((n) => n.category === "action"),
     logic: NODE_TYPES.filter((n) => n.category === "logic"),
+    ai: NODE_TYPES.filter((n) => n.category === "ai"),
   };
 
   return (
@@ -31,6 +32,7 @@ export function NodePalette({ hasTrigger }: NodePaletteProps) {
         disabled={hasTrigger}
         onDragStart={onDragStart}
       />
+      <PaletteSection title="AI Agents" items={grouped.ai} onDragStart={onDragStart} />
       <PaletteSection title="Actions" items={grouped.action} onDragStart={onDragStart} />
       <PaletteSection title="Logic" items={grouped.logic} onDragStart={onDragStart} />
     </div>
@@ -78,7 +80,9 @@ function PaletteSection({
                     ? "bg-primary/10 text-primary"
                     : meta.category === "logic"
                       ? "bg-warning/10 text-warning"
-                      : "bg-success/10 text-success"
+                      : meta.category === "ai"
+                        ? "bg-purple-500/10 text-purple-400"
+                        : "bg-success/10 text-success"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
