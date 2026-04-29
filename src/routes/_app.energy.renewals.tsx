@@ -7,8 +7,8 @@ const config: EnergyTableConfig = {
   description: "Upcoming contract renewals. Reach out 90–120 days before expiration to lock in pricing.",
   statusOptions: ["upcoming", "in_progress", "won", "lost"],
   columns: [
-    { key: "customer_legal_name", label: "Customer" },
     { key: "current_supplier", label: "Current Supplier" },
+    { key: "current_rate", label: "Current Rate" },
     {
       key: "contract_end_date",
       label: "Expires",
@@ -18,10 +18,11 @@ const config: EnergyTableConfig = {
     { key: "status", label: "Status", status: true },
   ],
   createFields: [
-    { key: "customer_legal_name", label: "Customer legal name", required: true },
-    { key: "current_supplier", label: "Current supplier" },
+    { key: "current_supplier", label: "Current supplier", required: true },
+    { key: "current_rate", label: "Current rate ($/kWh)", type: "number" },
     { key: "contract_end_date", label: "Contract end date", type: "date", required: true },
-    { key: "annual_kwh", label: "Annual kWh", type: "number" },
+    { key: "renewal_window_start", label: "Renewal window opens", type: "date" },
+    { key: "notes", label: "Notes" },
   ],
   defaults: { status: "upcoming" },
 };

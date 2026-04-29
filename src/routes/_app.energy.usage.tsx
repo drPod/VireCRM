@@ -7,9 +7,10 @@ const config: EnergyTableConfig = {
   description: "Requests to pull historical utility usage data for pricing.",
   statusOptions: ["pending", "received", "expired", "cancelled"],
   columns: [
-    { key: "customer_legal_name", label: "Customer" },
     { key: "esi_id", label: "ESI ID" },
     { key: "utility", label: "Utility" },
+    { key: "service_address", label: "Service Address" },
+    { key: "annual_kwh_estimate", label: "Est. kWh" },
     { key: "status", label: "Status", status: true },
     {
       key: "created_at",
@@ -18,10 +19,11 @@ const config: EnergyTableConfig = {
     },
   ],
   createFields: [
-    { key: "customer_legal_name", label: "Customer legal name", required: true },
     { key: "esi_id", label: "ESI / Account ID", required: true },
     { key: "utility", label: "Utility", placeholder: "Oncor, CenterPoint, …" },
     { key: "service_address", label: "Service address" },
+    { key: "annual_kwh_estimate", label: "Estimated annual kWh", type: "number" },
+    { key: "urgency", label: "Urgency", placeholder: "low / normal / high" },
   ],
   defaults: { status: "pending" },
 };

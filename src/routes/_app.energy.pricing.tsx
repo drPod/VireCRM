@@ -7,9 +7,10 @@ const config: EnergyTableConfig = {
   description: "Multi-supplier pricing requests. Compare quotes side-by-side before sending a proposal.",
   statusOptions: ["pending", "received", "proposal_sent", "won", "lost"],
   columns: [
-    { key: "customer_legal_name", label: "Customer" },
-    { key: "term_months", label: "Term (mo)" },
-    { key: "annual_kwh", label: "Annual kWh" },
+    { key: "utility", label: "Utility" },
+    { key: "zone", label: "Zone" },
+    { key: "target_rate", label: "Target Rate" },
+    { key: "urgency", label: "Urgency" },
     { key: "status", label: "Status", status: true },
     {
       key: "created_at",
@@ -18,10 +19,11 @@ const config: EnergyTableConfig = {
     },
   ],
   createFields: [
-    { key: "customer_legal_name", label: "Customer legal name", required: true },
-    { key: "term_months", label: "Term in months", type: "number", placeholder: "12, 24, 36…" },
-    { key: "annual_kwh", label: "Annual kWh", type: "number" },
+    { key: "utility", label: "Utility", required: true, placeholder: "Oncor" },
+    { key: "zone", label: "Zone", placeholder: "North, Houston, …" },
     { key: "start_date", label: "Desired start date", type: "date" },
+    { key: "target_rate", label: "Target rate ($/kWh)", type: "number", placeholder: "0.0789" },
+    { key: "urgency", label: "Urgency", placeholder: "low / normal / high" },
   ],
   defaults: { status: "pending" },
 };
