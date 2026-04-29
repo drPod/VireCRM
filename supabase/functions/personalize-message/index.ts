@@ -12,7 +12,7 @@
  */
 import { withAgent, callStructured, jsonResponse } from "../_shared/ai-agent.ts";
 
-export default withAgent(async (req, ctx) => {
+Deno.serve(withAgent(async (req, ctx) => {
   const body = await req.json().catch(() => ({}));
   const leadId = body.lead_id;
   const templateBody = body.body;
@@ -69,3 +69,4 @@ Rewrite to feel personal to this lead.`,
 
   return jsonResponse({ ok: true, ...result });
 });
+);

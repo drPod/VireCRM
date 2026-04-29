@@ -9,7 +9,7 @@
  */
 import { withAgent, callStructured, jsonResponse } from "../_shared/ai-agent.ts";
 
-export default withAgent(async (req, ctx) => {
+Deno.serve(withAgent(async (req, ctx) => {
   const body = await req.json().catch(() => ({}));
   const leadId = body.lead_id;
   if (!leadId) return jsonResponse({ error: "lead_id required" }, 400);
@@ -65,3 +65,4 @@ Score this lead now.`,
 
   return jsonResponse({ ok: true, score: clamped, reason: result.reason, signals: result.signals });
 });
+);

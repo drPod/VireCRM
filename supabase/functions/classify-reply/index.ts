@@ -27,7 +27,7 @@ const INTENTS = [
 const SENTIMENTS = ["positive", "neutral", "negative"];
 const URGENCIES = ["low", "medium", "high"];
 
-export default withAgent(async (req, ctx) => {
+Deno.serve(withAgent(async (req, ctx) => {
   const body = await req.json().catch(() => ({}));
 
   let text: string | null = body.text ?? null;
@@ -89,3 +89,4 @@ export default withAgent(async (req, ctx) => {
 
   return jsonResponse({ ok: true, lead_id: leadId, ...result });
 });
+);
