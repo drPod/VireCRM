@@ -3147,6 +3147,7 @@ export type Database = {
           full_name: string | null
           id: string
           organization_id: string
+          tour_completed_at: string | null
           updated_at: string
           user_id: string
         }
@@ -3156,6 +3157,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           organization_id: string
+          tour_completed_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -3165,6 +3167,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           organization_id?: string
+          tour_completed_at?: string | null
           updated_at?: string
           user_id?: string
         }
