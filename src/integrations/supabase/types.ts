@@ -666,6 +666,60 @@ export type Database = {
           },
         ]
       }
+      contact_submissions: {
+        Row: {
+          budget: string | null
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          message: string
+          message_id: string | null
+          metadata: Json
+          name: string
+          origin: string | null
+          phone: string | null
+          status: string
+          test_mode: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          budget?: string | null
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          message: string
+          message_id?: string | null
+          metadata?: Json
+          name: string
+          origin?: string | null
+          phone?: string | null
+          status?: string
+          test_mode?: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          budget?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          message?: string
+          message_id?: string | null
+          metadata?: Json
+          name?: string
+          origin?: string | null
+          phone?: string | null
+          status?: string
+          test_mode?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       contract_requests: {
         Row: {
           agent_mils: number | null
