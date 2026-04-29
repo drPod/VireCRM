@@ -392,6 +392,22 @@ function Editor() {
           onDelete={deleteNode}
         />
       </div>
+
+      {showRuns && !isNew && (
+        <div className="border-t border-border bg-card max-h-64 overflow-y-auto">
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <span className="text-xs font-semibold text-foreground">Recent runs</span>
+            <button
+              type="button"
+              onClick={() => setShowRuns(false)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Hide
+            </button>
+          </div>
+          <WorkflowRunsPanel workflowId={workflowId} />
+        </div>
+      )}
     </div>
   );
 }
