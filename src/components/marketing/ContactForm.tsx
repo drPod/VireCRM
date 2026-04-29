@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 
 export function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
@@ -79,7 +80,14 @@ export function ContactForm() {
         <CheckCircle className="mx-auto h-12 w-12 text-success" />
         <h2 className="mt-4 text-2xl font-bold text-foreground">Message Sent!</h2>
         <p className="mt-2 text-muted-foreground">
-          We'll review your requirements and get back to you within 24 hours.
+          Your inquiry was delivered to our team at{" "}
+          <a
+            href={SUPPORT_MAILTO}
+            className="font-semibold text-foreground hover:text-primary"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+          . We'll get back to you within 24 hours.
         </p>
       </div>
     );

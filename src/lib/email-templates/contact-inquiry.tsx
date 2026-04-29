@@ -10,10 +10,12 @@ import {
   Text,
 } from '@react-email/components'
 import type { TemplateEntry } from './registry'
+import { SUPPORT_EMAIL } from '@/config/support'
 
 const SITE_NAME = 'Genesis'
 // Fixed inbox — every public contact form submission lands here.
-const OWNER_INBOX = 'genesis@genesisx.com'
+// Sourced from the single SUPPORT_EMAIL constant so it can never drift.
+const OWNER_INBOX = SUPPORT_EMAIL
 
 interface ContactInquiryProps {
   name?: string
