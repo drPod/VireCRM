@@ -896,6 +896,51 @@ export type Database = {
           },
         ]
       }
+      courses: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          industry: string | null
+          organization_id: string
+          position: number
+          published_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          industry?: string | null
+          organization_id: string
+          position?: number
+          published_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          industry?: string | null
+          organization_id?: string
+          position?: number
+          published_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       credit_packs: {
         Row: {
           amount_cents: number | null
@@ -1529,6 +1574,63 @@ export type Database = {
           },
         ]
       }
+      lead_followup_suggestions: {
+        Row: {
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          message: string
+          model: string | null
+          organization_id: string
+          reasoning: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sent_at: string | null
+          source: string
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          message: string
+          model?: string | null
+          organization_id: string
+          reasoning?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sent_at?: string | null
+          source?: string
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          message?: string
+          model?: string | null
+          organization_id?: string
+          reasoning?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sent_at?: string | null
+          source?: string
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_shares: {
         Row: {
           created_at: string
@@ -1716,6 +1818,88 @@ export type Database = {
           },
         ]
       }
+      lesson_progress: {
+        Row: {
+          completed_at: string | null
+          id: string
+          last_viewed_at: string
+          lesson_id: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          last_viewed_at?: string
+          lesson_id: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          last_viewed_at?: string
+          lesson_id?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lessons: {
+        Row: {
+          body: string | null
+          course_id: string
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          organization_id: string
+          position: number
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          body?: string | null
+          course_id: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          organization_id: string
+          position?: number
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          body?: string | null
+          course_id?: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          organization_id?: string
+          position?: number
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loa_requests: {
         Row: {
           assigned_to: string | null
@@ -1786,6 +1970,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      member_health: {
+        Row: {
+          created_at: string
+          engagement_score: number
+          goal: string | null
+          goal_current: number | null
+          goal_target: number | null
+          goal_unit: string | null
+          id: string
+          last_visit_at: string | null
+          lead_id: string
+          notes: string | null
+          organization_id: string
+          risk_score: number
+          updated_at: string
+          updated_by: string | null
+          visits_last_30: number
+          visits_prior_30: number
+        }
+        Insert: {
+          created_at?: string
+          engagement_score?: number
+          goal?: string | null
+          goal_current?: number | null
+          goal_target?: number | null
+          goal_unit?: string | null
+          id?: string
+          last_visit_at?: string | null
+          lead_id: string
+          notes?: string | null
+          organization_id: string
+          risk_score?: number
+          updated_at?: string
+          updated_by?: string | null
+          visits_last_30?: number
+          visits_prior_30?: number
+        }
+        Update: {
+          created_at?: string
+          engagement_score?: number
+          goal?: string | null
+          goal_current?: number | null
+          goal_target?: number | null
+          goal_unit?: string | null
+          id?: string
+          last_visit_at?: string | null
+          lead_id?: string
+          notes?: string | null
+          organization_id?: string
+          risk_score?: number
+          updated_at?: string
+          updated_by?: string | null
+          visits_last_30?: number
+          visits_prior_30?: number
+        }
+        Relationships: []
       }
       messages: {
         Row: {
