@@ -65,6 +65,37 @@ function AppLayout() {
     return () => { cancelled = true; };
   }, [user, profile?.organization_id]);
 
+  // Product tour state — auto-launches on first sign-in once onboarding is
+  // done. Persists `profiles.tour_completed_at` so it never auto-opens twice.
+  // Users can manually reopen via the "Restart tour" button in the sidebar
+  // (which sets `window.__genesisRestartTour = true` then dispatches an event).
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    if (onboardingDone !== true) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("tour_completed_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (!data?.tour_completed_at) {
+        // Small delay so sidebar links are mounted before we measure them.
+        setTimeout(() => setTourOpen(true), 600);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, onboardingDone]);
+
+  // Listen for manual "Restart tour" requests from the sidebar.
+  useEffect(() => {
+    const handler = () => setTourOpen(true);
+    window.addEventListener("genesis:restart-tour", handler);
+    return () => window.removeEventListener("genesis:restart-tour", handler);
+  }, []);
+
   // Avoid bouncing freshly-signed-in users back to /login: after a successful
   // signInWithPassword, navigate fires before AuthProvider's onAuthStateChange
   // listener has propagated the new user. Re-check Supabase's local session
