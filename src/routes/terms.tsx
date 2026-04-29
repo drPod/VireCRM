@@ -19,7 +19,7 @@ function TermsPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <MarketingHeader />
-      <main className="flex-1 pt-24 pb-16">
+      <main className="flex-1 pt-32 pb-16">
         <div className="mx-auto max-w-3xl px-6">
           <h1 className="text-3xl font-bold text-foreground">
             GenesisX CRM Software Terms &amp; Conditions Agreement

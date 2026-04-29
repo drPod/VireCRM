@@ -7,7 +7,7 @@ import { Sparkles } from "lucide-react";
  */
 export function PromoBanner() {
   return (
-    <div className="fixed top-0 z-[60] w-full bg-gradient-to-r from-primary via-[oklch(0.65_0.18_290)] to-[oklch(0.65_0.16_320)] text-white">
+    <div className="fixed top-[28px] z-[60] w-full bg-gradient-to-r from-primary via-[oklch(0.65_0.18_290)] to-[oklch(0.65_0.16_320)] text-white">
       <Link
         to="/pricing"
         className="mx-auto flex max-w-6xl items-center justify-center gap-2 px-6 py-2 text-center text-xs font-medium sm:text-sm"
