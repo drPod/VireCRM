@@ -4160,6 +4160,111 @@ export type Database = {
           },
         ]
       }
+      workflow_run_steps: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          message: string | null
+          node_id: string
+          node_kind: string
+          output: Json
+          run_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          message?: string | null
+          node_id: string
+          node_kind: string
+          output?: Json
+          run_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          message?: string | null
+          node_id?: string
+          node_kind?: string
+          output?: Json
+          run_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          lead_id: string | null
+          organization_id: string
+          started_at: string | null
+          status: string
+          triggered_by: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id: string
+          started_at?: string | null
+          status?: string
+          triggered_by?: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          lead_id?: string | null
+          organization_id?: string
+          started_at?: string | null
+          status?: string
+          triggered_by?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflows: {
         Row: {
           completed_count: number
@@ -4275,6 +4380,10 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      enqueue_workflow_runs: {
+        Args: { p_lead_id: string; p_org: string; p_trigger: string }
+        Returns: undefined
       }
       get_credit_usage: { Args: { p_org_id: string }; Returns: Json }
       get_lead_usage: { Args: { p_org_id: string }; Returns: Json }
