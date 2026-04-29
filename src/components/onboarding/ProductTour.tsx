@@ -18,6 +18,7 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { SUPPORT_EMAIL } from "@/config/support";
 
 export interface TourStep {
   /** data-tour id of the target element. Use "_center" for a centered modal step (no anchor). */
@@ -331,7 +332,7 @@ export const DEFAULT_TOUR_STEPS: TourStep[] = [
   {
     target: "nav-settings",
     title: "Settings",
-    body: "Brand, integrations, team members, and billing all live in Settings. Need help? Email genesis@genesisx.space anytime.",
+    body: `Brand, integrations, team members, and billing all live in Settings. Need help? Email ${SUPPORT_EMAIL} anytime.`,
     placement: "right",
   },
   {
