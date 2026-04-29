@@ -37,6 +37,7 @@ import {
   Dumbbell,
   GraduationCap,
   Bot,
+  HelpCircle,
 } from "lucide-react";
 import { getTemplate } from "@/lib/industry-templates";
 
@@ -195,10 +196,14 @@ export function CrmSidebar() {
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
+          // data-tour ids are derived from the route so the ProductTour can
+          // anchor tooltips to specific sidebar items (e.g. nav-dashboard).
+          const tourId = `nav-${item.to.replace(/^\//, "").replace(/\//g, "-")}`;
           return (
             <Link
               key={item.to}
               to={item.to as string}
+              data-tour={tourId}
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
@@ -269,12 +274,23 @@ export function CrmSidebar() {
         </Link>
         <Link
           to={"/settings" as string}
+          data-tour="nav-settings"
           onClick={() => setMobileOpen(false)}
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
           <Settings className="h-4 w-4" />
           Settings
         </Link>
+        <button
+          onClick={() => {
+            setMobileOpen(false);
+            window.dispatchEvent(new Event("genesis:restart-tour"));
+          }}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+        >
+          <HelpCircle className="h-4 w-4" />
+          Restart tour
+        </button>
         <button
           onClick={async () => {
             await signOut();

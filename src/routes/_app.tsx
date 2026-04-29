@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useSubscription } from "@/hooks/useSubscription";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { ProductTour, DEFAULT_TOUR_STEPS } from "@/components/onboarding/ProductTour";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app")({
@@ -63,6 +64,37 @@ function AppLayout() {
     })();
     return () => { cancelled = true; };
   }, [user, profile?.organization_id]);
+
+  // Product tour state — auto-launches on first sign-in once onboarding is
+  // done. Persists `profiles.tour_completed_at` so it never auto-opens twice.
+  // Users can manually reopen via the "Restart tour" button in the sidebar
+  // (which sets `window.__genesisRestartTour = true` then dispatches an event).
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    if (onboardingDone !== true) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("tour_completed_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (!data?.tour_completed_at) {
+        // Small delay so sidebar links are mounted before we measure them.
+        setTimeout(() => setTourOpen(true), 600);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, onboardingDone]);
+
+  // Listen for manual "Restart tour" requests from the sidebar.
+  useEffect(() => {
+    const handler = () => setTourOpen(true);
+    window.addEventListener("genesis:restart-tour", handler);
+    return () => window.removeEventListener("genesis:restart-tour", handler);
+  }, []);
 
   // Avoid bouncing freshly-signed-in users back to /login: after a successful
   // signInWithPassword, navigate fires before AuthProvider's onAuthStateChange
@@ -145,6 +177,14 @@ function AppLayout() {
           onComplete={() => setOnboardingDone(true)}
         />
       )}
+      {/* Interactive product tour for first-time users (auto-opens once
+          onboarding is done; users can replay from the sidebar). */}
+      <ProductTour
+        steps={DEFAULT_TOUR_STEPS}
+        open={tourOpen}
+        userId={user?.id ?? null}
+        onClose={() => setTourOpen(false)}
+      />
     </div>
   );
 }
