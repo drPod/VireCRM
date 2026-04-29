@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 
 export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
@@ -84,7 +85,7 @@ function PrivacyPage() {
                 <li>Withdraw consent at any time where processing is based on consent.</li>
               </ul>
               <p className="mt-2">
-                To exercise these rights, contact us at <a href="mailto:genesis@genesisx.space" className="text-primary hover:underline">genesis@genesisx.space</a>.
+                To exercise these rights, contact us at <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
               </p>
             </section>
 
@@ -113,7 +114,7 @@ function PrivacyPage() {
               <h2 className="text-lg font-semibold text-foreground">11. Contact Us</h2>
               <p className="mt-2">
                 If you have questions about this Privacy Policy, please contact us at{" "}
-                <a href="mailto:genesis@genesisx.space" className="text-primary hover:underline">genesis@genesisx.space</a>.
+                <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
               </p>
             </section>
           </div>
