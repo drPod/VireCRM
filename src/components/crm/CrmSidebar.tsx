@@ -89,8 +89,29 @@ export function CrmSidebar() {
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
   const isOwner = role?.role === "owner";
 
+  // Industry-aware module list. The owner picks a template in onboarding;
+  // we surface industry-specific modules + relabel "Leads" using that
+  // template's terminology so the sidebar feels native instead of generic.
+  const template = getTemplate(organization?.industry_template);
+  const enabledModules = organization?.enabled_modules ?? template.defaultModules;
+
+  const energyNav = enabledModules.includes("energy_loa") || template.key === "energy"
+    ? [
+        { to: "/energy", icon: Zap, label: "Energy Hub" },
+        { to: "/energy/loa", icon: FileText, label: "LOAs" },
+        { to: "/energy/usage", icon: Gauge, label: "Usage" },
+        { to: "/energy/pricing", icon: DollarSign, label: "Pricing" },
+        { to: "/energy/contracts", icon: FileSignature, label: "Contracts" },
+        { to: "/energy/suppliers", icon: Building2, label: "Suppliers" },
+        { to: "/energy/renewals", icon: RefreshCw, label: "Renewals" },
+      ]
+    : [];
+
   const navItems = [
-    ...baseNavItems,
+    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/leads", icon: Users, label: template.terminology.leadPlural },
+    ...energyNav,
+    ...baseNavItems.filter((i) => i.to !== "/dashboard" && i.to !== "/leads"),
     ...(isReseller && isOwner
       ? [{ to: "/clients", icon: Building2, label: "Clients" }]
       : []),
