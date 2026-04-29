@@ -117,9 +117,16 @@ export const Route = createFileRoute('/api/public/contact')({
           console.error('contact: template missing or has no fixed recipient')
           return jsonError('Email template misconfigured', 500)
         }
-        const recipient = template.to
 
-        // Skip if owner inbox is on the suppression list (very unlikely).
+        // Test mode: redirect owner notifications to the sandbox inbox so
+        // QA can validate the full delivery path without paging the real
+        // owner. The original intended recipient is preserved in metadata.
+        const testMode = getTestModeConfig()
+        const intendedRecipient = template.to
+        const recipient = testMode.enabled && testMode.inbox ? testMode.inbox : intendedRecipient
+        const subjectPrefix = testMode.enabled ? '[TEST MODE] ' : ''
+
+        // Skip if the (effective) inbox is on the suppression list.
         const { data: suppressed } = await supabase
           .from('suppressed_emails')
           .select('id')
@@ -127,13 +134,13 @@ export const Route = createFileRoute('/api/public/contact')({
           .maybeSingle()
 
         if (suppressed) {
-          console.warn('contact: owner inbox is suppressed', { recipient })
+          console.warn('contact: inbox is suppressed', { recipient, testMode: testMode.enabled })
           // Surface a non-leaky error to the visitor.
           return jsonError('We could not deliver your message right now.', 500)
         }
 
         // Reuse-or-create unsubscribe token (required by enqueue contract,
-        // even though the recipient is the site owner).
+        // even though the recipient is the site owner / sandbox inbox).
         let unsubscribeToken: string
         const { data: existingToken } = await supabase
           .from('email_unsubscribe_tokens')
@@ -171,10 +178,11 @@ export const Route = createFileRoute('/api/public/contact')({
         const element = React.createElement(template.component, templateData)
         const html = await render(element)
         const plainText = await render(element, { plainText: true })
-        const subject =
+        const baseSubject =
           typeof template.subject === 'function'
             ? template.subject(templateData)
             : template.subject
+        const subject = `${subjectPrefix}${baseSubject}`
 
         const messageId = crypto.randomUUID()
         const idempotencyKey = `contact-${messageId}`
@@ -189,6 +197,8 @@ export const Route = createFileRoute('/api/public/contact')({
             subject,
             body_preview: plainText.replace(/\s+/g, ' ').trim().slice(0, 200),
             visitor_email: payload.email,
+            test_mode: testMode.enabled,
+            intended_recipient: testMode.enabled ? intendedRecipient : undefined,
           },
           error_message: `ip:${ip}`,
         } as any)
@@ -205,7 +215,7 @@ export const Route = createFileRoute('/api/public/contact')({
             html,
             text: plainText,
             purpose: 'transactional',
-            label: 'contact-inquiry',
+            label: testMode.enabled ? 'contact-inquiry-test' : 'contact-inquiry',
             idempotency_key: idempotencyKey,
             unsubscribe_token: unsubscribeToken,
             // Replies route back to the visitor.
