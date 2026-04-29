@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.handle_new_contact_submission() FROM PUBLIC, anon, authenticated;
