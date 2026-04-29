@@ -1854,6 +1854,7 @@ export type Database = {
           score_reason: string | null
           source: string | null
           status: string
+          tags: string[]
           updated_at: string
         }
         Insert: {
@@ -1881,6 +1882,7 @@ export type Database = {
           score_reason?: string | null
           source?: string | null
           status?: string
+          tags?: string[]
           updated_at?: string
         }
         Update: {
@@ -1908,6 +1910,7 @@ export type Database = {
           score_reason?: string | null
           source?: string | null
           status?: string
+          tags?: string[]
           updated_at?: string
         }
         Relationships: [
@@ -4212,6 +4215,7 @@ export type Database = {
           id: string
           lead_id: string | null
           organization_id: string
+          paused_until: string | null
           started_at: string | null
           status: string
           triggered_by: string
@@ -4224,6 +4228,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           organization_id: string
+          paused_until?: string | null
           started_at?: string | null
           status?: string
           triggered_by?: string
@@ -4236,6 +4241,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           organization_id?: string
+          paused_until?: string | null
           started_at?: string | null
           status?: string
           triggered_by?: string
