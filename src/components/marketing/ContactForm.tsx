@@ -213,6 +213,37 @@ export function ContactForm() {
         />
       </div>
 
+      {/* Math CAPTCHA — blocks naive scripted submissions. */}
+      <div className="space-y-2">
+        <Label htmlFor="captcha">Security check *</Label>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+            {captchaPrompt}
+          </div>
+          <Input
+            id="captcha"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Answer"
+            value={captchaInput}
+            onChange={(e) => setCaptchaInput(e.target.value.replace(/[^0-9-]/g, "").slice(0, 4))}
+            maxLength={4}
+            className="w-28"
+            required
+            aria-label="Answer to the security question"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={refreshCaptcha}
+            aria-label="Get a new security question"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       <Button type="submit" variant="command" size="lg" className="w-full gap-2" disabled={loading}>
         {loading ? "Sending…" : "Send Inquiry"}
         <Send className="h-4 w-4" />
