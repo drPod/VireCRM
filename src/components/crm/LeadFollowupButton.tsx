@@ -44,11 +44,14 @@ export function LeadFollowupButton({ leadId }: { leadId: string }) {
     setOpen(true);
     try {
       const { data, error } = await supabase.functions.invoke("suggest-followup", {
-        body: { leadId, mode: "single", persist: false },
+        body: { mode: "lead", lead_id: leadId },
       });
       if (error) throw error;
       const sug = (data as { suggestion?: Suggestion })?.suggestion ?? null;
       if (!sug) throw new Error("No suggestion returned");
+      // Function already saves to inbox (status: pending). The button gives
+      // the user a chance to copy/edit immediately so they're not forced
+      // to switch contexts.
       setDraft({ subject: sug.subject ?? "", message: sug.message ?? "", reasoning: sug.reasoning });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to generate";
@@ -63,30 +66,6 @@ export function LeadFollowupButton({ leadId }: { leadId: string }) {
     if (!draft) return;
     await navigator.clipboard.writeText(`Subject: ${draft.subject}\n\n${draft.message}`);
     toast.success("Copied draft — paste into your mail client.");
-  };
-
-  const saveToInbox = async () => {
-    if (!draft) return;
-    setSavingInbox(true);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from as any)("lead_followup_suggestions").insert({
-        lead_id: leadId,
-        subject: draft.subject,
-        message: draft.message,
-        reasoning: draft.reasoning ?? null,
-        status: "pending",
-        source: "manual",
-      });
-      if (error) throw error;
-      toast.success("Saved to follow-up inbox");
-      setOpen(false);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to save";
-      toast.error(msg);
-    } finally {
-      setSavingInbox(false);
-    }
   };
 
   return (
