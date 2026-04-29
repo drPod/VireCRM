@@ -177,6 +177,14 @@ function AppLayout() {
           onComplete={() => setOnboardingDone(true)}
         />
       )}
+      {/* Interactive product tour for first-time users (auto-opens once
+          onboarding is done; users can replay from the sidebar). */}
+      <ProductTour
+        steps={DEFAULT_TOUR_STEPS}
+        open={tourOpen}
+        userId={user?.id ?? null}
+        onClose={() => setTourOpen(false)}
+      />
     </div>
   );
 }
