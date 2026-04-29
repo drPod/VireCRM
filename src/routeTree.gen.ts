@@ -31,16 +31,21 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as ApiNotifyLowBalanceRouteImport } from './routes/api/notify-low-balance'
+import { Route as AppSolarRouteImport } from './routes/_app.solar'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
+import { Route as AppRealEstateRouteImport } from './routes/_app.real-estate'
 import { Route as AppQaChecklistRouteImport } from './routes/_app.qa-checklist'
 import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
+import { Route as AppInsuranceRouteImport } from './routes/_app.insurance'
+import { Route as AppGymRouteImport } from './routes/_app.gym'
 import { Route as AppFunnelsRouteImport } from './routes/_app.funnels'
+import { Route as AppFollowupInboxRouteImport } from './routes/_app.followup-inbox'
 import { Route as AppExpensesRouteImport } from './routes/_app.expenses'
 import { Route as AppEnergyRouteImport } from './routes/_app.energy'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
@@ -53,6 +58,7 @@ import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppAppointmentsRouteImport } from './routes/_app.appointments'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
+import { Route as AppAcademyRouteImport } from './routes/_app.academy'
 import { Route as RResellerSlugIndexRouteImport } from './routes/r.$resellerSlug.index'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
 import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
@@ -69,6 +75,7 @@ import { Route as AppEnergyContractsRouteImport } from './routes/_app.energy.con
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as AppCampaignsAnalyticsRouteImport } from './routes/_app.campaigns.analytics'
+import { Route as AppAcademyCourseIdRouteImport } from './routes/_app.academy.$courseId'
 import { Route as RResellerSlugCheckoutPlanSlugRouteImport } from './routes/r.$resellerSlug.checkout.$planSlug'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -77,6 +84,7 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/public/hooks/purge-audit-log'
 import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
+import { Route as ApiPublicHooksDispatchFollowupsRouteImport } from './routes/api/public/hooks/dispatch-followups'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -188,6 +196,11 @@ const ApiNotifyLowBalanceRoute = ApiNotifyLowBalanceRouteImport.update({
   path: '/api/notify-low-balance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppSolarRoute = AppSolarRouteImport.update({
+  id: '/solar',
+  path: '/solar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -206,6 +219,11 @@ const AppRevenueRoute = AppRevenueRouteImport.update({
 const AppReputationRoute = AppReputationRouteImport.update({
   id: '/reputation',
   path: '/reputation',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRealEstateRoute = AppRealEstateRouteImport.update({
+  id: '/real-estate',
+  path: '/real-estate',
   getParentRoute: () => AppRoute,
 } as any)
 const AppQaChecklistRoute = AppQaChecklistRouteImport.update({
@@ -233,9 +251,24 @@ const AppInvoicesRoute = AppInvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInsuranceRoute = AppInsuranceRouteImport.update({
+  id: '/insurance',
+  path: '/insurance',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGymRoute = AppGymRouteImport.update({
+  id: '/gym',
+  path: '/gym',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFunnelsRoute = AppFunnelsRouteImport.update({
   id: '/funnels',
   path: '/funnels',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFollowupInboxRoute = AppFollowupInboxRouteImport.update({
+  id: '/followup-inbox',
+  path: '/followup-inbox',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExpensesRoute = AppExpensesRouteImport.update({
@@ -296,6 +329,11 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
 const AppAdvisorRoute = AppAdvisorRouteImport.update({
   id: '/advisor',
   path: '/advisor',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademyRoute = AppAcademyRouteImport.update({
+  id: '/academy',
+  path: '/academy',
   getParentRoute: () => AppRoute,
 } as any)
 const RResellerSlugIndexRoute = RResellerSlugIndexRouteImport.update({
@@ -379,6 +417,11 @@ const AppCampaignsAnalyticsRoute = AppCampaignsAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppCampaignsRoute,
 } as any)
+const AppAcademyCourseIdRoute = AppAcademyCourseIdRouteImport.update({
+  id: '/$courseId',
+  path: '/$courseId',
+  getParentRoute: () => AppAcademyRoute,
+} as any)
 const RResellerSlugCheckoutPlanSlugRoute =
   RResellerSlugCheckoutPlanSlugRouteImport.update({
     id: '/r/$resellerSlug/checkout/$planSlug',
@@ -425,6 +468,12 @@ const ApiPublicHooksDispatchSequencesRoute =
     path: '/api/public/hooks/dispatch-sequences',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDispatchFollowupsRoute =
+  ApiPublicHooksDispatchFollowupsRouteImport.update({
+    id: '/api/public/hooks/dispatch-followups',
+    path: '/api/public/hooks/dispatch-followups',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -442,6 +491,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/academy': typeof AppAcademyRouteWithChildren
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
   '/appointments': typeof AppAppointmentsRoute
@@ -454,22 +504,28 @@ export interface FileRoutesByFullPath {
   '/email-marketing': typeof AppEmailMarketingRoute
   '/energy': typeof AppEnergyRouteWithChildren
   '/expenses': typeof AppExpensesRoute
+  '/followup-inbox': typeof AppFollowupInboxRoute
   '/funnels': typeof AppFunnelsRoute
+  '/gym': typeof AppGymRoute
+  '/insurance': typeof AppInsuranceRoute
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/payouts': typeof AppPayoutsRoute
   '/qa-checklist': typeof AppQaChecklistRoute
+  '/real-estate': typeof AppRealEstateRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/solar': typeof AppSolarRoute
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
+  '/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
@@ -486,6 +542,7 @@ export interface FileRoutesByFullPath {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -511,6 +568,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/academy': typeof AppAcademyRouteWithChildren
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
   '/appointments': typeof AppAppointmentsRoute
@@ -523,22 +581,28 @@ export interface FileRoutesByTo {
   '/email-marketing': typeof AppEmailMarketingRoute
   '/energy': typeof AppEnergyRouteWithChildren
   '/expenses': typeof AppExpensesRoute
+  '/followup-inbox': typeof AppFollowupInboxRoute
   '/funnels': typeof AppFunnelsRoute
+  '/gym': typeof AppGymRoute
+  '/insurance': typeof AppInsuranceRoute
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/payouts': typeof AppPayoutsRoute
   '/qa-checklist': typeof AppQaChecklistRoute
+  '/real-estate': typeof AppRealEstateRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/solar': typeof AppSolarRoute
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
+  '/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
@@ -555,6 +619,7 @@ export interface FileRoutesByTo {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -582,6 +647,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/_app/academy': typeof AppAcademyRouteWithChildren
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/appointments': typeof AppAppointmentsRoute
@@ -594,22 +660,28 @@ export interface FileRoutesById {
   '/_app/email-marketing': typeof AppEmailMarketingRoute
   '/_app/energy': typeof AppEnergyRouteWithChildren
   '/_app/expenses': typeof AppExpensesRoute
+  '/_app/followup-inbox': typeof AppFollowupInboxRoute
   '/_app/funnels': typeof AppFunnelsRoute
+  '/_app/gym': typeof AppGymRoute
+  '/_app/insurance': typeof AppInsuranceRoute
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
   '/_app/payouts': typeof AppPayoutsRoute
   '/_app/qa-checklist': typeof AppQaChecklistRoute
+  '/_app/real-estate': typeof AppRealEstateRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/revenue': typeof AppRevenueRoute
   '/_app/sequences': typeof AppSequencesRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/_app/solar': typeof AppSolarRoute
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
+  '/_app/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/_app/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
@@ -626,6 +698,7 @@ export interface FileRoutesById {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -653,6 +726,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/unsubscribe'
+    | '/academy'
     | '/advisor'
     | '/analytics'
     | '/appointments'
@@ -665,22 +739,28 @@ export interface FileRouteTypes {
     | '/email-marketing'
     | '/energy'
     | '/expenses'
+    | '/followup-inbox'
     | '/funnels'
+    | '/gym'
+    | '/insurance'
     | '/invoices'
     | '/leads'
     | '/messages'
     | '/payouts'
     | '/qa-checklist'
+    | '/real-estate'
     | '/reputation'
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
+    | '/academy/$courseId'
     | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
@@ -697,6 +777,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
@@ -722,6 +803,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/unsubscribe'
+    | '/academy'
     | '/advisor'
     | '/analytics'
     | '/appointments'
@@ -734,22 +816,28 @@ export interface FileRouteTypes {
     | '/email-marketing'
     | '/energy'
     | '/expenses'
+    | '/followup-inbox'
     | '/funnels'
+    | '/gym'
+    | '/insurance'
     | '/invoices'
     | '/leads'
     | '/messages'
     | '/payouts'
     | '/qa-checklist'
+    | '/real-estate'
     | '/reputation'
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
+    | '/academy/$courseId'
     | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
@@ -766,6 +854,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows'
     | '/r/$resellerSlug'
+    | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
@@ -792,6 +881,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/unsubscribe'
+    | '/_app/academy'
     | '/_app/advisor'
     | '/_app/analytics'
     | '/_app/appointments'
@@ -804,22 +894,28 @@ export interface FileRouteTypes {
     | '/_app/email-marketing'
     | '/_app/energy'
     | '/_app/expenses'
+    | '/_app/followup-inbox'
     | '/_app/funnels'
+    | '/_app/gym'
+    | '/_app/insurance'
     | '/_app/invoices'
     | '/_app/leads'
     | '/_app/messages'
     | '/_app/payouts'
     | '/_app/qa-checklist'
+    | '/_app/real-estate'
     | '/_app/reputation'
     | '/_app/revenue'
     | '/_app/sequences'
     | '/_app/settings'
+    | '/_app/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
+    | '/_app/academy/$courseId'
     | '/_app/campaigns/analytics'
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
@@ -836,6 +932,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/lovable/email/auth/preview'
@@ -873,6 +970,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   RResellerSlugIndexRoute: typeof RResellerSlugIndexRoute
+  ApiPublicHooksDispatchFollowupsRoute: typeof ApiPublicHooksDispatchFollowupsRoute
   ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1039,6 +1137,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNotifyLowBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/solar': {
+      id: '/_app/solar'
+      path: '/solar'
+      fullPath: '/solar'
+      preLoaderRoute: typeof AppSolarRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -1065,6 +1170,13 @@ declare module '@tanstack/react-router' {
       path: '/reputation'
       fullPath: '/reputation'
       preLoaderRoute: typeof AppReputationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/real-estate': {
+      id: '/_app/real-estate'
+      path: '/real-estate'
+      fullPath: '/real-estate'
+      preLoaderRoute: typeof AppRealEstateRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/qa-checklist': {
@@ -1102,11 +1214,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInvoicesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/insurance': {
+      id: '/_app/insurance'
+      path: '/insurance'
+      fullPath: '/insurance'
+      preLoaderRoute: typeof AppInsuranceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gym': {
+      id: '/_app/gym'
+      path: '/gym'
+      fullPath: '/gym'
+      preLoaderRoute: typeof AppGymRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/funnels': {
       id: '/_app/funnels'
       path: '/funnels'
       fullPath: '/funnels'
       preLoaderRoute: typeof AppFunnelsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/followup-inbox': {
+      id: '/_app/followup-inbox'
+      path: '/followup-inbox'
+      fullPath: '/followup-inbox'
+      preLoaderRoute: typeof AppFollowupInboxRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/expenses': {
@@ -1191,6 +1324,13 @@ declare module '@tanstack/react-router' {
       path: '/advisor'
       fullPath: '/advisor'
       preLoaderRoute: typeof AppAdvisorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academy': {
+      id: '/_app/academy'
+      path: '/academy'
+      fullPath: '/academy'
+      preLoaderRoute: typeof AppAcademyRouteImport
       parentRoute: typeof AppRoute
     }
     '/r/$resellerSlug/': {
@@ -1305,6 +1445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCampaignsAnalyticsRouteImport
       parentRoute: typeof AppCampaignsRoute
     }
+    '/_app/academy/$courseId': {
+      id: '/_app/academy/$courseId'
+      path: '/$courseId'
+      fullPath: '/academy/$courseId'
+      preLoaderRoute: typeof AppAcademyCourseIdRouteImport
+      parentRoute: typeof AppAcademyRoute
+    }
     '/r/$resellerSlug/checkout/$planSlug': {
       id: '/r/$resellerSlug/checkout/$planSlug'
       path: '/r/$resellerSlug/checkout/$planSlug'
@@ -1361,8 +1508,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchSequencesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/dispatch-followups': {
+      id: '/api/public/hooks/dispatch-followups'
+      path: '/api/public/hooks/dispatch-followups'
+      fullPath: '/api/public/hooks/dispatch-followups'
+      preLoaderRoute: typeof ApiPublicHooksDispatchFollowupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+interface AppAcademyRouteChildren {
+  AppAcademyCourseIdRoute: typeof AppAcademyCourseIdRoute
+}
+
+const AppAcademyRouteChildren: AppAcademyRouteChildren = {
+  AppAcademyCourseIdRoute: AppAcademyCourseIdRoute,
+}
+
+const AppAcademyRouteWithChildren = AppAcademyRoute._addFileChildren(
+  AppAcademyRouteChildren,
+)
 
 interface AppCampaignsRouteChildren {
   AppCampaignsAnalyticsRoute: typeof AppCampaignsAnalyticsRoute
@@ -1425,6 +1591,7 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAcademyRoute: typeof AppAcademyRouteWithChildren
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppAppointmentsRoute: typeof AppAppointmentsRoute
@@ -1437,21 +1604,27 @@ interface AppRouteChildren {
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
   AppEnergyRoute: typeof AppEnergyRouteWithChildren
   AppExpensesRoute: typeof AppExpensesRoute
+  AppFollowupInboxRoute: typeof AppFollowupInboxRoute
   AppFunnelsRoute: typeof AppFunnelsRoute
+  AppGymRoute: typeof AppGymRoute
+  AppInsuranceRoute: typeof AppInsuranceRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
   AppPayoutsRoute: typeof AppPayoutsRoute
   AppQaChecklistRoute: typeof AppQaChecklistRoute
+  AppRealEstateRoute: typeof AppRealEstateRoute
   AppReputationRoute: typeof AppReputationRoute
   AppRevenueRoute: typeof AppRevenueRoute
   AppSequencesRoute: typeof AppSequencesRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppSolarRoute: typeof AppSolarRoute
   AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
   AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAcademyRoute: AppAcademyRouteWithChildren,
   AppAdvisorRoute: AppAdvisorRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppAppointmentsRoute: AppAppointmentsRoute,
@@ -1464,16 +1637,21 @@ const AppRouteChildren: AppRouteChildren = {
   AppEmailMarketingRoute: AppEmailMarketingRoute,
   AppEnergyRoute: AppEnergyRouteWithChildren,
   AppExpensesRoute: AppExpensesRoute,
+  AppFollowupInboxRoute: AppFollowupInboxRoute,
   AppFunnelsRoute: AppFunnelsRoute,
+  AppGymRoute: AppGymRoute,
+  AppInsuranceRoute: AppInsuranceRoute,
   AppInvoicesRoute: AppInvoicesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,
   AppPayoutsRoute: AppPayoutsRoute,
   AppQaChecklistRoute: AppQaChecklistRoute,
+  AppRealEstateRoute: AppRealEstateRoute,
   AppReputationRoute: AppReputationRoute,
   AppRevenueRoute: AppRevenueRoute,
   AppSequencesRoute: AppSequencesRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppSolarRoute: AppSolarRoute,
   AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
   AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
 }
@@ -1507,6 +1685,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   RResellerSlugIndexRoute: RResellerSlugIndexRoute,
+  ApiPublicHooksDispatchFollowupsRoute: ApiPublicHooksDispatchFollowupsRoute,
   ApiPublicHooksDispatchSequencesRoute: ApiPublicHooksDispatchSequencesRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
