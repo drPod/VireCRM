@@ -17,6 +17,26 @@ const SENDER_DOMAIN = 'notify.vireonx.space'
 const FROM_DOMAIN = 'vireonx.space'
 const FROM_DISPLAY_NAME = 'Genesis Contact Form'
 
+/**
+ * Test mode — when CONTACT_TEST_MODE=true, every contact submission is
+ * redirected to CONTACT_TEST_INBOX instead of the real owner inbox AND the
+ * visitor's address. Subjects are prefixed with [TEST MODE] and the original
+ * intended recipient is preserved in metadata so QA can verify routing
+ * without spamming real users. Flip CONTACT_TEST_MODE to false (or unset)
+ * to enable production delivery.
+ */
+function getTestModeConfig(): { enabled: boolean; inbox: string | null } {
+  const enabled = (process.env.CONTACT_TEST_MODE ?? '').toLowerCase() === 'true'
+  const inbox = process.env.CONTACT_TEST_INBOX?.trim() || null
+  if (enabled && !inbox) {
+    console.warn(
+      'contact: CONTACT_TEST_MODE is on but CONTACT_TEST_INBOX is unset — falling back to production delivery'
+    )
+    return { enabled: false, inbox: null }
+  }
+  return { enabled, inbox }
+}
+
 const ContactSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
   email: z.string().trim().email('Invalid email').max(255).toLowerCase(),
