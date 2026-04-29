@@ -245,13 +245,22 @@ export async function runAdvisorActions({
     try {
       switch (action.type) {
         case "create_task": {
+          const title = typeof action.title === "string" ? action.title.trim() : "";
+          if (!title) {
+            results.push({
+              type: "create_task",
+              status: "skipped",
+              message: "AI did not provide a task title.",
+            });
+            break;
+          }
           const lead = await resolveLead(action.lead_match);
           const { data: row, error } = await supabaseAdmin
             .from("tasks")
             .insert({
               organization_id: orgId,
-              title: action.title.slice(0, 200),
-              description: action.description?.slice(0, 2000) ?? null,
+              title: title.slice(0, 200),
+              description: typeof action.description === "string" ? action.description.slice(0, 2000) : null,
               priority: priorityValue(action.priority),
               due_date: dueDateFromDays(action.due_in_days),
               lead_id: lead?.id ?? null,
@@ -271,6 +280,16 @@ export async function runAdvisorActions({
         }
 
         case "draft_message": {
+          const subject = typeof action.subject === "string" ? action.subject.trim() : "";
+          const body = typeof action.body === "string" ? action.body : "";
+          if (!subject && !body) {
+            results.push({
+              type: "draft_message",
+              status: "skipped",
+              message: "AI did not provide a subject or body for the draft.",
+            });
+            break;
+          }
           const lead = await resolveLead(action.lead_match);
           const { data: row, error } = await supabaseAdmin
             .from("messages")
@@ -279,8 +298,8 @@ export async function runAdvisorActions({
               lead_id: lead?.id ?? null,
               type: "email",
               status: "draft",
-              subject: action.subject.slice(0, 200),
-              content: action.body.slice(0, 5000),
+              subject: (subject || "(no subject)").slice(0, 200),
+              content: body.slice(0, 5000),
             })
             .select("id")
             .single();
@@ -288,7 +307,7 @@ export async function runAdvisorActions({
           results.push({
             type: "draft_message",
             status: "ok",
-            message: `Email draft saved${lead ? ` for ${lead.name}` : ""}: "${action.subject}"`,
+            message: `Email draft saved${lead ? ` for ${lead.name}` : ""}: "${subject || "(no subject)"}"`,
             meta: { message_id: row.id, lead_id: lead?.id ?? null },
           });
           break;
@@ -340,12 +359,21 @@ export async function runAdvisorActions({
         }
 
         case "create_campaign": {
+          const campaignName = typeof action.name === "string" ? action.name.trim() : "";
+          if (!campaignName) {
+            results.push({
+              type: "create_campaign",
+              status: "skipped",
+              message: "AI did not provide a campaign name.",
+            });
+            break;
+          }
           const { data: row, error } = await supabaseAdmin
             .from("campaigns")
             .insert({
               organization_id: orgId,
-              name: action.name.slice(0, 200),
-              objective: action.objective?.slice(0, 500) ?? null,
+              name: campaignName.slice(0, 200),
+              objective: typeof action.objective === "string" ? action.objective.slice(0, 500) : null,
               status: "draft",
             })
             .select("id")
@@ -354,7 +382,7 @@ export async function runAdvisorActions({
           results.push({
             type: "create_campaign",
             status: "ok",
-            message: `Campaign created: "${action.name}"`,
+            message: `Campaign created: "${campaignName}"`,
             meta: { campaign_id: row.id },
           });
           break;
@@ -383,20 +411,32 @@ export async function runAdvisorActions({
         }
 
         case "update_lead_status": {
+          const validStatuses = ["new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
+          type LeadStatus = (typeof validStatuses)[number];
+          const newStatus = action.new_status as LeadStatus | undefined;
+          if (!newStatus || !validStatuses.includes(newStatus)) {
+            results.push({
+              type: "update_lead_status",
+              status: "skipped",
+              message: "AI did not provide a valid new status (new, contacted, qualified, negotiation, won, lost).",
+            });
+            break;
+          }
           const lead = await resolveLead(action.lead_match);
           if (!lead) {
             results.push({
               type: "update_lead_status",
               status: "skipped",
-              message: `No lead matched "${action.lead_match}"`,
+              message: `No lead matched "${action.lead_match ?? ""}"`,
             });
             break;
           }
+          const reason = typeof action.reason === "string" ? action.reason : "";
           const { error } = await supabaseAdmin
             .from("leads")
             .update({
-              status: action.new_status,
-              ...(action.reason ? { next_action: action.reason.slice(0, 500) } : {}),
+              status: newStatus,
+              ...(reason ? { next_action: reason.slice(0, 500) } : {}),
             })
             .eq("id", lead.id)
             .eq("organization_id", orgId);
@@ -404,13 +444,23 @@ export async function runAdvisorActions({
           results.push({
             type: "update_lead_status",
             status: "ok",
-            message: `Moved ${lead.name} to "${action.new_status}"${action.reason ? ` — ${action.reason}` : ""}`,
-            meta: { lead_id: lead.id, new_status: action.new_status },
+            message: `Moved ${lead.name} to "${newStatus}"${reason ? ` — ${reason}` : ""}`,
+            meta: { lead_id: lead.id, new_status: newStatus },
           });
           break;
         }
 
         case "log_message": {
+          const body = typeof action.body === "string" ? action.body : "";
+          const subject = typeof action.subject === "string" ? action.subject : "";
+          if (!body && !subject) {
+            results.push({
+              type: "log_message",
+              status: "skipped",
+              message: "AI did not provide message content to log.",
+            });
+            break;
+          }
           const lead = await resolveLead(action.lead_match);
           const channel = action.channel ?? "note";
           const directionPrefix =
@@ -426,8 +476,8 @@ export async function runAdvisorActions({
               lead_id: lead?.id ?? null,
               type: channel,
               status: "logged",
-              subject: action.subject?.slice(0, 200) ?? null,
-              content: (directionPrefix + action.body).slice(0, 5000),
+              subject: subject ? subject.slice(0, 200) : null,
+              content: (directionPrefix + body).slice(0, 5000),
             })
             .select("id")
             .single();
@@ -442,7 +492,7 @@ export async function runAdvisorActions({
           results.push({
             type: "log_message",
             status: "ok",
-            message: `Logged ${channel}${lead ? ` with ${lead.name}` : ""}${action.subject ? `: "${action.subject}"` : ""}`,
+            message: `Logged ${channel}${lead ? ` with ${lead.name}` : ""}${subject ? `: "${subject}"` : ""}`,
             meta: { message_id: row.id, lead_id: lead?.id ?? null, channel },
           });
           break;
@@ -454,11 +504,11 @@ export async function runAdvisorActions({
             results.push({
               type: "schedule_follow_up",
               status: "skipped",
-              message: `No lead matched "${action.lead_match}"`,
+              message: `No lead matched "${action.lead_match ?? ""}"`,
             });
             break;
           }
-          const days = Math.max(1, Math.min(Math.round(action.in_days || 1), 90));
+          const days = Math.max(1, Math.min(Math.round(Number(action.in_days) || 1), 90));
           const due = new Date();
           due.setDate(due.getDate() + days);
           const channel = action.channel ?? "task";
@@ -468,7 +518,7 @@ export async function runAdvisorActions({
             .insert({
               organization_id: orgId,
               title: title.slice(0, 200),
-              description: action.notes?.slice(0, 2000) ?? null,
+              description: typeof action.notes === "string" ? action.notes.slice(0, 2000) : null,
               priority: "medium",
               due_date: due.toISOString(),
               lead_id: lead.id,
@@ -488,7 +538,7 @@ export async function runAdvisorActions({
         }
 
         case "create_lead": {
-          const name = (action.name ?? "").trim();
+          const name = typeof action.name === "string" ? action.name.trim() : "";
           if (!name) {
             results.push({
               type: "create_lead",
@@ -497,7 +547,7 @@ export async function runAdvisorActions({
             });
             break;
           }
-          const email = action.email?.trim() || null;
+          const email = typeof action.email === "string" ? action.email.trim() || null : null;
           // De-dupe by email within the org if one is provided.
           if (email) {
             const { data: existing } = await supabase
@@ -516,17 +566,18 @@ export async function runAdvisorActions({
               break;
             }
           }
+          const company = typeof action.company === "string" ? action.company.slice(0, 200) : null;
           const { data: row, error } = await supabaseAdmin
             .from("leads")
             .insert({
               organization_id: orgId,
               name: name.slice(0, 200),
-              company: action.company?.slice(0, 200) ?? null,
+              company,
               email,
-              phone: action.phone?.slice(0, 50) ?? null,
-              source: action.source?.slice(0, 100) ?? "ai_command_center",
+              phone: typeof action.phone === "string" ? action.phone.slice(0, 50) : null,
+              source: typeof action.source === "string" ? action.source.slice(0, 100) : "ai_command_center",
               status: action.status ?? "new",
-              notes: action.notes?.slice(0, 2000) ?? null,
+              notes: typeof action.notes === "string" ? action.notes.slice(0, 2000) : null,
               created_by: userId,
               assigned_to: userId,
               score: 50,
@@ -537,7 +588,7 @@ export async function runAdvisorActions({
           results.push({
             type: "create_lead",
             status: "ok",
-            message: `Created lead "${name}"${action.company ? ` @ ${action.company}` : ""}`,
+            message: `Created lead "${name}"${company ? ` @ ${company}` : ""}`,
             meta: { lead_id: row.id },
           });
           break;
