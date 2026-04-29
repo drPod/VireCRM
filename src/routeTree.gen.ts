@@ -31,15 +31,19 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as ApiNotifyLowBalanceRouteImport } from './routes/api/notify-low-balance'
+import { Route as AppSolarRouteImport } from './routes/_app.solar'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
+import { Route as AppRealEstateRouteImport } from './routes/_app.real-estate'
 import { Route as AppQaChecklistRouteImport } from './routes/_app.qa-checklist'
 import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
+import { Route as AppInsuranceRouteImport } from './routes/_app.insurance'
+import { Route as AppGymRouteImport } from './routes/_app.gym'
 import { Route as AppFunnelsRouteImport } from './routes/_app.funnels'
 import { Route as AppFollowupInboxRouteImport } from './routes/_app.followup-inbox'
 import { Route as AppExpensesRouteImport } from './routes/_app.expenses'
@@ -192,6 +196,11 @@ const ApiNotifyLowBalanceRoute = ApiNotifyLowBalanceRouteImport.update({
   path: '/api/notify-low-balance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppSolarRoute = AppSolarRouteImport.update({
+  id: '/solar',
+  path: '/solar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -210,6 +219,11 @@ const AppRevenueRoute = AppRevenueRouteImport.update({
 const AppReputationRoute = AppReputationRouteImport.update({
   id: '/reputation',
   path: '/reputation',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRealEstateRoute = AppRealEstateRouteImport.update({
+  id: '/real-estate',
+  path: '/real-estate',
   getParentRoute: () => AppRoute,
 } as any)
 const AppQaChecklistRoute = AppQaChecklistRouteImport.update({
@@ -235,6 +249,16 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
 const AppInvoicesRoute = AppInvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInsuranceRoute = AppInsuranceRouteImport.update({
+  id: '/insurance',
+  path: '/insurance',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGymRoute = AppGymRouteImport.update({
+  id: '/gym',
+  path: '/gym',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFunnelsRoute = AppFunnelsRouteImport.update({
@@ -482,15 +506,19 @@ export interface FileRoutesByFullPath {
   '/expenses': typeof AppExpensesRoute
   '/followup-inbox': typeof AppFollowupInboxRoute
   '/funnels': typeof AppFunnelsRoute
+  '/gym': typeof AppGymRoute
+  '/insurance': typeof AppInsuranceRoute
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/payouts': typeof AppPayoutsRoute
   '/qa-checklist': typeof AppQaChecklistRoute
+  '/real-estate': typeof AppRealEstateRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/solar': typeof AppSolarRoute
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
@@ -555,15 +583,19 @@ export interface FileRoutesByTo {
   '/expenses': typeof AppExpensesRoute
   '/followup-inbox': typeof AppFollowupInboxRoute
   '/funnels': typeof AppFunnelsRoute
+  '/gym': typeof AppGymRoute
+  '/insurance': typeof AppInsuranceRoute
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/payouts': typeof AppPayoutsRoute
   '/qa-checklist': typeof AppQaChecklistRoute
+  '/real-estate': typeof AppRealEstateRoute
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
+  '/solar': typeof AppSolarRoute
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
@@ -630,15 +662,19 @@ export interface FileRoutesById {
   '/_app/expenses': typeof AppExpensesRoute
   '/_app/followup-inbox': typeof AppFollowupInboxRoute
   '/_app/funnels': typeof AppFunnelsRoute
+  '/_app/gym': typeof AppGymRoute
+  '/_app/insurance': typeof AppInsuranceRoute
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
   '/_app/payouts': typeof AppPayoutsRoute
   '/_app/qa-checklist': typeof AppQaChecklistRoute
+  '/_app/real-estate': typeof AppRealEstateRoute
   '/_app/reputation': typeof AppReputationRoute
   '/_app/revenue': typeof AppRevenueRoute
   '/_app/sequences': typeof AppSequencesRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
+  '/_app/solar': typeof AppSolarRoute
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
@@ -705,15 +741,19 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/followup-inbox'
     | '/funnels'
+    | '/gym'
+    | '/insurance'
     | '/invoices'
     | '/leads'
     | '/messages'
     | '/payouts'
     | '/qa-checklist'
+    | '/real-estate'
     | '/reputation'
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
@@ -778,15 +818,19 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/followup-inbox'
     | '/funnels'
+    | '/gym'
+    | '/insurance'
     | '/invoices'
     | '/leads'
     | '/messages'
     | '/payouts'
     | '/qa-checklist'
+    | '/real-estate'
     | '/reputation'
     | '/revenue'
     | '/sequences'
     | '/settings'
+    | '/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
@@ -852,15 +896,19 @@ export interface FileRouteTypes {
     | '/_app/expenses'
     | '/_app/followup-inbox'
     | '/_app/funnels'
+    | '/_app/gym'
+    | '/_app/insurance'
     | '/_app/invoices'
     | '/_app/leads'
     | '/_app/messages'
     | '/_app/payouts'
     | '/_app/qa-checklist'
+    | '/_app/real-estate'
     | '/_app/reputation'
     | '/_app/revenue'
     | '/_app/sequences'
     | '/_app/settings'
+    | '/_app/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
@@ -1089,6 +1137,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNotifyLowBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/solar': {
+      id: '/_app/solar'
+      path: '/solar'
+      fullPath: '/solar'
+      preLoaderRoute: typeof AppSolarRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -1115,6 +1170,13 @@ declare module '@tanstack/react-router' {
       path: '/reputation'
       fullPath: '/reputation'
       preLoaderRoute: typeof AppReputationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/real-estate': {
+      id: '/_app/real-estate'
+      path: '/real-estate'
+      fullPath: '/real-estate'
+      preLoaderRoute: typeof AppRealEstateRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/qa-checklist': {
@@ -1150,6 +1212,20 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof AppInvoicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/insurance': {
+      id: '/_app/insurance'
+      path: '/insurance'
+      fullPath: '/insurance'
+      preLoaderRoute: typeof AppInsuranceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gym': {
+      id: '/_app/gym'
+      path: '/gym'
+      fullPath: '/gym'
+      preLoaderRoute: typeof AppGymRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/funnels': {
@@ -1530,15 +1606,19 @@ interface AppRouteChildren {
   AppExpensesRoute: typeof AppExpensesRoute
   AppFollowupInboxRoute: typeof AppFollowupInboxRoute
   AppFunnelsRoute: typeof AppFunnelsRoute
+  AppGymRoute: typeof AppGymRoute
+  AppInsuranceRoute: typeof AppInsuranceRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
   AppPayoutsRoute: typeof AppPayoutsRoute
   AppQaChecklistRoute: typeof AppQaChecklistRoute
+  AppRealEstateRoute: typeof AppRealEstateRoute
   AppReputationRoute: typeof AppReputationRoute
   AppRevenueRoute: typeof AppRevenueRoute
   AppSequencesRoute: typeof AppSequencesRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppSolarRoute: typeof AppSolarRoute
   AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
   AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
 }
@@ -1559,15 +1639,19 @@ const AppRouteChildren: AppRouteChildren = {
   AppExpensesRoute: AppExpensesRoute,
   AppFollowupInboxRoute: AppFollowupInboxRoute,
   AppFunnelsRoute: AppFunnelsRoute,
+  AppGymRoute: AppGymRoute,
+  AppInsuranceRoute: AppInsuranceRoute,
   AppInvoicesRoute: AppInvoicesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,
   AppPayoutsRoute: AppPayoutsRoute,
   AppQaChecklistRoute: AppQaChecklistRoute,
+  AppRealEstateRoute: AppRealEstateRoute,
   AppReputationRoute: AppReputationRoute,
   AppRevenueRoute: AppRevenueRoute,
   AppSequencesRoute: AppSequencesRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppSolarRoute: AppSolarRoute,
   AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
   AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
 }
