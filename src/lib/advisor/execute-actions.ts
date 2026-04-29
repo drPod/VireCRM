@@ -245,13 +245,22 @@ export async function runAdvisorActions({
     try {
       switch (action.type) {
         case "create_task": {
+          const title = typeof action.title === "string" ? action.title.trim() : "";
+          if (!title) {
+            results.push({
+              type: "create_task",
+              status: "skipped",
+              message: "AI did not provide a task title.",
+            });
+            break;
+          }
           const lead = await resolveLead(action.lead_match);
           const { data: row, error } = await supabaseAdmin
             .from("tasks")
             .insert({
               organization_id: orgId,
-              title: action.title.slice(0, 200),
-              description: action.description?.slice(0, 2000) ?? null,
+              title: title.slice(0, 200),
+              description: typeof action.description === "string" ? action.description.slice(0, 2000) : null,
               priority: priorityValue(action.priority),
               due_date: dueDateFromDays(action.due_in_days),
               lead_id: lead?.id ?? null,
