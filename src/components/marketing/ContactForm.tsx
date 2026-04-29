@@ -1,16 +1,28 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle } from "lucide-react";
+import { Send, CheckCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
+
+// Simple math CAPTCHA — no third-party dep, no PII, no tracking.
+// Defends against naive bots that bypass the honeypot. Server still
+// enforces honeypot + per-IP rate limit as defense in depth.
+function generateCaptcha() {
+  const a = Math.floor(Math.random() * 9) + 1; // 1-9
+  const b = Math.floor(Math.random() * 9) + 1; // 1-9
+  return { a, b, answer: a + b };
+}
 
 export function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [captcha, setCaptcha] = useState(() => generateCaptcha());
+  const [captchaInput, setCaptchaInput] = useState("");
+  const captchaPrompt = useMemo(() => `What is ${captcha.a} + ${captcha.b}?`, [captcha]);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -21,6 +33,11 @@ export function ContactForm() {
     // Honeypot — real users never see/fill this. Bots do.
     website: "",
   });
+
+  const refreshCaptcha = () => {
+    setCaptcha(generateCaptcha());
+    setCaptchaInput("");
+  };
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
