@@ -281,9 +281,16 @@ async function sendVisitorAcknowledgment(args: {
 }) {
   const { supabase, visitorName, visitorEmail, visitorMessage, origin } = args
 
-  const recipient = visitorEmail.toLowerCase()
+  // Test mode: redirect the visitor acknowledgment to the sandbox inbox so
+  // QA isn't sent to a real visitor while we're validating delivery. The
+  // intended visitor address is preserved in metadata.
+  const testMode = getTestModeConfig()
+  const intendedRecipient = visitorEmail.toLowerCase()
+  const recipient =
+    testMode.enabled && testMode.inbox ? testMode.inbox.toLowerCase() : intendedRecipient
+  const subjectPrefix = testMode.enabled ? '[TEST MODE] ' : ''
 
-  // Don't email visitors who previously unsubscribed/bounced.
+  // Don't email recipients who previously unsubscribed/bounced.
   const { data: suppressed } = await supabase
     .from('suppressed_emails')
     .select('id')
@@ -333,10 +340,11 @@ async function sendVisitorAcknowledgment(args: {
   const ackElement = React.createElement(ackTemplate.component, ackData)
   const ackHtml = await render(ackElement)
   const ackText = await render(ackElement, { plainText: true })
-  const ackSubject =
+  const baseAckSubject =
     typeof ackTemplate.subject === 'function'
       ? ackTemplate.subject(ackData)
       : ackTemplate.subject
+  const ackSubject = `${subjectPrefix}${baseAckSubject}`
 
   const ackMessageId = crypto.randomUUID()
 
@@ -348,6 +356,8 @@ async function sendVisitorAcknowledgment(args: {
     metadata: {
       subject: ackSubject,
       body_preview: ackText.replace(/\s+/g, ' ').trim().slice(0, 200),
+      test_mode: testMode.enabled,
+      intended_recipient: testMode.enabled ? intendedRecipient : undefined,
     },
   } as any)
 
@@ -363,7 +373,7 @@ async function sendVisitorAcknowledgment(args: {
       html: ackHtml,
       text: ackText,
       purpose: 'transactional',
-      label: 'contact-acknowledgment',
+      label: testMode.enabled ? 'contact-acknowledgment-test' : 'contact-acknowledgment',
       idempotency_key: `contact-ack-${ackMessageId}`,
       unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
