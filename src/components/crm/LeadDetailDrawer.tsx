@@ -19,6 +19,7 @@ import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.f
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
 import { LeadFollowupButton } from "./LeadFollowupButton";
+import { LeadScoreButton } from "./LeadScoreButton";
 import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
 import { ShareLeadPanel } from "./ShareLeadPanel";
 import { AssigneeAvatars } from "./AssigneeAvatars";
@@ -679,6 +680,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   onActed={handleSent}
                 />
                 <LeadFollowupButton leadId={lead.id} />
+                <LeadScoreButton leadId={lead.id} onScored={(s) => update("score", s)} />
               </div>
               {lastOutreachLabel && (
                 <span

@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, Save, Play, Pause } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Play, Pause, Zap, History } from "lucide-react";
 import { toast } from "sonner";
 import {
   NODE_TYPE_BY_KIND,
@@ -31,6 +31,7 @@ import {
 import { WorkflowNode } from "@/components/workflows/WorkflowNode";
 import { NodePalette } from "@/components/workflows/NodePalette";
 import { NodeInspector } from "@/components/workflows/NodeInspector";
+import { WorkflowRunsPanel } from "@/components/workflows/WorkflowRunsPanel";
 
 export const Route = createFileRoute("/_app/workflows/$workflowId")({
   component: WorkflowEditorPage,
@@ -67,6 +68,8 @@ function Editor() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const [testRunning, setTestRunning] = useState(false);
+  const [showRuns, setShowRuns] = useState(false);
 
   const hasTrigger = useMemo(
     () =>
@@ -218,6 +221,46 @@ function Editor() {
     }
   };
 
+  const handleTestRun = async () => {
+    if (isNew) {
+      toast.error("Save the workflow first");
+      return;
+    }
+    if (!hasTrigger) {
+      toast.error("Add a trigger node first");
+      return;
+    }
+    setTestRunning(true);
+    try {
+      // Pick the most recent lead in this org as a sample target.
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("id, name")
+        .eq("organization_id", organization!.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("run-workflow", {
+        body: { workflow_id: workflowId, lead_id: lead?.id ?? null },
+      });
+      if (error) throw error;
+      const status = (data as { status?: string })?.status ?? "completed";
+      const targetMsg = lead?.name ? ` against ${lead.name}` : "";
+      if (status === "completed") {
+        toast.success(`Test run completed${targetMsg}`);
+      } else if (status === "paused") {
+        toast.info(`Run paused at a wait step${targetMsg}`);
+      } else {
+        toast.error(`Run ${status}: ${(data as { error?: string })?.error ?? "see logs"}`);
+      }
+      setShowRuns(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Test run failed");
+    } finally {
+      setTestRunning(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -247,6 +290,25 @@ function Editor() {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRuns((v) => !v)}
+            className="gap-2"
+          >
+            <History className="h-3.5 w-3.5" />
+            Runs
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleTestRun()}
+            disabled={testRunning || isNew}
+            className="gap-2"
+          >
+            {testRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+            Test run
+          </Button>
           {status === "active" ? (
             <Button
               variant="outline"
@@ -330,6 +392,22 @@ function Editor() {
           onDelete={deleteNode}
         />
       </div>
+
+      {showRuns && !isNew && (
+        <div className="border-t border-border bg-card max-h-64 overflow-y-auto">
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <span className="text-xs font-semibold text-foreground">Recent runs</span>
+            <button
+              type="button"
+              onClick={() => setShowRuns(false)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Hide
+            </button>
+          </div>
+          <WorkflowRunsPanel workflowId={workflowId} />
+        </div>
+      )}
     </div>
   );
 }
