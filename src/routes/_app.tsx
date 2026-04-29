@@ -137,6 +137,14 @@ function AppLayout() {
           <Outlet />
         </main>
       </div>
+      {/* First-time setup wizard — only renders when org has no completion stamp */}
+      {onboardingDone === false && profile?.organization_id && (
+        <OnboardingWizard
+          organizationId={profile.organization_id}
+          isOwner={role?.role === "owner"}
+          onComplete={() => setOnboardingDone(true)}
+        />
+      )}
     </div>
   );
 }
