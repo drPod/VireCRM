@@ -273,12 +273,23 @@ export function CrmSidebar() {
         </Link>
         <Link
           to={"/settings" as string}
+          data-tour="nav-settings"
           onClick={() => setMobileOpen(false)}
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
           <Settings className="h-4 w-4" />
           Settings
         </Link>
+        <button
+          onClick={() => {
+            setMobileOpen(false);
+            window.dispatchEvent(new Event("genesis:restart-tour"));
+          }}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+        >
+          <HelpCircle className="h-4 w-4" />
+          Restart tour
+        </button>
         <button
           onClick={async () => {
             await signOut();
