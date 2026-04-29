@@ -221,6 +221,46 @@ function Editor() {
     }
   };
 
+  const handleTestRun = async () => {
+    if (isNew) {
+      toast.error("Save the workflow first");
+      return;
+    }
+    if (!hasTrigger) {
+      toast.error("Add a trigger node first");
+      return;
+    }
+    setTestRunning(true);
+    try {
+      // Pick the most recent lead in this org as a sample target.
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("id, name")
+        .eq("organization_id", organization!.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("run-workflow", {
+        body: { workflow_id: workflowId, lead_id: lead?.id ?? null },
+      });
+      if (error) throw error;
+      const status = (data as { status?: string })?.status ?? "completed";
+      const targetMsg = lead?.name ? ` against ${lead.name}` : "";
+      if (status === "completed") {
+        toast.success(`Test run completed${targetMsg}`);
+      } else if (status === "paused") {
+        toast.info(`Run paused at a wait step${targetMsg}`);
+      } else {
+        toast.error(`Run ${status}: ${(data as { error?: string })?.error ?? "see logs"}`);
+      }
+      setShowRuns(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Test run failed");
+    } finally {
+      setTestRunning(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
