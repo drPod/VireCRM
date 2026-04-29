@@ -411,20 +411,32 @@ export async function runAdvisorActions({
         }
 
         case "update_lead_status": {
+          const validStatuses = ["new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
+          type LeadStatus = (typeof validStatuses)[number];
+          const newStatus = action.new_status as LeadStatus | undefined;
+          if (!newStatus || !validStatuses.includes(newStatus)) {
+            results.push({
+              type: "update_lead_status",
+              status: "skipped",
+              message: "AI did not provide a valid new status (new, contacted, qualified, negotiation, won, lost).",
+            });
+            break;
+          }
           const lead = await resolveLead(action.lead_match);
           if (!lead) {
             results.push({
               type: "update_lead_status",
               status: "skipped",
-              message: `No lead matched "${action.lead_match}"`,
+              message: `No lead matched "${action.lead_match ?? ""}"`,
             });
             break;
           }
+          const reason = typeof action.reason === "string" ? action.reason : "";
           const { error } = await supabaseAdmin
             .from("leads")
             .update({
-              status: action.new_status,
-              ...(action.reason ? { next_action: action.reason.slice(0, 500) } : {}),
+              status: newStatus,
+              ...(reason ? { next_action: reason.slice(0, 500) } : {}),
             })
             .eq("id", lead.id)
             .eq("organization_id", orgId);
@@ -432,13 +444,23 @@ export async function runAdvisorActions({
           results.push({
             type: "update_lead_status",
             status: "ok",
-            message: `Moved ${lead.name} to "${action.new_status}"${action.reason ? ` — ${action.reason}` : ""}`,
-            meta: { lead_id: lead.id, new_status: action.new_status },
+            message: `Moved ${lead.name} to "${newStatus}"${reason ? ` — ${reason}` : ""}`,
+            meta: { lead_id: lead.id, new_status: newStatus },
           });
           break;
         }
 
         case "log_message": {
+          const body = typeof action.body === "string" ? action.body : "";
+          const subject = typeof action.subject === "string" ? action.subject : "";
+          if (!body && !subject) {
+            results.push({
+              type: "log_message",
+              status: "skipped",
+              message: "AI did not provide message content to log.",
+            });
+            break;
+          }
           const lead = await resolveLead(action.lead_match);
           const channel = action.channel ?? "note";
           const directionPrefix =
@@ -454,8 +476,8 @@ export async function runAdvisorActions({
               lead_id: lead?.id ?? null,
               type: channel,
               status: "logged",
-              subject: action.subject?.slice(0, 200) ?? null,
-              content: (directionPrefix + action.body).slice(0, 5000),
+              subject: subject ? subject.slice(0, 200) : null,
+              content: (directionPrefix + body).slice(0, 5000),
             })
             .select("id")
             .single();
@@ -470,7 +492,7 @@ export async function runAdvisorActions({
           results.push({
             type: "log_message",
             status: "ok",
-            message: `Logged ${channel}${lead ? ` with ${lead.name}` : ""}${action.subject ? `: "${action.subject}"` : ""}`,
+            message: `Logged ${channel}${lead ? ` with ${lead.name}` : ""}${subject ? `: "${subject}"` : ""}`,
             meta: { message_id: row.id, lead_id: lead?.id ?? null, channel },
           });
           break;
