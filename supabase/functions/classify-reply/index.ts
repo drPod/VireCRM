@@ -38,14 +38,14 @@ export default withAgent(async (req, ctx) => {
   if (!text && messageId) {
     const { data, error } = await ctx.admin
       .from(table)
-      .select("id, body, content, lead_id, organization_id")
+      .select("id, content, lead_id, organization_id")
       .eq("id", messageId)
       .maybeSingle();
     if (error || !data) return jsonResponse({ error: "Message not found" }, 404);
     if (data.organization_id && data.organization_id !== ctx.orgId) {
       return jsonResponse({ error: "Forbidden" }, 403);
     }
-    text = (data.body ?? data.content ?? "") as string;
+    text = (data.content ?? "") as string;
     leadId = leadId ?? (data.lead_id as string | null);
   }
 

@@ -39,13 +39,13 @@ export default withAgent(async (req, ctx) => {
     // Try to pull the most recent inbound message
     const { data: msgs } = await ctx.admin
       .from("messages")
-      .select("body, content, direction, created_at")
+      .select("content, direction, created_at")
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false })
       .limit(5);
     const inbound = (msgs ?? []).find((m: { direction?: string }) => m.direction === "inbound") ??
       (msgs ?? [])[0];
-    replyText = (inbound?.body ?? inbound?.content ?? "") as string;
+    replyText = (inbound?.content ?? "") as string;
   }
 
   const availability = Array.isArray(body.availability) ? body.availability : [];
