@@ -504,11 +504,11 @@ export async function runAdvisorActions({
             results.push({
               type: "schedule_follow_up",
               status: "skipped",
-              message: `No lead matched "${action.lead_match}"`,
+              message: `No lead matched "${action.lead_match ?? ""}"`,
             });
             break;
           }
-          const days = Math.max(1, Math.min(Math.round(action.in_days || 1), 90));
+          const days = Math.max(1, Math.min(Math.round(Number(action.in_days) || 1), 90));
           const due = new Date();
           due.setDate(due.getDate() + days);
           const channel = action.channel ?? "task";
@@ -518,7 +518,7 @@ export async function runAdvisorActions({
             .insert({
               organization_id: orgId,
               title: title.slice(0, 200),
-              description: action.notes?.slice(0, 2000) ?? null,
+              description: typeof action.notes === "string" ? action.notes.slice(0, 2000) : null,
               priority: "medium",
               due_date: due.toISOString(),
               lead_id: lead.id,
@@ -538,7 +538,7 @@ export async function runAdvisorActions({
         }
 
         case "create_lead": {
-          const name = (action.name ?? "").trim();
+          const name = typeof action.name === "string" ? action.name.trim() : "";
           if (!name) {
             results.push({
               type: "create_lead",
@@ -547,7 +547,7 @@ export async function runAdvisorActions({
             });
             break;
           }
-          const email = action.email?.trim() || null;
+          const email = typeof action.email === "string" ? action.email.trim() || null : null;
           // De-dupe by email within the org if one is provided.
           if (email) {
             const { data: existing } = await supabase
@@ -566,17 +566,18 @@ export async function runAdvisorActions({
               break;
             }
           }
+          const company = typeof action.company === "string" ? action.company.slice(0, 200) : null;
           const { data: row, error } = await supabaseAdmin
             .from("leads")
             .insert({
               organization_id: orgId,
               name: name.slice(0, 200),
-              company: action.company?.slice(0, 200) ?? null,
+              company,
               email,
-              phone: action.phone?.slice(0, 50) ?? null,
-              source: action.source?.slice(0, 100) ?? "ai_command_center",
+              phone: typeof action.phone === "string" ? action.phone.slice(0, 50) : null,
+              source: typeof action.source === "string" ? action.source.slice(0, 100) : "ai_command_center",
               status: action.status ?? "new",
-              notes: action.notes?.slice(0, 2000) ?? null,
+              notes: typeof action.notes === "string" ? action.notes.slice(0, 2000) : null,
               created_by: userId,
               assigned_to: userId,
               score: 50,
@@ -587,7 +588,7 @@ export async function runAdvisorActions({
           results.push({
             type: "create_lead",
             status: "ok",
-            message: `Created lead "${name}"${action.company ? ` @ ${action.company}` : ""}`,
+            message: `Created lead "${name}"${company ? ` @ ${company}` : ""}`,
             meta: { lead_id: row.id },
           });
           break;
