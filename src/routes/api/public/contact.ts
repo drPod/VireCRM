@@ -187,6 +187,33 @@ export const Route = createFileRoute('/api/public/contact')({
         const messageId = crypto.randomUUID()
         const idempotencyKey = `contact-${messageId}`
 
+        // Persist the submission to the CRM audit table for follow-up.
+        // Failure here must NEVER block delivery — log and continue.
+        const userAgent = request.headers.get('user-agent')
+        const origin = request.headers.get('origin')
+        const { error: crmInsertErr } = await supabase
+          .from('contact_submissions')
+          .insert({
+            name: payload.name,
+            email: payload.email,
+            company: payload.company || null,
+            phone: payload.phone || null,
+            budget: payload.budget || null,
+            message: payload.message,
+            ip_address: ip === 'unknown' ? null : ip,
+            user_agent: userAgent,
+            origin,
+            test_mode: testMode.enabled,
+            message_id: messageId,
+            status: 'received',
+            metadata: {
+              intended_recipient: testMode.enabled ? intendedRecipient : undefined,
+            },
+          } as any)
+        if (crmInsertErr) {
+          console.warn('contact: failed to persist CRM submission (non-fatal)', crmInsertErr)
+        }
+
         // Stamp the log row with the IP so the rate limiter above can see it.
         await supabase.from('email_send_log').insert({
           message_id: messageId,
