@@ -73,22 +73,24 @@ function EnergyHub() {
           const Icon = m.icon;
           const count = counts[m.key];
           return (
-            <Card key={m.key} className="hover:border-primary/40 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-primary" />
-                  {m.label}
-                </CardTitle>
-                {loading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                ) : (
-                  <span className="text-2xl font-bold text-foreground">{count ?? 0}</span>
-                )}
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">{m.hint}</p>
-              </CardContent>
-            </Card>
+            <Link key={m.key} to={m.to} className="block">
+              <Card className="hover:border-primary/40 hover:shadow-md transition-all cursor-pointer h-full">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-primary" />
+                    {m.label}
+                  </CardTitle>
+                  {loading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <span className="text-2xl font-bold text-foreground">{count ?? 0}</span>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">{m.hint}</p>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>
