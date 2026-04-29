@@ -195,10 +195,14 @@ export function CrmSidebar() {
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
+          // data-tour ids are derived from the route so the ProductTour can
+          // anchor tooltips to specific sidebar items (e.g. nav-dashboard).
+          const tourId = `nav-${item.to.replace(/^\//, "").replace(/\//g, "-")}`;
           return (
             <Link
               key={item.to}
               to={item.to as string}
+              data-tour={tourId}
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
