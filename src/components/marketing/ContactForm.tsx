@@ -57,6 +57,13 @@ export function ContactForm() {
       return;
     }
 
+    const expected = String(captcha.answer);
+    if (captchaInput.trim() !== expected) {
+      toast.error("Incorrect answer to the security question. Please try again.");
+      refreshCaptcha();
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/public/contact", {
@@ -70,6 +77,7 @@ export function ContactForm() {
           budget: form.budget || null,
           message: form.message.trim(),
           website: form.website, // honeypot
+          captcha: { a: captcha.a, b: captcha.b, answer: Number(captchaInput.trim()) },
         }),
       });
 
