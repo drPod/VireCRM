@@ -51,6 +51,7 @@ import { Route as AppEnergyRouteImport } from './routes/_app.energy'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
+import { Route as AppCommandChatRouteImport } from './routes/_app.command-chat'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
@@ -301,6 +302,11 @@ const AppConversationsRoute = AppConversationsRouteImport.update({
   path: '/conversations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCommandChatRoute = AppCommandChatRouteImport.update({
+  id: '/command-chat',
+  path: '/command-chat',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClientsRoute = AppClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -529,6 +535,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
+  '/command-chat': typeof AppCommandChatRoute
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
@@ -611,6 +618,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
+  '/command-chat': typeof AppCommandChatRoute
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
@@ -695,6 +703,7 @@ export interface FileRoutesById {
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRouteWithChildren
   '/_app/clients': typeof AppClientsRouteWithChildren
+  '/_app/command-chat': typeof AppCommandChatRoute
   '/_app/conversations': typeof AppConversationsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
@@ -779,6 +788,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/campaigns'
     | '/clients'
+    | '/command-chat'
     | '/conversations'
     | '/dashboard'
     | '/email-marketing'
@@ -861,6 +871,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/campaigns'
     | '/clients'
+    | '/command-chat'
     | '/conversations'
     | '/dashboard'
     | '/email-marketing'
@@ -944,6 +955,7 @@ export interface FileRouteTypes {
     | '/_app/calendar'
     | '/_app/campaigns'
     | '/_app/clients'
+    | '/_app/command-chat'
     | '/_app/conversations'
     | '/_app/dashboard'
     | '/_app/email-marketing'
@@ -1335,6 +1347,13 @@ declare module '@tanstack/react-router' {
       path: '/conversations'
       fullPath: '/conversations'
       preLoaderRoute: typeof AppConversationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/command-chat': {
+      id: '/_app/command-chat'
+      path: '/command-chat'
+      fullPath: '/command-chat'
+      preLoaderRoute: typeof AppCommandChatRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/clients': {
@@ -1734,6 +1753,7 @@ interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
   AppClientsRoute: typeof AppClientsRouteWithChildren
+  AppCommandChatRoute: typeof AppCommandChatRoute
   AppConversationsRoute: typeof AppConversationsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
@@ -1767,6 +1787,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRouteWithChildren,
   AppClientsRoute: AppClientsRouteWithChildren,
+  AppCommandChatRoute: AppCommandChatRoute,
   AppConversationsRoute: AppConversationsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
