@@ -5,6 +5,7 @@ import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { PricingCards } from "@/components/marketing/PricingCards";
 import { CtaSection } from "@/components/marketing/CtaSection";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -78,8 +79,8 @@ function PricingPage() {
                         +1 (940) 365-6600
                       </a>{" "}
                       or email{" "}
-                      <a href="mailto:Genesis@genesisx.space" className="font-medium text-primary hover:underline">
-                        Genesis@genesisx.space
+                      <a href={SUPPORT_MAILTO} className="font-medium text-primary hover:underline">
+                        {SUPPORT_EMAIL}
                       </a>
                       . We typically reply within one business day.
                     </>
@@ -111,10 +112,10 @@ function PricingPage() {
               📞 +1 (940) 365-6600
             </a>
             <a
-              href="mailto:Genesis@genesisx.space"
+              href={SUPPORT_MAILTO}
               className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground hover:border-primary/40 transition-colors"
             >
-              ✉️ Genesis@genesisx.space
+              ✉️ {SUPPORT_EMAIL}
             </a>
           </div>
         </div>
