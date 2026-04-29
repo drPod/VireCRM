@@ -99,24 +99,48 @@ export const Route = createFileRoute('/api/public/contact')({
           return Response.json({ success: true })
         }
 
+        // CAPTCHA — server re-verifies the math answer. Reject mismatches
+        // outright (vs. silently dropping) so legitimate users with a typo
+        // get a clear error and can retry.
+        if (payload.captcha) {
+          const { a, b, answer } = payload.captcha
+          if (a + b !== answer) {
+            return jsonError('Incorrect answer to the security question.', 400)
+          }
+        }
+
         const supabase = createClient(supabaseUrl, supabaseServiceKey) as AdminClient
 
-        // Best-effort lightweight per-IP rate limit: max 5 submissions / 10 min.
+        // Per-IP rate limit (defense in depth alongside honeypot + CAPTCHA):
+        //   - max 5 submissions per 10 minutes (short-burst spam)
+        //   - max 20 submissions per 24 hours (sustained spam)
+        // Counted against the contact_submissions audit table where the IP
+        // is stored cleanly, instead of a brittle ILIKE on email_send_log.
         const ip =
           request.headers.get('cf-connecting-ip') ??
           request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
           'unknown'
 
         if (ip !== 'unknown') {
-          const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
-          const { count } = await supabase
-            .from('email_send_log')
-            .select('id', { count: 'exact', head: true })
-            .eq('template_name', 'contact-inquiry')
-            .gte('created_at', tenMinAgo)
-            .ilike('error_message', `%ip:${ip}%`)
-          if ((count ?? 0) >= 5) {
-            return jsonError('Too many submissions — please try again shortly.', 429)
+          const now = Date.now()
+          const tenMinAgo = new Date(now - 10 * 60 * 1000).toISOString()
+          const dayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString()
+
+          const [{ count: shortCount }, { count: dayCount }] = await Promise.all([
+            supabase
+              .from('contact_submissions')
+              .select('id', { count: 'exact', head: true })
+              .eq('ip_address', ip)
+              .gte('created_at', tenMinAgo),
+            supabase
+              .from('contact_submissions')
+              .select('id', { count: 'exact', head: true })
+              .eq('ip_address', ip)
+              .gte('created_at', dayAgo),
+          ])
+
+          if ((shortCount ?? 0) >= 5 || (dayCount ?? 0) >= 20) {
+            return jsonError('Too many submissions — please try again later.', 429)
           }
         }
 
