@@ -26,7 +26,13 @@ import {
   Inbox,
   Globe,
   Send,
+  FileText,
+  Gauge,
+  DollarSign,
+  FileSignature,
+  RefreshCw,
 } from "lucide-react";
+import { getTemplate } from "@/lib/industry-templates";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
