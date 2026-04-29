@@ -31,6 +31,12 @@ import {
   DollarSign,
   FileSignature,
   RefreshCw,
+  Sun,
+  Home,
+  Shield,
+  Dumbbell,
+  GraduationCap,
+  Bot,
 } from "lucide-react";
 import { getTemplate } from "@/lib/industry-templates";
 
