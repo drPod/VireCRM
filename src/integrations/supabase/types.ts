@@ -674,6 +674,7 @@ export type Database = {
           email: string
           id: string
           ip_address: string | null
+          lead_id: string | null
           message: string
           message_id: string | null
           metadata: Json
@@ -691,6 +692,7 @@ export type Database = {
           email: string
           id?: string
           ip_address?: string | null
+          lead_id?: string | null
           message: string
           message_id?: string | null
           metadata?: Json
@@ -708,6 +710,7 @@ export type Database = {
           email?: string
           id?: string
           ip_address?: string | null
+          lead_id?: string | null
           message?: string
           message_id?: string | null
           metadata?: Json
@@ -718,7 +721,15 @@ export type Database = {
           test_mode?: boolean
           user_agent?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_submissions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contract_requests: {
         Row: {
