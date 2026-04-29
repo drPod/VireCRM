@@ -674,6 +674,7 @@ export type Database = {
           email: string
           id: string
           ip_address: string | null
+          last_reminder_at: string | null
           lead_id: string | null
           message: string
           message_id: string | null
@@ -681,7 +682,9 @@ export type Database = {
           name: string
           origin: string | null
           phone: string | null
+          replied_at: string | null
           status: string
+          task_id: string | null
           test_mode: boolean
           user_agent: string | null
         }
@@ -692,6 +695,7 @@ export type Database = {
           email: string
           id?: string
           ip_address?: string | null
+          last_reminder_at?: string | null
           lead_id?: string | null
           message: string
           message_id?: string | null
@@ -699,7 +703,9 @@ export type Database = {
           name: string
           origin?: string | null
           phone?: string | null
+          replied_at?: string | null
           status?: string
+          task_id?: string | null
           test_mode?: boolean
           user_agent?: string | null
         }
@@ -710,6 +716,7 @@ export type Database = {
           email?: string
           id?: string
           ip_address?: string | null
+          last_reminder_at?: string | null
           lead_id?: string | null
           message?: string
           message_id?: string | null
@@ -717,7 +724,9 @@ export type Database = {
           name?: string
           origin?: string | null
           phone?: string | null
+          replied_at?: string | null
           status?: string
+          task_id?: string | null
           test_mode?: boolean
           user_agent?: string | null
         }
@@ -727,6 +736,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -3981,6 +3997,24 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
         }
         Relationships: []
       }
