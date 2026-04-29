@@ -68,6 +68,8 @@ function Editor() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const [testRunning, setTestRunning] = useState(false);
+  const [showRuns, setShowRuns] = useState(false);
 
   const hasTrigger = useMemo(
     () =>
