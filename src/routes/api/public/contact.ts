@@ -440,3 +440,103 @@ async function sendVisitorAcknowledgment(args: {
     } as any)
   }
 }
+
+/**
+ * Create or update a CRM lead from a contact submission. Idempotent on
+ * (organization_id, lower(email)): if a non-deleted lead already exists
+ * for the destination org with the same email, we update it with the
+ * latest contact info and append the new message to notes. Otherwise we
+ * create a fresh lead in status 'new'.
+ *
+ * Requires MARKETING_INBOUND_ORG_ID to be set to the destination org's
+ * UUID — otherwise we silently skip (no-op) so projects without a
+ * configured inbound org aren't broken.
+ */
+async function upsertLeadFromSubmission(args: {
+  supabase: AdminClient
+  submissionId: string
+  name: string
+  email: string
+  company: string | null
+  phone: string | null
+  message: string
+}) {
+  const { supabase, submissionId, name, email, company, phone, message } = args
+
+  const orgId = process.env.MARKETING_INBOUND_ORG_ID?.trim()
+  if (!orgId) {
+    console.info('contact: MARKETING_INBOUND_ORG_ID not set — skipping lead upsert')
+    return
+  }
+
+  const normalizedEmail = email.toLowerCase()
+  const now = new Date().toISOString()
+  const noteEntry = `[${now}] Contact form: ${message}`
+
+  // Look for an existing active lead in this org with the same email.
+  const { data: existing, error: findErr } = await supabase
+    .from('leads')
+    .select('id, notes')
+    .eq('organization_id', orgId)
+    .ilike('email', normalizedEmail)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (findErr) {
+    console.warn('contact: lead lookup failed', findErr)
+    return
+  }
+
+  let leadId: string | null = null
+
+  if (existing?.id) {
+    const mergedNotes = existing.notes ? `${existing.notes}\n\n${noteEntry}` : noteEntry
+    const { error: updateErr } = await supabase
+      .from('leads')
+      .update({
+        name,
+        phone: phone || undefined,
+        company: company || undefined,
+        last_contact: now,
+        notes: mergedNotes,
+      } as any)
+      .eq('id', existing.id)
+    if (updateErr) {
+      console.warn('contact: lead update failed', updateErr)
+      return
+    }
+    leadId = existing.id
+  } else {
+    const { data: created, error: insertErr } = await supabase
+      .from('leads')
+      .insert({
+        organization_id: orgId,
+        name,
+        email: normalizedEmail,
+        phone: phone || null,
+        company: company || null,
+        status: 'new',
+        source: 'contact_form',
+        last_contact: now,
+        notes: noteEntry,
+        tags: ['inbound', 'contact-form'],
+      } as any)
+      .select('id')
+      .single()
+    if (insertErr || !created) {
+      console.warn('contact: lead insert failed', insertErr)
+      return
+    }
+    leadId = created.id
+  }
+
+  // Link the submission row back to the lead it produced.
+  if (leadId) {
+    await supabase
+      .from('contact_submissions')
+      .update({ lead_id: leadId } as any)
+      .eq('id', submissionId)
+  }
+}
