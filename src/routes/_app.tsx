@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useSubscription } from "@/hooks/useSubscription";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
