@@ -37,6 +37,7 @@ import {
   Dumbbell,
   GraduationCap,
   Bot,
+  HelpCircle,
 } from "lucide-react";
 import { getTemplate } from "@/lib/industry-templates";
 
