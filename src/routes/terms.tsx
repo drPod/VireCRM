@@ -191,8 +191,8 @@ function TermsPage() {
               </p>
               <p className="mt-2">
                 Email:{" "}
-                <a href="mailto:genesisx@gmail.com" className="text-primary hover:underline">
-                  genesisx@gmail.com
+                <a href="mailto:genesis@genesisx.space" className="text-primary hover:underline">
+                  genesis@genesisx.space
                 </a>
               </p>
               <p className="mt-2">

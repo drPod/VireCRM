@@ -37,6 +37,12 @@ function ContactPage() {
                 +1 (940) 365-6600
               </a>
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Or email us at{" "}
+              <a href="mailto:genesis@genesisx.space" className="font-semibold text-foreground hover:text-primary">
+                genesis@genesisx.space
+              </a>
+            </p>
           </div>
 
           <ContactForm />

@@ -44,7 +44,7 @@ function RefundPolicyPage() {
               <ol className="mt-2 list-decimal pl-6 space-y-1">
                 <li>
                   Email us at{" "}
-                  <a href="mailto:support@vireon.com" className="text-primary hover:underline">support@vireon.com</a>{" "}
+                  <a href="mailto:genesis@genesisx.space" className="text-primary hover:underline">genesis@genesisx.space</a>{" "}
                   with the subject line "Refund Request".
                 </li>
                 <li>Include your account email address and the reason for your refund.</li>
@@ -78,7 +78,7 @@ function RefundPolicyPage() {
               <h2 className="text-lg font-semibold text-foreground">Contact Us</h2>
               <p className="mt-2">
                 If you have questions about our refund policy, please contact us at{" "}
-                <a href="mailto:support@vireon.com" className="text-primary hover:underline">support@vireon.com</a>.
+                <a href="mailto:genesis@genesisx.space" className="text-primary hover:underline">genesis@genesisx.space</a>.
               </p>
             </section>
           </div>
