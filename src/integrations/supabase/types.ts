@@ -666,6 +666,125 @@ export type Database = {
           },
         ]
       }
+      contract_requests: {
+        Row: {
+          agent_mils: number | null
+          assigned_to: string | null
+          billing_address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          contract_url: string | null
+          created_at: string
+          created_by: string | null
+          customer_legal_name: string | null
+          enrolled_at: string | null
+          esi_id: string | null
+          final_rate: number | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          organization_id: string
+          pricing_request_id: string | null
+          selected_quote_id: string | null
+          service_address: string | null
+          signed_at: string | null
+          signed_url: string | null
+          start_date: string | null
+          status: string
+          submitted_at: string | null
+          supplier_id: string | null
+          term_months: number | null
+          updated_at: string
+        }
+        Insert: {
+          agent_mils?: number | null
+          assigned_to?: string | null
+          billing_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          contract_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_legal_name?: string | null
+          enrolled_at?: string | null
+          esi_id?: string | null
+          final_rate?: number | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id: string
+          pricing_request_id?: string | null
+          selected_quote_id?: string | null
+          service_address?: string | null
+          signed_at?: string | null
+          signed_url?: string | null
+          start_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          supplier_id?: string | null
+          term_months?: number | null
+          updated_at?: string
+        }
+        Update: {
+          agent_mils?: number | null
+          assigned_to?: string | null
+          billing_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          contract_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_legal_name?: string | null
+          enrolled_at?: string | null
+          esi_id?: string | null
+          final_rate?: number | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          pricing_request_id?: string | null
+          selected_quote_id?: string | null
+          service_address?: string | null
+          signed_at?: string | null
+          signed_url?: string | null
+          start_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          supplier_id?: string | null
+          term_months?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_requests_pricing_request_id_fkey"
+            columns: ["pricing_request_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_requests_selected_quote_id_fkey"
+            columns: ["selected_quote_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_requests_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "energy_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_messages: {
         Row: {
           attachments: Json
@@ -1098,6 +1217,74 @@ export type Database = {
         }
         Relationships: []
       }
+      energy_suppliers: {
+        Row: {
+          commission_type: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          margin_cap_mils: number | null
+          markets_served: string[]
+          name: string
+          notes: string | null
+          organization_id: string
+          payment_terms: string | null
+          submission_email: string | null
+          updated_at: string
+          utilities_served: string[]
+        }
+        Insert: {
+          commission_type?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          margin_cap_mils?: number | null
+          markets_served?: string[]
+          name: string
+          notes?: string | null
+          organization_id: string
+          payment_terms?: string | null
+          submission_email?: string | null
+          updated_at?: string
+          utilities_served?: string[]
+        }
+        Update: {
+          commission_type?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          margin_cap_mils?: number | null
+          markets_served?: string[]
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          payment_terms?: string | null
+          submission_email?: string | null
+          updated_at?: string
+          utilities_served?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "energy_suppliers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       error_logs: {
         Row: {
           component_stack: string | null
@@ -1529,6 +1716,77 @@ export type Database = {
           },
         ]
       }
+      loa_requests: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          customer_legal_name: string | null
+          document_url: string | null
+          esi_id: string | null
+          expires_at: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          organization_id: string
+          requested_at: string
+          sent_at: string | null
+          service_address: string | null
+          signed_at: string | null
+          status: string
+          updated_at: string
+          utility: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_legal_name?: string | null
+          document_url?: string | null
+          esi_id?: string | null
+          expires_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id: string
+          requested_at?: string
+          sent_at?: string | null
+          service_address?: string | null
+          signed_at?: string | null
+          status?: string
+          updated_at?: string
+          utility?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_legal_name?: string | null
+          document_url?: string | null
+          esi_id?: string | null
+          expires_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          requested_at?: string
+          sent_at?: string | null
+          service_address?: string | null
+          signed_at?: string | null
+          status?: string
+          updated_at?: string
+          utility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loa_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -1831,9 +2089,11 @@ export type Database = {
           domain_verification_token: string
           domain_verified_at: string | null
           email_signature: string | null
+          enabled_modules: string[]
           favicon_url: string | null
           font_family: string | null
           id: string
+          industry_template: string
           is_reseller: boolean
           lead_period_start: string
           leads_used_this_period: number
@@ -1842,12 +2102,14 @@ export type Database = {
           monthly_lead_quota: number
           name: string
           notes: string | null
+          onboarding_completed_at: string | null
           parent_organization_id: string | null
           plan: string
           primary_color: string | null
           secondary_color: string | null
           sidebar_color: string | null
           slug: string
+          strict_lead_isolation: boolean
           support_email: string | null
           unlimited_credits: boolean
           updated_at: string
@@ -1869,9 +2131,11 @@ export type Database = {
           domain_verification_token?: string
           domain_verified_at?: string | null
           email_signature?: string | null
+          enabled_modules?: string[]
           favicon_url?: string | null
           font_family?: string | null
           id?: string
+          industry_template?: string
           is_reseller?: boolean
           lead_period_start?: string
           leads_used_this_period?: number
@@ -1880,12 +2144,14 @@ export type Database = {
           monthly_lead_quota?: number
           name: string
           notes?: string | null
+          onboarding_completed_at?: string | null
           parent_organization_id?: string | null
           plan?: string
           primary_color?: string | null
           secondary_color?: string | null
           sidebar_color?: string | null
           slug: string
+          strict_lead_isolation?: boolean
           support_email?: string | null
           unlimited_credits?: boolean
           updated_at?: string
@@ -1907,9 +2173,11 @@ export type Database = {
           domain_verification_token?: string
           domain_verified_at?: string | null
           email_signature?: string | null
+          enabled_modules?: string[]
           favicon_url?: string | null
           font_family?: string | null
           id?: string
+          industry_template?: string
           is_reseller?: boolean
           lead_period_start?: string
           leads_used_this_period?: number
@@ -1918,12 +2186,14 @@ export type Database = {
           monthly_lead_quota?: number
           name?: string
           notes?: string | null
+          onboarding_completed_at?: string | null
           parent_organization_id?: string | null
           plan?: string
           primary_color?: string | null
           secondary_color?: string | null
           sidebar_color?: string | null
           slug?: string
+          strict_lead_isolation?: boolean
           support_email?: string | null
           unlimited_credits?: boolean
           updated_at?: string
@@ -2425,6 +2695,99 @@ export type Database = {
           },
         ]
       }
+      pricing_requests: {
+        Row: {
+          assigned_to: string | null
+          consultant_mils: number | null
+          created_at: string
+          created_by: string | null
+          green_energy: boolean
+          id: string
+          internal_mils: number | null
+          lead_id: string | null
+          nodal_pass_through: boolean
+          notes: string | null
+          organization_id: string
+          selected_quote_id: string | null
+          start_date: string | null
+          status: string
+          submitted_at: string | null
+          supplier_ids: string[]
+          target_rate: number | null
+          term_months_options: number[]
+          updated_at: string
+          urgency: string
+          usage_request_id: string | null
+          utility: string | null
+          zone: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          consultant_mils?: number | null
+          created_at?: string
+          created_by?: string | null
+          green_energy?: boolean
+          id?: string
+          internal_mils?: number | null
+          lead_id?: string | null
+          nodal_pass_through?: boolean
+          notes?: string | null
+          organization_id: string
+          selected_quote_id?: string | null
+          start_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          supplier_ids?: string[]
+          target_rate?: number | null
+          term_months_options?: number[]
+          updated_at?: string
+          urgency?: string
+          usage_request_id?: string | null
+          utility?: string | null
+          zone?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          consultant_mils?: number | null
+          created_at?: string
+          created_by?: string | null
+          green_energy?: boolean
+          id?: string
+          internal_mils?: number | null
+          lead_id?: string | null
+          nodal_pass_through?: boolean
+          notes?: string | null
+          organization_id?: string
+          selected_quote_id?: string | null
+          start_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          supplier_ids?: string[]
+          target_rate?: number | null
+          term_months_options?: number[]
+          updated_at?: string
+          urgency?: string
+          usage_request_id?: string | null
+          utility?: string | null
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_requests_usage_request_id_fkey"
+            columns: ["usage_request_id"]
+            isOneToOne: false
+            referencedRelation: "usage_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2456,6 +2819,81 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      renewals: {
+        Row: {
+          assigned_to: string | null
+          contract_end_date: string | null
+          contract_request_id: string | null
+          created_at: string
+          created_by: string | null
+          current_rate: number | null
+          current_supplier: string | null
+          customer_contacted_at: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          organization_id: string
+          proposal_sent_at: string | null
+          renewal_window_start: string | null
+          renewed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          contract_end_date?: string | null
+          contract_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_rate?: number | null
+          current_supplier?: string | null
+          customer_contacted_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id: string
+          proposal_sent_at?: string | null
+          renewal_window_start?: string | null
+          renewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          contract_end_date?: string | null
+          contract_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_rate?: number | null
+          current_supplier?: string | null
+          customer_contacted_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          proposal_sent_at?: string | null
+          renewal_window_start?: string | null
+          renewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewals_contract_request_id_fkey"
+            columns: ["contract_request_id"]
+            isOneToOne: false
+            referencedRelation: "contract_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewals_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2825,6 +3263,91 @@ export type Database = {
           },
         ]
       }
+      supplier_quotes: {
+        Row: {
+          commission_structure: string | null
+          created_at: string
+          document_url: string | null
+          energy_rate: number | null
+          expires_at: string | null
+          id: string
+          margin_cap_mils: number | null
+          nodal_included: boolean
+          organization_id: string
+          pass_throughs: string | null
+          pricing_request_id: string
+          rate: number
+          special_terms: string | null
+          supplier_id: string | null
+          supplier_name: string
+          tdsp_included: boolean
+          term_months: number
+          updated_at: string
+        }
+        Insert: {
+          commission_structure?: string | null
+          created_at?: string
+          document_url?: string | null
+          energy_rate?: number | null
+          expires_at?: string | null
+          id?: string
+          margin_cap_mils?: number | null
+          nodal_included?: boolean
+          organization_id: string
+          pass_throughs?: string | null
+          pricing_request_id: string
+          rate: number
+          special_terms?: string | null
+          supplier_id?: string | null
+          supplier_name: string
+          tdsp_included?: boolean
+          term_months: number
+          updated_at?: string
+        }
+        Update: {
+          commission_structure?: string | null
+          created_at?: string
+          document_url?: string | null
+          energy_rate?: number | null
+          expires_at?: string | null
+          id?: string
+          margin_cap_mils?: number | null
+          nodal_included?: boolean
+          organization_id?: string
+          pass_throughs?: string | null
+          pricing_request_id?: string
+          rate?: number
+          special_terms?: string | null
+          supplier_id?: string | null
+          supplier_name?: string
+          tdsp_included?: boolean
+          term_months?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_quotes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_quotes_pricing_request_id_fkey"
+            columns: ["pricing_request_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "energy_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
           component_stack: string | null
@@ -3020,6 +3543,87 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_requests: {
+        Row: {
+          annual_kwh_estimate: number | null
+          assigned_to: string | null
+          bill_file_url: string | null
+          created_at: string
+          created_by: string | null
+          esi_id: string | null
+          id: string
+          lead_id: string | null
+          loa_request_id: string | null
+          notes: string | null
+          organization_id: string
+          received_at: string | null
+          service_address: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          urgency: string
+          usage_file_url: string | null
+          utility: string | null
+        }
+        Insert: {
+          annual_kwh_estimate?: number | null
+          assigned_to?: string | null
+          bill_file_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          esi_id?: string | null
+          id?: string
+          lead_id?: string | null
+          loa_request_id?: string | null
+          notes?: string | null
+          organization_id: string
+          received_at?: string | null
+          service_address?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          urgency?: string
+          usage_file_url?: string | null
+          utility?: string | null
+        }
+        Update: {
+          annual_kwh_estimate?: number | null
+          assigned_to?: string | null
+          bill_file_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          esi_id?: string | null
+          id?: string
+          lead_id?: string | null
+          loa_request_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          received_at?: string | null
+          service_address?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          urgency?: string
+          usage_file_url?: string | null
+          utility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_requests_loa_request_id_fkey"
+            columns: ["loa_request_id"]
+            isOneToOne: false
+            referencedRelation: "loa_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

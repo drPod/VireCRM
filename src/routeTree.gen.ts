@@ -42,6 +42,7 @@ import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
 import { Route as AppFunnelsRouteImport } from './routes/_app.funnels'
 import { Route as AppExpensesRouteImport } from './routes/_app.expenses'
+import { Route as AppEnergyRouteImport } from './routes/_app.energy'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
@@ -236,6 +237,11 @@ const AppExpensesRoute = AppExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEnergyRoute = AppEnergyRouteImport.update({
+  id: '/energy',
+  path: '/energy',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEmailMarketingRoute = AppEmailMarketingRouteImport.update({
   id: '/email-marketing',
   path: '/email-marketing',
@@ -410,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
+  '/energy': typeof AppEnergyRoute
   '/expenses': typeof AppExpensesRoute
   '/funnels': typeof AppFunnelsRoute
   '/invoices': typeof AppInvoicesRoute
@@ -472,6 +479,7 @@ export interface FileRoutesByTo {
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
+  '/energy': typeof AppEnergyRoute
   '/expenses': typeof AppExpensesRoute
   '/funnels': typeof AppFunnelsRoute
   '/invoices': typeof AppInvoicesRoute
@@ -536,6 +544,7 @@ export interface FileRoutesById {
   '/_app/conversations': typeof AppConversationsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
+  '/_app/energy': typeof AppEnergyRoute
   '/_app/expenses': typeof AppExpensesRoute
   '/_app/funnels': typeof AppFunnelsRoute
   '/_app/invoices': typeof AppInvoicesRoute
@@ -600,6 +609,7 @@ export interface FileRouteTypes {
     | '/conversations'
     | '/dashboard'
     | '/email-marketing'
+    | '/energy'
     | '/expenses'
     | '/funnels'
     | '/invoices'
@@ -662,6 +672,7 @@ export interface FileRouteTypes {
     | '/conversations'
     | '/dashboard'
     | '/email-marketing'
+    | '/energy'
     | '/expenses'
     | '/funnels'
     | '/invoices'
@@ -725,6 +736,7 @@ export interface FileRouteTypes {
     | '/_app/conversations'
     | '/_app/dashboard'
     | '/_app/email-marketing'
+    | '/_app/energy'
     | '/_app/expenses'
     | '/_app/funnels'
     | '/_app/invoices'
@@ -1032,6 +1044,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExpensesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/energy': {
+      id: '/_app/energy'
+      path: '/energy'
+      fullPath: '/energy'
+      preLoaderRoute: typeof AppEnergyRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/email-marketing': {
       id: '/_app/email-marketing'
       path: '/email-marketing'
@@ -1280,6 +1299,7 @@ interface AppRouteChildren {
   AppConversationsRoute: typeof AppConversationsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
+  AppEnergyRoute: typeof AppEnergyRoute
   AppExpensesRoute: typeof AppExpensesRoute
   AppFunnelsRoute: typeof AppFunnelsRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
@@ -1306,6 +1326,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConversationsRoute: AppConversationsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
+  AppEnergyRoute: AppEnergyRoute,
   AppExpensesRoute: AppExpensesRoute,
   AppFunnelsRoute: AppFunnelsRoute,
   AppInvoicesRoute: AppInvoicesRoute,

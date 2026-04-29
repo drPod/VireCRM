@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useSubscription } from "@/hooks/useSubscription";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -39,10 +41,28 @@ function AppLayout() {
     setHydrated(true);
   }, []);
 
-  const { user, loading } = useAuth();
+  const { user, loading, role, profile } = useAuth();
   const { hasAccess, loading: subLoading } = useSubscription(user?.id);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Onboarding state — read once per user, only blocks the UI when truly missing.
+  // null = unknown, false = needed, true = done. We avoid fetching organization
+  // here directly to dodge cross-deps with AuthProvider; instead we hit it once.
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user || !profile?.organization_id) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("organizations")
+        .select("onboarding_completed_at")
+        .eq("id", profile.organization_id)
+        .maybeSingle();
+      if (!cancelled) setOnboardingDone(!!data?.onboarding_completed_at);
+    })();
+    return () => { cancelled = true; };
+  }, [user, profile?.organization_id]);
 
   // Avoid bouncing freshly-signed-in users back to /login: after a successful
   // signInWithPassword, navigate fires before AuthProvider's onAuthStateChange
@@ -117,6 +137,14 @@ function AppLayout() {
           <Outlet />
         </main>
       </div>
+      {/* First-time setup wizard — only renders when org has no completion stamp */}
+      {onboardingDone === false && profile?.organization_id && (
+        <OnboardingWizard
+          organizationId={profile.organization_id}
+          isOwner={role?.role === "owner"}
+          onComplete={() => setOnboardingDone(true)}
+        />
+      )}
     </div>
   );
 }
