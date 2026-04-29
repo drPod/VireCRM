@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { PromoBanner } from "@/components/marketing/PromoBanner";
+import { BusinessEmailBanner } from "@/components/marketing/BusinessEmailBanner";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 
 
@@ -22,8 +23,9 @@ export function MarketingHeader() {
 
   return (
     <>
+    <BusinessEmailBanner />
     <PromoBanner />
-    <header className="fixed top-[36px] z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
+    <header className="fixed top-[64px] z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)] transition-all duration-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.7)] hover:scale-110">G</span>
