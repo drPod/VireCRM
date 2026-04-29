@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ReportIssueDialog } from "@/components/ReportIssueDialog";
 import { handleAuthError } from "@/lib/server-fn-auth";
 
-const DEFAULT_SUPPORT_EMAIL = "support@vireonx.space";
+const DEFAULT_SUPPORT_EMAIL = "genesis@genesisx.space";
 
 // Hosts that always use the default support email (never resolve a reseller).
 const SYSTEM_HOST_PATTERNS = [
