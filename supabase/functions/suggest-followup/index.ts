@@ -188,6 +188,7 @@ Deno.serve(async (req) => {
     }
 
     const created: { lead_id: string; suggestion_id: string }[] = [];
+    const drafts: { lead_id: string; subject: string; message: string; reasoning: string }[] = [];
     let errors = 0;
 
     for (const lead of leads) {
@@ -212,6 +213,7 @@ Deno.serve(async (req) => {
           .single();
         if (insErr || !ins) { errors++; continue; }
         created.push({ lead_id: lead.id, suggestion_id: ins.id });
+        drafts.push({ lead_id: lead.id, subject: draft.subject, message: draft.message, reasoning: draft.reasoning });
       } catch (e) {
         // If draftSuggestion threw a Response (rate-limit/credit), bubble it up
         if (e instanceof Response) return e;
@@ -222,6 +224,10 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       ok: true, mode, processed: leads.length, created: created.length, errors,
+      // Single-lead callers (per-lead AI button) need the actual draft to show
+      // in the dialog; batch callers just need counts.
+      suggestion: mode === "lead" ? drafts[0] ?? null : undefined,
+      drafts: mode === "lead" ? undefined : drafts,
     }), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("suggest-followup fatal", e);
