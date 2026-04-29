@@ -13,7 +13,7 @@
  *   - Record one row in workflow_run_steps per executed node.
  *   - Mark the run completed/failed/paused.
  *
- * Wait nodes pause the run (status='paused', message='wait_until=...'). A
+ * Wait nodes pause the run (status='paused', paused_until=<timestamp>). A
  * future cron sweep can reactivate paused runs whose timer has elapsed.
  */
 // @ts-expect-error - Deno runtime import
