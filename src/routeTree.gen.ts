@@ -91,6 +91,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/public/hooks/purge-audit-log'
 import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
 import { Route as ApiPublicHooksDispatchFollowupsRouteImport } from './routes/api/public/hooks/dispatch-followups'
+import { Route as ApiPublicHooksContactFollowupRemindersRouteImport } from './routes/api/public/hooks/contact-followup-reminders'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -510,6 +511,12 @@ const ApiPublicHooksDispatchFollowupsRoute =
     path: '/api/public/hooks/dispatch-followups',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksContactFollowupRemindersRoute =
+  ApiPublicHooksContactFollowupRemindersRouteImport.update({
+    id: '/api/public/hooks/contact-followup-reminders',
+    path: '/api/public/hooks/contact-followup-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -584,6 +591,7 @@ export interface FileRoutesByFullPath {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
@@ -667,6 +675,7 @@ export interface FileRoutesByTo {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
@@ -752,6 +761,7 @@ export interface FileRoutesById {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
@@ -837,6 +847,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
@@ -920,6 +931,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows'
     | '/r/$resellerSlug'
+    | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
@@ -1004,6 +1016,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
@@ -1042,6 +1055,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   RResellerSlugIndexRoute: typeof RResellerSlugIndexRoute
+  ApiPublicHooksContactFollowupRemindersRoute: typeof ApiPublicHooksContactFollowupRemindersRoute
   ApiPublicHooksDispatchFollowupsRoute: typeof ApiPublicHooksDispatchFollowupsRoute
   ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
@@ -1629,6 +1643,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchFollowupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/contact-followup-reminders': {
+      id: '/api/public/hooks/contact-followup-reminders'
+      path: '/api/public/hooks/contact-followup-reminders'
+      fullPath: '/api/public/hooks/contact-followup-reminders'
+      preLoaderRoute: typeof ApiPublicHooksContactFollowupRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1841,6 +1862,8 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   RResellerSlugIndexRoute: RResellerSlugIndexRoute,
+  ApiPublicHooksContactFollowupRemindersRoute:
+    ApiPublicHooksContactFollowupRemindersRoute,
   ApiPublicHooksDispatchFollowupsRoute: ApiPublicHooksDispatchFollowupsRoute,
   ApiPublicHooksDispatchSequencesRoute: ApiPublicHooksDispatchSequencesRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,

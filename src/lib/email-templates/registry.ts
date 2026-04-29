@@ -16,6 +16,7 @@ import { template as reviewRequest } from './review-request'
 import { template as outreachEmail } from './outreach-email'
 import { template as contactInquiry } from './contact-inquiry'
 import { template as contactAcknowledgment } from './contact-acknowledgment'
+import { template as contactFollowupReminder } from './contact-followup-reminder'
 import { template as teamInvite } from './team-invite'
 import { template as creditLowBalance } from './credit-low-balance'
 
@@ -31,6 +32,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'outreach-email': outreachEmail,
   'contact-inquiry': contactInquiry,
   'contact-acknowledgment': contactAcknowledgment,
+  'contact-followup-reminder': contactFollowupReminder,
   'team-invite': teamInvite,
   'credit-low-balance': creditLowBalance,
 }
