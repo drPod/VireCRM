@@ -54,6 +54,7 @@ import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppAppointmentsRouteImport } from './routes/_app.appointments'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
+import { Route as AppAcademyRouteImport } from './routes/_app.academy'
 import { Route as RResellerSlugIndexRouteImport } from './routes/r.$resellerSlug.index'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
 import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
@@ -70,6 +71,7 @@ import { Route as AppEnergyContractsRouteImport } from './routes/_app.energy.con
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as AppCampaignsAnalyticsRouteImport } from './routes/_app.campaigns.analytics'
+import { Route as AppAcademyCourseIdRouteImport } from './routes/_app.academy.$courseId'
 import { Route as RResellerSlugCheckoutPlanSlugRouteImport } from './routes/r.$resellerSlug.checkout.$planSlug'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -305,6 +307,11 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   path: '/advisor',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAcademyRoute = AppAcademyRouteImport.update({
+  id: '/academy',
+  path: '/academy',
+  getParentRoute: () => AppRoute,
+} as any)
 const RResellerSlugIndexRoute = RResellerSlugIndexRouteImport.update({
   id: '/r/$resellerSlug/',
   path: '/r/$resellerSlug/',
@@ -386,6 +393,11 @@ const AppCampaignsAnalyticsRoute = AppCampaignsAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppCampaignsRoute,
 } as any)
+const AppAcademyCourseIdRoute = AppAcademyCourseIdRouteImport.update({
+  id: '/$courseId',
+  path: '/$courseId',
+  getParentRoute: () => AppAcademyRoute,
+} as any)
 const RResellerSlugCheckoutPlanSlugRoute =
   RResellerSlugCheckoutPlanSlugRouteImport.update({
     id: '/r/$resellerSlug/checkout/$planSlug',
@@ -455,6 +467,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/academy': typeof AppAcademyRouteWithChildren
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
   '/appointments': typeof AppAppointmentsRoute
@@ -484,6 +497,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
+  '/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
@@ -526,6 +540,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/academy': typeof AppAcademyRouteWithChildren
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
   '/appointments': typeof AppAppointmentsRoute
@@ -555,6 +570,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
+  '/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
@@ -599,6 +615,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/_app/academy': typeof AppAcademyRouteWithChildren
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/appointments': typeof AppAppointmentsRoute
@@ -628,6 +645,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
+  '/_app/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/_app/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
@@ -672,6 +690,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/unsubscribe'
+    | '/academy'
     | '/advisor'
     | '/analytics'
     | '/appointments'
@@ -701,6 +720,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
+    | '/academy/$courseId'
     | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
@@ -743,6 +763,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/unsubscribe'
+    | '/academy'
     | '/advisor'
     | '/analytics'
     | '/appointments'
@@ -772,6 +793,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
+    | '/academy/$courseId'
     | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
@@ -815,6 +837,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/unsubscribe'
+    | '/_app/academy'
     | '/_app/advisor'
     | '/_app/analytics'
     | '/_app/appointments'
@@ -844,6 +867,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
+    | '/_app/academy/$courseId'
     | '/_app/campaigns/analytics'
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
@@ -1226,6 +1250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/academy': {
+      id: '/_app/academy'
+      path: '/academy'
+      fullPath: '/academy'
+      preLoaderRoute: typeof AppAcademyRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/r/$resellerSlug/': {
       id: '/r/$resellerSlug/'
       path: '/r/$resellerSlug'
@@ -1338,6 +1369,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCampaignsAnalyticsRouteImport
       parentRoute: typeof AppCampaignsRoute
     }
+    '/_app/academy/$courseId': {
+      id: '/_app/academy/$courseId'
+      path: '/$courseId'
+      fullPath: '/academy/$courseId'
+      preLoaderRoute: typeof AppAcademyCourseIdRouteImport
+      parentRoute: typeof AppAcademyRoute
+    }
     '/r/$resellerSlug/checkout/$planSlug': {
       id: '/r/$resellerSlug/checkout/$planSlug'
       path: '/r/$resellerSlug/checkout/$planSlug'
@@ -1404,6 +1442,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppAcademyRouteChildren {
+  AppAcademyCourseIdRoute: typeof AppAcademyCourseIdRoute
+}
+
+const AppAcademyRouteChildren: AppAcademyRouteChildren = {
+  AppAcademyCourseIdRoute: AppAcademyCourseIdRoute,
+}
+
+const AppAcademyRouteWithChildren = AppAcademyRoute._addFileChildren(
+  AppAcademyRouteChildren,
+)
+
 interface AppCampaignsRouteChildren {
   AppCampaignsAnalyticsRoute: typeof AppCampaignsAnalyticsRoute
 }
@@ -1465,6 +1515,7 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAcademyRoute: typeof AppAcademyRouteWithChildren
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppAppointmentsRoute: typeof AppAppointmentsRoute
@@ -1493,6 +1544,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAcademyRoute: AppAcademyRouteWithChildren,
   AppAdvisorRoute: AppAdvisorRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppAppointmentsRoute: AppAppointmentsRoute,
