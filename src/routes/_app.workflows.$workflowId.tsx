@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, Save, Play, Pause } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Play, Pause, Zap, History } from "lucide-react";
 import { toast } from "sonner";
 import {
   NODE_TYPE_BY_KIND,
@@ -31,6 +31,7 @@ import {
 import { WorkflowNode } from "@/components/workflows/WorkflowNode";
 import { NodePalette } from "@/components/workflows/NodePalette";
 import { NodeInspector } from "@/components/workflows/NodeInspector";
+import { WorkflowRunsPanel } from "@/components/workflows/WorkflowRunsPanel";
 
 export const Route = createFileRoute("/_app/workflows/$workflowId")({
   component: WorkflowEditorPage,
