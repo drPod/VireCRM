@@ -1851,6 +1851,7 @@ export type Database = {
           organization_id: string
           phone: string | null
           score: number | null
+          score_reason: string | null
           source: string | null
           status: string
           updated_at: string
@@ -1877,6 +1878,7 @@ export type Database = {
           organization_id: string
           phone?: string | null
           score?: number | null
+          score_reason?: string | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -1903,6 +1905,7 @@ export type Database = {
           organization_id?: string
           phone?: string | null
           score?: number | null
+          score_reason?: string | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -2131,7 +2134,9 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          direction: string
           id: string
+          intent: string | null
           lead_id: string | null
           organization_id: string
           sentiment: string | null
@@ -2142,7 +2147,9 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          direction?: string
           id?: string
+          intent?: string | null
           lead_id?: string | null
           organization_id: string
           sentiment?: string | null
@@ -2153,7 +2160,9 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          direction?: string
           id?: string
+          intent?: string | null
           lead_id?: string | null
           organization_id?: string
           sentiment?: string | null
