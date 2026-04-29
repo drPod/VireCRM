@@ -34,7 +34,12 @@ export type EnergyTableName =
   | "pricing_requests"
   | "contract_requests"
   | "energy_suppliers"
-  | "renewals";
+  | "renewals"
+  | "solar_projects"
+  | "real_estate_listings"
+  | "real_estate_showings"
+  | "insurance_policies"
+  | "insurance_quotes";
 
 export interface EnergyColumn {
   key: string;

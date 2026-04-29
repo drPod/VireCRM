@@ -31,6 +31,12 @@ import {
   DollarSign,
   FileSignature,
   RefreshCw,
+  Sun as SunIcon,
+  Home,
+  Shield,
+  Dumbbell,
+  GraduationCap,
+  Bot,
 } from "lucide-react";
 import { getTemplate } from "@/lib/industry-templates";
 
@@ -107,10 +113,43 @@ export function CrmSidebar() {
       ]
     : [];
 
+  const solarNav = template.key === "solar"
+    ? [
+        { to: "/solar", icon: SunIcon, label: "Solar Hub" },
+        { to: "/solar/projects", icon: SunIcon, label: "Projects" },
+      ]
+    : [];
+
+  const realEstateNav = template.key === "real_estate"
+    ? [
+        { to: "/real-estate", icon: Home, label: "Real Estate Hub" },
+        { to: "/real-estate/listings", icon: Home, label: "Listings" },
+        { to: "/real-estate/showings", icon: CalendarDays, label: "Showings" },
+      ]
+    : [];
+
+  const insuranceNav = template.key === "insurance"
+    ? [
+        { to: "/insurance", icon: Shield, label: "Insurance Hub" },
+        { to: "/insurance/quotes", icon: FileText, label: "Quotes" },
+        { to: "/insurance/policies", icon: FileSignature, label: "Policies" },
+      ]
+    : [];
+
+  const gymNav = template.key === "gym"
+    ? [{ to: "/gym", icon: Dumbbell, label: "Member Health" }]
+    : [];
+
   const navItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/leads", icon: Users, label: template.terminology.leadPlural },
     ...energyNav,
+    ...solarNav,
+    ...realEstateNav,
+    ...insuranceNav,
+    ...gymNav,
+    { to: "/followup-inbox", icon: Bot, label: "AI Follow-ups" },
+    { to: "/academy", icon: GraduationCap, label: "Academy" },
     ...baseNavItems.filter((i) => i.to !== "/dashboard" && i.to !== "/leads"),
     ...(isReseller && isOwner
       ? [{ to: "/clients", icon: Building2, label: "Clients" }]

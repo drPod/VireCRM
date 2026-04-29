@@ -1475,6 +1475,105 @@ export type Database = {
           },
         ]
       }
+      insurance_policies: {
+        Row: {
+          carrier: string | null
+          created_at: string
+          created_by: string | null
+          effective_date: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          organization_id: string
+          policy_number: string | null
+          policy_type: string
+          policyholder_name: string
+          premium: number | null
+          renewal_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          carrier?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id: string
+          policy_number?: string | null
+          policy_type?: string
+          policyholder_name: string
+          premium?: number | null
+          renewal_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          carrier?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          policy_number?: string | null
+          policy_type?: string
+          policyholder_name?: string
+          premium?: number | null
+          renewal_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      insurance_quotes: {
+        Row: {
+          carrier: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          organization_id: string
+          policy_type: string
+          premium_estimate: number | null
+          prospect_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          carrier?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id: string
+          policy_type?: string
+          premium_estimate?: number | null
+          prospect_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          carrier?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          policy_type?: string
+          premium_estimate?: number | null
+          prospect_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -3067,6 +3166,96 @@ export type Database = {
           },
         ]
       }
+      real_estate_listings: {
+        Row: {
+          address: string
+          bathrooms: number | null
+          bedrooms: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          list_price: number | null
+          mls_id: string | null
+          notes: string | null
+          organization_id: string
+          square_feet: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          bathrooms?: number | null
+          bedrooms?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          list_price?: number | null
+          mls_id?: string | null
+          notes?: string | null
+          organization_id: string
+          square_feet?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          bathrooms?: number | null
+          bedrooms?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          list_price?: number | null
+          mls_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          square_feet?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      real_estate_showings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string | null
+          listing_id: string | null
+          notes: string | null
+          organization_id: string
+          outcome: string | null
+          showing_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          listing_id?: string | null
+          notes?: string | null
+          organization_id: string
+          outcome?: string | null
+          showing_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          listing_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          outcome?: string | null
+          showing_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       renewals: {
         Row: {
           assigned_to: string | null
@@ -3434,6 +3623,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      solar_projects: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estimated_savings: number | null
+          homeowner_name: string
+          id: string
+          install_date: string | null
+          lead_id: string | null
+          notes: string | null
+          organization_id: string
+          property_address: string | null
+          pto_date: string | null
+          status: string
+          system_size_kw: number | null
+          updated_at: string
+          utility_company: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estimated_savings?: number | null
+          homeowner_name: string
+          id?: string
+          install_date?: string | null
+          lead_id?: string | null
+          notes?: string | null
+          organization_id: string
+          property_address?: string | null
+          pto_date?: string | null
+          status?: string
+          system_size_kw?: number | null
+          updated_at?: string
+          utility_company?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estimated_savings?: number | null
+          homeowner_name?: string
+          id?: string
+          install_date?: string | null
+          lead_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          property_address?: string | null
+          pto_date?: string | null
+          status?: string
+          system_size_kw?: number | null
+          updated_at?: string
+          utility_company?: string | null
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {

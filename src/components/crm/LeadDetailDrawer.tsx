@@ -18,6 +18,7 @@ import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
+import { LeadFollowupButton } from "./LeadFollowupButton";
 import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
 import { ShareLeadPanel } from "./ShareLeadPanel";
 import { AssigneeAvatars } from "./AssigneeAvatars";
@@ -677,6 +678,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   leadPhone={form.phone.trim() || lead.phone || null}
                   onActed={handleSent}
                 />
+                <LeadFollowupButton leadId={lead.id} />
               </div>
               {lastOutreachLabel && (
                 <span
