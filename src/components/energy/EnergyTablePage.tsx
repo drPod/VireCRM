@@ -100,18 +100,16 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
 
   const load = async () => {
     setLoading(true);
-    // Cast through unknown — supabase-js infers the union of all six table
-    // shapes, which makes `.eq("status", …)` invalid for tables without a
-    // status column (e.g. energy_suppliers). Status filtering is opt-in via
-    // config.statusOptions, so the runtime is always safe.
-    let q = supabase.from(config.table).select("*").order("created_at", { ascending: false }).limit(200) as unknown as {
-      eq: (col: string, val: string) => typeof q;
-      then: PromiseLike<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>["then"];
-    };
+    // Cast to `any` builder — supabase-js infers the union of all six table
+    // shapes, which makes `.eq("status", …)` invalid for tables that don't
+    // have a status column (e.g. energy_suppliers). Status filtering is
+    // opt-in via config.statusOptions, so this is runtime-safe.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = supabase.from(config.table).select("*").order("created_at", { ascending: false }).limit(200);
     if (filter !== "all" && config.statusOptions) {
       q = q.eq("status", filter);
     }
-    const { data, error } = (await (q as unknown as Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>));
+    const { data, error } = await q;
     if (error) {
       toast.error(`Failed to load ${config.title}: ${error.message}`);
     } else {
