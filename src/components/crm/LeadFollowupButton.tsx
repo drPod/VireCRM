@@ -119,21 +119,19 @@ export function LeadFollowupButton({ leadId }: { leadId: string }) {
 
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="outline" onClick={saveToInbox} disabled={!draft || savingInbox}>
-              {savingInbox ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Inbox className="mr-1.5 h-3.5 w-3.5" />
-              )}
-              Save to inbox
+              Close
             </Button>
             <Button onClick={copyToClipboard} disabled={!draft}>
               <Copy className="mr-1.5 h-3.5 w-3.5" />
               Copy draft
             </Button>
           </DialogFooter>
+          {draft && (
+            <p className="text-[11px] text-muted-foreground">
+              <Inbox className="mr-1 inline h-3 w-3" />
+              Also queued in the follow-up inbox for your team to review.
+            </p>
+          )}
         </DialogContent>
       </Dialog>
     </>
