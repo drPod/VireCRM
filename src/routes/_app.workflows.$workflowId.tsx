@@ -290,6 +290,25 @@ function Editor() {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRuns((v) => !v)}
+            className="gap-2"
+          >
+            <History className="h-3.5 w-3.5" />
+            Runs
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleTestRun()}
+            disabled={testRunning || isNew}
+            className="gap-2"
+          >
+            {testRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+            Test run
+          </Button>
           {status === "active" ? (
             <Button
               variant="outline"
