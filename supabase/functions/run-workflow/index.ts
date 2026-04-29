@@ -13,7 +13,7 @@
  *   - Record one row in workflow_run_steps per executed node.
  *   - Mark the run completed/failed/paused.
  *
- * Wait nodes pause the run (status='paused', message='wait_until=...'). A
+ * Wait nodes pause the run (status='paused', paused_until=<timestamp>). A
  * future cron sweep can reactivate paused runs whose timer has elapsed.
  */
 // @ts-expect-error - Deno runtime import
@@ -183,16 +183,18 @@ async function executeRun(admin: any, authHeader: string, orgId: string, runId: 
     executed++;
 
     // Find next node by edge. If the step yielded a branch handle, prefer it.
-    let nextEdge = edges.find((e) => e.source === currentId && (nextHandle ? e.sourceHandle === nextHandle : true));
-    if (!nextEdge && nextHandle) {
-      // fallback: any outgoing edge
-      nextEdge = edges.find((e) => e.source === currentId);
-    }
+    // For branch nodes (which set next_handle), strictly require a matching
+    // sourceHandle edge — never fall back to "any" edge, since that risks
+    // taking the wrong branch (e.g. picking "false" when the branch said "true").
+    // For non-branch nodes (no next_handle), pick any outgoing edge.
+    const nextEdge = nextHandle
+      ? edges.find((e) => e.source === currentId && e.sourceHandle === nextHandle)
+      : edges.find((e) => e.source === currentId);
     currentId = nextEdge?.target ?? null;
   }
 
   if (pausedUntil) {
-    await admin.from("workflow_runs").update({ status: "paused", error: `wait_until=${pausedUntil}`, finished_at: new Date().toISOString() }).eq("id", runId);
+    await admin.from("workflow_runs").update({ status: "paused", paused_until: pausedUntil, finished_at: new Date().toISOString() }).eq("id", runId);
     return { status: "paused", paused_until: pausedUntil };
   }
 
