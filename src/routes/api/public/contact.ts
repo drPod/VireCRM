@@ -278,6 +278,7 @@ export const Route = createFileRoute('/api/public/contact')({
             status: 'received',
             metadata: {
               intended_recipient: testMode.enabled ? intendedRecipient : undefined,
+              dedup_hash: messageHash,
             },
           } as any)
           .select('id')
