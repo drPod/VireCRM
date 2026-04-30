@@ -8,6 +8,7 @@ import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
 import { OutreachPreviewDialog } from "@/components/crm/OutreachPreviewDialog";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
 import { AssigneeMultiSelect, type AssigneeOption } from "@/components/crm/AssigneeMultiSelect";
+import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
