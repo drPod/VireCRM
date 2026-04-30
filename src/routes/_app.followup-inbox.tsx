@@ -249,13 +249,21 @@ function FollowupInbox() {
             return (
               <Card key={s.id} className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">
-                      {lead?.name ?? "Unknown lead"}
-                      {lead?.company && <span className="text-muted-foreground"> · {lead.company}</span>}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {lead?.email ?? "no email"} · {new Date(s.created_at).toLocaleString()} · {s.source} · {s.model}
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 rounded border-input"
+                      checked={selectedIds.has(s.id)}
+                      onChange={() => toggleOne(s.id)}
+                    />
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">
+                        {lead?.name ?? "Unknown lead"}
+                        {lead?.company && <span className="text-muted-foreground"> · {lead.company}</span>}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {lead?.email ?? "no email"} · {new Date(s.created_at).toLocaleString()} · {s.source} · {s.model}
+                      </div>
                     </div>
                   </div>
                   <Badge variant="outline" className="capitalize">{s.status}</Badge>
