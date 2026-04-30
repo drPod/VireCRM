@@ -209,6 +209,29 @@ function FollowupInbox() {
         ))}
       </div>
 
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/40 px-3 py-2">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-input"
+              checked={selectedIds.size === items.length && items.length > 0}
+              onChange={toggleAll}
+            />
+            {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+          </label>
+          <Button
+            size="sm"
+            variant="command"
+            disabled={selectedIds.size === 0}
+            onClick={() => setBulkOpen(true)}
+          >
+            <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+            Apply template ({selectedIds.size})
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
