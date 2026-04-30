@@ -9,7 +9,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Download, Search, RefreshCw, Mail, Phone, Building2, FlaskConical } from "lucide-react";
+import { Loader2, Download, Search, RefreshCw, Mail, Phone, Building2, FlaskConical, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
 
 interface Submission {
   id: string;
@@ -47,6 +48,7 @@ interface Submission {
   created_at: string;
   replied_at: string | null;
   classification_error: string | null;
+  lead_id: string | null;
 }
 
 const STATUS_OPTIONS = ["all", "received", "in_progress", "replied", "closed", "spam"] as const;
@@ -81,13 +83,15 @@ function ContactSubmissionsPage() {
   const [priority, setPriority] = useState<string>("all");
   const [includeTest, setIncludeTest] = useState(false);
   const [selected, setSelected] = useState<Submission | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
     let q = supabase
       .from("contact_submissions")
       .select(
-        "id,name,email,company,phone,budget,message,status,sentiment,topic,priority_suggestion,intent_summary,test_mode,created_at,replied_at,classification_error"
+        "id,name,email,company,phone,budget,message,status,sentiment,topic,priority_suggestion,intent_summary,test_mode,created_at,replied_at,classification_error,lead_id"
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -126,6 +130,27 @@ function ContactSubmissionsPage() {
       );
     });
   }, [items, search]);
+
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAllFiltered = () => {
+    const allSelected = filtered.length > 0 && filtered.every((s) => selectedIds.has(s.id));
+    setSelectedIds(allSelected ? new Set() : new Set(filtered.map((s) => s.id)));
+  };
+
+  const bulkRecipients: BulkRecipient[] = filtered
+    .filter((s) => selectedIds.has(s.id) && s.lead_id)
+    .map((s) => ({
+      id: s.lead_id!,
+      name: s.name,
+      email: s.email,
+      company: s.company,
+    }));
 
   const exportCsv = () => {
     if (filtered.length === 0) {
@@ -180,12 +205,21 @@ function ContactSubmissionsPage() {
             Inbound messages from the public contact form, classified by AI for routing.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
+          <Button
+            size="sm"
+            variant="default"
+            disabled={selectedIds.size === 0}
+            onClick={() => setBulkOpen(true)}
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            Apply template ({selectedIds.size})
+          </Button>
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
             <Download className="mr-2 h-4 w-4" />
             Export CSV ({filtered.length})
           </Button>
@@ -236,6 +270,15 @@ function ContactSubmissionsPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
+                  <th className="w-8 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-input"
+                      checked={filtered.length > 0 && filtered.every((s) => selectedIds.has(s.id))}
+                      onChange={toggleAllFiltered}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="px-3 py-2 font-medium">Received</th>
                   <th className="px-3 py-2 font-medium">From</th>
                   <th className="px-3 py-2 font-medium">Topic</th>
@@ -252,6 +295,15 @@ function ContactSubmissionsPage() {
                     onClick={() => setSelected(s)}
                     className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/20"
                   >
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-input"
+                        checked={selectedIds.has(s.id)}
+                        onChange={() => toggleOne(s.id)}
+                        aria-label={`Select ${s.name}`}
+                      />
+                    </td>
                     <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                       {new Date(s.created_at).toLocaleString()}
                       {s.test_mode && (
@@ -283,6 +335,16 @@ function ContactSubmissionsPage() {
       </Card>
 
       <SubmissionDialog item={selected} onClose={() => setSelected(null)} />
+
+      <BulkApplyTemplateDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        recipients={bulkRecipients}
+        onSent={() => {
+          setSelectedIds(new Set());
+          void load();
+        }}
+      />
     </div>
   );
 }

@@ -8,7 +8,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Sparkles, Check, X, Send, RefreshCw, Edit3 } from "lucide-react";
+import { Loader2, Sparkles, Check, X, Send, RefreshCw, Edit3, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
 
 interface Suggestion {
   id: string;
@@ -54,6 +55,8 @@ function FollowupInbox() {
   const [running, setRunning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edited, setEdited] = useState<{ subject: string; message: string }>({ subject: "", message: "" });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -84,9 +87,36 @@ function FollowupInbox() {
   };
 
   useEffect(() => {
+    setSelectedIds(new Set());
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleAll = () => {
+    if (selectedIds.size === items.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(items.map((i) => i.id)));
+  };
+
+  const bulkRecipients: BulkRecipient[] = items
+    .filter((s) => selectedIds.has(s.id))
+    .map((s) => {
+      const lead = leads[s.lead_id];
+      return {
+        id: s.lead_id,
+        name: lead?.name ?? "there",
+        email: lead?.email ?? null,
+        company: lead?.company ?? null,
+      };
+    });
+
 
   const generateBatch = async () => {
     if (!user) return;
@@ -179,6 +209,29 @@ function FollowupInbox() {
         ))}
       </div>
 
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/40 px-3 py-2">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-input"
+              checked={selectedIds.size === items.length && items.length > 0}
+              onChange={toggleAll}
+            />
+            {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+          </label>
+          <Button
+            size="sm"
+            variant="command"
+            disabled={selectedIds.size === 0}
+            onClick={() => setBulkOpen(true)}
+          >
+            <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+            Apply template ({selectedIds.size})
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -196,13 +249,21 @@ function FollowupInbox() {
             return (
               <Card key={s.id} className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">
-                      {lead?.name ?? "Unknown lead"}
-                      {lead?.company && <span className="text-muted-foreground"> · {lead.company}</span>}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {lead?.email ?? "no email"} · {new Date(s.created_at).toLocaleString()} · {s.source} · {s.model}
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 rounded border-input"
+                      checked={selectedIds.has(s.id)}
+                      onChange={() => toggleOne(s.id)}
+                    />
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">
+                        {lead?.name ?? "Unknown lead"}
+                        {lead?.company && <span className="text-muted-foreground"> · {lead.company}</span>}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {lead?.email ?? "no email"} · {new Date(s.created_at).toLocaleString()} · {s.source} · {s.model}
+                      </div>
                     </div>
                   </div>
                   <Badge variant="outline" className="capitalize">{s.status}</Badge>
@@ -271,6 +332,16 @@ function FollowupInbox() {
           })}
         </div>
       )}
+
+      <BulkApplyTemplateDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        recipients={bulkRecipients}
+        onSent={() => {
+          setSelectedIds(new Set());
+          void load();
+        }}
+      />
     </div>
   );
 }
