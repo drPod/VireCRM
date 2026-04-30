@@ -104,8 +104,13 @@ export function CrmSidebar() {
     };
   }, [mobileOpen]);
 
+  // Industry-specific nav is gated STRICTLY on the active template key.
+  // Previously we OR'd against `enabled_modules.includes(...)` which caused
+  // cross-template bleed: if an org switched from Energy → Solar, leftover
+  // module keys in the DB would keep the Energy hub visible in the sidebar.
+  // The template key is the single source of truth.
   const industryItems: NavItem[] = [
-    ...(enabledModules.includes("energy_loa") || template.key === "energy"
+    ...(template.key === "energy"
       ? [
           { to: "/energy", icon: Zap, label: "Energy Hub" },
           { to: "/energy/loa", icon: FileText, label: "LOAs" },
@@ -119,13 +124,13 @@ export function CrmSidebar() {
     ...(template.key === "solar"
       ? [
           { to: "/solar", icon: SunIcon, label: "Solar Hub" },
-          { to: "/solar/projects", icon: SunIcon, label: "Projects" },
+          { to: "/solar/projects", icon: FileSignature, label: "Projects" },
         ]
       : []),
     ...(template.key === "real_estate"
       ? [
           { to: "/real-estate", icon: Home, label: "Real Estate Hub" },
-          { to: "/real-estate/listings", icon: Home, label: "Listings" },
+          { to: "/real-estate/listings", icon: FileText, label: "Listings" },
           { to: "/real-estate/showings", icon: CalendarDays, label: "Showings" },
         ]
       : []),
@@ -140,6 +145,10 @@ export function CrmSidebar() {
       ? [{ to: "/gym", icon: Dumbbell, label: "Member Health" }]
       : []),
   ];
+
+  // Suppress unused-warning — kept on the auth context for future opt-in modules.
+  void enabledModules;
+
 
   const sections: NavSection[] = [
     {
