@@ -96,6 +96,8 @@ function LeadsPage() {
   // Owner-only: confirmation prompt before the destructive round-robin pass
   // (which clears existing assignees on the selected leads).
   const [confirmRoundRobinOpen, setConfirmRoundRobinOpen] = useState(false);
+  // Bulk apply outreach template (any role) — opens the personalize+send dialog.
+  const [bulkTemplateOpen, setBulkTemplateOpen] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
