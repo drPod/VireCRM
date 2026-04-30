@@ -51,7 +51,7 @@ function AppLayout() {
     setHydrated(true);
   }, []);
 
-  const { user, loading, role, profile } = useAuth();
+  const { user, loading, role, profile, organization } = useAuth();
   const { hasAccess, loading: subLoading } = useSubscription(user?.id);
   const navigate = useNavigate();
   const location = useLocation();
@@ -181,11 +181,25 @@ function AppLayout() {
           </div>
         </main>
       </div>
-      {/* First-time setup wizard — only renders when org has no completion stamp */}
+      {/* First-time setup wizard — only renders when org has no completion stamp.
+          Prefilled with current values so re-running doesn't feel destructive. */}
       {onboardingDone === false && profile?.organization_id && (
         <OnboardingWizard
           organizationId={profile.organization_id}
           isOwner={role?.role === "owner"}
+          currentIndustry={
+            (organization?.industry_template as
+              | "general"
+              | "energy"
+              | "gym"
+              | "solar"
+              | "real_estate"
+              | "insurance"
+              | null
+              | undefined) ?? null
+          }
+          currentBrandColor={organization?.primary_color ?? null}
+          currentStrictIsolation={organization?.strict_lead_isolation ?? false}
           onComplete={() => setOnboardingDone(true)}
         />
       )}
