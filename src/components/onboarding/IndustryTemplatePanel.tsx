@@ -27,9 +27,17 @@ export function IndustryTemplatePanel() {
     if (!isOwner) return;
     if (!confirm("Re-run the setup wizard? Your team will see it on their next page load.")) return;
     setResetting(true);
+    // Clear `enabled_modules` alongside `onboarding_completed_at` so the
+    // wizard's chosen template re-seeds the module list cleanly. Otherwise
+    // switching industries (e.g. Energy → Solar) would leave stale energy_*
+    // module keys in the DB and the sidebar would show legacy items until
+    // the next manual fix.
     const { error } = await supabase
       .from("organizations")
-      .update({ onboarding_completed_at: null } as never)
+      .update({
+        onboarding_completed_at: null,
+        enabled_modules: null,
+      } as never)
       .eq("id", organization.id);
     setResetting(false);
     if (error) {
