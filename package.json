@@ -12,6 +12,9 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots",
+    "test:visual:ui": "playwright test --ui",
     "clean": "rm -rf node_modules/.vite node_modules/.cache .tanstack dist .vinxi src/routeTree.gen.ts tsconfig.tsbuildinfo .tsbuildinfo",
     "typecheck": "tsc --noEmit",
     "typecheck:fresh": "bun run clean && tsc --noEmit"
