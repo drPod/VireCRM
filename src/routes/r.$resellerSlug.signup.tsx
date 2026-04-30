@@ -55,6 +55,13 @@ function ResellerSignupPage() {
   const [password, setPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [errors, setErrors] = useState<{
+    fullName?: string;
+    companyName?: string;
+    email?: string;
+    password?: string;
+  }>({});
 
   useEffect(() => {
     void (async () => {
