@@ -335,6 +335,16 @@ function ContactSubmissionsPage() {
       </Card>
 
       <SubmissionDialog item={selected} onClose={() => setSelected(null)} />
+
+      <BulkApplyTemplateDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        recipients={bulkRecipients}
+        onSent={() => {
+          setSelectedIds(new Set());
+          void load();
+        }}
+      />
     </div>
   );
 }
