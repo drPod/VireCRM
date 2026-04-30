@@ -145,6 +145,42 @@ export const Route = createFileRoute('/api/public/contact')({
           }
         }
 
+        // Deduplication — if the same visitor (email) sent the exact same
+        // message within the last hour, treat it as a duplicate submit
+        // (double-clicks, retries, browser back+resubmit). Return success
+        // so the UI shows the normal confirmation, but skip storage and
+        // skip re-emailing. We compare on a normalized message hash so
+        // trivial whitespace differences don't bypass the check.
+        const DEDUP_WINDOW_MINUTES = 60
+        const normalizedMessage = payload.message.trim().replace(/\s+/g, ' ').toLowerCase()
+        const messageHashBuf = await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(`${payload.email}|${normalizedMessage}`)
+        )
+        const messageHash = Array.from(new Uint8Array(messageHashBuf))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('')
+        const dedupSince = new Date(
+          Date.now() - DEDUP_WINDOW_MINUTES * 60 * 1000
+        ).toISOString()
+
+        const { data: dupRow } = await supabase
+          .from('contact_submissions')
+          .select('id')
+          .eq('email', payload.email)
+          .eq('metadata->>dedup_hash', messageHash)
+          .gte('created_at', dedupSince)
+          .limit(1)
+          .maybeSingle()
+
+        if (dupRow) {
+          console.info('contact: duplicate submission suppressed', {
+            email: payload.email,
+            existingId: dupRow.id,
+          })
+          return Response.json({ success: true, deduplicated: true })
+        }
+
         // Resolve template (recipient is hard-locked via template.to)
         const template = TEMPLATES['contact-inquiry']
         if (!template || !template.to) {
@@ -242,6 +278,7 @@ export const Route = createFileRoute('/api/public/contact')({
             status: 'received',
             metadata: {
               intended_recipient: testMode.enabled ? intendedRecipient : undefined,
+              dedup_hash: messageHash,
             },
           } as any)
           .select('id')
