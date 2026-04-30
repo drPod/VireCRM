@@ -28,7 +28,7 @@ export function MarketingHeader() {
     <header className="fixed top-[64px] z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)] transition-all duration-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.7)] hover:scale-110">G</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-primary-foreground shadow-[0_0_14px_-2px_var(--color-primary)] transition-all duration-300 hover:shadow-[0_0_24px_-2px_var(--color-primary)] hover:scale-105">G</span>
           <span className="text-lg font-bold text-gradient-primary">Genesis</span>
         </Link>
 
@@ -56,7 +56,10 @@ export function MarketingHeader() {
 
         {/* Mobile toggle */}
         <button
-          className="md:hidden text-foreground"
+          type="button"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
+          className="rounded-md p-1.5 text-foreground transition-colors hover:bg-muted md:hidden"
           onClick={() => setMobileOpen(!mobileOpen)}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
