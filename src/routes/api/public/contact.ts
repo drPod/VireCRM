@@ -10,6 +10,7 @@ import * as React from 'react'
 import { render } from '@react-email/components'
 import { z } from 'zod'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+import { classifyAndStore } from '@/lib/contact/classify-submission'
 
 type AdminClient = SupabaseClient<any, any, any, any, any>
 
@@ -224,7 +225,7 @@ export const Route = createFileRoute('/api/public/contact')({
         // Failure here must NEVER block delivery — log and continue.
         const userAgent = request.headers.get('user-agent')
         const origin = request.headers.get('origin')
-        const { error: crmInsertErr } = await supabase
+        const { data: insertedSubmission, error: crmInsertErr } = await supabase
           .from('contact_submissions')
           .insert({
             name: payload.name,
@@ -243,8 +244,26 @@ export const Route = createFileRoute('/api/public/contact')({
               intended_recipient: testMode.enabled ? intendedRecipient : undefined,
             },
           } as any)
+          .select('id')
+          .maybeSingle()
         if (crmInsertErr) {
           console.warn('contact: failed to persist CRM submission (non-fatal)', crmInsertErr)
+        }
+
+        // Fire-and-forget AI classification. Never blocks the response or
+        // email delivery — failures are stamped on the row for the cron
+        // sweeper to retry.
+        if (insertedSubmission?.id) {
+          void classifyAndStore(supabase, {
+            id: insertedSubmission.id,
+            name: payload.name,
+            email: payload.email,
+            company: payload.company || null,
+            message: payload.message,
+            budget: payload.budget || null,
+          }).catch((err) => {
+            console.warn('contact: inline classify failed (non-fatal)', err)
+          })
         }
 
         // Stamp the log row with the IP so the rate limiter above can see it.
