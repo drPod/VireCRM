@@ -91,18 +91,20 @@ function SignupPage() {
     navigate({ to: "/dashboard" });
   };
 
+  const validate = () => {
+    const next: typeof errors = {};
+    if (!fullName.trim()) next.fullName = "Please enter your name";
+    if (!email.trim()) next.email = "Please enter your email";
+    else if (!EMAIL_RE.test(email.trim())) next.email = "That email looks invalid";
+    if (!password) next.password = "Please choose a password";
+    else if (password.length < 8) next.password = "Use at least 8 characters";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedName = fullName.trim();
-    const trimmedEmail = email.trim();
-    if (!trimmedName || !trimmedEmail || !password) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
+    if (!validate()) return;
     if (strength.score < 2) {
       toast.error(
         strength.feedback ||
@@ -117,10 +119,10 @@ function SignupPage() {
     setLoading(true);
     try {
       const { data: signUpData, error } = await supabase.auth.signUp({
-        email: trimmedEmail,
+        email: email.trim(),
         password,
         options: {
-          data: { full_name: trimmedName },
+          data: { full_name: fullName.trim() },
           emailRedirectTo: buildRedirectAfterSignup(),
         },
       });
@@ -144,16 +146,21 @@ function SignupPage() {
       toast.error("Please accept the Terms & Conditions to continue.");
       return;
     }
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: buildRedirectAfterSignup(),
-    });
-    if (result.error) {
-      toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
-      return;
+    setGoogleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: buildRedirectAfterSignup(),
+      });
+      if (result.error) {
+        toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
+        return;
+      }
+      if (result.redirected) return;
+      await tryAcceptInvite(invite);
+      goPostSignup();
+    } finally {
+      setGoogleLoading(false);
     }
-    if (result.redirected) return;
-    await tryAcceptInvite(invite);
-    goPostSignup();
   };
 
   if (guardActive) return null;
