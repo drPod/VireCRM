@@ -669,10 +669,13 @@ export type Database = {
       contact_submissions: {
         Row: {
           budget: string | null
+          classification_error: string | null
+          classified_at: string | null
           company: string | null
           created_at: string
           email: string
           id: string
+          intent_summary: string | null
           ip_address: string | null
           last_reminder_at: string | null
           lead_id: string | null
@@ -682,18 +685,24 @@ export type Database = {
           name: string
           origin: string | null
           phone: string | null
+          priority_suggestion: string | null
           replied_at: string | null
+          sentiment: string | null
           status: string
           task_id: string | null
           test_mode: boolean
+          topic: string | null
           user_agent: string | null
         }
         Insert: {
           budget?: string | null
+          classification_error?: string | null
+          classified_at?: string | null
           company?: string | null
           created_at?: string
           email: string
           id?: string
+          intent_summary?: string | null
           ip_address?: string | null
           last_reminder_at?: string | null
           lead_id?: string | null
@@ -703,18 +712,24 @@ export type Database = {
           name: string
           origin?: string | null
           phone?: string | null
+          priority_suggestion?: string | null
           replied_at?: string | null
+          sentiment?: string | null
           status?: string
           task_id?: string | null
           test_mode?: boolean
+          topic?: string | null
           user_agent?: string | null
         }
         Update: {
           budget?: string | null
+          classification_error?: string | null
+          classified_at?: string | null
           company?: string | null
           created_at?: string
           email?: string
           id?: string
+          intent_summary?: string | null
           ip_address?: string | null
           last_reminder_at?: string | null
           lead_id?: string | null
@@ -724,10 +739,13 @@ export type Database = {
           name?: string
           origin?: string | null
           phone?: string | null
+          priority_suggestion?: string | null
           replied_at?: string | null
+          sentiment?: string | null
           status?: string
           task_id?: string | null
           test_mode?: boolean
+          topic?: string | null
           user_agent?: string | null
         }
         Relationships: [
