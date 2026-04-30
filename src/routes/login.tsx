@@ -84,17 +84,23 @@ function LoginPage() {
   const accentColor = branding?.primary_color;
   const showMarketingHeader = !isCustomDomain;
 
+  const validate = () => {
+    const next: typeof errors = {};
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) next.email = "Please enter your email";
+    else if (!EMAIL_RE.test(trimmedEmail)) next.email = "That email looks invalid";
+    if (!password) next.password = "Please enter your password";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password) {
-      toast.error("Please enter your email and password");
-      return;
-    }
+    if (!validate()) return;
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: trimmedEmail,
+        email: email.trim(),
         password,
       });
       if (error) throw error;
