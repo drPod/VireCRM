@@ -167,6 +167,34 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Smoother default for interactive elements across the CRM */
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    transition:
+      color 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease,
+      opacity 180ms ease;
+  }
+
+  /* Respect users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 /* Custom scrollbar */
@@ -286,14 +314,78 @@
 @keyframes page-enter {
   0% {
     opacity: 0;
+    transform: translateY(6px);
   }
   100% {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
 .page-transition {
-  animation: page-enter 0.15s ease-out both;
+  animation: page-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Subtle staggered entrance for cards / list items */
+@keyframes rise-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Use with inline style="--stagger:1" up to 8 to delay items in a grid/list */
+[style*="--stagger"] {
+  animation-delay: calc(var(--stagger) * 50ms);
+}
+
+/* Soft glow pulse for highlighted CTAs / notifications */
+@keyframes soft-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-primary) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in oklch, var(--color-primary) 0%, transparent);
+  }
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 2.4s ease-out infinite;
+}
+
+/* Shimmer for loading skeletons that feels less robotic than a flat pulse */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--color-muted) 80%, transparent) 0%,
+    color-mix(in oklch, var(--color-muted-foreground) 12%, var(--color-muted)) 50%,
+    color-mix(in oklch, var(--color-muted) 80%, transparent) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Universal hover-lift utility for cards and tiles */
+.hover-lift {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 220ms ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -12px color-mix(in oklch, var(--color-primary) 25%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -301,7 +393,16 @@
   .hero-float,
   .section-aurora,
   .section-aurora-reverse,
-  .page-transition {
+  .page-transition,
+  .animate-rise-in,
+  .animate-soft-pulse,
+  .animate-shimmer,
+  .hover-lift {
     animation: none;
+    transition: none;
+  }
+  .hover-lift:hover {
+    transform: none;
   }
 }
+
