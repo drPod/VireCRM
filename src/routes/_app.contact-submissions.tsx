@@ -270,6 +270,15 @@ function ContactSubmissionsPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
+                  <th className="w-8 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-input"
+                      checked={filtered.length > 0 && filtered.every((s) => selectedIds.has(s.id))}
+                      onChange={toggleAllFiltered}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="px-3 py-2 font-medium">Received</th>
                   <th className="px-3 py-2 font-medium">From</th>
                   <th className="px-3 py-2 font-medium">Topic</th>
