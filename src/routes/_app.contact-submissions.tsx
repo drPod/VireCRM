@@ -205,12 +205,21 @@ function ContactSubmissionsPage() {
             Inbound messages from the public contact form, classified by AI for routing.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
+          <Button
+            size="sm"
+            variant="default"
+            disabled={selectedIds.size === 0}
+            onClick={() => setBulkOpen(true)}
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            Apply template ({selectedIds.size})
+          </Button>
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
             <Download className="mr-2 h-4 w-4" />
             Export CSV ({filtered.length})
           </Button>
