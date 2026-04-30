@@ -295,6 +295,19 @@ function LeadsPage() {
   const allVisibleSelected =
     visibleLeadIds.length > 0 && visibleLeadIds.every((id) => selectedLeadIds.includes(id));
 
+  const bulkTemplateRecipients: BulkRecipient[] = useMemo(
+    () =>
+      leads
+        .filter((l) => selectedLeadIds.includes(l.id))
+        .map((l) => ({
+          id: l.id,
+          name: l.name,
+          email: l.email || null,
+          company: l.company ?? null,
+        })),
+    [leads, selectedLeadIds],
+  );
+
   const toggleLeadSelected = useCallback((id: string, next: boolean) => {
     setSelectedLeadIds((prev) =>
       next ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id)
