@@ -151,6 +151,7 @@ export function CrmSidebar() {
     ...gymNav,
     { to: "/command-chat", icon: Sparkles, label: "Command Chat" },
     { to: "/followup-inbox", icon: Bot, label: "AI Follow-ups" },
+    { to: "/contact-submissions", icon: Inbox, label: "Contact Inbox" },
     { to: "/academy", icon: GraduationCap, label: "Academy" },
     ...baseNavItems.filter((i) => i.to !== "/dashboard" && i.to !== "/leads"),
     ...(isReseller && isOwner

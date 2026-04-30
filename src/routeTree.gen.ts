@@ -51,6 +51,7 @@ import { Route as AppEnergyRouteImport } from './routes/_app.energy'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
+import { Route as AppContactSubmissionsRouteImport } from './routes/_app.contact-submissions'
 import { Route as AppCommandChatRouteImport } from './routes/_app.command-chat'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
@@ -304,6 +305,11 @@ const AppConversationsRoute = AppConversationsRouteImport.update({
   path: '/conversations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppContactSubmissionsRoute = AppContactSubmissionsRouteImport.update({
+  id: '/contact-submissions',
+  path: '/contact-submissions',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCommandChatRoute = AppCommandChatRouteImport.update({
   id: '/command-chat',
   path: '/command-chat',
@@ -550,6 +556,7 @@ export interface FileRoutesByFullPath {
   '/campaigns': typeof AppCampaignsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
+  '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
@@ -635,6 +642,7 @@ export interface FileRoutesByTo {
   '/campaigns': typeof AppCampaignsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
+  '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
   '/email-marketing': typeof AppEmailMarketingRoute
@@ -722,6 +730,7 @@ export interface FileRoutesById {
   '/_app/campaigns': typeof AppCampaignsRouteWithChildren
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/command-chat': typeof AppCommandChatRoute
+  '/_app/contact-submissions': typeof AppContactSubmissionsRoute
   '/_app/conversations': typeof AppConversationsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
@@ -809,6 +818,7 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/clients'
     | '/command-chat'
+    | '/contact-submissions'
     | '/conversations'
     | '/dashboard'
     | '/email-marketing'
@@ -894,6 +904,7 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/clients'
     | '/command-chat'
+    | '/contact-submissions'
     | '/conversations'
     | '/dashboard'
     | '/email-marketing'
@@ -980,6 +991,7 @@ export interface FileRouteTypes {
     | '/_app/campaigns'
     | '/_app/clients'
     | '/_app/command-chat'
+    | '/_app/contact-submissions'
     | '/_app/conversations'
     | '/_app/dashboard'
     | '/_app/email-marketing'
@@ -1375,6 +1387,13 @@ declare module '@tanstack/react-router' {
       path: '/conversations'
       fullPath: '/conversations'
       preLoaderRoute: typeof AppConversationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contact-submissions': {
+      id: '/_app/contact-submissions'
+      path: '/contact-submissions'
+      fullPath: '/contact-submissions'
+      preLoaderRoute: typeof AppContactSubmissionsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/command-chat': {
@@ -1796,6 +1815,7 @@ interface AppRouteChildren {
   AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppCommandChatRoute: typeof AppCommandChatRoute
+  AppContactSubmissionsRoute: typeof AppContactSubmissionsRoute
   AppConversationsRoute: typeof AppConversationsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
@@ -1830,6 +1850,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCampaignsRoute: AppCampaignsRouteWithChildren,
   AppClientsRoute: AppClientsRouteWithChildren,
   AppCommandChatRoute: AppCommandChatRoute,
+  AppContactSubmissionsRoute: AppContactSubmissionsRoute,
   AppConversationsRoute: AppConversationsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
