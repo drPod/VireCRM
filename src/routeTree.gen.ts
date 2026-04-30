@@ -92,6 +92,7 @@ import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/pu
 import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
 import { Route as ApiPublicHooksDispatchFollowupsRouteImport } from './routes/api/public/hooks/dispatch-followups'
 import { Route as ApiPublicHooksContactFollowupRemindersRouteImport } from './routes/api/public/hooks/contact-followup-reminders'
+import { Route as ApiPublicHooksClassifyContactSubmissionsRouteImport } from './routes/api/public/hooks/classify-contact-submissions'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -517,6 +518,12 @@ const ApiPublicHooksContactFollowupRemindersRoute =
     path: '/api/public/hooks/contact-followup-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksClassifyContactSubmissionsRoute =
+  ApiPublicHooksClassifyContactSubmissionsRouteImport.update({
+    id: '/api/public/hooks/classify-contact-submissions',
+    path: '/api/public/hooks/classify-contact-submissions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -591,6 +598,7 @@ export interface FileRoutesByFullPath {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
@@ -675,6 +683,7 @@ export interface FileRoutesByTo {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
@@ -761,6 +770,7 @@ export interface FileRoutesById {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
@@ -847,6 +857,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/classify-contact-submissions'
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
@@ -931,6 +942,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows'
     | '/r/$resellerSlug'
+    | '/api/public/hooks/classify-contact-submissions'
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
@@ -1016,6 +1028,7 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/public/hooks/classify-contact-submissions'
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
@@ -1055,6 +1068,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   RResellerSlugIndexRoute: typeof RResellerSlugIndexRoute
+  ApiPublicHooksClassifyContactSubmissionsRoute: typeof ApiPublicHooksClassifyContactSubmissionsRoute
   ApiPublicHooksContactFollowupRemindersRoute: typeof ApiPublicHooksContactFollowupRemindersRoute
   ApiPublicHooksDispatchFollowupsRoute: typeof ApiPublicHooksDispatchFollowupsRoute
   ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
@@ -1650,6 +1664,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksContactFollowupRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/classify-contact-submissions': {
+      id: '/api/public/hooks/classify-contact-submissions'
+      path: '/api/public/hooks/classify-contact-submissions'
+      fullPath: '/api/public/hooks/classify-contact-submissions'
+      preLoaderRoute: typeof ApiPublicHooksClassifyContactSubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1862,6 +1883,8 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   RResellerSlugIndexRoute: RResellerSlugIndexRoute,
+  ApiPublicHooksClassifyContactSubmissionsRoute:
+    ApiPublicHooksClassifyContactSubmissionsRoute,
   ApiPublicHooksContactFollowupRemindersRoute:
     ApiPublicHooksContactFollowupRemindersRoute,
   ApiPublicHooksDispatchFollowupsRoute: ApiPublicHooksDispatchFollowupsRoute,
