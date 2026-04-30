@@ -121,6 +121,27 @@ function FollowupInbox() {
       };
     });
 
+  const approveAndSend = async () => {
+    if (!organization?.id) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setApproving(true);
+    try {
+      const result = await sendBulk({
+        data: { organizationId: organization.id, suggestionIds: ids.slice(0, 50) },
+      });
+      const sent = result?.sent ?? 0;
+      const failed = result?.failed ?? 0;
+      if (sent > 0) toast.success(`Sent ${sent}${failed ? ` · ${failed} failed` : ""}`);
+      else toast.error(`No emails sent${result?.errors?.[0] ? ` — ${result.errors[0]}` : ""}`);
+      setSelectedIds(new Set());
+      void load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Send failed");
+    } finally {
+      setApproving(false);
+    }
+  };
 
   const generateBatch = async () => {
     if (!user) return;
