@@ -332,6 +332,16 @@ function FollowupInbox() {
           })}
         </div>
       )}
+
+      <BulkApplyTemplateDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        recipients={bulkRecipients}
+        onSent={() => {
+          setSelectedIds(new Set());
+          void load();
+        }}
+      />
     </div>
   );
 }
