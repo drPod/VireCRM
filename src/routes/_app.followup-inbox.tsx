@@ -49,7 +49,9 @@ const STATUS_TABS: { key: Suggestion["status"] | "all"; label: string }[] = [
 ];
 
 function FollowupInbox() {
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
+  const sendBulk = useAuthedServerFn(sendFollowupSuggestionsFn);
+  const [approving, setApproving] = useState(false);
   const [tab, setTab] = useState<Suggestion["status"] | "all">("pending");
   const [items, setItems] = useState<Suggestion[]>([]);
   const [leads, setLeads] = useState<Record<string, LeadLite>>({});
