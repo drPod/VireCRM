@@ -295,6 +295,15 @@ function ContactSubmissionsPage() {
                     onClick={() => setSelected(s)}
                     className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/20"
                   >
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-input"
+                        checked={selectedIds.has(s.id)}
+                        onChange={() => toggleOne(s.id)}
+                        aria-label={`Select ${s.name}`}
+                      />
+                    </td>
                     <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                       {new Date(s.created_at).toLocaleString()}
                       {s.test_mode && (
