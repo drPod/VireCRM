@@ -8,6 +8,7 @@ import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
 import { OutreachPreviewDialog } from "@/components/crm/OutreachPreviewDialog";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
 import { AssigneeMultiSelect, type AssigneeOption } from "@/components/crm/AssigneeMultiSelect";
+import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -19,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Loader2, UserPlus, X } from "lucide-react";
+import { Search, Loader2, UserPlus, X, Wand2 } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
@@ -95,6 +96,8 @@ function LeadsPage() {
   // Owner-only: confirmation prompt before the destructive round-robin pass
   // (which clears existing assignees on the selected leads).
   const [confirmRoundRobinOpen, setConfirmRoundRobinOpen] = useState(false);
+  // Bulk apply outreach template (any role) — opens the personalize+send dialog.
+  const [bulkTemplateOpen, setBulkTemplateOpen] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
@@ -291,6 +294,19 @@ function LeadsPage() {
   const visibleLeadIds = useMemo(() => leads.map((l) => l.id), [leads]);
   const allVisibleSelected =
     visibleLeadIds.length > 0 && visibleLeadIds.every((id) => selectedLeadIds.includes(id));
+
+  const bulkTemplateRecipients: BulkRecipient[] = useMemo(
+    () =>
+      leads
+        .filter((l) => selectedLeadIds.includes(l.id))
+        .map((l) => ({
+          id: l.id,
+          name: l.name,
+          email: l.email || null,
+          company: l.company ?? null,
+        })),
+    [leads, selectedLeadIds],
+  );
 
   const toggleLeadSelected = useCallback((id: string, next: boolean) => {
     setSelectedLeadIds((prev) =>
@@ -579,6 +595,17 @@ function LeadsPage() {
               )}
               {bulkAssignMode === "round_robin" ? "Distribute" : "Share"}
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setBulkTemplateOpen(true)}
+              disabled={selectedLeadIds.length === 0}
+              className="gap-1.5"
+              title="Personalize an outreach template with AI and send to every selected lead"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              Apply template
+            </Button>
             {selectedLeadIds.length > 0 && (
               <Button
                 variant="ghost"
@@ -730,6 +757,16 @@ function LeadsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkApplyTemplateDialog
+        open={bulkTemplateOpen}
+        onOpenChange={setBulkTemplateOpen}
+        recipients={bulkTemplateRecipients}
+        onSent={() => {
+          handleClearSelection();
+          handleLeadAdded();
+        }}
+      />
     </div>
   );
 }

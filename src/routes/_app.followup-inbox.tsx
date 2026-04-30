@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { sendFollowupSuggestionsFn } from "@/functions/send-followup-suggestions.functions";
 
 interface Suggestion {
   id: string;
@@ -47,7 +49,9 @@ const STATUS_TABS: { key: Suggestion["status"] | "all"; label: string }[] = [
 ];
 
 function FollowupInbox() {
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
+  const sendBulk = useAuthedServerFn(sendFollowupSuggestionsFn);
+  const [approving, setApproving] = useState(false);
   const [tab, setTab] = useState<Suggestion["status"] | "all">("pending");
   const [items, setItems] = useState<Suggestion[]>([]);
   const [leads, setLeads] = useState<Record<string, LeadLite>>({});
@@ -117,6 +121,27 @@ function FollowupInbox() {
       };
     });
 
+  const approveAndSend = async () => {
+    if (!organization?.id) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setApproving(true);
+    try {
+      const result = await sendBulk({
+        data: { organizationId: organization.id, suggestionIds: ids.slice(0, 50) },
+      });
+      const sent = result?.sent ?? 0;
+      const failed = result?.failed ?? 0;
+      if (sent > 0) toast.success(`Sent ${sent}${failed ? ` · ${failed} failed` : ""}`);
+      else toast.error(`No emails sent${result?.errors?.[0] ? ` — ${result.errors[0]}` : ""}`);
+      setSelectedIds(new Set());
+      void load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Send failed");
+    } finally {
+      setApproving(false);
+    }
+  };
 
   const generateBatch = async () => {
     if (!user) return;
@@ -220,15 +245,30 @@ function FollowupInbox() {
             />
             {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
           </label>
-          <Button
-            size="sm"
-            variant="command"
-            disabled={selectedIds.size === 0}
-            onClick={() => setBulkOpen(true)}
-          >
-            <Wand2 className="h-3.5 w-3.5 mr-1.5" />
-            Apply template ({selectedIds.size})
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              disabled={selectedIds.size === 0 || approving}
+              onClick={approveAndSend}
+            >
+              {approving ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Approve & send ({selectedIds.size})
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={selectedIds.size === 0}
+              onClick={() => setBulkOpen(true)}
+            >
+              <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+              Apply template
+            </Button>
+          </div>
         </div>
       )}
 
