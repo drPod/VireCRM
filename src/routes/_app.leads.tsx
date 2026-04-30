@@ -595,6 +595,17 @@ function LeadsPage() {
               )}
               {bulkAssignMode === "round_robin" ? "Distribute" : "Share"}
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setBulkTemplateOpen(true)}
+              disabled={selectedLeadIds.length === 0}
+              className="gap-1.5"
+              title="Personalize an outreach template with AI and send to every selected lead"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              Apply template
+            </Button>
             {selectedLeadIds.length > 0 && (
               <Button
                 variant="ghost"
