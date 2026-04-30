@@ -150,27 +150,32 @@ function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
     // Give the user immediate feedback before the OAuth redirect takes over —
     // otherwise the page just blanks out and it feels like nothing happened.
     toast.loading("Redirecting to Google…", { id: "google-oauth" });
-    // CRITICAL: redirect_uri must point inside the app (not the marketing home
-    // page). Honor ?redirect= so deep links survive the OAuth round trip;
-    // default to /dashboard. Without this, OAuth lands on "/" — the public
-    // landing page — and the user thinks login failed.
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}${returnTo}`,
-    });
-    if (result.error) {
+    try {
+      // CRITICAL: redirect_uri must point inside the app (not the marketing home
+      // page). Honor ?redirect= so deep links survive the OAuth round trip;
+      // default to /dashboard. Without this, OAuth lands on "/" — the public
+      // landing page — and the user thinks login failed.
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}${returnTo}`,
+      });
+      if (result.error) {
+        toast.dismiss("google-oauth");
+        toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
+        return;
+      }
+      if (result.redirected) return;
       toast.dismiss("google-oauth");
-      toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
-      return;
+      toast.success("Signed in with Google. Redirecting…");
+      setTimeout(() => {
+        window.location.href = returnTo;
+      }, 400);
+    } finally {
+      setGoogleLoading(false);
     }
-    if (result.redirected) return;
-    toast.dismiss("google-oauth");
-    toast.success("Signed in with Google. Redirecting…");
-    setTimeout(() => {
-      window.location.href = returnTo;
-    }, 400);
   };
 
   return (
