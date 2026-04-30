@@ -83,6 +83,8 @@ function ContactSubmissionsPage() {
   const [priority, setPriority] = useState<string>("all");
   const [includeTest, setIncludeTest] = useState(false);
   const [selected, setSelected] = useState<Submission | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
