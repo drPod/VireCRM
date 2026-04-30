@@ -757,6 +757,16 @@ function LeadsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkApplyTemplateDialog
+        open={bulkTemplateOpen}
+        onOpenChange={setBulkTemplateOpen}
+        recipients={bulkTemplateRecipients}
+        onSent={() => {
+          handleClearSelection();
+          handleLeadAdded();
+        }}
+      />
     </div>
   );
 }
