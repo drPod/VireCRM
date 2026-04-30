@@ -87,9 +87,36 @@ function FollowupInbox() {
   };
 
   useEffect(() => {
+    setSelectedIds(new Set());
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleAll = () => {
+    if (selectedIds.size === items.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(items.map((i) => i.id)));
+  };
+
+  const bulkRecipients: BulkRecipient[] = items
+    .filter((s) => selectedIds.has(s.id))
+    .map((s) => {
+      const lead = leads[s.lead_id];
+      return {
+        id: s.lead_id,
+        name: lead?.name ?? "there",
+        email: lead?.email ?? null,
+        company: lead?.company ?? null,
+      };
+    });
+
 
   const generateBatch = async () => {
     if (!user) return;
