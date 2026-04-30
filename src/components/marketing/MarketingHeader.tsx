@@ -56,7 +56,10 @@ export function MarketingHeader() {
 
         {/* Mobile toggle */}
         <button
-          className="md:hidden text-foreground"
+          type="button"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
+          className="rounded-md p-1.5 text-foreground transition-colors hover:bg-muted md:hidden"
           onClick={() => setMobileOpen(!mobileOpen)}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
