@@ -58,6 +58,12 @@ function SignupPage() {
   });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [errors, setErrors] = useState<{
+    fullName?: string;
+    email?: string;
+    password?: string;
+  }>({});
   const navigate = useNavigate();
   const handleStrengthChange = useCallback(
     (r: PasswordStrengthResult) => setStrength(r),
