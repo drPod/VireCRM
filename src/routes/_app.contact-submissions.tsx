@@ -9,7 +9,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Download, Search, RefreshCw, Mail, Phone, Building2, FlaskConical } from "lucide-react";
+import { Loader2, Download, Search, RefreshCw, Mail, Phone, Building2, FlaskConical, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
 
 interface Submission {
   id: string;
