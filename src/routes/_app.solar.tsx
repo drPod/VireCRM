@@ -22,24 +22,53 @@ export function IndustryHub({ industry }: IndustryHubProps) {
   const template = getTemplate(industry);
   const isActive = organization?.industry_template === industry;
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [unmapped, setUnmapped] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    if (!organization?.id) return;
+    setLoading(true);
     void (async () => {
-      const results = await Promise.all(
-        template.pipelineStages.map(async (stage) => {
-          // Match leads by the stage label stored in `status` (case-insensitive substring).
-          const { count } = await supabase
-            .from("leads")
-            .select("id", { count: "exact", head: true })
-            .ilike("status", `%${stage.toLowerCase()}%`);
-          return [stage, count ?? 0] as const;
-        }),
+      // Pull only this org's leads + statuses, then bucket client-side. This
+      // fixes two earlier bugs:
+      //  1. ilike("status","%new lead%") matched any status containing "new",
+      //     so "New Lead" and a custom "Newest" both incremented the same row.
+      //  2. The query wasn't scoped to the active organization, so org-wide
+      //     RLS-permitted reads inflated the numbers.
+      const { data, error } = await supabase
+        .from("leads")
+        .select("status")
+        .eq("organization_id", organization.id);
+      if (cancelled) return;
+      if (error) {
+        setCounts({});
+        setUnmapped(0);
+        setLoading(false);
+        return;
+      }
+      const stageSet = new Set(template.pipelineStages.map((s) => s.toLowerCase()));
+      const next: Record<string, number> = Object.fromEntries(
+        template.pipelineStages.map((s) => [s, 0]),
       );
-      setCounts(Object.fromEntries(results));
+      let other = 0;
+      for (const row of data ?? []) {
+        const status = (row.status ?? "").trim();
+        const match = template.pipelineStages.find(
+          (s) => s.toLowerCase() === status.toLowerCase(),
+        );
+        if (match) next[match] += 1;
+        else if (status && !stageSet.has(status.toLowerCase())) other += 1;
+      }
+      setCounts(next);
+      setUnmapped(other);
       setLoading(false);
     })();
-  }, [industry, template.pipelineStages]);
+    return () => {
+      cancelled = true;
+    };
+  }, [industry, organization?.id, template.pipelineStages]);
+
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -55,7 +84,16 @@ export function IndustryHub({ industry }: IndustryHubProps) {
       </header>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Pipeline stages</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Pipeline stages</span>
+            {!loading && unmapped > 0 && (
+              <Badge variant="outline" className="text-[10px]">
+                {unmapped} lead{unmapped === 1 ? "" : "s"} on a custom status
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -71,6 +109,7 @@ export function IndustryHub({ industry }: IndustryHubProps) {
           )}
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader><CardTitle className="text-base">Default modules</CardTitle></CardHeader>
