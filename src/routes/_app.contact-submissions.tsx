@@ -48,6 +48,7 @@ interface Submission {
   created_at: string;
   replied_at: string | null;
   classification_error: string | null;
+  lead_id: string | null;
 }
 
 const STATUS_OPTIONS = ["all", "received", "in_progress", "replied", "closed", "spam"] as const;
