@@ -225,7 +225,7 @@ export function CrmSidebar() {
         data-tour={tourId}
         onClick={() => setMobileOpen(false)}
         aria-current={isActive ? "page" : undefined}
-        className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+        className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out hover:translate-x-0.5 ${
           isActive
             ? "bg-sidebar-accent text-sidebar-primary-foreground"
             : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
@@ -234,13 +234,15 @@ export function CrmSidebar() {
         {/* Active indicator bar */}
         <span
           aria-hidden
-          className={`absolute left-0 top-1/2 h-5 -translate-y-1/2 rounded-r-full bg-sidebar-primary transition-all ${
+          className={`absolute left-0 top-1/2 h-5 -translate-y-1/2 rounded-r-full bg-sidebar-primary transition-all duration-300 ease-out ${
             isActive ? "w-1 opacity-100" : "w-0 opacity-0"
           }`}
         />
         <item.icon
-          className={`h-4 w-4 shrink-0 transition-colors ${
-            isActive ? "text-sidebar-primary" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
+          className={`h-4 w-4 shrink-0 transition-all duration-200 ease-out group-hover:scale-110 ${
+            isActive
+              ? "scale-110 text-sidebar-primary"
+              : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
           }`}
         />
         <span className="truncate">{item.label}</span>
