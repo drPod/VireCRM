@@ -30,14 +30,33 @@ interface OnboardingWizardProps {
   organizationId: string;
   isOwner: boolean;
   onComplete: () => void;
+  /** Prefill industry on re-run so owners aren't dropped at zero. */
+  currentIndustry?: IndustryKey | null;
+  /** Prefill brand color on re-run. */
+  currentBrandColor?: string | null;
+  /** Prefill privacy toggle on re-run. */
+  currentStrictIsolation?: boolean;
 }
 
-export function OnboardingWizard({ organizationId, isOwner, onComplete }: OnboardingWizardProps) {
+export function OnboardingWizard({
+  organizationId,
+  isOwner,
+  onComplete,
+  currentIndustry,
+  currentBrandColor,
+  currentStrictIsolation,
+}: OnboardingWizardProps) {
+  const initialTemplate = currentIndustry
+    ? INDUSTRY_LIST.find((t) => t.key === currentIndustry) ?? null
+    : null;
   const [step, setStep] = useState(0);
-  const [industry, setIndustry] = useState<IndustryKey | null>(null);
-  const [brandColor, setBrandColor] = useState<string>("");
-  const [strictIsolation, setStrictIsolation] = useState(false);
+  const [industry, setIndustry] = useState<IndustryKey | null>(currentIndustry ?? null);
+  const [brandColor, setBrandColor] = useState<string>(
+    currentBrandColor || initialTemplate?.theme.primary || "",
+  );
+  const [strictIsolation, setStrictIsolation] = useState(currentStrictIsolation ?? false);
   const [saving, setSaving] = useState(false);
+
 
   // Non-owners get a polite blocker — only owners can complete setup
   if (!isOwner) {
