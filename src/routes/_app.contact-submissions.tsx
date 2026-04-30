@@ -131,6 +131,27 @@ function ContactSubmissionsPage() {
     });
   }, [items, search]);
 
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAllFiltered = () => {
+    const allSelected = filtered.length > 0 && filtered.every((s) => selectedIds.has(s.id));
+    setSelectedIds(allSelected ? new Set() : new Set(filtered.map((s) => s.id)));
+  };
+
+  const bulkRecipients: BulkRecipient[] = filtered
+    .filter((s) => selectedIds.has(s.id) && s.lead_id)
+    .map((s) => ({
+      id: s.lead_id!,
+      name: s.name,
+      email: s.email,
+      company: s.company,
+    }));
+
   const exportCsv = () => {
     if (filtered.length === 0) {
       toast.info("Nothing to export");
