@@ -224,15 +224,30 @@ function FollowupInbox() {
             />
             {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
           </label>
-          <Button
-            size="sm"
-            variant="command"
-            disabled={selectedIds.size === 0}
-            onClick={() => setBulkOpen(true)}
-          >
-            <Wand2 className="h-3.5 w-3.5 mr-1.5" />
-            Apply template ({selectedIds.size})
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              disabled={selectedIds.size === 0 || approving}
+              onClick={approveAndSend}
+            >
+              {approving ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Approve & send ({selectedIds.size})
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={selectedIds.size === 0}
+              onClick={() => setBulkOpen(true)}
+            >
+              <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+              Apply template
+            </Button>
+          </div>
         </div>
       )}
 
