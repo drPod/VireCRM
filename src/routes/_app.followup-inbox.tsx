@@ -55,6 +55,8 @@ function FollowupInbox() {
   const [running, setRunning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edited, setEdited] = useState<{ subject: string; message: string }>({ subject: "", message: "" });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
