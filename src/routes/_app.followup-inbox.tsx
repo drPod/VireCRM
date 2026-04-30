@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { sendFollowupSuggestionsFn } from "@/functions/send-followup-suggestions.functions";
 
 interface Suggestion {
   id: string;
