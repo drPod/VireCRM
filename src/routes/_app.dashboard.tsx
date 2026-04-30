@@ -281,10 +281,21 @@ function Dashboard() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {firstName ? `Welcome back, ${firstName}` : "Command Center"}
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">
+            {new Date().toLocaleDateString(undefined, {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            {(() => {
+              const h = new Date().getHours();
+              const greeting = h < 5 ? "Working late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+              return firstName ? `${greeting}, ${firstName}` : "Command Center";
+            })()}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Type a command, or jump into your pipeline below.
           </p>
         </div>
