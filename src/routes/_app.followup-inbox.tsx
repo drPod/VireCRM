@@ -8,7 +8,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Sparkles, Check, X, Send, RefreshCw, Edit3 } from "lucide-react";
+import { Loader2, Sparkles, Check, X, Send, RefreshCw, Edit3, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
 
 interface Suggestion {
   id: string;
