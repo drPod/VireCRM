@@ -91,7 +91,7 @@ function ContactSubmissionsPage() {
     let q = supabase
       .from("contact_submissions")
       .select(
-        "id,name,email,company,phone,budget,message,status,sentiment,topic,priority_suggestion,intent_summary,test_mode,created_at,replied_at,classification_error"
+        "id,name,email,company,phone,budget,message,status,sentiment,topic,priority_suggestion,intent_summary,test_mode,created_at,replied_at,classification_error,lead_id"
       )
       .order("created_at", { ascending: false })
       .limit(500);
