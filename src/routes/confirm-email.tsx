@@ -45,14 +45,14 @@ function ConfirmEmailPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <MarketingHeader />
-      <div className="flex min-h-screen items-center justify-center px-4 pt-16">
+      <div className="flex flex-1 items-center justify-center px-4 py-12 pt-32">
         <div className="w-full max-w-sm text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 shadow-[0_0_24px_-8px_var(--color-primary)]">
             <Mail className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Check your email</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Check your email</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             We sent a confirmation link to your inbox. Click it to activate your account and start your free trial.
           </p>
@@ -76,7 +76,7 @@ function ConfirmEmailPage() {
               Resend confirmation email
             </Button>
             <Button variant="ghost" className="w-full" asChild>
-              <Link to="/login">Back to Sign In</Link>
+              <Link to="/login">Back to sign in</Link>
             </Button>
           </form>
 
