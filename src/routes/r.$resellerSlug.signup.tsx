@@ -106,16 +106,21 @@ function ResellerSignupPage() {
     })();
   }, [resellerSlug, navigate]);
 
+  const validate = () => {
+    const next: typeof errors = {};
+    if (!fullName.trim()) next.fullName = "Please enter your name";
+    if (!companyName.trim()) next.companyName = "Please enter your company name";
+    if (!email.trim()) next.email = "Please enter your email";
+    else if (!EMAIL_RE.test(email.trim())) next.email = "That email looks invalid";
+    if (!password) next.password = "Please choose a password";
+    else if (password.length < 6) next.password = "Use at least 6 characters";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !companyName || !email || !password) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
+    if (!validate()) return;
     if (!acceptedTerms) {
       toast.error("Please accept the Terms & Conditions to continue.");
       return;
@@ -123,7 +128,6 @@ function ResellerSignupPage() {
     setSubmitting(true);
     try {
       sessionStorage.setItem("reseller_pending_company", companyName);
-      // Persist reseller attribution so any future checkout in this session links to the reseller
       if (branding?.id) sessionStorage.setItem("attributed_reseller_id", branding.id);
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -135,7 +139,6 @@ function ResellerSignupPage() {
       });
       if (error) throw error;
       if (data.session) {
-        // auto-confirmed
         await provisionUnderReseller(resellerSlug, companyName);
         sessionStorage.removeItem("reseller_pending_company");
         toast.success("Workspace ready!");
@@ -151,30 +154,33 @@ function ResellerSignupPage() {
   };
 
   const handleGoogleSignup = async () => {
-    if (!companyName) {
-      toast.error("Please enter your company name first");
+    if (!companyName.trim()) {
+      setErrors((p) => ({ ...p, companyName: "Please enter your company name first" }));
       return;
     }
     if (!acceptedTerms) {
       toast.error("Please accept the Terms & Conditions to continue.");
       return;
     }
-    sessionStorage.setItem("reseller_pending_company", companyName);
-    if (branding?.id) sessionStorage.setItem("attributed_reseller_id", branding.id);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: redirectTarget,
-    });
-    if (result.error) {
-      toast.error(result.error instanceof Error ? result.error.message : "Google sign-in failed");
-      return;
-    }
-    if (result.redirected) return;
+    setGoogleLoading(true);
     try {
+      sessionStorage.setItem("reseller_pending_company", companyName);
+      if (branding?.id) sessionStorage.setItem("attributed_reseller_id", branding.id);
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: redirectTarget,
+      });
+      if (result.error) {
+        toast.error(result.error instanceof Error ? result.error.message : "Google sign-in failed");
+        return;
+      }
+      if (result.redirected) return;
       await provisionUnderReseller(resellerSlug, companyName);
       sessionStorage.removeItem("reseller_pending_company");
       navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Setup failed");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
