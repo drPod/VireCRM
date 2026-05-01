@@ -1713,10 +1713,25 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   const handleCreate = async () => {
     let lineItems: { description: string; amount_cents: number; quantity?: number }[];
     if (selectedPlan) {
-      lineItems = planLineItems(selectedPlan);
-      if (lineItems.length === 0) {
-        toast.error("This plan has no billable amount.");
-        return;
+      // If the admin manually overrode the amount, ignore the plan's preset
+      // line items and bill exactly what they typed (single line item).
+      if (amountOverridden) {
+        const dollars = parseFloat(amount);
+        if (!isFinite(dollars) || dollars < 0.5) {
+          toast.error("Enter an amount of at least $0.50");
+          return;
+        }
+        lineItems = [{
+          description: description || `${selectedPlan.label} plan (custom amount)`,
+          amount_cents: Math.round(dollars * 100),
+          quantity: 1,
+        }];
+      } else {
+        lineItems = planLineItems(selectedPlan);
+        if (lineItems.length === 0) {
+          toast.error("This plan has no billable amount.");
+          return;
+        }
       }
     } else {
       const dollars = parseFloat(amount);
