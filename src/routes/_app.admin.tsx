@@ -697,3 +697,208 @@ function ContactSubmissionsPanel() {
     </Card>
   );
 }
+
+/* --------------------- Stripe Invoice for a Submission ------------------- */
+
+interface PlatformInvoiceRow {
+  id: string;
+  stripe_invoice_id: string | null;
+  hosted_invoice_url: string | null;
+  invoice_pdf: string | null;
+  number: string | null;
+  amount_due_cents: number;
+  amount_paid_cents: number;
+  currency: string;
+  status: string;
+  due_date: string | null;
+  paid_at: string | null;
+  voided_at: string | null;
+  sent_at: string | null;
+  environment: string;
+  created_at: string;
+}
+
+const stripeEnv: "sandbox" | "live" =
+  (import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined)?.startsWith("pk_live_")
+    ? "live"
+    : "sandbox";
+
+function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+  if (status === "paid") return "default";
+  if (status === "void" || status === "uncollectible") return "destructive";
+  if (status === "open" || status === "sent" || status === "finalized") return "secondary";
+  return "outline";
+}
+
+function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow }) {
+  const [invoices, setInvoices] = useState<PlatformInvoiceRow[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [amount, setAmount] = useState<string>(() => suggestAmount(submission));
+  const [description, setDescription] = useState<string>(
+    `Genesis — ${submission.project_type ?? "project"}${submission.company ? ` for ${submission.company}` : ""}`,
+  );
+  const [dueDays, setDueDays] = useState<string>("14");
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("platform_invoices")
+      .select(
+        "id, stripe_invoice_id, hosted_invoice_url, invoice_pdf, number, amount_due_cents, amount_paid_cents, currency, status, due_date, paid_at, voided_at, sent_at, environment, created_at",
+      )
+      .eq("submission_id", submission.id)
+      .order("created_at", { ascending: false });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message ?? "Failed to load invoices");
+      return;
+    }
+    setInvoices((data ?? []) as PlatformInvoiceRow[]);
+  };
+
+  useEffect(() => {
+    void load();
+    // Realtime: refresh when this submission's invoice rows change.
+    const channel = supabase
+      .channel(`platform_invoices:${submission.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "platform_invoices", filter: `submission_id=eq.${submission.id}` },
+        () => void load(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submission.id]);
+
+  const handleCreate = async () => {
+    const dollars = parseFloat(amount);
+    if (!isFinite(dollars) || dollars < 0.5) {
+      toast.error("Enter an amount of at least $0.50");
+      return;
+    }
+    const cents = Math.round(dollars * 100);
+    setCreating(true);
+    const { data, error } = await supabase.functions.invoke("create-submission-invoice", {
+      body: {
+        submissionId: submission.id,
+        description,
+        dueDays: parseInt(dueDays, 10) || 14,
+        environment: stripeEnv,
+        send: true,
+        lineItems: [{ description, amount_cents: cents, quantity: 1 }],
+      },
+    });
+    setCreating(false);
+    if (error || (data as { error?: string })?.error) {
+      toast.error((data as { error?: string })?.error ?? error?.message ?? "Failed to create invoice");
+      return;
+    }
+    toast.success("Invoice created and sent");
+    setShowForm(false);
+    void load();
+  };
+
+  return (
+    <div className="space-y-2 pt-3 border-t border-border mt-3">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold uppercase text-muted-foreground">
+          Stripe Invoice {stripeEnv === "sandbox" ? <Badge variant="outline" className="ml-2 text-[10px]">test mode</Badge> : null}
+        </div>
+        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+          {showForm ? "Cancel" : invoices && invoices.length > 0 ? "+ New Invoice" : "Create Invoice"}
+        </Button>
+      </div>
+
+      {showForm ? (
+        <div className="grid gap-2 rounded border border-border bg-background p-3 sm:grid-cols-[1fr_120px_100px_auto]">
+          <Input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description"
+          />
+          <Input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Amount USD"
+            inputMode="decimal"
+          />
+          <Input
+            value={dueDays}
+            onChange={(e) => setDueDays(e.target.value)}
+            placeholder="Due days"
+            inputMode="numeric"
+          />
+          <Button onClick={() => void handleCreate()} disabled={creating}>
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+          </Button>
+        </div>
+      ) : null}
+
+      {loading && !invoices ? (
+        <div className="text-xs text-muted-foreground">Loading invoices…</div>
+      ) : !invoices || invoices.length === 0 ? (
+        <div className="text-xs text-muted-foreground">No invoices yet.</div>
+      ) : (
+        <div className="space-y-1.5">
+          {invoices.map((inv) => (
+            <div
+              key={inv.id}
+              className="flex flex-wrap items-center gap-2 rounded border border-border bg-background p-2 text-sm"
+            >
+              <Badge variant={statusVariant(inv.status)}>{inv.status}</Badge>
+              <span className="font-mono text-xs text-muted-foreground">{inv.number ?? inv.stripe_invoice_id}</span>
+              <span className="tabular-nums">
+                ${(inv.amount_due_cents / 100).toFixed(2)} {inv.currency.toUpperCase()}
+              </span>
+              {inv.amount_paid_cents > 0 ? (
+                <span className="text-xs text-muted-foreground">
+                  paid ${(inv.amount_paid_cents / 100).toFixed(2)}
+                </span>
+              ) : null}
+              {inv.environment === "sandbox" ? (
+                <Badge variant="outline" className="text-[10px]">test</Badge>
+              ) : null}
+              <span className="ml-auto flex gap-2">
+                {inv.hosted_invoice_url ? (
+                  <Button asChild size="sm" variant="outline">
+                    <a href={inv.hosted_invoice_url} target="_blank" rel="noreferrer">
+                      Payment link
+                    </a>
+                  </Button>
+                ) : null}
+                {inv.invoice_pdf ? (
+                  <Button asChild size="sm" variant="ghost">
+                    <a href={inv.invoice_pdf} target="_blank" rel="noreferrer">
+                      PDF
+                    </a>
+                  </Button>
+                ) : null}
+              </span>
+              <div className="w-full text-[11px] text-muted-foreground">
+                Created {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
+                {inv.paid_at ? <> · paid {formatDistanceToNow(new Date(inv.paid_at), { addSuffix: true })}</> : null}
+                {inv.due_date && !inv.paid_at ? <> · due {new Date(inv.due_date).toLocaleDateString()}</> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Best-effort default amount based on the budget label the prospect picked.
+function suggestAmount(s: AdminSubmissionRow): string {
+  const b = (s.budget ?? "").toLowerCase();
+  if (b.includes("14")) return "14000";
+  if (b.includes("10k") || b.includes("10,000")) return "10000";
+  if (b.includes("5k") || b.includes("5,000")) return "5000";
+  if (b.includes("2.5k") || b.includes("2500")) return "2500";
+  if (b.includes("1k") || b.includes("1,000")) return "1000";
+  return "";
+}
