@@ -20,6 +20,7 @@ import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
+import { PLAN_CATALOG, getPlan, planLineItems, planTotalCents, type PlanCatalogEntry } from "@/lib/plan-catalog";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 
 export const Route = createFileRoute("/_app/admin")({
@@ -90,14 +91,11 @@ interface OrgBillingSnapshot {
   invoices: OrgBillingInvoice[];
 }
 
-const PLAN_LABELS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: "free", label: "Free" },
-  { value: "starter", label: "Starter" },
-  { value: "growth", label: "Growth" },
-  { value: "pro", label: "Pro" },
-  { value: "enterprise", label: "Enterprise" },
-  { value: "ownership", label: "Ownership (host)" },
-];
+// Plan dropdown options derive from the shared catalog so the org-row
+// "Assign plan" select and the invoice "Use plan" select can never drift.
+const PLAN_LABELS: ReadonlyArray<{ value: string; label: string }> = PLAN_CATALOG.map(
+  (p) => ({ value: p.value, label: p.label }),
+);
 
 function planBadgeVariant(plan: string | null): "default" | "secondary" | "outline" | "destructive" {
   if (!plan || plan === "free") return "outline";
@@ -1017,11 +1015,37 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
+  // Plan-driven invoice. When a plan is picked, description/amount/line items
+  // come from the catalog so the invoice cannot drift from what we'll assign.
+  // "custom" lets the admin enter a one-off price (legacy behavior).
+  const [planValue, setPlanValue] = useState<string>("custom");
+  const selectedPlan: PlanCatalogEntry | null = useMemo(
+    () => (planValue === "custom" ? null : getPlan(planValue)),
+    [planValue],
+  );
+
   const [amount, setAmount] = useState<string>(() => suggestAmount(submission));
   const [description, setDescription] = useState<string>(
     `Genesis — ${submission.project_type ?? "project"}${submission.company ? ` for ${submission.company}` : ""}`,
   );
   const [dueDays, setDueDays] = useState<string>("14");
+
+  // When ON, we also call admin_set_org_plan_by_email after the invoice is
+  // created so the assignment lands in the customer's org. Defaults ON for
+  // any plan that's actually invoiceable.
+  const [assignPlan, setAssignPlan] = useState(true);
+  const [assigningPlan, setAssigningPlan] = useState(false);
+
+  // Sync the form fields whenever the plan picker changes so the admin
+  // sees what will actually be billed before pressing Send.
+  useEffect(() => {
+    if (!selectedPlan) return;
+    setAmount((planTotalCents(selectedPlan) / 100).toFixed(2));
+    setDescription(
+      `${selectedPlan.label} plan — ${submission.company ?? submission.name}`,
+    );
+  }, [selectedPlan, submission.company, submission.name]);
 
   const load = async () => {
     setLoading(true);
@@ -1057,13 +1081,44 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submission.id]);
 
-  const handleCreate = async () => {
-    const dollars = parseFloat(amount);
-    if (!isFinite(dollars) || dollars < 0.5) {
-      toast.error("Enter an amount of at least $0.50");
-      return;
+  // Shared helper — assign or remove the plan on whatever org owns this
+  // submission's email. Used both from the "Assign plan" toggle in the
+  // invoice form and the standalone Reassign / Remove controls below.
+  const setPlanForCustomer = async (plan: string): Promise<boolean> => {
+    setAssigningPlan(true);
+    const { data, error } = await supabase.rpc("admin_set_org_plan_by_email", {
+      p_email: submission.email,
+      p_plan: plan,
+    });
+    setAssigningPlan(false);
+    if (error) {
+      toast.error(error.message ?? "Failed to update plan");
+      return false;
     }
-    const cents = Math.round(dollars * 100);
+    if (!data) {
+      toast.message("No customer account found for this email yet — invoice still sent.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCreate = async () => {
+    let lineItems: { description: string; amount_cents: number; quantity?: number }[];
+    if (selectedPlan) {
+      lineItems = planLineItems(selectedPlan);
+      if (lineItems.length === 0) {
+        toast.error("This plan has no billable amount.");
+        return;
+      }
+    } else {
+      const dollars = parseFloat(amount);
+      if (!isFinite(dollars) || dollars < 0.5) {
+        toast.error("Enter an amount of at least $0.50");
+        return;
+      }
+      lineItems = [{ description, amount_cents: Math.round(dollars * 100), quantity: 1 }];
+    }
+
     setCreating(true);
     const { data, error } = await supabase.functions.invoke("create-submission-invoice", {
       body: {
@@ -1072,7 +1127,7 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
         dueDays: parseInt(dueDays, 10) || 14,
         environment: stripeEnv,
         send: true,
-        lineItems: [{ description, amount_cents: cents, quantity: 1 }],
+        lineItems,
       },
     });
     setCreating(false);
@@ -1081,6 +1136,14 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
       return;
     }
     toast.success("Invoice created and sent");
+
+    // Optionally assign the plan to the customer's org. Best-effort — if the
+    // user hasn't signed up yet, the helper returns null and we just notify.
+    if (selectedPlan && assignPlan && selectedPlan.invoiceable) {
+      const ok = await setPlanForCustomer(selectedPlan.value);
+      if (ok) toast.success(`Assigned ${selectedPlan.label} plan to ${submission.email}`);
+    }
+
     setShowForm(false);
     void load();
   };
@@ -1091,33 +1154,94 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
         <div className="text-xs font-semibold uppercase text-muted-foreground">
           Stripe Invoice {stripeEnv === "sandbox" ? <Badge variant="outline" className="ml-2 text-[10px]">test mode</Badge> : null}
         </div>
-        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? "Cancel" : invoices && invoices.length > 0 ? "+ New Invoice" : "Create Invoice"}
-        </Button>
+        <div className="flex gap-2">
+          <Select
+            disabled={assigningPlan}
+            onValueChange={(v) => {
+              if (v === "__remove__") void setPlanForCustomer("free").then((ok) => ok && toast.success("Plan removed (set to Free)"));
+              else void setPlanForCustomer(v).then((ok) => ok && toast.success(`Assigned ${getPlan(v)?.label ?? v}`));
+            }}
+          >
+            <SelectTrigger className="h-8 w-[170px] text-xs">
+              <SelectValue placeholder={assigningPlan ? "Updating…" : "Assign / remove plan"} />
+            </SelectTrigger>
+            <SelectContent>
+              {PLAN_CATALOG.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+              <SelectItem value="__remove__">Remove plan (Free)</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+            {showForm ? "Cancel" : invoices && invoices.length > 0 ? "+ New Invoice" : "Create Invoice"}
+          </Button>
+        </div>
       </div>
 
       {showForm ? (
-        <div className="grid gap-2 rounded border border-border bg-background p-3 sm:grid-cols-[1fr_120px_100px_auto]">
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description"
-          />
-          <Input
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Amount USD"
-            inputMode="decimal"
-          />
-          <Input
-            value={dueDays}
-            onChange={(e) => setDueDays(e.target.value)}
-            placeholder="Due days"
-            inputMode="numeric"
-          />
-          <Button onClick={() => void handleCreate()} disabled={creating}>
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
-          </Button>
+        <div className="space-y-2 rounded border border-border bg-background p-3">
+          <div className="grid gap-2 sm:grid-cols-[180px_1fr_120px_100px]">
+            <Select value={planValue} onValueChange={setPlanValue}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Use plan…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="custom">Custom amount</SelectItem>
+                {PLAN_CATALOG.filter((p) => p.invoiceable).map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label} — ${(planTotalCents(p) / 100).toFixed(0)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description"
+            />
+            <Input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Amount USD"
+              inputMode="decimal"
+              disabled={!!selectedPlan}
+            />
+            <Input
+              value={dueDays}
+              onChange={(e) => setDueDays(e.target.value)}
+              placeholder="Due days"
+              inputMode="numeric"
+            />
+          </div>
+
+          {selectedPlan ? (
+            <div className="rounded bg-muted/40 p-2 text-xs space-y-1">
+              <div className="font-medium">{selectedPlan.label} — {selectedPlan.tagline}</div>
+              {planLineItems(selectedPlan).map((li, i) => (
+                <div key={i} className="flex justify-between text-muted-foreground">
+                  <span>{li.description}</span>
+                  <span className="tabular-nums">${(li.amount_cents / 100).toFixed(2)}</span>
+                </div>
+              ))}
+              <label className="flex items-center gap-2 pt-1 text-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={assignPlan}
+                  onChange={(e) => setAssignPlan(e.target.checked)}
+                  className="accent-primary"
+                />
+                Also assign this plan to {submission.email} after invoice is sent
+              </label>
+            </div>
+          ) : null}
+
+          <div className="flex justify-end">
+            <Button onClick={() => void handleCreate()} disabled={creating}>
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send invoice"}
+            </Button>
+          </div>
         </div>
       ) : null}
 
