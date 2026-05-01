@@ -46,6 +46,7 @@ import { getTemplate } from "@/lib/industry-templates";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useTheme } from "@/hooks/use-theme";
 import { useSubscription } from "@/hooks/useSubscription";
+import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
