@@ -20,6 +20,7 @@ import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
+import { PLAN_CATALOG, getPlan, planLineItems, planTotalCents, type PlanCatalogEntry } from "@/lib/plan-catalog";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 
 export const Route = createFileRoute("/_app/admin")({
