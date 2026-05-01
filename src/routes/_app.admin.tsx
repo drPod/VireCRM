@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox, FileText } from "lucide-react";
+import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
@@ -52,6 +52,66 @@ interface AdminOrgRow {
   member_count: number;
   lead_count: number;
   created_at: string;
+  owner_email: string | null;
+  subscription_status: string | null;
+  subscription_price_id: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
+}
+
+interface OrgBillingSubscription {
+  id: string;
+  status: string;
+  price_id: string | null;
+  product_id: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
+  environment: string;
+  created_at: string;
+}
+
+interface OrgBillingInvoice {
+  id: string;
+  number: string | null;
+  status: string;
+  amount_due_cents: number;
+  amount_paid_cents: number;
+  currency: string;
+  hosted_invoice_url: string | null;
+  due_date: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
+interface OrgBillingSnapshot {
+  owner: { user_id: string; email: string } | null;
+  subscriptions: OrgBillingSubscription[];
+  invoices: OrgBillingInvoice[];
+}
+
+const PLAN_LABELS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "free", label: "Free" },
+  { value: "starter", label: "Starter" },
+  { value: "growth", label: "Growth" },
+  { value: "pro", label: "Pro" },
+  { value: "enterprise", label: "Enterprise" },
+  { value: "ownership", label: "Ownership (host)" },
+];
+
+function planBadgeVariant(plan: string | null): "default" | "secondary" | "outline" | "destructive" {
+  if (!plan || plan === "free") return "outline";
+  if (plan === "ownership") return "default";
+  if (plan === "enterprise" || plan === "pro") return "secondary";
+  return "outline";
+}
+
+function subStatusVariant(status: string | null | undefined): "default" | "secondary" | "destructive" | "outline" {
+  if (!status) return "outline";
+  if (status === "active" || status === "trialing") return "default";
+  if (status === "past_due" || status === "unpaid") return "destructive";
+  if (status === "canceled" || status === "incomplete_expired") return "outline";
+  return "secondary";
 }
 
 interface AdminProfileRow {
