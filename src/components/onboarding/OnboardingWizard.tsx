@@ -25,6 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { INDUSTRY_LIST, type IndustryKey, type IndustryTemplate } from "@/lib/industry-templates";
+import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 
 interface OnboardingWizardProps {
   organizationId: string;
@@ -46,11 +47,22 @@ export function OnboardingWizard({
   currentBrandColor,
   currentStrictIsolation,
 }: OnboardingWizardProps) {
-  const initialTemplate = currentIndustry
-    ? INDUSTRY_LIST.find((t) => t.key === currentIndustry) ?? null
-    : null;
-  const [step, setStep] = useState(0);
-  const [industry, setIndustry] = useState<IndustryKey | null>(currentIndustry ?? null);
+  const { isAdmin: isPlatformAdmin } = usePlatformAdmin();
+  // Non-platform-admins never get to pick a template. They start on "general"
+  // (the safe default) and the platform admin assigns the real template later
+  // from /admin. The DB trigger `guard_industry_template_change` enforces this
+  // server-side too, so even a crafted client request is rejected.
+  const lockedTemplate = !isPlatformAdmin;
+  const defaultKey: IndustryKey = (currentIndustry ?? "general") as IndustryKey;
+  const initialTemplate = lockedTemplate
+    ? INDUSTRY_LIST.find((t) => t.key === defaultKey) ?? INDUSTRY_LIST.find((t) => t.key === "general") ?? null
+    : currentIndustry
+      ? INDUSTRY_LIST.find((t) => t.key === currentIndustry) ?? null
+      : null;
+  const [step, setStep] = useState(lockedTemplate ? 1 : 0);
+  const [industry, setIndustry] = useState<IndustryKey | null>(
+    lockedTemplate ? (initialTemplate?.key ?? "general") : (currentIndustry ?? null),
+  );
   const [brandColor, setBrandColor] = useState<string>(
     currentBrandColor || initialTemplate?.theme.primary || "",
   );
