@@ -1347,7 +1347,7 @@ function TemplateAuditPanel() {
       toast.error(error.message ?? "Failed to load audit log");
       return;
     }
-    setRows((data ?? []) as TemplateAuditRow[]);
+    setRows(((data ?? []) as unknown) as TemplateAuditRow[]);
   };
 
   useEffect(() => {
