@@ -120,8 +120,8 @@ function UnsubscribePage() {
 
         {state.kind === 'done' && (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+              <CheckCircle2 className="h-6 w-6 text-success" />
             </div>
             <h1 className="text-xl font-semibold text-foreground">
               You're unsubscribed
