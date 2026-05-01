@@ -1567,6 +1567,52 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [actingId, setActingId] = useState<string | null>(null);
+
+  const runInvoiceAction = async (
+    inv: PlatformInvoiceRow,
+    action: "void" | "refund",
+  ) => {
+    let amountCents: number | undefined;
+    if (action === "void") {
+      if (!window.confirm(`Void invoice ${inv.number ?? inv.stripe_invoice_id}? The customer will no longer be able to pay it.`)) {
+        return;
+      }
+    } else {
+      const fullDollars = (inv.amount_paid_cents / 100).toFixed(2);
+      const input = window.prompt(
+        `Refund amount in ${inv.currency.toUpperCase()} (max $${fullDollars}). Leave blank for full refund.`,
+        fullDollars,
+      );
+      if (input === null) return;
+      const trimmed = input.trim();
+      if (trimmed.length > 0) {
+        const parsed = Number.parseFloat(trimmed);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          toast.error("Invalid refund amount");
+          return;
+        }
+        amountCents = Math.round(parsed * 100);
+      }
+    }
+
+    setActingId(inv.id);
+    const { data, error } = await supabase.functions.invoke("admin-invoice-action", {
+      body: { invoiceId: inv.id, action, amountCents },
+    });
+    setActingId(null);
+
+    if (error || (data as { error?: string } | null)?.error) {
+      const msg =
+        (data as { error?: string } | null)?.error ||
+        error?.message ||
+        "Action failed";
+      toast.error(msg);
+      return;
+    }
+    toast.success(action === "void" ? "Invoice voided" : "Refund issued");
+    void load();
+  };
 
   // Plan-driven invoice. When a plan is picked, description/amount/line items
   // come from the catalog so the invoice cannot drift from what we'll assign.
@@ -1834,6 +1880,28 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                     <a href={inv.invoice_pdf} target="_blank" rel="noreferrer">
                       PDF
                     </a>
+                  </Button>
+                ) : null}
+                {inv.status !== "void" && inv.status !== "paid" && inv.status !== "refunded" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    disabled={actingId === inv.id}
+                    onClick={() => void runInvoiceAction(inv, "void")}
+                  >
+                    {actingId === inv.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Void"}
+                  </Button>
+                ) : null}
+                {inv.amount_paid_cents > 0 && inv.status !== "refunded" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-amber-400 hover:text-amber-300"
+                    disabled={actingId === inv.id}
+                    onClick={() => void runInvoiceAction(inv, "refund")}
+                  >
+                    {actingId === inv.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Refund"}
                   </Button>
                 ) : null}
               </span>
