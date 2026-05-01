@@ -503,6 +503,7 @@ function ContactSubmissionsPanel() {
     );
   };
 
+  // Mailto invoice flow stayed handy for non-Stripe customers.
   const buildInvoiceMailto = (s: AdminSubmissionRow) => {
     const subject = `Genesis — Invoice for your ${s.project_type ?? "project"}`;
     const body = [
