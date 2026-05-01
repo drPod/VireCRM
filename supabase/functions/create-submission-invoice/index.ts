@@ -70,11 +70,34 @@ Deno.serve(async (req) => {
     const stripe = createStripeClient(env);
     const currency = (body.currency || "usd").toLowerCase();
 
-    // Idempotent customer lookup by email on the platform account
-    const existing = await stripe.customers.list({ email: sub.email, limit: 1 });
-    const customer =
-      existing.data[0] ??
-      (await stripe.customers.create({
+    // 1) Prefer our mapping table (per-environment) so repeat submissions
+    //    from the same email always reuse the same Stripe customer.
+    // 2) Fall back to a Stripe email lookup, then create as a last resort.
+    let customer: { id: string } | null = null;
+
+    const { data: mapped } = await supabase
+      .from("submission_stripe_customers")
+      .select("stripe_customer_id")
+      .eq("email", sub.email)
+      .eq("environment", env)
+      .maybeSingle();
+
+    if (mapped?.stripe_customer_id) {
+      try {
+        const c = await stripe.customers.retrieve(mapped.stripe_customer_id);
+        if (c && !(c as { deleted?: boolean }).deleted) customer = c as { id: string };
+      } catch (_e) {
+        customer = null; // stripe customer was deleted — recreate below
+      }
+    }
+
+    if (!customer) {
+      const existing = await stripe.customers.list({ email: sub.email, limit: 1 });
+      customer = existing.data[0] ?? null;
+    }
+
+    if (!customer) {
+      customer = await stripe.customers.create({
         email: sub.email,
         name: sub.name || undefined,
         metadata: {
@@ -82,7 +105,20 @@ Deno.serve(async (req) => {
           source: "contact_submission",
           ...(sub.company ? { company: sub.company } : {}),
         },
-      }));
+      });
+    }
+
+    // Persist / refresh the mapping so subsequent submissions reuse it.
+    await supabase.from("submission_stripe_customers").upsert(
+      {
+        email: sub.email,
+        environment: env,
+        stripe_customer_id: customer.id,
+        first_submission_id: sub.id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "email,environment" },
+    );
 
     // Draft invoice with metadata so the webhook can match it back
     const invoice = await stripe.invoices.create({
