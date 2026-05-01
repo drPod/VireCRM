@@ -4601,6 +4601,10 @@ export type Database = {
         Args: { p_org_id: string; p_plan: string }
         Returns: Json
       }
+      admin_set_org_plan_by_email: {
+        Args: { p_email: string; p_plan: string }
+        Returns: Json
+      }
       apply_credit_plan: {
         Args: { p_org_id: string; p_price_key: string }
         Returns: Json
