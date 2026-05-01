@@ -343,6 +343,11 @@
 
 .page-transition {
   animation: page-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Promote to its own compositor layer so the fade/slide is GPU-only
+     and doesn't repaint the heavy CRM page below it on each frame. */
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Subtle staggered entrance for cards / list items */
@@ -359,10 +364,14 @@
 
 .animate-rise-in {
   animation: rise-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
 }
 
-/* Use with inline style="--stagger:1" up to 8 to delay items in a grid/list */
-[style*="--stagger"] {
+/* Use with inline style="--stagger:1" up to 8 to delay items in a grid/list.
+   Scoped to .animate-rise-in only — otherwise this `[style*="--stagger"]`
+   rule leaks animation-delay onto unrelated elements (loaders with
+   animate-spin, skeletons with animate-pulse) and breaks them. */
+.animate-rise-in[style*="--stagger"] {
   animation-delay: calc(var(--stagger) * 50ms);
 }
 
@@ -397,13 +406,15 @@
   animation: shimmer 1.6s linear infinite;
 }
 
-/* Universal hover-lift utility for cards and tiles */
+/* Universal hover-lift utility for cards and tiles. transform-only +
+   box-shadow keeps it on the compositor — no layout reflow on hover. */
 .hover-lift {
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
               box-shadow 220ms ease;
+  will-change: transform;
 }
 .hover-lift:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) translateZ(0);
   box-shadow: 0 10px 30px -12px color-mix(in oklch, var(--color-primary) 25%, transparent);
 }
 
