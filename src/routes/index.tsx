@@ -11,7 +11,7 @@ import { SocialProofSection } from "@/components/marketing/SocialProofSection";
 import { CtaSection } from "@/components/marketing/CtaSection";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 import { BrandedSignup } from "@/components/marketing/BrandedSignup";
-import { Loader2 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
