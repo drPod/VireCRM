@@ -25,6 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { INDUSTRY_LIST, type IndustryKey, type IndustryTemplate } from "@/lib/industry-templates";
+import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 
 interface OnboardingWizardProps {
   organizationId: string;
@@ -46,11 +47,22 @@ export function OnboardingWizard({
   currentBrandColor,
   currentStrictIsolation,
 }: OnboardingWizardProps) {
-  const initialTemplate = currentIndustry
-    ? INDUSTRY_LIST.find((t) => t.key === currentIndustry) ?? null
-    : null;
-  const [step, setStep] = useState(0);
-  const [industry, setIndustry] = useState<IndustryKey | null>(currentIndustry ?? null);
+  const { isAdmin: isPlatformAdmin } = usePlatformAdmin();
+  // Non-platform-admins never get to pick a template. They start on "general"
+  // (the safe default) and the platform admin assigns the real template later
+  // from /admin. The DB trigger `guard_industry_template_change` enforces this
+  // server-side too, so even a crafted client request is rejected.
+  const lockedTemplate = !isPlatformAdmin;
+  const defaultKey: IndustryKey = (currentIndustry ?? "general") as IndustryKey;
+  const initialTemplate = lockedTemplate
+    ? INDUSTRY_LIST.find((t) => t.key === defaultKey) ?? INDUSTRY_LIST.find((t) => t.key === "general") ?? null
+    : currentIndustry
+      ? INDUSTRY_LIST.find((t) => t.key === currentIndustry) ?? null
+      : null;
+  const [step, setStep] = useState(lockedTemplate ? 1 : 0);
+  const [industry, setIndustry] = useState<IndustryKey | null>(
+    lockedTemplate ? (initialTemplate?.key ?? "general") : (currentIndustry ?? null),
+  );
   const [brandColor, setBrandColor] = useState<string>(
     currentBrandColor || initialTemplate?.theme.primary || "",
   );
@@ -90,21 +102,27 @@ export function OnboardingWizard({
     if (!selectedTemplate) return;
     setSaving(true);
     try {
+      // Non-platform-admins can't touch industry_template or enabled_modules —
+      // the DB trigger would reject it anyway. They get color + privacy + a
+      // completion stamp; the platform admin assigns the real template later.
+      const patch: Record<string, unknown> = {
+        primary_color: brandColor || selectedTemplate.theme.primary,
+        accent_color: selectedTemplate.theme.accent,
+        sidebar_color: selectedTemplate.theme.sidebar,
+        strict_lead_isolation: strictIsolation,
+        onboarding_completed_at: new Date().toISOString(),
+      };
+      if (!lockedTemplate) {
+        patch.industry_template = selectedTemplate.key;
+        patch.enabled_modules = selectedTemplate.defaultModules;
+      }
       const { error } = await supabase
         .from("organizations")
-        .update({
-          industry_template: selectedTemplate.key,
-          enabled_modules: selectedTemplate.defaultModules,
-          primary_color: brandColor || selectedTemplate.theme.primary,
-          accent_color: selectedTemplate.theme.accent,
-          sidebar_color: selectedTemplate.theme.sidebar,
-          strict_lead_isolation: strictIsolation,
-          onboarding_completed_at: new Date().toISOString(),
-        })
+        .update(patch as never)
         .eq("id", organizationId);
 
       if (error) throw error;
-      toast.success(`${selectedTemplate.name} workspace ready`);
+      toast.success(lockedTemplate ? "Workspace ready" : `${selectedTemplate.name} workspace ready`);
       onComplete();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save setup");
@@ -125,11 +143,13 @@ export function OnboardingWizard({
             {step === 1 && "Pick your brand color"}
             {step === 2 && "Lead privacy"}
           </DialogTitle>
-          <DialogDescription>Step {step + 1} of 3 — only owners see this setup.</DialogDescription>
+          <DialogDescription>
+            Step {lockedTemplate ? step : step + 1} of {lockedTemplate ? 2 : 3} — only owners see this setup.
+          </DialogDescription>
         </DialogHeader>
 
-        {/* Step 0 — industry template */}
-        {step === 0 && (
+        {/* Step 0 — industry template (platform admin only) */}
+        {step === 0 && !lockedTemplate && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             {INDUSTRY_LIST.map((tmpl) => (
               <button
@@ -160,8 +180,12 @@ export function OnboardingWizard({
         {step === 1 && selectedTemplate && (
           <div className="space-y-4 mt-2">
             <p className="text-sm text-muted-foreground">
-              Default color for <strong>{selectedTemplate.name}</strong>. Override it to match your brand
-              — applies to buttons, links, and the sidebar accent.
+              {lockedTemplate ? (
+                <>Pick your brand color — applies to buttons, links, and the sidebar accent.</>
+              ) : (
+                <>Default color for <strong>{selectedTemplate.name}</strong>. Override it to match your brand
+                — applies to buttons, links, and the sidebar accent.</>
+              )}
             </p>
             <div className="flex items-center gap-3">
               <Input
@@ -185,7 +209,7 @@ export function OnboardingWizard({
               </Button>
             </div>
             <div className="flex justify-between">
-              <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>
+              {lockedTemplate ? <span /> : <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>}
               <Button onClick={() => setStep(2)}>Continue</Button>
             </div>
           </div>

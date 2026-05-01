@@ -85,7 +85,7 @@ function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="branding" className="space-y-6">
-          <IndustryTemplatePanel />
+          {isPlatformAdmin && <IndustryTemplatePanel />}
           <WhiteLabelSettings />
         </TabsContent>
 
