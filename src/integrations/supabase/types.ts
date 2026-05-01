@@ -3902,6 +3902,44 @@ export type Database = {
         }
         Relationships: []
       }
+      submission_stripe_customers: {
+        Row: {
+          created_at: string
+          email: string
+          environment: string
+          first_submission_id: string | null
+          id: string
+          stripe_customer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          environment?: string
+          first_submission_id?: string | null
+          id?: string
+          stripe_customer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          environment?: string
+          first_submission_id?: string | null
+          id?: string
+          stripe_customer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_stripe_customers_first_submission_id_fkey"
+            columns: ["first_submission_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           attributed_reseller_id: string | null
@@ -4658,6 +4696,10 @@ export type Database = {
       }
       admin_set_org_plan_by_email: {
         Args: { p_email: string; p_plan: string }
+        Returns: Json
+      }
+      admin_submission_payment_history: {
+        Args: { p_submission_id: string }
         Returns: Json
       }
       apply_credit_plan: {
