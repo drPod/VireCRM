@@ -60,6 +60,7 @@ import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppAppointmentsRouteImport } from './routes/_app.appointments'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
+import { Route as AppAdminRouteImport } from './routes/_app.admin'
 import { Route as AppAcademyRouteImport } from './routes/_app.academy'
 import { Route as RResellerSlugIndexRouteImport } from './routes/r.$resellerSlug.index'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
@@ -350,6 +351,11 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   path: '/advisor',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAcademyRoute = AppAcademyRouteImport.update({
   id: '/academy',
   path: '/academy',
@@ -548,6 +554,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/academy': typeof AppAcademyRouteWithChildren
+  '/admin': typeof AppAdminRoute
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
   '/appointments': typeof AppAppointmentsRoute
@@ -634,6 +641,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/academy': typeof AppAcademyRouteWithChildren
+  '/admin': typeof AppAdminRoute
   '/advisor': typeof AppAdvisorRoute
   '/analytics': typeof AppAnalyticsRoute
   '/appointments': typeof AppAppointmentsRoute
@@ -722,6 +730,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/_app/academy': typeof AppAcademyRouteWithChildren
+  '/_app/admin': typeof AppAdminRoute
   '/_app/advisor': typeof AppAdvisorRoute
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/appointments': typeof AppAppointmentsRoute
@@ -810,6 +819,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/academy'
+    | '/admin'
     | '/advisor'
     | '/analytics'
     | '/appointments'
@@ -896,6 +906,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/academy'
+    | '/admin'
     | '/advisor'
     | '/analytics'
     | '/appointments'
@@ -983,6 +994,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/_app/academy'
+    | '/_app/admin'
     | '/_app/advisor'
     | '/_app/analytics'
     | '/_app/appointments'
@@ -1452,6 +1464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/academy': {
       id: '/_app/academy'
       path: '/academy'
@@ -1807,6 +1826,7 @@ const AppSolarRouteWithChildren = AppSolarRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppAcademyRoute: typeof AppAcademyRouteWithChildren
+  AppAdminRoute: typeof AppAdminRoute
   AppAdvisorRoute: typeof AppAdvisorRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppAppointmentsRoute: typeof AppAppointmentsRoute
@@ -1842,6 +1862,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAcademyRoute: AppAcademyRouteWithChildren,
+  AppAdminRoute: AppAdminRoute,
   AppAdvisorRoute: AppAdvisorRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppAppointmentsRoute: AppAppointmentsRoute,
