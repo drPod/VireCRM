@@ -12,9 +12,11 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:visual": "playwright test",
-    "test:visual:update": "playwright test --update-snapshots",
+    "test:visual": "playwright test tests/visual",
+    "test:visual:update": "playwright test tests/visual --update-snapshots",
     "test:visual:ui": "playwright test --ui",
+    "test:e2e": "playwright test tests/e2e",
+    "test:e2e:industry": "playwright test tests/e2e/industry-switching.spec.ts",
     "clean": "rm -rf node_modules/.vite node_modules/.cache .tanstack dist .vinxi src/routeTree.gen.ts tsconfig.tsbuildinfo .tsbuildinfo",
     "typecheck": "tsc --noEmit",
     "typecheck:fresh": "bun run clean && tsc --noEmit"

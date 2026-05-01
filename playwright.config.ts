@@ -4,7 +4,7 @@ const PORT = Number(process.env.QA_PORT ?? 4173);
 const BASE_URL = process.env.QA_BASE_URL ?? `http://localhost:${PORT}`;
 
 export default defineConfig({
-  testDir: "./tests/visual",
+  testDir: "./tests",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
