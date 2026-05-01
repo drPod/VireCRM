@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getTemplate, type IndustryKey } from "@/lib/industry-templates";
+import { bucketLeadsByStage } from "@/lib/pipeline-counts";
 import { Button } from "@/components/ui/button";
 
 export interface IndustryHubProps {
@@ -47,19 +48,10 @@ export function IndustryHub({ industry }: IndustryHubProps) {
         setLoading(false);
         return;
       }
-      const stageSet = new Set(template.pipelineStages.map((s) => s.toLowerCase()));
-      const next: Record<string, number> = Object.fromEntries(
-        template.pipelineStages.map((s) => [s, 0]),
+      const { counts: next, unmapped: other } = bucketLeadsByStage(
+        data ?? [],
+        template.pipelineStages,
       );
-      let other = 0;
-      for (const row of data ?? []) {
-        const status = (row.status ?? "").trim();
-        const match = template.pipelineStages.find(
-          (s) => s.toLowerCase() === status.toLowerCase(),
-        );
-        if (match) next[match] += 1;
-        else if (status && !stageSet.has(status.toLowerCase())) other += 1;
-      }
       setCounts(next);
       setUnmapped(other);
       setLoading(false);
