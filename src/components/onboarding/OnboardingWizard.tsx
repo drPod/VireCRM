@@ -239,9 +239,13 @@ export function OnboardingWizard({
             <div className="rounded-lg border border-border p-4 bg-card space-y-2">
               <p className="text-sm font-semibold text-foreground">Setup summary</p>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Industry: <strong className="text-foreground">{selectedTemplate.name}</strong></div>
+                {!lockedTemplate && (
+                  <>
+                    <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Industry: <strong className="text-foreground">{selectedTemplate.name}</strong></div>
+                    <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Modules enabled: <strong className="text-foreground">{selectedTemplate.defaultModules.length}</strong></div>
+                  </>
+                )}
                 <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Brand color: <span className="font-mono text-foreground">{brandColor}</span></div>
-                <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Modules enabled: <strong className="text-foreground">{selectedTemplate.defaultModules.length}</strong></div>
                 <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Lead privacy: <strong className="text-foreground">{strictIsolation ? "Strict (per-user)" : "Shared (org-wide)"}</strong></div>
               </div>
             </div>
