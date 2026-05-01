@@ -1348,6 +1348,7 @@ function ContactSubmissionsPanel() {
                                     Replied {formatDistanceToNow(new Date(s.replied_at), { addSuffix: true })}
                                   </div>
                                 ) : null}
+                                <SubmissionPaymentHistory submission={s} />
                                 <SubmissionInvoicePanel submission={s} />
                               </div>
                             </div>
