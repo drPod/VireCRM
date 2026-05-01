@@ -4203,6 +4203,59 @@ export type Database = {
           },
         ]
       }
+      template_assignment_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_is_platform_admin: boolean
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          new_template: string | null
+          old_template: string | null
+          organization_id: string | null
+          reason: string | null
+          source: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_is_platform_admin?: boolean
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          new_template?: string | null
+          old_template?: string | null
+          organization_id?: string | null
+          reason?: string | null
+          source?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_is_platform_admin?: boolean
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          new_template?: string | null
+          old_template?: string | null
+          organization_id?: string | null
+          reason?: string | null
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_assignment_audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount_cents: number
@@ -4592,6 +4645,7 @@ export type Database = {
           subscription_status: string
         }[]
       }
+      admin_list_template_audit: { Args: { p_limit?: number }; Returns: Json }
       admin_org_billing: { Args: { p_org_id: string }; Returns: Json }
       admin_set_org_industry: {
         Args: { p_industry: string; p_org_id: string }
