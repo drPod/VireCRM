@@ -1882,6 +1882,28 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                     </a>
                   </Button>
                 ) : null}
+                {inv.status !== "void" && inv.status !== "paid" && inv.status !== "refunded" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    disabled={actingId === inv.id}
+                    onClick={() => void runInvoiceAction(inv, "void")}
+                  >
+                    {actingId === inv.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Void"}
+                  </Button>
+                ) : null}
+                {inv.amount_paid_cents > 0 && inv.status !== "refunded" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-amber-400 hover:text-amber-300"
+                    disabled={actingId === inv.id}
+                    onClick={() => void runInvoiceAction(inv, "refund")}
+                  >
+                    {actingId === inv.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Refund"}
+                  </Button>
+                ) : null}
               </span>
               <div className="w-full text-[11px] text-muted-foreground">
                 Created {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
