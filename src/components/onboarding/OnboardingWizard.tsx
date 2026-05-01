@@ -180,8 +180,12 @@ export function OnboardingWizard({
         {step === 1 && selectedTemplate && (
           <div className="space-y-4 mt-2">
             <p className="text-sm text-muted-foreground">
-              Default color for <strong>{selectedTemplate.name}</strong>. Override it to match your brand
-              — applies to buttons, links, and the sidebar accent.
+              {lockedTemplate ? (
+                <>Pick your brand color — applies to buttons, links, and the sidebar accent.</>
+              ) : (
+                <>Default color for <strong>{selectedTemplate.name}</strong>. Override it to match your brand
+                — applies to buttons, links, and the sidebar accent.</>
+              )}
             </p>
             <div className="flex items-center gap-3">
               <Input
@@ -205,7 +209,7 @@ export function OnboardingWizard({
               </Button>
             </div>
             <div className="flex justify-between">
-              <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>
+              {lockedTemplate ? <span /> : <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>}
               <Button onClick={() => setStep(2)}>Continue</Button>
             </div>
           </div>
