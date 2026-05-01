@@ -652,11 +652,11 @@ function ContactSubmissionsPanel() {
                                   </>
                                 ) : null}
                                 <div className="flex flex-wrap gap-2 pt-3">
-                                  <Button asChild size="sm">
-                                    <a href={buildInvoiceMailto(s)}>Send Invoice</a>
-                                  </Button>
                                   <Button asChild size="sm" variant="outline">
                                     <a href={`mailto:${s.email}`}>Reply</a>
+                                  </Button>
+                                  <Button asChild size="sm" variant="ghost">
+                                    <a href={buildInvoiceMailto(s)}>Email Invoice (manual)</a>
                                   </Button>
                                   <Button
                                     size="sm"
@@ -680,6 +680,7 @@ function ContactSubmissionsPanel() {
                                     Replied {formatDistanceToNow(new Date(s.replied_at), { addSuffix: true })}
                                   </div>
                                 ) : null}
+                                <SubmissionInvoicePanel submission={s} />
                               </div>
                             </div>
                           </TableCell>
