@@ -4576,19 +4576,29 @@ export type Database = {
       admin_list_organizations: {
         Args: never
         Returns: {
+          cancel_at_period_end: boolean
           created_at: string
+          current_period_end: string
           id: string
           industry_template: string
           is_reseller: boolean
           lead_count: number
           member_count: number
           name: string
+          owner_email: string
           plan: string
           slug: string
+          subscription_price_id: string
+          subscription_status: string
         }[]
       }
+      admin_org_billing: { Args: { p_org_id: string }; Returns: Json }
       admin_set_org_industry: {
         Args: { p_industry: string; p_org_id: string }
+        Returns: Json
+      }
+      admin_set_org_plan: {
+        Args: { p_org_id: string; p_plan: string }
         Returns: Json
       }
       apply_credit_plan: {
