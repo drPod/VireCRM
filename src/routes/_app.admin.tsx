@@ -286,7 +286,7 @@ function OrganizationsPanel() {
                                   <Loader2 className="h-3 w-3 animate-spin" /> Saving…
                                 </span>
                               ) : (
-                                tpl?.label ?? org.industry_template ?? "General"
+                                tpl?.name ?? org.industry_template ?? "General"
                               )}
                             </SelectValue>
                           </SelectTrigger>
