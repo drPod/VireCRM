@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink } from "lucide-react";
+import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink, DollarSign, TrendingUp, Activity, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
@@ -191,8 +191,11 @@ function AdminConsole() {
         </Badge>
       </div>
 
-      <Tabs defaultValue="orgs" className="w-full">
+      <Tabs defaultValue="financials" className="w-full">
         <TabsList>
+          <TabsTrigger value="financials" className="gap-2">
+            <DollarSign className="h-4 w-4" /> Financials
+          </TabsTrigger>
           <TabsTrigger value="orgs" className="gap-2">
             <Building2 className="h-4 w-4" /> Organizations
           </TabsTrigger>
@@ -210,6 +213,9 @@ function AdminConsole() {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="financials" className="mt-6">
+          <FinancialsPanel />
+        </TabsContent>
         <TabsContent value="orgs" className="mt-6">
           <OrganizationsPanel />
         </TabsContent>
@@ -226,6 +232,382 @@ function AdminConsole() {
           <TemplateAuditPanel />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+/* --------------------------- Financials Panel ---------------------------- */
+
+interface FinancialOverview {
+  subscriptions: {
+    total: number;
+    active: number;
+    trialing: number;
+    past_due: number;
+    canceled: number;
+    new_this_month: number;
+    ending_soon: number;
+  };
+  invoices: {
+    total: number;
+    paid_count: number;
+    outstanding_count: number;
+    void_count: number;
+    new_this_month: number;
+    paid_cents_total: number;
+    paid_cents_this_month: number;
+    outstanding_cents: number;
+  };
+  organizations: {
+    total: number;
+    new_this_month: number;
+    resellers: number;
+    paying: number;
+  };
+  users: { total: number; new_this_month: number };
+  recent_invoices: Array<{
+    id: string;
+    customer_email: string;
+    customer_name: string | null;
+    amount_due_cents: number;
+    amount_paid_cents: number;
+    currency: string;
+    status: string;
+    number: string | null;
+    hosted_invoice_url: string | null;
+    created_at: string;
+    paid_at: string | null;
+  }>;
+  recent_subscriptions: Array<{
+    id: string;
+    user_id: string;
+    email: string | null;
+    product_id: string;
+    price_id: string;
+    status: string;
+    current_period_end: string | null;
+    cancel_at_period_end: boolean | null;
+    created_at: string;
+    environment: string;
+  }>;
+  plan_breakdown: Record<string, number>;
+  generated_at: string;
+}
+
+function formatMoney(cents: number, currency = "usd") {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+      minimumFractionDigits: 2,
+    }).format((cents || 0) / 100);
+  } catch {
+    return `$${((cents || 0) / 100).toFixed(2)}`;
+  }
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  accent,
+}: {
+  icon: typeof DollarSign;
+  label: string;
+  value: string;
+  hint?: string;
+  accent?: "primary" | "success" | "warning" | "muted";
+}) {
+  const accentClass =
+    accent === "success"
+      ? "text-emerald-400"
+      : accent === "warning"
+        ? "text-amber-400"
+        : accent === "muted"
+          ? "text-muted-foreground"
+          : "text-primary";
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+          <Icon className={`h-4 w-4 ${accentClass}`} />
+        </div>
+        <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
+        {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FinancialsPanel() {
+  const [data, setData] = useState<FinancialOverview | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    const { data: res, error: err } = await supabase.rpc("admin_financial_overview");
+    if (err) {
+      setError(err.message);
+      toast.error("Failed to load financial overview", { description: err.message });
+    } else {
+      setData(res as unknown as FinancialOverview);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // realtime updates
+    const channel = supabase
+      .channel("admin-financials")
+      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "platform_invoices" }, () => load())
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (loading && !data) {
+    return (
+      <div className="flex items-center justify-center py-16 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button onClick={load} variant="outline" size="sm" className="mt-3 gap-2">
+            <RefreshCw className="h-4 w-4" /> Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) return null;
+
+  const { subscriptions: s, invoices: inv, organizations: orgs, users: usr } = data;
+  const planEntries = Object.entries(data.plan_breakdown || {}).sort((a, b) => b[1] - a[1]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Financial overview</h2>
+          <p className="text-xs text-muted-foreground">
+            Live snapshot · updated {formatDistanceToNow(new Date(data.generated_at), { addSuffix: true })}
+          </p>
+        </div>
+        <Button onClick={load} variant="outline" size="sm" className="gap-2" disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Refresh
+        </Button>
+      </div>
+
+      {/* Revenue row */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={DollarSign}
+          label="Revenue (this month)"
+          value={formatMoney(inv.paid_cents_this_month)}
+          hint={`${inv.new_this_month} new invoice${inv.new_this_month === 1 ? "" : "s"}`}
+          accent="success"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Revenue (all time)"
+          value={formatMoney(inv.paid_cents_total)}
+          hint={`${inv.paid_count} paid invoice${inv.paid_count === 1 ? "" : "s"}`}
+        />
+        <StatCard
+          icon={Receipt}
+          label="Outstanding"
+          value={formatMoney(inv.outstanding_cents)}
+          hint={`${inv.outstanding_count} unpaid`}
+          accent="warning"
+        />
+        <StatCard
+          icon={FileText}
+          label="Total invoices"
+          value={String(inv.total)}
+          hint={`${inv.void_count} voided`}
+          accent="muted"
+        />
+      </div>
+
+      {/* Subscribers + customers row */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={Activity}
+          label="Active subscribers"
+          value={String(s.active)}
+          hint={`${s.trialing} trialing · ${s.past_due} past due`}
+          accent="success"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="New subscribers (this month)"
+          value={String(s.new_this_month)}
+          hint={s.ending_soon > 0 ? `${s.ending_soon} ending soon` : "No cancellations queued"}
+        />
+        <StatCard
+          icon={Users}
+          label="Active users"
+          value={String(usr.total)}
+          hint={`+${usr.new_this_month} this month`}
+        />
+        <StatCard
+          icon={Building2}
+          label="Customer orgs"
+          value={String(orgs.total)}
+          hint={`${orgs.paying} paying · ${orgs.resellers} resellers`}
+        />
+      </div>
+
+      {/* Plan breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Plan distribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {planEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No plans assigned yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {planEntries.map(([plan, count]) => (
+                <Badge key={plan} variant={planBadgeVariant(plan)} className="gap-1">
+                  {plan}
+                  <span className="opacity-70">· {count}</span>
+                </Badge>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent invoices */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Recent invoices</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {data.recent_invoices.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-muted-foreground">No invoices yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Number</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Stripe</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.recent_invoices.map((iv) => (
+                  <TableRow key={iv.id}>
+                    <TableCell>
+                      <div className="font-medium text-foreground">{iv.customer_name || iv.customer_email}</div>
+                      <div className="text-xs text-muted-foreground">{iv.customer_email}</div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{iv.number || "—"}</TableCell>
+                    <TableCell>
+                      <div className="font-medium text-foreground">{formatMoney(iv.amount_due_cents, iv.currency)}</div>
+                      {iv.amount_paid_cents > 0 && iv.amount_paid_cents !== iv.amount_due_cents && (
+                        <div className="text-xs text-emerald-400">
+                          paid {formatMoney(iv.amount_paid_cents, iv.currency)}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(iv.status)}>{iv.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(iv.created_at), { addSuffix: true })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {iv.hosted_invoice_url ? (
+                        <a
+                          href={iv.hosted_invoice_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          Open <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent subscribers */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Recent subscribers</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {data.recent_subscriptions.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-muted-foreground">No subscriptions yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Plan / Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Renews</TableHead>
+                  <TableHead>Env</TableHead>
+                  <TableHead>Started</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.recent_subscriptions.map((sub) => (
+                  <TableRow key={sub.id}>
+                    <TableCell className="font-medium text-foreground">{sub.email || sub.user_id.slice(0, 8)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{sub.price_id}</TableCell>
+                    <TableCell>
+                      <Badge variant={subStatusVariant(sub.status)}>{sub.status}</Badge>
+                      {sub.cancel_at_period_end && (
+                        <Badge variant="outline" className="ml-1 text-[10px]">cancels</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {sub.current_period_end
+                        ? formatDistanceToNow(new Date(sub.current_period_end), { addSuffix: true })
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px]">{sub.environment}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(sub.created_at), { addSuffix: true })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
