@@ -686,6 +686,7 @@ export type Database = {
           origin: string | null
           phone: string | null
           priority_suggestion: string | null
+          project_type: string | null
           replied_at: string | null
           sentiment: string | null
           status: string
@@ -713,6 +714,7 @@ export type Database = {
           origin?: string | null
           phone?: string | null
           priority_suggestion?: string | null
+          project_type?: string | null
           replied_at?: string | null
           sentiment?: string | null
           status?: string
@@ -740,6 +742,7 @@ export type Database = {
           origin?: string | null
           phone?: string | null
           priority_suggestion?: string | null
+          project_type?: string | null
           replied_at?: string | null
           sentiment?: string | null
           status?: string

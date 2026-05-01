@@ -38,12 +38,24 @@ function getTestModeConfig(): { enabled: boolean; inbox: string | null } {
   return { enabled, inbox }
 }
 
+const PROJECT_TYPES = [
+  'custom-crm',
+  'white-label',
+  'full-ownership',
+  'enterprise',
+  'integration',
+  'other',
+] as const
+
 const ContactSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
   email: z.string().trim().email('Invalid email').max(255).toLowerCase(),
   company: z.string().trim().max(200).optional().nullable(),
   phone: z.string().trim().max(50).optional().nullable(),
   budget: z.string().trim().max(50).optional().nullable(),
+  // Optional analytics signal — what kind of engagement the visitor selected.
+  // Stored on its own column so reports can group submissions over time.
+  projectType: z.enum(PROJECT_TYPES).optional().nullable(),
   message: z.string().trim().min(1, 'Message is required').max(4000),
   // Honeypot — real users leave it empty. Bots fill it in.
   website: z.string().max(0).optional().nullable(),
@@ -269,6 +281,7 @@ export const Route = createFileRoute('/api/public/contact')({
             company: payload.company || null,
             phone: payload.phone || null,
             budget: payload.budget || null,
+            project_type: payload.projectType || null,
             message: payload.message,
             ip_address: ip === 'unknown' ? null : ip,
             user_agent: userAgent,
@@ -279,6 +292,7 @@ export const Route = createFileRoute('/api/public/contact')({
             metadata: {
               intended_recipient: testMode.enabled ? intendedRecipient : undefined,
               dedup_hash: messageHash,
+              project_type: payload.projectType || undefined,
             },
           } as any)
           .select('id')
