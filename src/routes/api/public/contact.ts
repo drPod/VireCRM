@@ -281,6 +281,7 @@ export const Route = createFileRoute('/api/public/contact')({
             company: payload.company || null,
             phone: payload.phone || null,
             budget: payload.budget || null,
+            project_type: payload.projectType || null,
             message: payload.message,
             ip_address: ip === 'unknown' ? null : ip,
             user_agent: userAgent,
@@ -291,6 +292,7 @@ export const Route = createFileRoute('/api/public/contact')({
             metadata: {
               intended_recipient: testMode.enabled ? intendedRecipient : undefined,
               dedup_hash: messageHash,
+              project_type: payload.projectType || undefined,
             },
           } as any)
           .select('id')
