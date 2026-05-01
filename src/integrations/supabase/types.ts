@@ -4626,6 +4626,7 @@ export type Database = {
         Args: { p_hostname: string; p_org_id: string }
         Returns: Json
       }
+      admin_financial_overview: { Args: never; Returns: Json }
       admin_list_organizations: {
         Args: never
         Returns: {
