@@ -83,3 +83,29 @@ screenshot diffs (see `tests/visual/`).
 - Manual pass: ___ (name, date)
 - Visual diff pass: `bun run test:visual` green
 - Lighthouse mobile ≥ 90 perf / 100 a11y on `/`, `/pricing`, `/book/demo`
+
+## Industry switching E2E (`tests/e2e/industry-switching.spec.ts`)
+
+Cycles the seeded test org through Energy → Solar → Real Estate → Insurance and
+asserts, for each:
+
+1. **Sidebar gating** — only the active industry's hub link is rendered;
+   stale hubs from other industries are gone.
+2. **Hub route** — clicking the hub link lands on `/energy`, `/solar`,
+   `/real-estate`, or `/insurance` and shows the expected H1.
+3. **Pipeline counts** — every stage in the template's `pipelineStages`
+   renders, and the bucketed total never exceeds the org's total leads
+   (guards against the old `ilike` substring double-counting bug).
+
+Run locally:
+
+```bash
+QA_BASE_URL=https://genesisxsx.lovable.app \
+QA_TEST_EMAIL=... QA_TEST_PASSWORD=... QA_TEST_ORG_ID=... \
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+bun run test:e2e:industry
+```
+
+The suite snapshots the org's original `industry_template` + `enabled_modules`
+in `beforeAll` and restores them in `afterAll`, so it is safe to run against
+a long-lived test org.
