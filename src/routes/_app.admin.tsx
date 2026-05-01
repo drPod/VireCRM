@@ -483,7 +483,7 @@ function ContactSubmissionsPanel() {
 
   const setStatus = async (id: string, status: string) => {
     setSavingId(id);
-    const patch: Record<string, unknown> = { status };
+    const patch: { status: string; replied_at?: string } = { status };
     if (status === "replied") patch.replied_at = new Date().toISOString();
     const { error } = await supabase.from("contact_submissions").update(patch).eq("id", id);
     setSavingId(null);
