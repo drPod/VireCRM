@@ -3149,6 +3149,27 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pricing_requests: {
         Row: {
           assigned_to: string | null
@@ -4466,6 +4487,24 @@ export type Database = {
         Args: { p_hostname: string; p_org_id: string }
         Returns: Json
       }
+      admin_list_organizations: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          industry_template: string
+          is_reseller: boolean
+          lead_count: number
+          member_count: number
+          name: string
+          plan: string
+          slug: string
+        }[]
+      }
+      admin_set_org_industry: {
+        Args: { p_industry: string; p_org_id: string }
+        Returns: Json
+      }
       apply_credit_plan: {
         Args: { p_org_id: string; p_price_key: string }
         Returns: Json
@@ -4596,6 +4635,7 @@ export type Database = {
         Returns: boolean
       }
       increment_ai_tokens: { Args: { p_org_id: string }; Returns: undefined }
+      is_platform_admin: { Args: { p_user_id: string }; Returns: boolean }
       lead_quota_for_plan: { Args: { p_plan: string }; Returns: number }
       list_reseller_plans_public: {
         Args: { p_reseller_slug: string }
