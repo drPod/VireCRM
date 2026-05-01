@@ -205,6 +205,9 @@ function AdminConsole() {
           <TabsTrigger value="subs" className="gap-2">
             <FileText className="h-4 w-4" /> Manual Subscriptions
           </TabsTrigger>
+          <TabsTrigger value="audit" className="gap-2">
+            <ShieldAlert className="h-4 w-4" /> Template Audit
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="orgs" className="mt-6">
@@ -218,6 +221,9 @@ function AdminConsole() {
         </TabsContent>
         <TabsContent value="subs" className="mt-6">
           <PlatformAdminPanel />
+        </TabsContent>
+        <TabsContent value="audit" className="mt-6">
+          <TemplateAuditPanel />
         </TabsContent>
       </Tabs>
     </div>
