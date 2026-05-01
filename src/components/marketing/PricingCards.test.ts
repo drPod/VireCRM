@@ -17,9 +17,9 @@ describe("PricingCards promo discount exclusion", () => {
     }
   });
 
-  it("Custom Enterprise is priced at $7,000+", () => {
+  it("Custom Enterprise is priced at $14,000+", () => {
     const enterprise = whiteLabelTiers.find((t) => t.name === "Custom Enterprise");
-    expect(enterprise!.price).toBe("$7,000+");
+    expect(enterprise!.price).toBe("$14,000+");
   });
 
   it("still applies the 30% discount to normal numeric tiers", () => {
