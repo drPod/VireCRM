@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.verify-checkout-session]
 verify_jwt = false
+
+[functions.create-submission-invoice]
+verify_jwt = false

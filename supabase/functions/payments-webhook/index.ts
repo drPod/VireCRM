@@ -47,12 +47,21 @@ serve(async (req) => {
       case "customer.subscription.deleted":
         await markSubscriptionDeleted(event.data.object, env);
         break;
+      case "invoice.finalized":
+      case "invoice.sent":
+      case "invoice.updated":
+      case "invoice.voided":
+      case "invoice.marked_uncollectible":
+        await syncPlatformInvoice(event.data.object, env, event.type);
+        break;
       case "invoice.payment_succeeded":
         await verifyInvoiceDiscount(event.data.object, env);
         await recordTransaction(event.data.object, env, "completed");
+        await syncPlatformInvoice(event.data.object, env, event.type);
         break;
       case "invoice.payment_failed":
         await markPastDue(event.data.object, env);
+        await syncPlatformInvoice(event.data.object, env, event.type);
         break;
       default:
         console.log("Unhandled event:", event.type);
@@ -542,4 +551,42 @@ async function syncConnectSubscription(
     .from("client_invoices")
     .update({ status: newStatus, updated_at: new Date().toISOString() })
     .eq("stripe_subscription_id", subscription.id);
+}
+
+// ---------- Platform invoices (created via create-submission-invoice) ----------
+// These live on the PLATFORM Stripe account (no `connectAccount` on the event)
+// and carry `metadata.platform_invoice = "true"` plus `metadata.submission_id`.
+// We mirror status changes back into the platform_invoices table so the admin
+// console can show real-time payment status.
+async function syncPlatformInvoice(invoice: any, env: StripeEnv, eventType: string) {
+  if (!invoice?.id) return;
+  // Only act on invoices we created. Stripe Connect events arrive separately
+  // via the syncConnectInvoice path and shouldn't touch this table.
+  const meta = invoice.metadata || {};
+  if (meta.platform_invoice !== "true" && !meta.submission_id) return;
+
+  const patch: Record<string, unknown> = {
+    status: invoice.status || "open",
+    amount_due_cents: invoice.amount_due ?? 0,
+    amount_paid_cents: invoice.amount_paid ?? 0,
+    hosted_invoice_url: invoice.hosted_invoice_url ?? null,
+    invoice_pdf: invoice.invoice_pdf ?? null,
+    number: invoice.number ?? null,
+    updated_at: new Date().toISOString(),
+  };
+  if (eventType === "invoice.payment_succeeded" || invoice.status === "paid") {
+    patch.paid_at = new Date().toISOString();
+  }
+  if (eventType === "invoice.voided" || invoice.status === "void") {
+    patch.voided_at = new Date().toISOString();
+  }
+
+  // Upsert by stripe_invoice_id so a webhook arriving before our DB row exists
+  // (rare but possible) still lands cleanly.
+  const { error } = await supabase
+    .from("platform_invoices")
+    .update(patch)
+    .eq("stripe_invoice_id", invoice.id)
+    .eq("environment", env);
+  if (error) console.error("syncPlatformInvoice update error:", error);
 }
