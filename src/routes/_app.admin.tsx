@@ -1918,8 +1918,72 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   );
 }
 
+/**
+ * Heuristic: pick the most appropriate plan from PLAN_CATALOG for a given
+ * submission, based on (in priority order):
+ *   1. an explicit `interested_plan` / `plan` hint stored in metadata (from
+ *      pricing-page CTAs that pre-select a tier)
+ *   2. the prospect's selected budget range
+ *   3. a soft signal from project_type (enterprise-style projects → pro)
+ * Returns the plan catalog entry the admin should default to, plus a short
+ * human-readable reason. Returns null when no signal is strong enough — the
+ * panel falls back to the legacy "custom" amount in that case.
+ */
+function suggestPlanForSubmission(
+  s: AdminSubmissionRow,
+): { plan: PlanCatalogEntry; reason: string } | null {
+  const metaPlan =
+    typeof s.metadata?.["interested_plan"] === "string"
+      ? (s.metadata["interested_plan"] as string)
+      : typeof s.metadata?.["plan"] === "string"
+        ? (s.metadata["plan"] as string)
+        : null;
+  if (metaPlan) {
+    const p = getPlan(metaPlan.toLowerCase());
+    if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site" };
+  }
+
+  const b = (s.budget ?? "").toLowerCase();
+  const matchByBudget = (): PlanCatalogEntry | null => {
+    if (!b) return null;
+    if (b.includes("enterprise") || b.includes("100k") || b.includes("50k")) {
+      return getPlan("enterprise");
+    }
+    if (b.includes("14") || b.includes("10k") || b.includes("10,000") || b.includes("20k")) {
+      return getPlan("pro");
+    }
+    if (b.includes("5k") || b.includes("5,000") || b.includes("3k") || b.includes("2.5k") || b.includes("2500")) {
+      return getPlan("growth");
+    }
+    if (b.includes("1k") || b.includes("1,000") || b.includes("500")) {
+      return getPlan("starter");
+    }
+    return null;
+  };
+
+  const fromBudget = matchByBudget();
+  if (fromBudget && fromBudget.invoiceable) {
+    return { plan: fromBudget, reason: `Matched budget "${s.budget}"` };
+  }
+
+  const pt = (s.project_type ?? "").toLowerCase();
+  if (pt.includes("enterprise") || pt.includes("white") || pt.includes("custom")) {
+    const p = getPlan("enterprise");
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise` };
+  }
+  if (pt.includes("crm") || pt.includes("sales")) {
+    const p = getPlan("growth");
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests growth` };
+  }
+
+  return null;
+}
+
 // Best-effort default amount based on the budget label the prospect picked.
+// Used as a fallback when no plan can be matched.
 function suggestAmount(s: AdminSubmissionRow): string {
+  const suggested = suggestPlanForSubmission(s);
+  if (suggested) return (planTotalCents(suggested.plan) / 100).toFixed(2);
   const b = (s.budget ?? "").toLowerCase();
   if (b.includes("14")) return "14000";
   if (b.includes("10k") || b.includes("10,000")) return "10000";
