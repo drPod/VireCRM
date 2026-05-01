@@ -47,12 +47,21 @@ serve(async (req) => {
       case "customer.subscription.deleted":
         await markSubscriptionDeleted(event.data.object, env);
         break;
+      case "invoice.finalized":
+      case "invoice.sent":
+      case "invoice.updated":
+      case "invoice.voided":
+      case "invoice.marked_uncollectible":
+        await syncPlatformInvoice(event.data.object, env, event.type);
+        break;
       case "invoice.payment_succeeded":
         await verifyInvoiceDiscount(event.data.object, env);
         await recordTransaction(event.data.object, env, "completed");
+        await syncPlatformInvoice(event.data.object, env, event.type);
         break;
       case "invoice.payment_failed":
         await markPastDue(event.data.object, env);
+        await syncPlatformInvoice(event.data.object, env, event.type);
         break;
       default:
         console.log("Unhandled event:", event.type);
