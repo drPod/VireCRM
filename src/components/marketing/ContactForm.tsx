@@ -182,9 +182,11 @@ export function ContactForm() {
           email: parsed.data.email,
           company: parsed.data.company || null,
           phone: parsed.data.phone || null,
-          // Server may not know projectType yet — fold into message as a tagged prefix
-          // so the inquiry email still surfaces it.
           budget: parsed.data.budget || null,
+          // Sent as a top-level field so it's stored in its own column
+          // (project_type) for analytics/reporting. Also kept inline in the
+          // message body for the owner notification email.
+          projectType: parsed.data.projectType || null,
           message: parsed.data.projectType
             ? `[Project type: ${parsed.data.projectType}]\n\n${parsed.data.message}`
             : parsed.data.message,
