@@ -1617,7 +1617,10 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   // Plan-driven invoice. When a plan is picked, description/amount/line items
   // come from the catalog so the invoice cannot drift from what we'll assign.
   // "custom" lets the admin enter a one-off price (legacy behavior).
-  const [planValue, setPlanValue] = useState<string>("custom");
+  // Initial value is auto-suggested from the submission's budget / metadata
+  // so the panel opens pre-filled with the most likely tier.
+  const suggestion = useMemo(() => suggestPlanForSubmission(submission), [submission]);
+  const [planValue, setPlanValue] = useState<string>(suggestion?.plan.value ?? "custom");
   const selectedPlan: PlanCatalogEntry | null = useMemo(
     () => (planValue === "custom" ? null : getPlan(planValue)),
     [planValue],
@@ -1629,6 +1632,10 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   );
   const [dueDays, setDueDays] = useState<string>("14");
 
+  // Tracks whether the admin has manually edited the amount. Once they have,
+  // we stop overwriting it when they switch plans — the override sticks.
+  const [amountOverridden, setAmountOverridden] = useState(false);
+
   // When ON, we also call admin_set_org_plan_by_email after the invoice is
   // created so the assignment lands in the customer's org. Defaults ON for
   // any plan that's actually invoiceable.
@@ -1636,14 +1643,17 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   const [assigningPlan, setAssigningPlan] = useState(false);
 
   // Sync the form fields whenever the plan picker changes so the admin
-  // sees what will actually be billed before pressing Send.
+  // sees what will actually be billed before pressing Send. Skip the amount
+  // sync once the admin has overridden it manually.
   useEffect(() => {
     if (!selectedPlan) return;
-    setAmount((planTotalCents(selectedPlan) / 100).toFixed(2));
+    if (!amountOverridden) {
+      setAmount((planTotalCents(selectedPlan) / 100).toFixed(2));
+    }
     setDescription(
       `${selectedPlan.label} plan — ${submission.company ?? submission.name}`,
     );
-  }, [selectedPlan, submission.company, submission.name]);
+  }, [selectedPlan, submission.company, submission.name, amountOverridden]);
 
   const load = async () => {
     setLoading(true);
@@ -1703,10 +1713,25 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   const handleCreate = async () => {
     let lineItems: { description: string; amount_cents: number; quantity?: number }[];
     if (selectedPlan) {
-      lineItems = planLineItems(selectedPlan);
-      if (lineItems.length === 0) {
-        toast.error("This plan has no billable amount.");
-        return;
+      // If the admin manually overrode the amount, ignore the plan's preset
+      // line items and bill exactly what they typed (single line item).
+      if (amountOverridden) {
+        const dollars = parseFloat(amount);
+        if (!isFinite(dollars) || dollars < 0.5) {
+          toast.error("Enter an amount of at least $0.50");
+          return;
+        }
+        lineItems = [{
+          description: description || `${selectedPlan.label} plan (custom amount)`,
+          amount_cents: Math.round(dollars * 100),
+          quantity: 1,
+        }];
+      } else {
+        lineItems = planLineItems(selectedPlan);
+        if (lineItems.length === 0) {
+          toast.error("This plan has no billable amount.");
+          return;
+        }
       }
     } else {
       const dollars = parseFloat(amount);
@@ -1780,8 +1805,33 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
 
       {showForm ? (
         <div className="space-y-2 rounded border border-border bg-background p-3">
+          {suggestion ? (
+            <div className="flex flex-wrap items-center gap-2 rounded bg-primary/10 px-2 py-1.5 text-xs text-foreground">
+              <Badge variant={planBadgeVariant(suggestion.plan.value)} className="capitalize">
+                Suggested: {suggestion.plan.label}
+              </Badge>
+              <span className="text-muted-foreground">
+                ${(planTotalCents(suggestion.plan) / 100).toFixed(0)} · {suggestion.reason}
+              </span>
+              {planValue !== suggestion.plan.value ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto h-6 px-2 text-xs"
+                  onClick={() => {
+                    setPlanValue(suggestion.plan.value);
+                    setAmountOverridden(false);
+                  }}
+                >
+                  Apply suggestion
+                </Button>
+              ) : (
+                <span className="ml-auto text-[11px] text-muted-foreground">Applied</span>
+              )}
+            </div>
+          ) : null}
           <div className="grid gap-2 sm:grid-cols-[180px_1fr_120px_100px]">
-            <Select value={planValue} onValueChange={setPlanValue}>
+            <Select value={planValue} onValueChange={(v) => { setPlanValue(v); setAmountOverridden(false); }}>
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="Use plan…" />
               </SelectTrigger>
@@ -1801,10 +1851,10 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
             />
             <Input
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => { setAmount(e.target.value); setAmountOverridden(true); }}
               placeholder="Amount USD"
               inputMode="decimal"
-              disabled={!!selectedPlan}
+              title={selectedPlan ? "Editing this overrides the plan's default amount" : undefined}
             />
             <Input
               value={dueDays}
@@ -1918,8 +1968,72 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   );
 }
 
+/**
+ * Heuristic: pick the most appropriate plan from PLAN_CATALOG for a given
+ * submission, based on (in priority order):
+ *   1. an explicit `interested_plan` / `plan` hint stored in metadata (from
+ *      pricing-page CTAs that pre-select a tier)
+ *   2. the prospect's selected budget range
+ *   3. a soft signal from project_type (enterprise-style projects → pro)
+ * Returns the plan catalog entry the admin should default to, plus a short
+ * human-readable reason. Returns null when no signal is strong enough — the
+ * panel falls back to the legacy "custom" amount in that case.
+ */
+function suggestPlanForSubmission(
+  s: AdminSubmissionRow,
+): { plan: PlanCatalogEntry; reason: string } | null {
+  const metaPlan =
+    typeof s.metadata?.["interested_plan"] === "string"
+      ? (s.metadata["interested_plan"] as string)
+      : typeof s.metadata?.["plan"] === "string"
+        ? (s.metadata["plan"] as string)
+        : null;
+  if (metaPlan) {
+    const p = getPlan(metaPlan.toLowerCase());
+    if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site" };
+  }
+
+  const b = (s.budget ?? "").toLowerCase();
+  const matchByBudget = (): PlanCatalogEntry | null => {
+    if (!b) return null;
+    if (b.includes("enterprise") || b.includes("100k") || b.includes("50k")) {
+      return getPlan("enterprise");
+    }
+    if (b.includes("14") || b.includes("10k") || b.includes("10,000") || b.includes("20k")) {
+      return getPlan("pro");
+    }
+    if (b.includes("5k") || b.includes("5,000") || b.includes("3k") || b.includes("2.5k") || b.includes("2500")) {
+      return getPlan("growth");
+    }
+    if (b.includes("1k") || b.includes("1,000") || b.includes("500")) {
+      return getPlan("starter");
+    }
+    return null;
+  };
+
+  const fromBudget = matchByBudget();
+  if (fromBudget && fromBudget.invoiceable) {
+    return { plan: fromBudget, reason: `Matched budget "${s.budget}"` };
+  }
+
+  const pt = (s.project_type ?? "").toLowerCase();
+  if (pt.includes("enterprise") || pt.includes("white") || pt.includes("custom")) {
+    const p = getPlan("enterprise");
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise` };
+  }
+  if (pt.includes("crm") || pt.includes("sales")) {
+    const p = getPlan("growth");
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests growth` };
+  }
+
+  return null;
+}
+
 // Best-effort default amount based on the budget label the prospect picked.
+// Used as a fallback when no plan can be matched.
 function suggestAmount(s: AdminSubmissionRow): string {
+  const suggested = suggestPlanForSubmission(s);
+  if (suggested) return (planTotalCents(suggested.plan) / 100).toFixed(2);
   const b = (s.budget ?? "").toLowerCase();
   if (b.includes("14")) return "14000";
   if (b.includes("10k") || b.includes("10,000")) return "10000";
