@@ -191,8 +191,11 @@ function AdminConsole() {
         </Badge>
       </div>
 
-      <Tabs defaultValue="orgs" className="w-full">
+      <Tabs defaultValue="financials" className="w-full">
         <TabsList>
+          <TabsTrigger value="financials" className="gap-2">
+            <DollarSign className="h-4 w-4" /> Financials
+          </TabsTrigger>
           <TabsTrigger value="orgs" className="gap-2">
             <Building2 className="h-4 w-4" /> Organizations
           </TabsTrigger>
@@ -210,6 +213,9 @@ function AdminConsole() {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="financials" className="mt-6">
+          <FinancialsPanel />
+        </TabsContent>
         <TabsContent value="orgs" className="mt-6">
           <OrganizationsPanel />
         </TabsContent>
