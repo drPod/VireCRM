@@ -14,8 +14,7 @@ import { IndustryTemplatePanel } from "@/components/onboarding/IndustryTemplateP
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-
-const PLATFORM_ADMIN_EMAILS = ["solidsnake4ks@gmail.com"];
+import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -28,10 +27,8 @@ export const Route = createFileRoute("/_app/settings")({
 });
 
 function SettingsPage() {
-  const { user } = useAuth();
-  const isPlatformAdmin = PLATFORM_ADMIN_EMAILS.includes(
-    (user?.email ?? "").toLowerCase(),
-  );
+  useAuth();
+  const { isAdmin: isPlatformAdmin } = usePlatformAdmin();
 
   return (
     <div className="p-6 max-w-4xl mx-auto">

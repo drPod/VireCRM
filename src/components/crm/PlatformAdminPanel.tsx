@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,9 +23,9 @@ interface ManualSub {
   expires_at: string | null;
 }
 
-// Hardcoded fallback list — must mirror FALLBACK_ADMINS in the edge function.
-// Update both if you change platform admins.
-const FALLBACK_ADMIN_EMAILS = ["solidsnake4ks@gmail.com"];
+// Authorization is enforced server-side by `is_platform_admin()` and the
+// edge function's PLATFORM_ADMIN_EMAILS env var. The UI gate below is purely
+// cosmetic — the action would be denied even if rendered.
 
 const PLAN_OPTIONS = [
   { value: "manual_enterprise", label: "Enterprise (manual)" },
@@ -35,13 +35,11 @@ const PLAN_OPTIONS = [
 ];
 
 export function PlatformAdminPanel() {
-  const { user } = useAuth();
+  const { isAdmin: allowed, loading: checking } = usePlatformAdmin();
   const [email, setEmail] = useState("");
   const [plan, setPlan] = useState("manual_enterprise");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [allowed, setAllowed] = useState<boolean>(false);
-  const [checking, setChecking] = useState(true);
   const [subs, setSubs] = useState<ManualSub[] | null>(null);
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [revokeEmail, setRevokeEmail] = useState("");
@@ -64,13 +62,8 @@ export function PlatformAdminPanel() {
   }, []);
 
   useEffect(() => {
-    // Client-side gate is purely cosmetic — the real check is in the edge function.
-    const callerEmail = (user?.email ?? "").toLowerCase();
-    const isAdmin = FALLBACK_ADMIN_EMAILS.includes(callerEmail);
-    setAllowed(isAdmin);
-    setChecking(false);
-    if (isAdmin) void loadSubs();
-  }, [user?.email, loadSubs]);
+    if (allowed) void loadSubs();
+  }, [allowed, loadSubs]);
 
   if (checking) {
     return (
