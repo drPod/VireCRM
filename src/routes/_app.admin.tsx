@@ -571,9 +571,8 @@ function ContactSubmissionsPanel() {
                 {filtered.map((s) => {
                   const isOpen = expanded.has(s.id);
                   return (
-                    <>
+                    <Fragment key={s.id}>
                       <TableRow
-                        key={s.id}
                         className="cursor-pointer hover:bg-muted/40"
                         onClick={() => toggleRow(s.id)}
                       >
