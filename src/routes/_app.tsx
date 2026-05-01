@@ -175,10 +175,11 @@ function AppLayout() {
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <CrmSidebar />
         <main className="flex-1 overflow-y-auto">
-          {/* key on pathname triggers the page-enter fade on each navigation */}
-          <div key={location.pathname} className="page-transition">
+          {/* PageTransition restarts the fade animation imperatively so the
+              page subtree is reused across navigations (no unmount thrash). */}
+          <PageTransition>
             <Outlet />
-          </div>
+          </PageTransition>
         </main>
       </div>
       {/* First-time setup wizard — only renders when org has no completion stamp.
