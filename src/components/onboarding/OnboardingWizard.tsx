@@ -143,11 +143,13 @@ export function OnboardingWizard({
             {step === 1 && "Pick your brand color"}
             {step === 2 && "Lead privacy"}
           </DialogTitle>
-          <DialogDescription>Step {step + 1} of 3 — only owners see this setup.</DialogDescription>
+          <DialogDescription>
+            Step {lockedTemplate ? step : step + 1} of {lockedTemplate ? 2 : 3} — only owners see this setup.
+          </DialogDescription>
         </DialogHeader>
 
-        {/* Step 0 — industry template */}
-        {step === 0 && (
+        {/* Step 0 — industry template (platform admin only) */}
+        {step === 0 && !lockedTemplate && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             {INDUSTRY_LIST.map((tmpl) => (
               <button
