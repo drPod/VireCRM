@@ -1617,7 +1617,10 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   // Plan-driven invoice. When a plan is picked, description/amount/line items
   // come from the catalog so the invoice cannot drift from what we'll assign.
   // "custom" lets the admin enter a one-off price (legacy behavior).
-  const [planValue, setPlanValue] = useState<string>("custom");
+  // Initial value is auto-suggested from the submission's budget / metadata
+  // so the panel opens pre-filled with the most likely tier.
+  const suggestion = useMemo(() => suggestPlanForSubmission(submission), [submission]);
+  const [planValue, setPlanValue] = useState<string>(suggestion?.plan.value ?? "custom");
   const selectedPlan: PlanCatalogEntry | null = useMemo(
     () => (planValue === "custom" ? null : getPlan(planValue)),
     [planValue],
@@ -1629,6 +1632,10 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   );
   const [dueDays, setDueDays] = useState<string>("14");
 
+  // Tracks whether the admin has manually edited the amount. Once they have,
+  // we stop overwriting it when they switch plans — the override sticks.
+  const [amountOverridden, setAmountOverridden] = useState(false);
+
   // When ON, we also call admin_set_org_plan_by_email after the invoice is
   // created so the assignment lands in the customer's org. Defaults ON for
   // any plan that's actually invoiceable.
@@ -1636,14 +1643,17 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   const [assigningPlan, setAssigningPlan] = useState(false);
 
   // Sync the form fields whenever the plan picker changes so the admin
-  // sees what will actually be billed before pressing Send.
+  // sees what will actually be billed before pressing Send. Skip the amount
+  // sync once the admin has overridden it manually.
   useEffect(() => {
     if (!selectedPlan) return;
-    setAmount((planTotalCents(selectedPlan) / 100).toFixed(2));
+    if (!amountOverridden) {
+      setAmount((planTotalCents(selectedPlan) / 100).toFixed(2));
+    }
     setDescription(
       `${selectedPlan.label} plan — ${submission.company ?? submission.name}`,
     );
-  }, [selectedPlan, submission.company, submission.name]);
+  }, [selectedPlan, submission.company, submission.name, amountOverridden]);
 
   const load = async () => {
     setLoading(true);
