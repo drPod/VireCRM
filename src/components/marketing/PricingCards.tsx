@@ -190,7 +190,7 @@ export const whiteLabelTiers: PricingTier[] = [
   },
   {
     name: "Custom Enterprise",
-    price: "$7,000+",
+    price: "$14,000+",
     period: "one-time",
     description: "Full ownership plus custom features built for your specific business needs and workflows.",
     badge: "Tailored",
