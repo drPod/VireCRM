@@ -63,9 +63,9 @@ function AcceptInvitePage() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen flex flex-col">
         <MarketingHeader />
-        <div className="flex min-h-screen items-center justify-center pt-16">
+        <div className="flex flex-1 items-center justify-center pt-16">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       </div>
@@ -73,9 +73,9 @@ function AcceptInvitePage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <MarketingHeader />
-      <div className="flex min-h-screen items-center justify-center px-4 pt-16">
+      <div className="flex flex-1 items-center justify-center px-4 pt-16">
         <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8">
           {status === "success" ? (
             <div className="text-center">

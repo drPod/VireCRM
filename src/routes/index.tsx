@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { Terminal } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { HeroSection } from "@/components/marketing/HeroSection";
 import { TwoWaysSection } from "@/components/marketing/TwoWaysSection";
@@ -10,7 +11,7 @@ import { SocialProofSection } from "@/components/marketing/SocialProofSection";
 import { CtaSection } from "@/components/marketing/CtaSection";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 import { BrandedSignup } from "@/components/marketing/BrandedSignup";
-import { Loader2 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -64,8 +65,11 @@ function LandingPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30 animate-soft-pulse">
+          <Terminal className="h-7 w-7 text-primary-foreground" />
+        </div>
+        <p className="mt-4 text-sm font-medium text-muted-foreground">Loading Genesis…</p>
       </div>
     );
   }

@@ -6,6 +6,7 @@ import { PricingCards } from "@/components/marketing/PricingCards";
 import { CtaSection } from "@/components/marketing/CtaSection";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
+import { Phone, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -109,13 +110,13 @@ function PricingPage() {
               href="tel:+19403656600"
               className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-5 py-2.5 text-sm font-medium text-foreground hover:bg-primary/20 transition-colors"
             >
-              📞 +1 (940) 365-6600
+              <Phone className="h-4 w-4" aria-hidden="true" /> +1 (940) 365-6600
             </a>
             <a
               href={SUPPORT_MAILTO}
               className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground hover:border-primary/40 transition-colors"
             >
-              ✉️ {SUPPORT_EMAIL}
+              <Mail className="h-4 w-4" aria-hidden="true" /> {SUPPORT_EMAIL}
             </a>
           </div>
         </div>
