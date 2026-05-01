@@ -4495,6 +4495,10 @@ export type Database = {
         Returns: Json
       }
       credit_plan_for_price: { Args: { p_price_key: string }; Returns: Json }
+      default_modules_for_industry: {
+        Args: { _industry: string }
+        Returns: string[]
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
