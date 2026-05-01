@@ -91,14 +91,11 @@ interface OrgBillingSnapshot {
   invoices: OrgBillingInvoice[];
 }
 
-const PLAN_LABELS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: "free", label: "Free" },
-  { value: "starter", label: "Starter" },
-  { value: "growth", label: "Growth" },
-  { value: "pro", label: "Pro" },
-  { value: "enterprise", label: "Enterprise" },
-  { value: "ownership", label: "Ownership (host)" },
-];
+// Plan dropdown options derive from the shared catalog so the org-row
+// "Assign plan" select and the invoice "Use plan" select can never drift.
+const PLAN_LABELS: ReadonlyArray<{ value: string; label: string }> = PLAN_CATALOG.map(
+  (p) => ({ value: p.value, label: p.label }),
+);
 
 function planBadgeVariant(plan: string | null): "default" | "secondary" | "outline" | "destructive" {
   if (!plan || plan === "free") return "outline";
