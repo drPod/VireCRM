@@ -251,12 +251,16 @@
     );
     animation: aurora-spin 18s linear infinite;
     filter: blur(60px);
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   /* Subtle floating parallax for the hero image */
   .hero-float {
     animation: hero-float 7s ease-in-out infinite;
     will-change: transform;
+    transform: translateZ(0);
   }
 
   /* Softer, slower aurora glow for marketing section backgrounds */
@@ -271,6 +275,9 @@
     );
     animation: aurora-spin 28s linear infinite;
     filter: blur(80px);
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   .section-aurora-reverse {
@@ -284,6 +291,9 @@
     );
     animation: aurora-spin-reverse 32s linear infinite;
     filter: blur(80px);
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 }
 
