@@ -102,21 +102,27 @@ export function OnboardingWizard({
     if (!selectedTemplate) return;
     setSaving(true);
     try {
+      // Non-platform-admins can't touch industry_template or enabled_modules —
+      // the DB trigger would reject it anyway. They get color + privacy + a
+      // completion stamp; the platform admin assigns the real template later.
+      const patch: Record<string, unknown> = {
+        primary_color: brandColor || selectedTemplate.theme.primary,
+        accent_color: selectedTemplate.theme.accent,
+        sidebar_color: selectedTemplate.theme.sidebar,
+        strict_lead_isolation: strictIsolation,
+        onboarding_completed_at: new Date().toISOString(),
+      };
+      if (!lockedTemplate) {
+        patch.industry_template = selectedTemplate.key;
+        patch.enabled_modules = selectedTemplate.defaultModules;
+      }
       const { error } = await supabase
         .from("organizations")
-        .update({
-          industry_template: selectedTemplate.key,
-          enabled_modules: selectedTemplate.defaultModules,
-          primary_color: brandColor || selectedTemplate.theme.primary,
-          accent_color: selectedTemplate.theme.accent,
-          sidebar_color: selectedTemplate.theme.sidebar,
-          strict_lead_isolation: strictIsolation,
-          onboarding_completed_at: new Date().toISOString(),
-        })
+        .update(patch as never)
         .eq("id", organizationId);
 
       if (error) throw error;
-      toast.success(`${selectedTemplate.name} workspace ready`);
+      toast.success(lockedTemplate ? "Workspace ready" : `${selectedTemplate.name} workspace ready`);
       onComplete();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save setup");
