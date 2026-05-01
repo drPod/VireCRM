@@ -302,16 +302,10 @@ function TierCard({
         <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
       </div>
 
-      {tier.cta === "Contact Us" ? (
-        // "Contact Us" tiers dial the sales line directly so prospects can
-        // reach a human in one tap instead of going through a form first.
-        <a href="tel:+19403656600">
-          <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
-            {tier.cta}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </a>
-      ) : tier.ctaLink ? (
+      {tier.ctaLink ? (
+        // "Contact Us" / ownership tiers route to the in-site contact form
+        // so prospects stay on the site and email us instead of being kicked
+        // out to the phone dialer.
         <Link to={tier.ctaLink}>
           <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
             {tier.cta}
