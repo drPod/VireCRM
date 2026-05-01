@@ -3170,6 +3170,92 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_invoices: {
+        Row: {
+          amount_due_cents: number
+          amount_paid_cents: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_email: string
+          customer_name: string | null
+          description: string | null
+          due_date: string | null
+          environment: string
+          hosted_invoice_url: string | null
+          id: string
+          invoice_pdf: string | null
+          line_items: Json
+          number: string | null
+          paid_at: string | null
+          sent_at: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          submission_id: string | null
+          updated_at: string
+          voided_at: string | null
+        }
+        Insert: {
+          amount_due_cents?: number
+          amount_paid_cents?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_email: string
+          customer_name?: string | null
+          description?: string | null
+          due_date?: string | null
+          environment?: string
+          hosted_invoice_url?: string | null
+          id?: string
+          invoice_pdf?: string | null
+          line_items?: Json
+          number?: string | null
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          submission_id?: string | null
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Update: {
+          amount_due_cents?: number
+          amount_paid_cents?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_email?: string
+          customer_name?: string | null
+          description?: string | null
+          due_date?: string | null
+          environment?: string
+          hosted_invoice_url?: string | null
+          id?: string
+          invoice_pdf?: string | null
+          line_items?: Json
+          number?: string | null
+          paid_at?: string | null
+          sent_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          submission_id?: string | null
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_invoices_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_requests: {
         Row: {
           assigned_to: string | null
