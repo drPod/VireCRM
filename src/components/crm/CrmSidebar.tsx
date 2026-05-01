@@ -439,10 +439,10 @@ export function CrmSidebar() {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-background/70 backdrop-blur-sm animate-in fade-in"
+            className="absolute inset-0 bg-background/85 animate-in fade-in duration-200"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full shadow-2xl animate-in slide-in-from-left">
+          <div className="absolute left-0 top-0 h-full shadow-2xl animate-in slide-in-from-left duration-300 ease-out will-change-transform">
             {sidebar}
           </div>
         </div>
