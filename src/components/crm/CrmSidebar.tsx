@@ -34,6 +34,7 @@ import {
   Sun as SunIcon,
   Home,
   Shield,
+  Crown,
   Dumbbell,
   GraduationCap,
   Bot,
@@ -72,6 +73,7 @@ export function CrmSidebar() {
   const { organization, profile, role, signOut, user } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
   const { subscription } = useSubscription(user?.id);
+  const { isAdmin: isPlatformAdmin } = usePlatformAdmin();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const brandName = organization?.brand_name || "Genesis";
@@ -211,6 +213,9 @@ export function CrmSidebar() {
         { to: "/billing", icon: CreditCard, label: "Billing" },
         ...(isReseller && isOwner
           ? [{ to: "/clients", icon: Building2, label: "Clients" }]
+          : []),
+        ...(isPlatformAdmin
+          ? [{ to: "/admin", icon: Crown, label: "Platform Admin" }]
           : []),
       ],
     },
