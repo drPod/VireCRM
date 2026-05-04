@@ -822,10 +822,10 @@ function OrganizationsPanel() {
                           <div className="flex items-center gap-2">
                             <Select
                               value={planValue}
-                              onValueChange={(v) => void handlePlanChange(org.id, v)}
+                              onValueChange={(v) => void handlePlanChange(org.id, v, org.name)}
                               disabled={savingPlanId === org.id}
                             >
-                              <SelectTrigger className="w-36">
+                              <SelectTrigger className="w-44">
                                 <SelectValue>
                                   {savingPlanId === org.id ? (
                                     <span className="flex items-center gap-2">
@@ -833,15 +833,21 @@ function OrganizationsPanel() {
                                     </span>
                                   ) : (
                                     <Badge variant={planBadgeVariant(planValue)} className="capitalize">
-                                      {planValue}
+                                      {getPlan(planValue)?.label ?? planValue}
                                     </Badge>
                                   )}
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 {PLAN_LABELS.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
+                                  <SelectItem key={opt.value} value={opt.value} className="py-2">
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="font-medium">{opt.label}</span>
+                                        <span className="text-[11px] tabular-nums text-muted-foreground">{opt.price}</span>
+                                      </div>
+                                      <span className="text-[10px] text-muted-foreground">{opt.tagline}</span>
+                                    </div>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -851,7 +857,7 @@ function OrganizationsPanel() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
-                                onClick={() => handleRemovePlan(org.id)}
+                                onClick={() => handleRemovePlan(org.id, org.name)}
                                 disabled={savingPlanId === org.id}
                               >
                                 Remove
