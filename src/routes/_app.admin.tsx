@@ -1834,20 +1834,37 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
           <Select
             disabled={assigningPlan}
             onValueChange={(v) => {
-              if (v === "__remove__") void setPlanForCustomer("free").then((ok) => ok && toast.success("Plan removed (set to Free)"));
-              else void setPlanForCustomer(v).then((ok) => ok && toast.success(`Assigned ${getPlan(v)?.label ?? v}`));
+              if (v === "__remove__") {
+                if (!window.confirm(`Remove plan from ${submission.email}? They'll be downgraded to Free.`)) return;
+                void setPlanForCustomer("free").then((ok) => ok && toast.success("Plan removed (set to Free)"));
+                return;
+              }
+              const target = getPlan(v);
+              if (target && target.value !== "free") {
+                const ok = window.confirm(
+                  `Assign "${target.label}" (${formatPlanPrice(target)}) to ${submission.email}?\n\n${target.tagline}\n\nThis grants access immediately and does NOT charge them.`,
+                );
+                if (!ok) return;
+              }
+              void setPlanForCustomer(v).then((ok) => ok && toast.success(`Assigned ${target?.label ?? v}`));
             }}
           >
-            <SelectTrigger className="h-8 w-[170px] text-xs">
+            <SelectTrigger className="h-8 w-[220px] text-xs">
               <SelectValue placeholder={assigningPlan ? "Updating…" : "Assign / remove plan"} />
             </SelectTrigger>
             <SelectContent>
               {PLAN_CATALOG.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
+                <SelectItem key={p.value} value={p.value} className="py-2">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{p.label}</span>
+                      <span className="text-[11px] tabular-nums text-muted-foreground">{formatPlanPrice(p)}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{p.tagline}</span>
+                  </div>
                 </SelectItem>
               ))}
-              <SelectItem value="__remove__">Remove plan (Free)</SelectItem>
+              <SelectItem value="__remove__">Remove plan (downgrade to Free)</SelectItem>
             </SelectContent>
           </Select>
           <Button size="sm" onClick={() => setShowForm((v) => !v)}>
