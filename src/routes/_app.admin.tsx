@@ -2100,6 +2100,9 @@ function suggestPlanForSubmission(
     if (b.includes("enterprise") || b.includes("100k") || b.includes("50k")) {
       return getPlan("enterprise");
     }
+    if (b.includes("7k") || b.includes("7,000") || b.includes("full ownership")) {
+      return getPlan("full_ownership");
+    }
     if (b.includes("14") || b.includes("10k") || b.includes("10,000") || b.includes("20k")) {
       return getPlan("pro");
     }
