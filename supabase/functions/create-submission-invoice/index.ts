@@ -24,6 +24,8 @@ interface Body {
   dueDays?: number;
   send?: boolean;
   environment?: StripeEnv;
+  /** Plan key (e.g. "full_ownership") to auto-grant on payment via webhook. */
+  grantPlan?: string;
 }
 
 Deno.serve(async (req) => {
@@ -131,6 +133,7 @@ Deno.serve(async (req) => {
       metadata: {
         submission_id: sub.id,
         platform_invoice: "true",
+        ...(body.grantPlan ? { grant_plan: body.grantPlan } : {}),
       },
     });
 

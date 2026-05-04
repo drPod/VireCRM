@@ -589,4 +589,29 @@ async function syncPlatformInvoice(invoice: any, env: StripeEnv, eventType: stri
     .eq("stripe_invoice_id", invoice.id)
     .eq("environment", env);
   if (error) console.error("syncPlatformInvoice update error:", error);
+
+  // On payment, grant the plan stored in invoice metadata (e.g. Full Ownership).
+  // Idempotent: re-running the RPC just re-asserts the same plan.
+  const isPaid = eventType === "invoice.payment_succeeded" || invoice.status === "paid";
+  const grantPlan = typeof meta.grant_plan === "string" ? meta.grant_plan.trim() : "";
+  const customerEmail =
+    invoice.customer_email ||
+    invoice.customer_address?.email ||
+    null;
+  if (isPaid && grantPlan && customerEmail) {
+    const { data: grantResult, error: grantErr } = await supabase.rpc(
+      "webhook_grant_plan_by_email",
+      { p_email: customerEmail, p_plan: grantPlan },
+    );
+    if (grantErr) {
+      console.error("webhook_grant_plan_by_email error:", grantErr);
+    } else {
+      console.log("Plan granted on invoice payment:", {
+        invoice: invoice.id,
+        email: customerEmail,
+        plan: grantPlan,
+        result: grantResult,
+      });
+    }
+  }
 }

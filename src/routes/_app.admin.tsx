@@ -1761,6 +1761,9 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
         environment: stripeEnv,
         send: true,
         lineItems,
+        ...(selectedPlan && assignPlan && selectedPlan.invoiceable
+          ? { grantPlan: selectedPlan.value }
+          : {}),
       },
     });
     setCreating(false);
