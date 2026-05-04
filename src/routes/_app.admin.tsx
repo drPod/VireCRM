@@ -1571,11 +1571,15 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
 
   const runInvoiceAction = async (
     inv: PlatformInvoiceRow,
-    action: "void" | "refund",
+    action: "void" | "refund" | "resend",
   ) => {
     let amountCents: number | undefined;
     if (action === "void") {
       if (!window.confirm(`Void invoice ${inv.number ?? inv.stripe_invoice_id}? The customer will no longer be able to pay it.`)) {
+        return;
+      }
+    } else if (action === "resend") {
+      if (!window.confirm(`Resend invoice ${inv.number ?? inv.stripe_invoice_id} email to the prospect via Stripe?`)) {
         return;
       }
     } else {
@@ -1610,7 +1614,13 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
       toast.error(msg);
       return;
     }
-    toast.success(action === "void" ? "Invoice voided" : "Refund issued");
+    toast.success(
+      action === "void"
+        ? "Invoice voided"
+        : action === "resend"
+          ? "Invoice email resent"
+          : "Refund issued",
+    );
     void load();
   };
 
