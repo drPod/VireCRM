@@ -1816,30 +1816,43 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
       {showForm ? (
         <div className="space-y-2 rounded border border-border bg-background p-3">
           {suggestion ? (
-            <div className="flex flex-wrap items-center gap-2 rounded bg-primary/10 px-2 py-1.5 text-xs text-foreground">
-              <Badge variant={planBadgeVariant(suggestion.plan.value)} className="capitalize">
-                Suggested: {suggestion.plan.label}
-              </Badge>
-              <span className="text-muted-foreground">
-                ${(planTotalCents(suggestion.plan) / 100).toFixed(0)} · {suggestion.reason}
-              </span>
-              {planValue !== suggestion.plan.value ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="ml-auto h-6 px-2 text-xs"
-                  onClick={() => {
-                    setPlanValue(suggestion.plan.value);
-                    setAmountOverridden(false);
-                  }}
-                >
-                  Apply suggestion
-                </Button>
-              ) : (
-                <span className="ml-auto text-[11px] text-muted-foreground">Applied</span>
-              )}
+            <div className="space-y-2 rounded bg-primary/10 px-3 py-2 text-xs text-foreground">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={planBadgeVariant(suggestion.plan.value)} className="capitalize">
+                  Suggested: {suggestion.plan.label}
+                </Badge>
+                <span className="text-muted-foreground">
+                  ${(planTotalCents(suggestion.plan) / 100).toFixed(0)} · {suggestion.reason}
+                </span>
+                {planValue !== suggestion.plan.value ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto h-6 px-2 text-xs"
+                    onClick={() => {
+                      setPlanValue(suggestion.plan.value);
+                      setAmountOverridden(false);
+                    }}
+                  >
+                    Apply suggestion
+                  </Button>
+                ) : (
+                  <span className="ml-auto text-[11px] text-muted-foreground">Applied</span>
+                )}
+              </div>
+              <SuggestionSignals submission={submission} source={suggestion.source} />
             </div>
-          ) : null}
+          ) : (
+            <div className="space-y-2 rounded border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">No plan suggestion</p>
+              <SuggestionSignals submission={submission} source={null} />
+              <p className="text-[11px]">
+                None of <code className="rounded bg-muted px-1">interested_plan</code>,{" "}
+                <code className="rounded bg-muted px-1">budget</code>, or{" "}
+                <code className="rounded bg-muted px-1">project_type</code> matched a known plan tier.
+              </p>
+            </div>
+          )}
           <div className="grid gap-2 sm:grid-cols-[180px_1fr_120px_100px]">
             <Select value={planValue} onValueChange={(v) => { setPlanValue(v); setAmountOverridden(false); }}>
               <SelectTrigger className="h-9">
