@@ -24,6 +24,8 @@ interface Body {
   dueDays?: number;
   send?: boolean;
   environment?: StripeEnv;
+  /** Plan key (e.g. "full_ownership") to auto-grant on payment via webhook. */
+  grantPlan?: string;
 }
 
 Deno.serve(async (req) => {
