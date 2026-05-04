@@ -10,7 +10,7 @@ const supabase = createClient(
 
 interface Body {
   invoiceId: string; // platform_invoices.id
-  action: "void" | "refund";
+  action: "void" | "refund" | "resend";
   amountCents?: number; // optional partial refund amount
   reason?: "duplicate" | "fraudulent" | "requested_by_customer";
 }
@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
 
     const body: Body = await req.json();
     if (!body.invoiceId) throw new Error("invoiceId required");
-    if (body.action !== "void" && body.action !== "refund") {
-      throw new Error("action must be 'void' or 'refund'");
+    if (body.action !== "void" && body.action !== "refund" && body.action !== "resend") {
+      throw new Error("action must be 'void', 'refund', or 'resend'");
     }
 
     const { data: row, error: rowErr } = await supabase
@@ -50,6 +50,29 @@ Deno.serve(async (req) => {
 
     const env: StripeEnv = row.environment === "live" ? "live" : "sandbox";
     const stripe = createStripeClient(env);
+
+    if (body.action === "resend") {
+      if (row.status === "paid" || row.status === "void" || row.status === "refunded") {
+        throw new Error(`Cannot resend a ${row.status} invoice.`);
+      }
+      const sent = await stripe.invoices.sendInvoice(row.stripe_invoice_id);
+      const { data: updated, error: upErr } = await supabase
+        .from("platform_invoices")
+        .update({
+          sent_at: new Date().toISOString(),
+          hosted_invoice_url: sent.hosted_invoice_url ?? row.hosted_invoice_url,
+          invoice_pdf: sent.invoice_pdf ?? row.invoice_pdf,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", row.id)
+        .select()
+        .single();
+      if (upErr) throw upErr;
+      return new Response(JSON.stringify({ invoice: updated, action: "resend" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (body.action === "void") {
       if (row.status === "paid") {
