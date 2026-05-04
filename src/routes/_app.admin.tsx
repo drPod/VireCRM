@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink, DollarSign, TrendingUp, Activity, Receipt, Download } from "lucide-react";
+import { Crown, Loader2, ShieldAlert, ShieldCheck, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink, DollarSign, TrendingUp, Activity, Receipt, Download } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
