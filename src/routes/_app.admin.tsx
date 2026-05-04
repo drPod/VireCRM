@@ -1816,30 +1816,43 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
       {showForm ? (
         <div className="space-y-2 rounded border border-border bg-background p-3">
           {suggestion ? (
-            <div className="flex flex-wrap items-center gap-2 rounded bg-primary/10 px-2 py-1.5 text-xs text-foreground">
-              <Badge variant={planBadgeVariant(suggestion.plan.value)} className="capitalize">
-                Suggested: {suggestion.plan.label}
-              </Badge>
-              <span className="text-muted-foreground">
-                ${(planTotalCents(suggestion.plan) / 100).toFixed(0)} · {suggestion.reason}
-              </span>
-              {planValue !== suggestion.plan.value ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="ml-auto h-6 px-2 text-xs"
-                  onClick={() => {
-                    setPlanValue(suggestion.plan.value);
-                    setAmountOverridden(false);
-                  }}
-                >
-                  Apply suggestion
-                </Button>
-              ) : (
-                <span className="ml-auto text-[11px] text-muted-foreground">Applied</span>
-              )}
+            <div className="space-y-2 rounded bg-primary/10 px-3 py-2 text-xs text-foreground">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={planBadgeVariant(suggestion.plan.value)} className="capitalize">
+                  Suggested: {suggestion.plan.label}
+                </Badge>
+                <span className="text-muted-foreground">
+                  ${(planTotalCents(suggestion.plan) / 100).toFixed(0)} · {suggestion.reason}
+                </span>
+                {planValue !== suggestion.plan.value ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto h-6 px-2 text-xs"
+                    onClick={() => {
+                      setPlanValue(suggestion.plan.value);
+                      setAmountOverridden(false);
+                    }}
+                  >
+                    Apply suggestion
+                  </Button>
+                ) : (
+                  <span className="ml-auto text-[11px] text-muted-foreground">Applied</span>
+                )}
+              </div>
+              <SuggestionSignals submission={submission} source={suggestion.source} />
             </div>
-          ) : null}
+          ) : (
+            <div className="space-y-2 rounded border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">No plan suggestion</p>
+              <SuggestionSignals submission={submission} source={null} />
+              <p className="text-[11px]">
+                None of <code className="rounded bg-muted px-1">interested_plan</code>,{" "}
+                <code className="rounded bg-muted px-1">budget</code>, or{" "}
+                <code className="rounded bg-muted px-1">project_type</code> matched a known plan tier.
+              </p>
+            </div>
+          )}
           <div className="grid gap-2 sm:grid-cols-[180px_1fr_120px_100px]">
             <Select value={planValue} onValueChange={(v) => { setPlanValue(v); setAmountOverridden(false); }}>
               <SelectTrigger className="h-9">
@@ -1996,6 +2009,61 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
 }
 
 /**
+ * Renders which submission metadata fields the suggestion engine considered,
+ * highlighting the one that drove the chosen plan (when there is a match).
+ */
+function SuggestionSignals({
+  submission,
+  source,
+}: {
+  submission: AdminSubmissionRow;
+  source: "interested_plan" | "budget" | "project_type" | null;
+}) {
+  const interestedPlan =
+    (typeof submission.metadata?.["interested_plan"] === "string"
+      ? (submission.metadata["interested_plan"] as string)
+      : typeof submission.metadata?.["plan"] === "string"
+        ? (submission.metadata["plan"] as string)
+        : null) ?? null;
+
+  const fields: Array<{
+    key: "interested_plan" | "budget" | "project_type";
+    label: string;
+    value: string | null;
+  }> = [
+    { key: "interested_plan", label: "interested_plan", value: interestedPlan },
+    { key: "budget", label: "budget", value: submission.budget ?? null },
+    { key: "project_type", label: "project_type", value: submission.project_type ?? null },
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {fields.map((f) => {
+        const matched = source === f.key;
+        const empty = !f.value;
+        return (
+          <span
+            key={f.key}
+            className={
+              matched
+                ? "inline-flex items-center gap-1 rounded border border-primary/40 bg-primary/15 px-2 py-0.5 text-[11px] text-foreground"
+                : empty
+                  ? "inline-flex items-center gap-1 rounded border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground/70"
+                  : "inline-flex items-center gap-1 rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground"
+            }
+            title={matched ? "This field drove the suggestion" : empty ? "Not provided" : "Considered, no match"}
+          >
+            <code className="font-mono text-[10px]">{f.label}</code>
+            <span className="text-foreground/80">{empty ? "—" : f.value}</span>
+            {matched ? <span className="text-primary">✓ used</span> : null}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * Heuristic: pick the most appropriate plan from PLAN_CATALOG for a given
  * submission, based on (in priority order):
  *   1. an explicit `interested_plan` / `plan` hint stored in metadata (from
@@ -2008,7 +2076,7 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
  */
 function suggestPlanForSubmission(
   s: AdminSubmissionRow,
-): { plan: PlanCatalogEntry; reason: string } | null {
+): { plan: PlanCatalogEntry; reason: string; source: "interested_plan" | "budget" | "project_type" } | null {
   const metaPlan =
     typeof s.metadata?.["interested_plan"] === "string"
       ? (s.metadata["interested_plan"] as string)
@@ -2017,7 +2085,7 @@ function suggestPlanForSubmission(
         : null;
   if (metaPlan) {
     const p = getPlan(metaPlan.toLowerCase());
-    if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site" };
+    if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site", source: "interested_plan" };
   }
 
   const b = (s.budget ?? "").toLowerCase();
@@ -2040,17 +2108,17 @@ function suggestPlanForSubmission(
 
   const fromBudget = matchByBudget();
   if (fromBudget && fromBudget.invoiceable) {
-    return { plan: fromBudget, reason: `Matched budget "${s.budget}"` };
+    return { plan: fromBudget, reason: `Matched budget "${s.budget}"`, source: "budget" };
   }
 
   const pt = (s.project_type ?? "").toLowerCase();
   if (pt.includes("enterprise") || pt.includes("white") || pt.includes("custom")) {
     const p = getPlan("enterprise");
-    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise` };
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise`, source: "project_type" };
   }
   if (pt.includes("crm") || pt.includes("sales")) {
     const p = getPlan("growth");
-    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests growth` };
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests growth`, source: "project_type" };
   }
 
   return null;
