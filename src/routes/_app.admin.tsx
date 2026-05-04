@@ -2008,7 +2008,7 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
  */
 function suggestPlanForSubmission(
   s: AdminSubmissionRow,
-): { plan: PlanCatalogEntry; reason: string } | null {
+): { plan: PlanCatalogEntry; reason: string; source: "interested_plan" | "budget" | "project_type" } | null {
   const metaPlan =
     typeof s.metadata?.["interested_plan"] === "string"
       ? (s.metadata["interested_plan"] as string)
@@ -2017,7 +2017,7 @@ function suggestPlanForSubmission(
         : null;
   if (metaPlan) {
     const p = getPlan(metaPlan.toLowerCase());
-    if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site" };
+    if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site", source: "interested_plan" };
   }
 
   const b = (s.budget ?? "").toLowerCase();
@@ -2040,17 +2040,17 @@ function suggestPlanForSubmission(
 
   const fromBudget = matchByBudget();
   if (fromBudget && fromBudget.invoiceable) {
-    return { plan: fromBudget, reason: `Matched budget "${s.budget}"` };
+    return { plan: fromBudget, reason: `Matched budget "${s.budget}"`, source: "budget" };
   }
 
   const pt = (s.project_type ?? "").toLowerCase();
   if (pt.includes("enterprise") || pt.includes("white") || pt.includes("custom")) {
     const p = getPlan("enterprise");
-    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise` };
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise`, source: "project_type" };
   }
   if (pt.includes("crm") || pt.includes("sales")) {
     const p = getPlan("growth");
-    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests growth` };
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests growth`, source: "project_type" };
   }
 
   return null;
