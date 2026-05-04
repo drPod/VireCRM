@@ -133,6 +133,7 @@ Deno.serve(async (req) => {
       metadata: {
         submission_id: sub.id,
         platform_invoice: "true",
+        ...(body.grantPlan ? { grant_plan: body.grantPlan } : {}),
       },
     });
 
