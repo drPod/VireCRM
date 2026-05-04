@@ -325,8 +325,31 @@ function LeadsPage() {
     setBulkAssignTargets([]);
   };
 
-  /**
-   * Bulk-assign with two distribution modes:
+  const runBulkDelete = async (mode: "soft" | "hard") => {
+    if (selectedLeadIds.length === 0) return;
+    setBulkDeleting(true);
+    let success = 0;
+    const failures: string[] = [];
+    for (const id of selectedLeadIds) {
+      const { error } = await supabase.rpc("delete_lead", { p_lead_id: id, p_mode: mode });
+      if (error) failures.push(error.message);
+      else success += 1;
+    }
+    setBulkDeleting(false);
+    setBulkDeleteOpen(false);
+    if (success > 0) {
+      const verb = mode === "hard" ? "Deleted" : "Archived";
+      toast.success(`${verb} ${success} lead${success === 1 ? "" : "s"}`);
+      setLeads((prev) => prev.filter((l) => !selectedLeadIds.includes(l.id)));
+      setTotalCount((c) => Math.max(0, c - success));
+      handleClearSelection();
+    }
+    if (failures.length > 0) {
+      toast.error(`${failures.length} lead${failures.length === 1 ? "" : "s"} failed`, {
+        description: failures[0],
+      });
+    }
+  };
    *
    * 1. "share" — every selected lead is shared with every chosen employee
    *    (rows in the join table). The first picked employee becomes the
