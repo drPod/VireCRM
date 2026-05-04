@@ -110,6 +110,10 @@ export function PlatformAdminsPanel() {
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          ⚠️ Granting admin is equivalent to handing over the keys to the business. You will be asked to retype the
+          email to confirm. Only invite people you've already onboarded as a partner.
+        </div>
         <form onSubmit={handleInvite} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-[1fr_1fr_auto]">
           <div className="space-y-1">
             <label className="text-[11px] font-semibold uppercase text-muted-foreground">Email</label>
