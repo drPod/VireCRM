@@ -2084,7 +2084,13 @@ function suggestPlanForSubmission(
         ? (s.metadata["plan"] as string)
         : null;
   if (metaPlan) {
-    const p = getPlan(metaPlan.toLowerCase());
+    const normalized = metaPlan.toLowerCase().replace(/[\s-]+/g, "_");
+    const isFullOwnership =
+      normalized.includes("full_ownership") ||
+      normalized === "ownership_full" ||
+      normalized === "full";
+    const key = isFullOwnership ? "full_ownership" : normalized;
+    const p = getPlan(key);
     if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site", source: "interested_plan" };
   }
 
