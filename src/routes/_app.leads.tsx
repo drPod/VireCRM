@@ -98,6 +98,8 @@ function LeadsPage() {
   const [confirmRoundRobinOpen, setConfirmRoundRobinOpen] = useState(false);
   // Bulk apply outreach template (any role) — opens the personalize+send dialog.
   const [bulkTemplateOpen, setBulkTemplateOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
