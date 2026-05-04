@@ -2084,7 +2084,13 @@ function suggestPlanForSubmission(
         ? (s.metadata["plan"] as string)
         : null;
   if (metaPlan) {
-    const p = getPlan(metaPlan.toLowerCase());
+    const normalized = metaPlan.toLowerCase().replace(/[\s-]+/g, "_");
+    const isFullOwnership =
+      normalized.includes("full_ownership") ||
+      normalized === "ownership_full" ||
+      normalized === "full";
+    const key = isFullOwnership ? "full_ownership" : normalized;
+    const p = getPlan(key);
     if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site", source: "interested_plan" };
   }
 
@@ -2093,6 +2099,9 @@ function suggestPlanForSubmission(
     if (!b) return null;
     if (b.includes("enterprise") || b.includes("100k") || b.includes("50k")) {
       return getPlan("enterprise");
+    }
+    if (b.includes("7k") || b.includes("7,000") || b.includes("full ownership")) {
+      return getPlan("full_ownership");
     }
     if (b.includes("14") || b.includes("10k") || b.includes("10,000") || b.includes("20k")) {
       return getPlan("pro");
@@ -2112,6 +2121,10 @@ function suggestPlanForSubmission(
   }
 
   const pt = (s.project_type ?? "").toLowerCase();
+  if (pt.includes("full ownership") || pt.includes("full_ownership") || pt.includes("source code") || pt.includes("buyout")) {
+    const p = getPlan("full_ownership");
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests Full Ownership`, source: "project_type" };
+  }
   if (pt.includes("enterprise") || pt.includes("white") || pt.includes("custom")) {
     const p = getPlan("enterprise");
     if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise`, source: "project_type" };
