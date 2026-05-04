@@ -350,6 +350,9 @@ function LeadsPage() {
       });
     }
   };
+
+  /**
+   * Bulk-assign with two distribution modes:
    *
    * 1. "share" — every selected lead is shared with every chosen employee
    *    (rows in the join table). The first picked employee becomes the
