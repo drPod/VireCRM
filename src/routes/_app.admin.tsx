@@ -1921,8 +1921,14 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
               <SelectContent>
                 <SelectItem value="custom">Custom amount</SelectItem>
                 {PLAN_CATALOG.filter((p) => p.invoiceable).map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label} — ${(planTotalCents(p) / 100).toFixed(0)}
+                  <SelectItem key={p.value} value={p.value} className="py-2">
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium">{p.label}</span>
+                        <span className="text-[11px] tabular-nums text-muted-foreground">{formatPlanPrice(p)}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{p.tagline}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
