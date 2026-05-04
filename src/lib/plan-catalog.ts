@@ -106,8 +106,12 @@ export function getPlan(value: string | null | undefined): PlanCatalogEntry | nu
 export function planLineItems(plan: PlanCatalogEntry): PlanLineItem[] {
   const items: PlanLineItem[] = [];
   if (plan.recurringCents > 0) {
+    const periodLabel =
+      plan.interval === "one_time"
+        ? "one-time"
+        : `first ${plan.interval === "year" ? "year" : "month"}`;
     items.push({
-      description: `${plan.label} plan — first ${plan.interval === "year" ? "year" : "month"}`,
+      description: `${plan.label} plan — ${periodLabel}`,
       amount_cents: plan.recurringCents,
       quantity: 1,
     });
