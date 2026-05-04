@@ -222,12 +222,12 @@ export function LeadCard({
                 <Button
                   type="button"
                   size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  variant="outline"
+                  className="h-9 w-9 sm:h-7 sm:w-7 p-0 border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                   onClick={(e) => e.stopPropagation()}
                   aria-label={`Delete ${lead.name}`}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent onClick={(e) => e.stopPropagation()}>
