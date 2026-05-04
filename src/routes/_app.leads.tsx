@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Loader2, UserPlus, X, Wand2 } from "lucide-react";
+import { Search, Loader2, UserPlus, X, Wand2, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
@@ -98,6 +98,8 @@ function LeadsPage() {
   const [confirmRoundRobinOpen, setConfirmRoundRobinOpen] = useState(false);
   // Bulk apply outreach template (any role) — opens the personalize+send dialog.
   const [bulkTemplateOpen, setBulkTemplateOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
@@ -321,6 +323,32 @@ function LeadsPage() {
   const handleClearSelection = () => {
     setSelectedLeadIds([]);
     setBulkAssignTargets([]);
+  };
+
+  const runBulkDelete = async (mode: "soft" | "hard") => {
+    if (selectedLeadIds.length === 0) return;
+    setBulkDeleting(true);
+    let success = 0;
+    const failures: string[] = [];
+    for (const id of selectedLeadIds) {
+      const { error } = await supabase.rpc("delete_lead", { p_lead_id: id, p_mode: mode });
+      if (error) failures.push(error.message);
+      else success += 1;
+    }
+    setBulkDeleting(false);
+    setBulkDeleteOpen(false);
+    if (success > 0) {
+      const verb = mode === "hard" ? "Deleted" : "Archived";
+      toast.success(`${verb} ${success} lead${success === 1 ? "" : "s"}`);
+      setLeads((prev) => prev.filter((l) => !selectedLeadIds.includes(l.id)));
+      setTotalCount((c) => Math.max(0, c - success));
+      handleClearSelection();
+    }
+    if (failures.length > 0) {
+      toast.error(`${failures.length} lead${failures.length === 1 ? "" : "s"} failed`, {
+        description: failures[0],
+      });
+    }
   };
 
   /**
@@ -606,6 +634,23 @@ function LeadsPage() {
               <Wand2 className="h-3.5 w-3.5" />
               Apply template
             </Button>
+            {isOwner && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={selectedLeadIds.length === 0 || bulkDeleting}
+                className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/40"
+                title="Archive or permanently delete every selected lead"
+              >
+                {bulkDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Delete
+              </Button>
+            )}
             {selectedLeadIds.length > 0 && (
               <Button
                 variant="ghost"
@@ -753,6 +798,54 @@ function LeadsPage() {
               }}
             >
               Distribute
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(o) => !bulkDeleting && setBulkDeleteOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedLeadIds.length} lead{selectedLeadIds.length === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>Choose how to remove the selected leads from your CRM.</p>
+                <div className="rounded-md border border-border bg-muted/30 p-3 text-xs space-y-2">
+                  <p>
+                    <strong className="text-foreground">Archive</strong> — hides the leads but keeps
+                    related tasks, messages, and conversations.
+                  </p>
+                  <p>
+                    <strong className="text-destructive">Permanently delete</strong> — removes the
+                    leads and every related record. This cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <AlertDialogCancel disabled={bulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulkDeleting}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              onClick={(e) => {
+                e.preventDefault();
+                void runBulkDelete("soft");
+              }}
+            >
+              Archive
+            </AlertDialogAction>
+            <AlertDialogAction
+              disabled={bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                void runBulkDelete("hard");
+              }}
+            >
+              Permanently delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
