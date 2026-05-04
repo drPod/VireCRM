@@ -232,6 +232,9 @@ function AdminConsole() {
         <TabsContent value="subs" className="mt-6">
           <PlatformAdminPanel />
         </TabsContent>
+        <TabsContent value="admins" className="mt-6">
+          <PlatformAdminsPanel />
+        </TabsContent>
         <TabsContent value="audit" className="mt-6">
           <TemplateAuditPanel />
         </TabsContent>
