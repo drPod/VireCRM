@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink, DollarSign, TrendingUp, Activity, Receipt } from "lucide-react";
+import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink, DollarSign, TrendingUp, Activity, Receipt, Download } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
@@ -1926,8 +1926,14 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                   </Button>
                 ) : null}
                 {inv.invoice_pdf ? (
-                  <Button asChild size="sm" variant="ghost">
-                    <a href={inv.invoice_pdf} target="_blank" rel="noreferrer">
+                  <Button asChild size="sm" variant="outline" title="Download invoice PDF">
+                    <a
+                      href={inv.invoice_pdf}
+                      download={`invoice-${inv.number ?? inv.stripe_invoice_id ?? inv.id}.pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Download className="h-3 w-3" />
                       PDF
                     </a>
                   </Button>
