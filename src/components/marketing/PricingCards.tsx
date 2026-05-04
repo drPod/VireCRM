@@ -168,8 +168,8 @@ export const whiteLabelTiers: PricingTier[] = [
   },
   {
     name: "Full Ownership",
-    price: "Custom",
-    period: "quote",
+    price: "$7,000",
+    period: "one-time",
     description: "Own the entire Genesis CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
