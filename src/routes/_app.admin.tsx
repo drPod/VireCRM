@@ -16,12 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Crown, Loader2, ShieldAlert, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink, DollarSign, TrendingUp, Activity, Receipt, Download } from "lucide-react";
+import { Crown, Loader2, ShieldAlert, ShieldCheck, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink, DollarSign, TrendingUp, Activity, Receipt, Download } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
 import { PLAN_CATALOG, getPlan, planLineItems, planTotalCents, type PlanCatalogEntry } from "@/lib/plan-catalog";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
+import { PlatformAdminsPanel } from "@/components/crm/PlatformAdminsPanel";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminConsole,
@@ -208,6 +209,9 @@ function AdminConsole() {
           <TabsTrigger value="subs" className="gap-2">
             <FileText className="h-4 w-4" /> Manual Subscriptions
           </TabsTrigger>
+          <TabsTrigger value="admins" className="gap-2">
+            <ShieldCheck className="h-4 w-4" /> Admins
+          </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2">
             <ShieldAlert className="h-4 w-4" /> Template Audit
           </TabsTrigger>
@@ -227,6 +231,9 @@ function AdminConsole() {
         </TabsContent>
         <TabsContent value="subs" className="mt-6">
           <PlatformAdminPanel />
+        </TabsContent>
+        <TabsContent value="admins" className="mt-6">
+          <PlatformAdminsPanel />
         </TabsContent>
         <TabsContent value="audit" className="mt-6">
           <TemplateAuditPanel />

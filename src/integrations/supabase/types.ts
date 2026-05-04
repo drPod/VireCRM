@@ -4684,6 +4684,16 @@ export type Database = {
           subscription_status: string
         }[]
       }
+      admin_list_platform_admins: {
+        Args: never
+        Returns: {
+          email: string
+          granted_at: string
+          granted_by_email: string
+          notes: string
+          user_id: string
+        }[]
+      }
       admin_list_template_audit: { Args: { p_limit?: number }; Returns: Json }
       admin_org_billing: { Args: { p_org_id: string }; Returns: Json }
       admin_set_org_industry: {
@@ -4815,6 +4825,10 @@ export type Database = {
             }
             Returns: Json
           }
+      grant_platform_admin_by_email: {
+        Args: { p_email: string; p_notes?: string }
+        Returns: Json
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
@@ -4895,6 +4909,7 @@ export type Database = {
       }
       remove_custom_domain: { Args: { p_domain_id: string }; Returns: Json }
       remove_org_member: { Args: { p_user_id: string }; Returns: Json }
+      revoke_platform_admin: { Args: { p_user_id: string }; Returns: Json }
       set_primary_custom_domain: {
         Args: { p_domain_id: string }
         Returns: Json
