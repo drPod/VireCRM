@@ -693,7 +693,19 @@ function OrganizationsPanel() {
     void load();
   };
 
-  const handlePlanChange = async (orgId: string, plan: string) => {
+  const handlePlanChange = async (orgId: string, plan: string, orgLabel?: string) => {
+    const target = getPlan(plan);
+    // Require explicit confirmation for any non-free plan so a mis-click in
+    // the dropdown can't silently grant a $7,000 product or a paid tier.
+    if (target && target.value !== "free") {
+      const price = formatPlanPrice(target);
+      const who = orgLabel ? ` to ${orgLabel}` : "";
+      const ok = window.confirm(
+        `Assign "${target.label}" (${price})${who}?\n\n${target.tagline}\n\nThis updates the org's plan immediately. ` +
+          `It does NOT charge the customer — use the invoice flow for billing.`,
+      );
+      if (!ok) return;
+    }
     setSavingPlanId(orgId);
     const { data, error } = await supabase.rpc("admin_set_org_plan", {
       p_org_id: orgId,
@@ -709,15 +721,15 @@ function OrganizationsPanel() {
       toast.error(result?.error ?? "Failed to update plan");
       return;
     }
-    toast.success(`Plan set to ${plan}`);
+    toast.success(`Plan set to ${target?.label ?? plan}`);
     void load();
   };
 
-  const handleRemovePlan = (orgId: string) => {
-    if (!window.confirm("Remove the assigned plan? The organization will be downgraded to Free.")) {
+  const handleRemovePlan = (orgId: string, orgLabel?: string) => {
+    if (!window.confirm(`Remove the assigned plan${orgLabel ? ` from ${orgLabel}` : ""}? The organization will be downgraded to Free.`)) {
       return;
     }
-    void handlePlanChange(orgId, "free");
+    void handlePlanChange(orgId, "free", orgLabel);
   };
 
   return (
