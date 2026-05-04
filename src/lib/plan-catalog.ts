@@ -86,6 +86,14 @@ export const PLAN_CATALOG: ReadonlyArray<PlanCatalogEntry> = [
     interval: "month",
     invoiceable: false,
   },
+  {
+    value: "full_ownership",
+    label: "Full Ownership",
+    tagline: "White-label source code — one-time $7,000",
+    recurringCents: 700000,
+    interval: "one_time",
+    invoiceable: true,
+  },
 ];
 
 export function getPlan(value: string | null | undefined): PlanCatalogEntry | null {
