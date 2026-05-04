@@ -3,7 +3,7 @@ import { CrmSidebar } from "@/components/crm/CrmSidebar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+
 import { useSubscription } from "@/hooks/useSubscription";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ProductTour, DEFAULT_TOUR_STEPS } from "@/components/onboarding/ProductTour";
@@ -172,7 +172,7 @@ function AppLayout() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <PaymentTestModeBanner />
+      
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <CrmSidebar />
         <main className="flex-1 overflow-y-auto">
