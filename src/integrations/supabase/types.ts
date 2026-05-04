@@ -4934,6 +4934,10 @@ export type Database = {
         Args: { p_org_id: string; p_permission: string; p_user_id: string }
         Returns: boolean
       }
+      webhook_grant_plan_by_email: {
+        Args: { p_email: string; p_plan: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "owner" | "manager" | "sales_rep"
