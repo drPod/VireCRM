@@ -2118,6 +2118,10 @@ function suggestPlanForSubmission(
   }
 
   const pt = (s.project_type ?? "").toLowerCase();
+  if (pt.includes("full ownership") || pt.includes("full_ownership") || pt.includes("source code") || pt.includes("buyout")) {
+    const p = getPlan("full_ownership");
+    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests Full Ownership`, source: "project_type" };
+  }
   if (pt.includes("enterprise") || pt.includes("white") || pt.includes("custom")) {
     const p = getPlan("enterprise");
     if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise`, source: "project_type" };
