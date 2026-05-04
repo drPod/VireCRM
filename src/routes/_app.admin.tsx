@@ -209,6 +209,9 @@ function AdminConsole() {
           <TabsTrigger value="subs" className="gap-2">
             <FileText className="h-4 w-4" /> Manual Subscriptions
           </TabsTrigger>
+          <TabsTrigger value="admins" className="gap-2">
+            <ShieldCheck className="h-4 w-4" /> Admins
+          </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2">
             <ShieldAlert className="h-4 w-4" /> Template Audit
           </TabsTrigger>
