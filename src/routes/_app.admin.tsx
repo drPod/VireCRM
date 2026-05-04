@@ -1952,6 +1952,17 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                   <Button
                     size="sm"
                     variant="ghost"
+                    disabled={actingId === inv.id}
+                    onClick={() => void runInvoiceAction(inv, "resend")}
+                    title="Resend the Stripe-hosted invoice email to the prospect"
+                  >
+                    {actingId === inv.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Resend email"}
+                  </Button>
+                ) : null}
+                {inv.status !== "void" && inv.status !== "paid" && inv.status !== "refunded" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     className="text-destructive hover:text-destructive"
                     disabled={actingId === inv.id}
                     onClick={() => void runInvoiceAction(inv, "void")}
