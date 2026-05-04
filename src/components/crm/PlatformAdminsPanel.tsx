@@ -46,6 +46,19 @@ export function PlatformAdminsPanel() {
     e.preventDefault();
     const email = inviteEmail.trim();
     if (!email) return;
+    // Typed confirmation — admin access is full Super Admin (financials, all
+    // submissions, invoices, plan assignment). A mis-typed email or accidental
+    // submit must NOT silently grant access.
+    const typed = window.prompt(
+      `Grant FULL Super Admin access to:\n\n  ${email}\n\nThis gives them complete control: financials, every customer's data, ` +
+        `invoice creation, plan assignment, and the ability to add/remove other admins.\n\n` +
+        `Type the email address again to confirm:`,
+    );
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== email.toLowerCase()) {
+      toast.error("Email did not match — admin access NOT granted.");
+      return;
+    }
     setInviting(true);
     const { data, error } = await supabase.rpc("grant_platform_admin_by_email", {
       p_email: email,
