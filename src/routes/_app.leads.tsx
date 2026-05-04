@@ -803,6 +803,54 @@ function LeadsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(o) => !bulkDeleting && setBulkDeleteOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedLeadIds.length} lead{selectedLeadIds.length === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>Choose how to remove the selected leads from your CRM.</p>
+                <div className="rounded-md border border-border bg-muted/30 p-3 text-xs space-y-2">
+                  <p>
+                    <strong className="text-foreground">Archive</strong> — hides the leads but keeps
+                    related tasks, messages, and conversations.
+                  </p>
+                  <p>
+                    <strong className="text-destructive">Permanently delete</strong> — removes the
+                    leads and every related record. This cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <AlertDialogCancel disabled={bulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulkDeleting}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              onClick={(e) => {
+                e.preventDefault();
+                void runBulkDelete("soft");
+              }}
+            >
+              Archive
+            </AlertDialogAction>
+            <AlertDialogAction
+              disabled={bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                void runBulkDelete("hard");
+              }}
+            >
+              Permanently delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <BulkApplyTemplateDialog
         open={bulkTemplateOpen}
         onOpenChange={setBulkTemplateOpen}
