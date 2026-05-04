@@ -634,6 +634,23 @@ function LeadsPage() {
               <Wand2 className="h-3.5 w-3.5" />
               Apply template
             </Button>
+            {isOwner && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={selectedLeadIds.length === 0 || bulkDeleting}
+                className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/40"
+                title="Archive or permanently delete every selected lead"
+              >
+                {bulkDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Delete
+              </Button>
+            )}
             {selectedLeadIds.length > 0 && (
               <Button
                 variant="ghost"
