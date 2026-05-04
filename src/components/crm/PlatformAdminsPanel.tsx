@@ -46,6 +46,19 @@ export function PlatformAdminsPanel() {
     e.preventDefault();
     const email = inviteEmail.trim();
     if (!email) return;
+    // Typed confirmation — admin access is full Super Admin (financials, all
+    // submissions, invoices, plan assignment). A mis-typed email or accidental
+    // submit must NOT silently grant access.
+    const typed = window.prompt(
+      `Grant FULL Super Admin access to:\n\n  ${email}\n\nThis gives them complete control: financials, every customer's data, ` +
+        `invoice creation, plan assignment, and the ability to add/remove other admins.\n\n` +
+        `Type the email address again to confirm:`,
+    );
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== email.toLowerCase()) {
+      toast.error("Email did not match — admin access NOT granted.");
+      return;
+    }
     setInviting(true);
     const { data, error } = await supabase.rpc("grant_platform_admin_by_email", {
       p_email: email,
@@ -97,6 +110,10 @@ export function PlatformAdminsPanel() {
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          ⚠️ Granting admin is equivalent to handing over the keys to the business. You will be asked to retype the
+          email to confirm. Only invite people you've already onboarded as a partner.
+        </div>
         <form onSubmit={handleInvite} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-[1fr_1fr_auto]">
           <div className="space-y-1">
             <label className="text-[11px] font-semibold uppercase text-muted-foreground">Email</label>

@@ -94,9 +94,24 @@ interface OrgBillingSnapshot {
 
 // Plan dropdown options derive from the shared catalog so the org-row
 // "Assign plan" select and the invoice "Use plan" select can never drift.
-const PLAN_LABELS: ReadonlyArray<{ value: string; label: string }> = PLAN_CATALOG.map(
-  (p) => ({ value: p.value, label: p.label }),
-);
+// We render label + price + tagline so it's impossible to pick the wrong tier
+// at a glance (e.g. confusing "ownership" vs "full_ownership" — one is free
+// host-assigned, the other is a $7,000 source-code purchase).
+function formatPlanPrice(p: PlanCatalogEntry): string {
+  if (p.recurringCents === 0 && !p.setupCents) return "Free";
+  const total = planTotalCents(p);
+  const dollars = (total / 100).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (p.interval === "one_time") return `$${dollars} one-time`;
+  return `$${dollars}/${p.interval === "year" ? "yr" : "mo"}`;
+}
+
+const PLAN_LABELS: ReadonlyArray<{ value: string; label: string; price: string; tagline: string }> =
+  PLAN_CATALOG.map((p) => ({
+    value: p.value,
+    label: p.label,
+    price: formatPlanPrice(p),
+    tagline: p.tagline,
+  }));
 
 function planBadgeVariant(plan: string | null): "default" | "secondary" | "outline" | "destructive" {
   if (!plan || plan === "free") return "outline";
@@ -678,7 +693,19 @@ function OrganizationsPanel() {
     void load();
   };
 
-  const handlePlanChange = async (orgId: string, plan: string) => {
+  const handlePlanChange = async (orgId: string, plan: string, orgLabel?: string) => {
+    const target = getPlan(plan);
+    // Require explicit confirmation for any non-free plan so a mis-click in
+    // the dropdown can't silently grant a $7,000 product or a paid tier.
+    if (target && target.value !== "free") {
+      const price = formatPlanPrice(target);
+      const who = orgLabel ? ` to ${orgLabel}` : "";
+      const ok = window.confirm(
+        `Assign "${target.label}" (${price})${who}?\n\n${target.tagline}\n\nThis updates the org's plan immediately. ` +
+          `It does NOT charge the customer — use the invoice flow for billing.`,
+      );
+      if (!ok) return;
+    }
     setSavingPlanId(orgId);
     const { data, error } = await supabase.rpc("admin_set_org_plan", {
       p_org_id: orgId,
@@ -694,15 +721,15 @@ function OrganizationsPanel() {
       toast.error(result?.error ?? "Failed to update plan");
       return;
     }
-    toast.success(`Plan set to ${plan}`);
+    toast.success(`Plan set to ${target?.label ?? plan}`);
     void load();
   };
 
-  const handleRemovePlan = (orgId: string) => {
-    if (!window.confirm("Remove the assigned plan? The organization will be downgraded to Free.")) {
+  const handleRemovePlan = (orgId: string, orgLabel?: string) => {
+    if (!window.confirm(`Remove the assigned plan${orgLabel ? ` from ${orgLabel}` : ""}? The organization will be downgraded to Free.`)) {
       return;
     }
-    void handlePlanChange(orgId, "free");
+    void handlePlanChange(orgId, "free", orgLabel);
   };
 
   return (
@@ -795,10 +822,10 @@ function OrganizationsPanel() {
                           <div className="flex items-center gap-2">
                             <Select
                               value={planValue}
-                              onValueChange={(v) => void handlePlanChange(org.id, v)}
+                              onValueChange={(v) => void handlePlanChange(org.id, v, org.name)}
                               disabled={savingPlanId === org.id}
                             >
-                              <SelectTrigger className="w-36">
+                              <SelectTrigger className="w-44">
                                 <SelectValue>
                                   {savingPlanId === org.id ? (
                                     <span className="flex items-center gap-2">
@@ -806,15 +833,21 @@ function OrganizationsPanel() {
                                     </span>
                                   ) : (
                                     <Badge variant={planBadgeVariant(planValue)} className="capitalize">
-                                      {planValue}
+                                      {getPlan(planValue)?.label ?? planValue}
                                     </Badge>
                                   )}
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 {PLAN_LABELS.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
+                                  <SelectItem key={opt.value} value={opt.value} className="py-2">
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="font-medium">{opt.label}</span>
+                                        <span className="text-[11px] tabular-nums text-muted-foreground">{opt.price}</span>
+                                      </div>
+                                      <span className="text-[10px] text-muted-foreground">{opt.tagline}</span>
+                                    </div>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -824,7 +857,7 @@ function OrganizationsPanel() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
-                                onClick={() => handleRemovePlan(org.id)}
+                                onClick={() => handleRemovePlan(org.id, org.name)}
                                 disabled={savingPlanId === org.id}
                               >
                                 Remove
@@ -1801,20 +1834,37 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
           <Select
             disabled={assigningPlan}
             onValueChange={(v) => {
-              if (v === "__remove__") void setPlanForCustomer("free").then((ok) => ok && toast.success("Plan removed (set to Free)"));
-              else void setPlanForCustomer(v).then((ok) => ok && toast.success(`Assigned ${getPlan(v)?.label ?? v}`));
+              if (v === "__remove__") {
+                if (!window.confirm(`Remove plan from ${submission.email}? They'll be downgraded to Free.`)) return;
+                void setPlanForCustomer("free").then((ok) => ok && toast.success("Plan removed (set to Free)"));
+                return;
+              }
+              const target = getPlan(v);
+              if (target && target.value !== "free") {
+                const ok = window.confirm(
+                  `Assign "${target.label}" (${formatPlanPrice(target)}) to ${submission.email}?\n\n${target.tagline}\n\nThis grants access immediately and does NOT charge them.`,
+                );
+                if (!ok) return;
+              }
+              void setPlanForCustomer(v).then((ok) => ok && toast.success(`Assigned ${target?.label ?? v}`));
             }}
           >
-            <SelectTrigger className="h-8 w-[170px] text-xs">
+            <SelectTrigger className="h-8 w-[220px] text-xs">
               <SelectValue placeholder={assigningPlan ? "Updating…" : "Assign / remove plan"} />
             </SelectTrigger>
             <SelectContent>
               {PLAN_CATALOG.map((p) => (
-                <SelectItem key={p.value} value={p.value}>
-                  {p.label}
+                <SelectItem key={p.value} value={p.value} className="py-2">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{p.label}</span>
+                      <span className="text-[11px] tabular-nums text-muted-foreground">{formatPlanPrice(p)}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{p.tagline}</span>
+                  </div>
                 </SelectItem>
               ))}
-              <SelectItem value="__remove__">Remove plan (Free)</SelectItem>
+              <SelectItem value="__remove__">Remove plan (downgrade to Free)</SelectItem>
             </SelectContent>
           </Select>
           <Button size="sm" onClick={() => setShowForm((v) => !v)}>
@@ -1871,8 +1921,14 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
               <SelectContent>
                 <SelectItem value="custom">Custom amount</SelectItem>
                 {PLAN_CATALOG.filter((p) => p.invoiceable).map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label} — ${(planTotalCents(p) / 100).toFixed(0)}
+                  <SelectItem key={p.value} value={p.value} className="py-2">
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium">{p.label}</span>
+                        <span className="text-[11px] tabular-nums text-muted-foreground">{formatPlanPrice(p)}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{p.tagline}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
