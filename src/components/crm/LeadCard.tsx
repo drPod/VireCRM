@@ -223,7 +223,7 @@ export function LeadCard({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                   onClick={(e) => e.stopPropagation()}
                   aria-label={`Delete ${lead.name}`}
                 >
