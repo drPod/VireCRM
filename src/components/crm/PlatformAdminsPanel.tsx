@@ -49,7 +49,7 @@ export function PlatformAdminsPanel() {
     setInviting(true);
     const { data, error } = await supabase.rpc("grant_platform_admin_by_email", {
       p_email: email,
-      p_notes: inviteNotes.trim() || null,
+      p_notes: inviteNotes.trim() || undefined,
     });
     setInviting(false);
     const result = data as { success?: boolean; error?: string } | null;
