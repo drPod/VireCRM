@@ -70,18 +70,45 @@ export function OnboardingWizard({
   const [saving, setSaving] = useState(false);
 
 
-  // Non-owners get a polite blocker — only owners can complete setup
+  // Non-owners get a dismissible heads-up — they can still use the CRM
+  // while the owner finishes setup. We track dismissal in sessionStorage so
+  // it doesn't reappear on every navigation within the same session.
+  const dismissKey = `genesis:onboarding-notice-dismissed:${organizationId}`;
+  const [noticeOpen, setNoticeOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.sessionStorage.getItem(dismissKey) !== "1";
+  });
   if (!isOwner) {
     return (
-      <Dialog open>
+      <Dialog
+        open={noticeOpen}
+        onOpenChange={(open) => {
+          setNoticeOpen(open);
+          if (!open && typeof window !== "undefined") {
+            window.sessionStorage.setItem(dismissKey, "1");
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Setup in progress</DialogTitle>
+            <DialogTitle>Setup still in progress</DialogTitle>
             <DialogDescription>
-              Your organization owner needs to finish the workspace setup before you can use the CRM.
-              Please ask them to log in and complete the onboarding wizard.
+              Your workspace owner hasn’t finished the initial setup yet. You can keep using the
+              CRM — some defaults (industry template, branding) may change once they complete it.
             </DialogDescription>
           </DialogHeader>
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={() => {
+                setNoticeOpen(false);
+                if (typeof window !== "undefined") {
+                  window.sessionStorage.setItem(dismissKey, "1");
+                }
+              }}
+            >
+              Got it
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     );
