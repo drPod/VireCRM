@@ -132,6 +132,19 @@ export function QuotesPanel() {
 
   useEffect(() => {
     load();
+    const channel = supabase
+      .channel("admin_quotes_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "admin_quotes" },
+        () => {
+          load();
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const filtered = useMemo(
