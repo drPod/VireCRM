@@ -35,6 +35,7 @@ export type EnergyTableName =
   | "contract_requests"
   | "energy_suppliers"
   | "renewals"
+  | "energy_customers"
   | "solar_projects"
   | "real_estate_listings"
   | "real_estate_showings"

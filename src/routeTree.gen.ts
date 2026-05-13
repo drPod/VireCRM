@@ -80,6 +80,7 @@ import { Route as AppEnergySuppliersRouteImport } from './routes/_app.energy.sup
 import { Route as AppEnergyRenewalsRouteImport } from './routes/_app.energy.renewals'
 import { Route as AppEnergyPricingRouteImport } from './routes/_app.energy.pricing'
 import { Route as AppEnergyLoaRouteImport } from './routes/_app.energy.loa'
+import { Route as AppEnergyCustomersRouteImport } from './routes/_app.energy.customers'
 import { Route as AppEnergyContractsRouteImport } from './routes/_app.energy.contracts'
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
@@ -453,6 +454,11 @@ const AppEnergyLoaRoute = AppEnergyLoaRouteImport.update({
   path: '/loa',
   getParentRoute: () => AppEnergyRoute,
 } as any)
+const AppEnergyCustomersRoute = AppEnergyCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AppEnergyRoute,
+} as any)
 const AppEnergyContractsRoute = AppEnergyContractsRouteImport.update({
   id: '/contracts',
   path: '/contracts',
@@ -602,6 +608,7 @@ export interface FileRoutesByFullPath {
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
+  '/energy/customers': typeof AppEnergyCustomersRoute
   '/energy/loa': typeof AppEnergyLoaRoute
   '/energy/pricing': typeof AppEnergyPricingRoute
   '/energy/renewals': typeof AppEnergyRenewalsRoute
@@ -690,6 +697,7 @@ export interface FileRoutesByTo {
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
+  '/energy/customers': typeof AppEnergyCustomersRoute
   '/energy/loa': typeof AppEnergyLoaRoute
   '/energy/pricing': typeof AppEnergyPricingRoute
   '/energy/renewals': typeof AppEnergyRenewalsRoute
@@ -780,6 +788,7 @@ export interface FileRoutesById {
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
   '/_app/energy/contracts': typeof AppEnergyContractsRoute
+  '/_app/energy/customers': typeof AppEnergyCustomersRoute
   '/_app/energy/loa': typeof AppEnergyLoaRoute
   '/_app/energy/pricing': typeof AppEnergyPricingRoute
   '/_app/energy/renewals': typeof AppEnergyRenewalsRoute
@@ -870,6 +879,7 @@ export interface FileRouteTypes {
     | '/clients/payouts'
     | '/clients/plans'
     | '/energy/contracts'
+    | '/energy/customers'
     | '/energy/loa'
     | '/energy/pricing'
     | '/energy/renewals'
@@ -958,6 +968,7 @@ export interface FileRouteTypes {
     | '/clients/payouts'
     | '/clients/plans'
     | '/energy/contracts'
+    | '/energy/customers'
     | '/energy/loa'
     | '/energy/pricing'
     | '/energy/renewals'
@@ -1047,6 +1058,7 @@ export interface FileRouteTypes {
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
     | '/_app/energy/contracts'
+    | '/_app/energy/customers'
     | '/_app/energy/loa'
     | '/_app/energy/pricing'
     | '/_app/energy/renewals'
@@ -1617,6 +1629,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEnergyLoaRouteImport
       parentRoute: typeof AppEnergyRoute
     }
+    '/_app/energy/customers': {
+      id: '/_app/energy/customers'
+      path: '/customers'
+      fullPath: '/energy/customers'
+      preLoaderRoute: typeof AppEnergyCustomersRouteImport
+      parentRoute: typeof AppEnergyRoute
+    }
     '/_app/energy/contracts': {
       id: '/_app/energy/contracts'
       path: '/contracts'
@@ -1772,6 +1791,7 @@ const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
 
 interface AppEnergyRouteChildren {
   AppEnergyContractsRoute: typeof AppEnergyContractsRoute
+  AppEnergyCustomersRoute: typeof AppEnergyCustomersRoute
   AppEnergyLoaRoute: typeof AppEnergyLoaRoute
   AppEnergyPricingRoute: typeof AppEnergyPricingRoute
   AppEnergyRenewalsRoute: typeof AppEnergyRenewalsRoute
@@ -1781,6 +1801,7 @@ interface AppEnergyRouteChildren {
 
 const AppEnergyRouteChildren: AppEnergyRouteChildren = {
   AppEnergyContractsRoute: AppEnergyContractsRoute,
+  AppEnergyCustomersRoute: AppEnergyCustomersRoute,
   AppEnergyLoaRoute: AppEnergyLoaRoute,
   AppEnergyPricingRoute: AppEnergyPricingRoute,
   AppEnergyRenewalsRoute: AppEnergyRenewalsRoute,

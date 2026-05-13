@@ -1364,6 +1364,89 @@ export type Database = {
         }
         Relationships: []
       }
+      energy_customers: {
+        Row: {
+          agent_closed: string | null
+          agent_closed_name: string | null
+          annual_kwh: number | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          current_supplier: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          deal_name: string
+          end_date: string | null
+          esi_id: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          previous_supplier: string | null
+          service_address: string | null
+          start_date: string | null
+          status: string
+          term_kwh: number | null
+          updated_at: string
+        }
+        Insert: {
+          agent_closed?: string | null
+          agent_closed_name?: string | null
+          annual_kwh?: number | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_supplier?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          deal_name: string
+          end_date?: string | null
+          esi_id?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          previous_supplier?: string | null
+          service_address?: string | null
+          start_date?: string | null
+          status?: string
+          term_kwh?: number | null
+          updated_at?: string
+        }
+        Update: {
+          agent_closed?: string | null
+          agent_closed_name?: string | null
+          annual_kwh?: number | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_supplier?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          deal_name?: string
+          end_date?: string | null
+          esi_id?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          previous_supplier?: string | null
+          service_address?: string | null
+          start_date?: string | null
+          status?: string
+          term_kwh?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "energy_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       energy_suppliers: {
         Row: {
           commission_type: string
