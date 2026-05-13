@@ -62,7 +62,7 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
     const { userId } = context;
 
     // Verify caller is platform admin
-    const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", { _user_id: userId });
+    const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", { p_user_id: userId });
     if (!isAdmin) throw new Error("Unauthorized: platform admin required");
 
     const { data: quote, error } = await supabaseAdmin
