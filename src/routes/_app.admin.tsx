@@ -248,6 +248,9 @@ function AdminConsole() {
         <TabsContent value="submissions" className="mt-6">
           <ContactSubmissionsPanel />
         </TabsContent>
+        <TabsContent value="quotes" className="mt-6">
+          <QuotesPanel />
+        </TabsContent>
         <TabsContent value="subs" className="mt-6">
           <PlatformAdminPanel />
         </TabsContent>
