@@ -375,6 +375,15 @@ export function QuotesPanel() {
                                 <Copy className="mr-2 h-4 w-4" /> Copy summary
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => regeneratePdf(q)}>
+                                <Sparkles className="mr-2 h-4 w-4" /> Regenerate proposal PDF
+                              </DropdownMenuItem>
+                              {q.pdf_url && (
+                                <DropdownMenuItem onClick={() => window.open(q.pdf_url!, "_blank")}>
+                                  <Download className="mr-2 h-4 w-4" /> Open latest PDF
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => generatePaymentLink(q, "total")}>
                                 <Zap className="mr-2 h-4 w-4" /> Generate Stripe link (total)
                               </DropdownMenuItem>
