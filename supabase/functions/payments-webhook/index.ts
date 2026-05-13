@@ -86,7 +86,55 @@ const CREDIT_PACK_PRICES: Record<string, number> = {
   credit_pack_bulk_onetime: 10000,
 };
 
+async function maybeMarkAdminQuotePaid(session: any, env: StripeEnv) {
+  const quoteId = session.metadata?.admin_quote_id;
+  if (!quoteId) return false;
+  if (session.payment_status !== "paid") return true;
+
+  const nowIso = new Date().toISOString();
+  const { data: existing } = await supabase
+    .from("admin_quotes")
+    .select("status")
+    .eq("id", quoteId)
+    .maybeSingle();
+
+  if (!existing) {
+    console.warn("[admin-quote] checkout for unknown quote", quoteId);
+    return true;
+  }
+  if (existing.status === "paid") return true;
+
+  const { error } = await supabase
+    .from("admin_quotes")
+    .update({
+      status: "paid",
+      paid_at: nowIso,
+      payment_link_environment: env,
+      updated_at: nowIso,
+    })
+    .eq("id", quoteId);
+
+  if (error) {
+    console.error("[admin-quote] failed to mark paid", quoteId, error);
+    return true;
+  }
+
+  await supabase.from("admin_quote_events").insert({
+    quote_id: quoteId,
+    event_type: "paid",
+    from_status: existing.status,
+    to_status: "paid",
+    note: `Stripe checkout ${session.id} (${env}) — ${session.amount_total ?? 0}¢`,
+  });
+
+  console.log("[admin-quote] marked paid", quoteId, "session", session.id);
+  return true;
+}
+
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
+  // Admin (Super Admin) quote payment — short-circuit, no discount audit.
+  if (await maybeMarkAdminQuotePaid(session, env)) return;
+
   // Verify the launch promo discount actually landed on the session.
   await verifySessionDiscount(session, env);
 
