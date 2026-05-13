@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
   Trash2,
@@ -48,9 +49,13 @@ import {
   FileText,
   Copy,
   Link as LinkIcon,
+  History,
+  Mail,
+  Clock,
+  CircleDot,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 type QuoteStatus = "draft" | "sent" | "paid" | "cancelled";
 
