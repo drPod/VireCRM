@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_quotes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          discount_cents: number
+          id: string
+          line_items: Json
+          notes: string | null
+          paid_at: string | null
+          payment_link_url: string | null
+          quote_number: string
+          recipient_company: string | null
+          recipient_email: string
+          recipient_name: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          subtotal_cents: number
+          title: string
+          total_cents: number
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          discount_cents?: number
+          id?: string
+          line_items?: Json
+          notes?: string | null
+          paid_at?: string | null
+          payment_link_url?: string | null
+          quote_number?: string
+          recipient_company?: string | null
+          recipient_email: string
+          recipient_name: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          subtotal_cents?: number
+          title: string
+          total_cents?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          discount_cents?: number
+          id?: string
+          line_items?: Json
+          notes?: string | null
+          paid_at?: string | null
+          payment_link_url?: string | null
+          quote_number?: string
+          recipient_company?: string | null
+          recipient_email?: string
+          recipient_name?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          subtotal_cents?: number
+          title?: string
+          total_cents?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       advisor_audit_log: {
         Row: {
           command: string
@@ -5039,6 +5108,7 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "manager" | "sales_rep"
+      quote_status: "draft" | "sent" | "paid" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5167,6 +5237,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "manager", "sales_rep"],
+      quote_status: ["draft", "sent", "paid", "cancelled"],
     },
   },
 } as const

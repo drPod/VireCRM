@@ -23,6 +23,7 @@ import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
 import { PLAN_CATALOG, getPlan, planLineItems, planTotalCents, type PlanCatalogEntry } from "@/lib/plan-catalog";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { PlatformAdminsPanel } from "@/components/crm/PlatformAdminsPanel";
+import { QuotesPanel } from "@/components/admin/QuotesPanel";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminConsole,
@@ -221,6 +222,9 @@ function AdminConsole() {
           <TabsTrigger value="submissions" className="gap-2">
             <Inbox className="h-4 w-4" /> Contact Submissions
           </TabsTrigger>
+          <TabsTrigger value="quotes" className="gap-2">
+            <Receipt className="h-4 w-4" /> Quotes
+          </TabsTrigger>
           <TabsTrigger value="subs" className="gap-2">
             <FileText className="h-4 w-4" /> Manual Subscriptions
           </TabsTrigger>
@@ -243,6 +247,9 @@ function AdminConsole() {
         </TabsContent>
         <TabsContent value="submissions" className="mt-6">
           <ContactSubmissionsPanel />
+        </TabsContent>
+        <TabsContent value="quotes" className="mt-6">
+          <QuotesPanel />
         </TabsContent>
         <TabsContent value="subs" className="mt-6">
           <PlatformAdminPanel />
