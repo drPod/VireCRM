@@ -69,6 +69,11 @@ interface LineItem {
   unit_price_cents: number;
 }
 
+interface Differentiator {
+  title: string;
+  body: string;
+}
+
 interface Quote {
   id: string;
   quote_number: string;
