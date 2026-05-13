@@ -487,6 +487,7 @@ function QuoteBuilderDialog({
   const [discountDollars, setDiscountDollars] = useState("0");
   const [paymentLinkUrl, setPaymentLinkUrl] = useState("");
   const [validUntil, setValidUntil] = useState("");
+  const [differentiators, setDifferentiators] = useState<Differentiator[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
