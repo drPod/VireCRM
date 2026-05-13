@@ -565,6 +565,9 @@ function QuoteBuilderDialog({
       total_cents: totalCents,
       payment_link_url: paymentLinkUrl.trim() || null,
       valid_until: validUntil || null,
+      differentiators: differentiators.filter(
+        (d) => d.title.trim() || d.body.trim(),
+      ) as unknown as import("@/integrations/supabase/types").Json,
     };
     let error;
     if (quote) {
