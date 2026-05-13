@@ -65,6 +65,7 @@ export type Database = {
           line_items: Json
           notes: string | null
           paid_at: string | null
+          payment_link_environment: string | null
           payment_link_url: string | null
           quote_number: string
           recipient_company: string | null
@@ -72,6 +73,9 @@ export type Database = {
           recipient_name: string
           sent_at: string | null
           status: Database["public"]["Enums"]["quote_status"]
+          stripe_payment_link_id: string | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
           subtotal_cents: number
           title: string
           total_cents: number
@@ -87,6 +91,7 @@ export type Database = {
           line_items?: Json
           notes?: string | null
           paid_at?: string | null
+          payment_link_environment?: string | null
           payment_link_url?: string | null
           quote_number?: string
           recipient_company?: string | null
@@ -94,6 +99,9 @@ export type Database = {
           recipient_name: string
           sent_at?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
+          stripe_payment_link_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           subtotal_cents?: number
           title: string
           total_cents?: number
@@ -109,6 +117,7 @@ export type Database = {
           line_items?: Json
           notes?: string | null
           paid_at?: string | null
+          payment_link_environment?: string | null
           payment_link_url?: string | null
           quote_number?: string
           recipient_company?: string | null
@@ -116,6 +125,9 @@ export type Database = {
           recipient_name?: string
           sent_at?: string | null
           status?: Database["public"]["Enums"]["quote_status"]
+          stripe_payment_link_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           subtotal_cents?: number
           title?: string
           total_cents?: number
