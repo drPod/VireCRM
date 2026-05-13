@@ -116,6 +116,15 @@ const emptyLineItem = (): LineItem => ({
   unit_price_cents: 0,
 });
 
+const DEFAULT_DIFFERENTIATORS: Differentiator[] = [
+  { title: "Built-in AI sales team", body: "Lead scoring, reply classification, follow-up writing, and meeting booking are first-class agents — not bolt-ons." },
+  { title: "One platform replaces 6+ tools", body: "CRM, outreach, scheduling, pipeline, billing, and reporting in one place. No Zapier glue." },
+  { title: "True white-label, not a reseller skin", body: "Your domain, your branding, your login, your customers. Genesis is invisible." },
+  { title: "Capped, transparent pricing", body: "Flat monthly tiers — no per-seat creep, no usage surprises." },
+  { title: "Industry-tuned templates", body: "Pre-built pipelines, automations, and email templates for solar, insurance, real estate, gym, and more." },
+  { title: "Real human + AI support", body: "Founders in the loop. Slack-grade response time, not a help-desk maze." },
+];
+
 export function QuotesPanel() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
