@@ -144,7 +144,11 @@ export function QuotesPanel() {
   }, [quotes]);
 
   const updateStatus = async (id: string, status: QuoteStatus) => {
-    const patch: Record<string, unknown> = { status };
+    const patch: {
+      status: QuoteStatus;
+      sent_at?: string;
+      paid_at?: string;
+    } = { status };
     if (status === "sent") patch.sent_at = new Date().toISOString();
     if (status === "paid") patch.paid_at = new Date().toISOString();
     const { error } = await supabase.from("admin_quotes").update(patch).eq("id", id);
