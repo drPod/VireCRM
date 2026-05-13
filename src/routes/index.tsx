@@ -23,6 +23,10 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "We build AI-powered CRM systems that respond instantly, follow up relentlessly, and surface your hottest leads — so your team can focus on closing." },
       { property: "og:title", content: "Genesis — Never Let a Lead Go Cold Again" },
       { property: "og:description", content: "AI-powered CRM systems that respond instantly, follow up relentlessly, and put your hottest leads in front of your sales team." },
+      { property: "og:url", content: "https://genesisx.space/" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/" },
     ],
   }),
 });

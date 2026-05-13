@@ -31,7 +31,13 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign In — Genesis" },
-      { name: "description", content: "Sign in to your Genesis account" },
+      { name: "description", content: "Sign in to your Genesis CRM workspace to manage leads, track pipeline, and run AI-powered outreach campaigns." },
+      { property: "og:title", content: "Sign In — Genesis" },
+      { property: "og:description", content: "Sign in to your Genesis CRM workspace to manage leads, pipeline, and AI outreach." },
+      { property: "og:url", content: "https://genesisx.space/login" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/login" },
     ],
   }),
 });

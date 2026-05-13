@@ -14,6 +14,10 @@ export const Route = createFileRoute("/features")({
       { name: "description", content: "Explore Genesis's full feature set: autonomous lead scoring, AI outreach, reply classification, auto scheduling, and white-labeling." },
       { property: "og:title", content: "Genesis Features — Autonomous Sales Automation" },
       { property: "og:description", content: "AI lead scoring, automated outreach, reply classification, meeting booking, and white-label support." },
+      { property: "og:url", content: "https://genesisx.space/features" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/features" },
     ],
   }),
 });
