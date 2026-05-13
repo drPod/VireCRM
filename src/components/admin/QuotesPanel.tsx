@@ -238,6 +238,20 @@ export function QuotesPanel() {
     load();
   };
 
+  const regeneratePdfFn = useServerFn(regenerateQuotePdf);
+  const regeneratePdf = async (q: Quote) => {
+    const t = toast.loading("Generating proposal PDF…");
+    try {
+      const res = await regeneratePdfFn({ data: { quoteId: q.id } });
+      toast.dismiss(t);
+      toast.success("PDF regenerated");
+      window.open(res.pdfUrl, "_blank");
+      load();
+    } catch (e) {
+      toast.dismiss(t);
+      toast.error(e instanceof Error ? e.message : "Failed to regenerate PDF");
+    }
+  };
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
