@@ -111,6 +111,8 @@ export function QuotesPanel() {
   const [statusFilter, setStatusFilter] = useState<"all" | QuoteStatus>("all");
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editing, setEditing] = useState<Quote | null>(null);
+  const [historyQuote, setHistoryQuote] = useState<Quote | null>(null);
+  const [view, setView] = useState<"quotes" | "recipients">("quotes");
 
   const load = async () => {
     setLoading(true);
