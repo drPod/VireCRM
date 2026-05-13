@@ -8,7 +8,7 @@
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { FileText, Gauge, DollarSign, FileSignature, Building2, RefreshCw, Loader2 } from "lucide-react";
+import { FileText, Gauge, DollarSign, FileSignature, Building2, RefreshCw, Loader2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
