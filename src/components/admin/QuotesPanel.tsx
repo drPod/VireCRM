@@ -294,6 +294,9 @@ export function QuotesPanel() {
                           >
                             <FileText className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setHistoryQuote(q)}>
+                            <History className="mr-2 h-4 w-4" /> View history
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => copyShare(q)}>
                             <Copy className="mr-2 h-4 w-4" /> Copy summary
                           </DropdownMenuItem>
