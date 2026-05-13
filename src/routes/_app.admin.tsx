@@ -23,6 +23,7 @@ import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
 import { PLAN_CATALOG, getPlan, planLineItems, planTotalCents, type PlanCatalogEntry } from "@/lib/plan-catalog";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { PlatformAdminsPanel } from "@/components/crm/PlatformAdminsPanel";
+import { QuotesPanel } from "@/components/admin/QuotesPanel";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminConsole,
