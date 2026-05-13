@@ -651,3 +651,308 @@ function QuoteBuilderDialog({
     </Dialog>
   );
 }
+
+function TimestampCell({ value }: { value: string | null }) {
+  if (!value) return <TableCell className="text-xs text-muted-foreground">—</TableCell>;
+  const d = new Date(value);
+  return (
+    <TableCell className="text-xs">
+      <div>{format(d, "MMM d, yyyy")}</div>
+      <div className="text-muted-foreground">{format(d, "h:mm a")}</div>
+    </TableCell>
+  );
+}
+
+interface QuoteEvent {
+  id: string;
+  quote_id: string;
+  event_type: string;
+  from_status: QuoteStatus | null;
+  to_status: QuoteStatus | null;
+  actor_user_id: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+function QuoteHistoryDialog({
+  quote,
+  onOpenChange,
+}: {
+  quote: Quote | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [events, setEvents] = useState<QuoteEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!quote) return;
+    setLoading(true);
+    supabase
+      .from("admin_quote_events")
+      .select("*")
+      .eq("quote_id", quote.id)
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (error) toast.error(error.message);
+        else setEvents((data ?? []) as unknown as QuoteEvent[]);
+        setLoading(false);
+      });
+  }, [quote]);
+
+  if (!quote) return null;
+
+  const milestones: Array<{ label: string; ts: string | null; status: QuoteStatus }> = [
+    { label: "Drafted", ts: quote.created_at, status: "draft" },
+    { label: "Sent", ts: quote.sent_at, status: "sent" },
+    { label: "Paid", ts: quote.paid_at, status: "paid" },
+  ];
+
+  return (
+    <Dialog open={!!quote} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" /> {quote.quote_number} — History
+          </DialogTitle>
+          <DialogDescription>
+            {quote.title} • {quote.recipient_name} ({quote.recipient_email})
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          <div>
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Status milestones
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {milestones.map((m) => (
+                <div
+                  key={m.label}
+                  className={`rounded-md border p-3 ${
+                    m.ts ? STATUS_STYLES[m.status] : "bg-muted/30 text-muted-foreground"
+                  }`}
+                >
+                  <div className="text-xs uppercase tracking-wide opacity-80">{m.label}</div>
+                  {m.ts ? (
+                    <>
+                      <div className="mt-1 text-sm font-medium">
+                        {format(new Date(m.ts), "MMM d, yyyy")}
+                      </div>
+                      <div className="text-xs opacity-80">{format(new Date(m.ts), "h:mm a")}</div>
+                    </>
+                  ) : (
+                    <div className="mt-1 text-sm">Not yet</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Activity timeline
+            </div>
+            {loading ? (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading events…
+              </div>
+            ) : events.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No events recorded.</div>
+            ) : (
+              <ol className="relative space-y-4 border-l border-border pl-6">
+                {events.map((e) => (
+                  <li key={e.id} className="relative">
+                    <span className="absolute -left-[27px] flex h-4 w-4 items-center justify-center rounded-full border bg-background">
+                      <CircleDot className="h-3 w-3 text-primary" />
+                    </span>
+                    <div className="text-sm font-medium capitalize">
+                      {e.event_type === "created"
+                        ? "Quote created"
+                        : `Status changed: ${e.from_status ?? "—"} → ${e.to_status ?? "—"}`}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {format(new Date(e.created_at), "MMM d, yyyy 'at' h:mm a")}
+                      <span>•</span>
+                      <span>{formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}</span>
+                    </div>
+                    {e.note && <div className="mt-1 text-xs">{e.note}</div>}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Line items
+            </div>
+            <div className="rounded-md border">
+              {quote.line_items.map((li, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between border-b px-3 py-2 text-sm last:border-0"
+                >
+                  <div>
+                    {li.description}
+                    <span className="ml-2 text-xs text-muted-foreground">× {li.quantity}</span>
+                  </div>
+                  <div className="font-medium">
+                    {formatMoney(li.unit_price_cents * li.quantity, quote.currency)}
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center justify-between bg-muted/30 px-3 py-2 text-sm font-semibold">
+                <span>Total</span>
+                <span>{formatMoney(quote.total_cents, quote.currency)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RecipientsView({
+  quotes,
+  onOpenQuote,
+}: {
+  quotes: Quote[];
+  onOpenQuote: (q: Quote) => void;
+}) {
+  const grouped = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        email: string;
+        name: string;
+        company: string | null;
+        quotes: Quote[];
+        totalCents: number;
+        paidCents: number;
+        outstandingCents: number;
+        lastActivity: string;
+      }
+    >();
+    for (const q of quotes) {
+      const key = q.recipient_email.toLowerCase();
+      const existing = map.get(key);
+      const lastActivity = q.paid_at ?? q.sent_at ?? q.created_at;
+      if (existing) {
+        existing.quotes.push(q);
+        existing.totalCents += q.total_cents;
+        if (q.status === "paid") existing.paidCents += q.total_cents;
+        if (q.status === "sent") existing.outstandingCents += q.total_cents;
+        if (lastActivity > existing.lastActivity) existing.lastActivity = lastActivity;
+      } else {
+        map.set(key, {
+          email: q.recipient_email,
+          name: q.recipient_name,
+          company: q.recipient_company,
+          quotes: [q],
+          totalCents: q.total_cents,
+          paidCents: q.status === "paid" ? q.total_cents : 0,
+          outstandingCents: q.status === "sent" ? q.total_cents : 0,
+          lastActivity,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => (b.lastActivity > a.lastActivity ? 1 : -1));
+  }, [quotes]);
+
+  const [openEmail, setOpenEmail] = useState<string | null>(null);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Mail className="h-5 w-5" /> Recipients
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          All recipients you've quoted, with totals and history. Click a row to expand.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {grouped.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">No recipients yet.</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Recipient</TableHead>
+                <TableHead className="text-right">Quotes</TableHead>
+                <TableHead className="text-right">Total quoted</TableHead>
+                <TableHead className="text-right">Paid</TableHead>
+                <TableHead className="text-right">Outstanding</TableHead>
+                <TableHead>Last activity</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {grouped.map((r) => (
+                <>
+                  <TableRow
+                    key={r.email}
+                    className="cursor-pointer"
+                    onClick={() => setOpenEmail(openEmail === r.email ? null : r.email)}
+                  >
+                    <TableCell>
+                      <div className="text-sm font-medium">{r.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.email}
+                        {r.company ? ` • ${r.company}` : ""}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{r.quotes.length}</TableCell>
+                    <TableCell className="text-right">{formatMoney(r.totalCents)}</TableCell>
+                    <TableCell className="text-right text-green-400">
+                      {formatMoney(r.paidCents)}
+                    </TableCell>
+                    <TableCell className="text-right text-blue-400">
+                      {formatMoney(r.outstandingCents)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(r.lastActivity), { addSuffix: true })}
+                    </TableCell>
+                  </TableRow>
+                  {openEmail === r.email && (
+                    <TableRow key={`${r.email}-detail`}>
+                      <TableCell colSpan={6} className="bg-muted/20 p-0">
+                        <div className="p-4 space-y-2">
+                          {r.quotes
+                            .slice()
+                            .sort((a, b) => (b.created_at > a.created_at ? 1 : -1))
+                            .map((q) => (
+                              <button
+                                key={q.id}
+                                onClick={() => onOpenQuote(q)}
+                                className="flex w-full items-center justify-between rounded-md border bg-background p-3 text-left text-sm hover:bg-accent transition"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono text-xs">{q.quote_number}</span>
+                                  <span className="truncate max-w-xs">{q.title}</span>
+                                  <Badge variant="outline" className={STATUS_STYLES[q.status]}>
+                                    {q.status}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span>{format(new Date(q.created_at), "MMM d, yyyy")}</span>
+                                  <span className="font-medium text-foreground">
+                                    {formatMoney(q.total_cents, q.currency)}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
