@@ -53,6 +53,7 @@ import {
   Mail,
   Clock,
   CircleDot,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
