@@ -708,6 +708,67 @@ function QuoteBuilderDialog({
           </div>
 
           <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>What separates Genesis from other CRMs</Label>
+                <p className="text-xs text-muted-foreground">
+                  Bullets shown on the proposal PDF. Edit, add, or remove to tailor for this recipient.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setDifferentiators(DEFAULT_DIFFERENTIATORS)}>
+                  Reset to defaults
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDifferentiators((p) => [...p, { title: "", body: "" }])}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add bullet
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {differentiators.map((d, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-2 items-start rounded-md border border-border/50 bg-muted/20 p-3">
+                  <div className="col-span-11 space-y-2">
+                    <Input
+                      placeholder="Title (e.g. Built-in AI sales team)"
+                      value={d.title}
+                      maxLength={120}
+                      onChange={(e) =>
+                        setDifferentiators((p) => p.map((x, i) => (i === idx ? { ...x, title: e.target.value } : x)))
+                      }
+                    />
+                    <Textarea
+                      rows={2}
+                      placeholder="Supporting sentence shown under the title"
+                      value={d.body}
+                      maxLength={400}
+                      onChange={(e) =>
+                        setDifferentiators((p) => p.map((x, i) => (i === idx ? { ...x, body: e.target.value } : x)))
+                      }
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="col-span-1"
+                    onClick={() => setDifferentiators((p) => p.filter((_, i) => i !== idx))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {differentiators.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No bullets — section will be hidden in the PDF.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea
               rows={3}
