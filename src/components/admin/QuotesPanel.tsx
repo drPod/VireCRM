@@ -432,7 +432,7 @@ function QuoteBuilderDialog({
       recipient_company: recipientCompany.trim() || null,
       title: title.trim(),
       notes: notes.trim() || null,
-      line_items: cleanItems,
+      line_items: cleanItems as unknown as import("@/integrations/supabase/types").Json,
       subtotal_cents: subtotalCents,
       discount_cents: discountCents,
       total_cents: totalCents,
