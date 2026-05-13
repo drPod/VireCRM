@@ -60,6 +60,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          differentiators: Json
           discount_cents: number
           id: string
           line_items: Json
@@ -67,6 +68,7 @@ export type Database = {
           paid_at: string | null
           payment_link_environment: string | null
           payment_link_url: string | null
+          pdf_url: string | null
           quote_number: string
           recipient_company: string | null
           recipient_email: string
@@ -86,6 +88,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          differentiators?: Json
           discount_cents?: number
           id?: string
           line_items?: Json
@@ -93,6 +96,7 @@ export type Database = {
           paid_at?: string | null
           payment_link_environment?: string | null
           payment_link_url?: string | null
+          pdf_url?: string | null
           quote_number?: string
           recipient_company?: string | null
           recipient_email: string
@@ -112,6 +116,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          differentiators?: Json
           discount_cents?: number
           id?: string
           line_items?: Json
@@ -119,6 +124,7 @@ export type Database = {
           paid_at?: string | null
           payment_link_environment?: string | null
           payment_link_url?: string | null
+          pdf_url?: string | null
           quote_number?: string
           recipient_company?: string | null
           recipient_email?: string
