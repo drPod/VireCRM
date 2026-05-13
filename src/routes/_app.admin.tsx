@@ -222,6 +222,9 @@ function AdminConsole() {
           <TabsTrigger value="submissions" className="gap-2">
             <Inbox className="h-4 w-4" /> Contact Submissions
           </TabsTrigger>
+          <TabsTrigger value="quotes" className="gap-2">
+            <Receipt className="h-4 w-4" /> Quotes
+          </TabsTrigger>
           <TabsTrigger value="subs" className="gap-2">
             <FileText className="h-4 w-4" /> Manual Subscriptions
           </TabsTrigger>
