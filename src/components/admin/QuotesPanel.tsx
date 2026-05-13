@@ -502,6 +502,11 @@ function QuoteBuilderDialog({
         setDiscountDollars((quote.discount_cents / 100).toString());
         setPaymentLinkUrl(quote.payment_link_url ?? "");
         setValidUntil(quote.valid_until ?? "");
+        setDifferentiators(
+          quote.differentiators && quote.differentiators.length > 0
+            ? quote.differentiators
+            : DEFAULT_DIFFERENTIATORS,
+        );
       } else {
         setRecipientName("");
         setRecipientEmail("");
@@ -512,6 +517,7 @@ function QuoteBuilderDialog({
         setDiscountDollars("0");
         setPaymentLinkUrl("");
         setValidUntil("");
+        setDifferentiators(DEFAULT_DIFFERENTIATORS);
       }
     }
   }, [open, quote]);
