@@ -1,0 +1,20 @@
+# Genesis
+
+> Genesis is the autonomous AI-powered CRM that responds instantly, follows up relentlessly, and surfaces hot leads — so sales teams focus on closing, not chasing.
+
+Genesis offers two tracks: done-for-you CRM plans for businesses that want a working CRM, and white-label plans for agencies that want to resell the platform under their own brand.
+
+## Pages
+
+- [Home](/): Landing page — what Genesis does and who it's for.
+- [Features](/features): Lead scoring, AI outreach, reply classification, auto scheduling, white-labeling.
+- [Pricing](/pricing): CRM plans from $97/mo, white-label from $249/mo, custom builds from $10K.
+- [Contact](/contact): Get in touch with the Genesis team.
+- [Sign In](/login): Sign in to your Genesis workspace.
+- [Start Free Trial](/signup): Create a Genesis account.
+
+## Optional
+
+- [Privacy Policy](/privacy)
+- [Terms & Conditions](/terms)
+- [Refund Policy](/refund-policy)
