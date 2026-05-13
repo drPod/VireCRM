@@ -26,6 +26,7 @@ const MODULES = [
   { key: "contract_requests", label: "Contract Requests", icon: FileSignature, table: "contract_requests" as const, hint: "Contract submission pipeline", to: "/energy/contracts" },
   { key: "energy_suppliers", label: "Suppliers", icon: Building2, table: "energy_suppliers" as const, hint: "Supplier directory & terms", to: "/energy/suppliers" },
   { key: "renewals", label: "Renewals", icon: RefreshCw, table: "renewals" as const, hint: "Upcoming renewal opportunities", to: "/energy/renewals" },
+  { key: "energy_customers", label: "Active Customers", icon: Users, table: "energy_customers" as const, hint: "Currently enrolled customers & contract terms", to: "/energy/customers" },
 ];
 
 function EnergyHub() {
