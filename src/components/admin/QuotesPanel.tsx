@@ -93,6 +93,8 @@ interface Quote {
   paid_at: string | null;
   valid_until: string | null;
   created_at: string;
+  differentiators: Differentiator[] | null;
+  pdf_url: string | null;
 }
 
 const STATUS_STYLES: Record<QuoteStatus, string> = {
