@@ -9,7 +9,13 @@ export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
       { title: "Privacy Policy — Genesis" },
-      { name: "description", content: "How Genesis collects, uses, and protects your personal data." },
+      { name: "description", content: "How Genesis collects, uses, and protects your personal data when you use our AI CRM platform." },
+      { property: "og:title", content: "Privacy Policy — Genesis" },
+      { property: "og:description", content: "How Genesis collects, uses, and protects your personal data." },
+      { property: "og:url", content: "https://genesisx.space/privacy" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/privacy" },
     ],
   }),
 });

@@ -24,7 +24,13 @@ export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
       { title: "Start Free Trial — Genesis" },
-      { name: "description", content: "Create your Genesis account and start automating sales in minutes" },
+      { name: "description", content: "Create your Genesis account and start automating sales in minutes with AI-powered lead scoring, outreach, and follow-ups." },
+      { property: "og:title", content: "Start Your Free Trial — Genesis" },
+      { property: "og:description", content: "Create your Genesis account and start automating sales with AI-powered lead scoring and outreach." },
+      { property: "og:url", content: "https://genesisx.space/signup" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/signup" },
     ],
   }),
 });

@@ -10,6 +10,12 @@ export const Route = createFileRoute("/terms")({
     meta: [
       { title: "Terms & Conditions — GenesisX CRM" },
       { name: "description", content: "GenesisX CRM Software Terms & Conditions Agreement governing your use of the platform." },
+      { property: "og:title", content: "Terms & Conditions — Genesis" },
+      { property: "og:description", content: "Terms governing your use of the Genesis CRM platform." },
+      { property: "og:url", content: "https://genesisx.space/terms" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/terms" },
     ],
   }),
 });

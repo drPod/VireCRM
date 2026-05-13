@@ -52,6 +52,34 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" },
       { rel: "stylesheet", href: appCss },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Genesis",
+          url: "https://genesisx.space",
+          logo: "https://genesisx.space/genesis-logo.png",
+          sameAs: [],
+          contactPoint: {
+            "@type": "ContactPoint",
+            telephone: "+1-940-365-6600",
+            contactType: "customer support",
+            email: "support@genesisx.space",
+          },
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Genesis",
+          url: "https://genesisx.space",
+        }),
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

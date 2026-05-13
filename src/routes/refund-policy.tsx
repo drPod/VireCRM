@@ -9,7 +9,13 @@ export const Route = createFileRoute("/refund-policy")({
   head: () => ({
     meta: [
       { title: "Refund Policy — Genesis" },
-      { name: "description", content: "Genesis's refund policy for subscription plans and purchases." },
+      { name: "description", content: "Genesis's refund policy for subscription plans and purchases, including our 30-day money-back guarantee." },
+      { property: "og:title", content: "Refund Policy — Genesis" },
+      { property: "og:description", content: "Genesis's refund policy and 30-day money-back guarantee." },
+      { property: "og:url", content: "https://genesisx.space/refund-policy" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/refund-policy" },
     ],
   }),
 });
