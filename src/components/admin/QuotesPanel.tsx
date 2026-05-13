@@ -200,146 +200,165 @@ export function QuotesPanel() {
         <StatCard label="Total quotes" value={quotes.length.toString()} />
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" /> Quotes
-            </CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Build, send, and track custom quotes. Status flows: draft → sent → paid.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="icon" onClick={load} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setBuilderOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" /> New quote
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading quotes…
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              No quotes yet. Click <span className="font-medium text-foreground">New quote</span> to create one.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Quote</TableHead>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-12" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((q) => (
-                  <TableRow key={q.id}>
-                    <TableCell className="font-mono text-xs">{q.quote_number}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">{q.recipient_name}</div>
-                      <div className="text-xs text-muted-foreground">{q.recipient_email}</div>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">{q.title}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatMoney(q.total_cents, q.currency)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={STATUS_STYLES[q.status]}>
-                        {q.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(q.created_at), { addSuffix: true })}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditing(q);
-                              setBuilderOpen(true);
-                            }}
-                          >
-                            <FileText className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setHistoryQuote(q)}>
-                            <History className="mr-2 h-4 w-4" /> View history
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => copyShare(q)}>
-                            <Copy className="mr-2 h-4 w-4" /> Copy summary
-                          </DropdownMenuItem>
-                          {q.payment_link_url && (
-                            <DropdownMenuItem
-                              onClick={() => window.open(q.payment_link_url!, "_blank")}
-                            >
-                              <LinkIcon className="mr-2 h-4 w-4" /> Open payment link
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          {q.status === "draft" && (
-                            <DropdownMenuItem onClick={() => updateStatus(q.id, "sent")}>
-                              <Send className="mr-2 h-4 w-4" /> Mark as sent
-                            </DropdownMenuItem>
-                          )}
-                          {q.status === "sent" && (
-                            <DropdownMenuItem onClick={() => updateStatus(q.id, "paid")}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" /> Mark as paid
-                            </DropdownMenuItem>
-                          )}
-                          {q.status !== "cancelled" && q.status !== "paid" && (
-                            <DropdownMenuItem onClick={() => updateStatus(q.id, "cancelled")}>
-                              <XCircle className="mr-2 h-4 w-4" /> Cancel
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => deleteQuote(q.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs value={view} onValueChange={(v) => setView(v as typeof view)}>
+        <TabsList>
+          <TabsTrigger value="quotes" className="gap-2">
+            <FileText className="h-4 w-4" /> Quotes
+          </TabsTrigger>
+          <TabsTrigger value="recipients" className="gap-2">
+            <Mail className="h-4 w-4" /> Recipients
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="quotes" className="mt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Quotes
+                </CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Build, send, and track custom quotes. Status flows: draft → sent → paid.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="icon" onClick={load} disabled={loading}>
+                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditing(null);
+                    setBuilderOpen(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> New quote
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading quotes…
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  No quotes yet. Click <span className="font-medium text-foreground">New quote</span> to create one.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Quote</TableHead>
+                      <TableHead>Recipient</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Draft</TableHead>
+                      <TableHead>Sent</TableHead>
+                      <TableHead>Paid</TableHead>
+                      <TableHead className="w-12" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((q) => (
+                      <TableRow key={q.id} className="cursor-pointer" onClick={() => setHistoryQuote(q)}>
+                        <TableCell className="font-mono text-xs">{q.quote_number}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">{q.recipient_name}</div>
+                          <div className="text-xs text-muted-foreground">{q.recipient_email}</div>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{q.title}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatMoney(q.total_cents, q.currency)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={STATUS_STYLES[q.status]}>
+                            {q.status}
+                          </Badge>
+                        </TableCell>
+                        <TimestampCell value={q.created_at} />
+                        <TimestampCell value={q.sent_at} />
+                        <TimestampCell value={q.paid_at} />
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditing(q);
+                                  setBuilderOpen(true);
+                                }}
+                              >
+                                <FileText className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setHistoryQuote(q)}>
+                                <History className="mr-2 h-4 w-4" /> View history
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => copyShare(q)}>
+                                <Copy className="mr-2 h-4 w-4" /> Copy summary
+                              </DropdownMenuItem>
+                              {q.payment_link_url && (
+                                <DropdownMenuItem
+                                  onClick={() => window.open(q.payment_link_url!, "_blank")}
+                                >
+                                  <LinkIcon className="mr-2 h-4 w-4" /> Open payment link
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              {q.status === "draft" && (
+                                <DropdownMenuItem onClick={() => updateStatus(q.id, "sent")}>
+                                  <Send className="mr-2 h-4 w-4" /> Mark as sent
+                                </DropdownMenuItem>
+                              )}
+                              {q.status === "sent" && (
+                                <DropdownMenuItem onClick={() => updateStatus(q.id, "paid")}>
+                                  <CheckCircle2 className="mr-2 h-4 w-4" /> Mark as paid
+                                </DropdownMenuItem>
+                              )}
+                              {q.status !== "cancelled" && q.status !== "paid" && (
+                                <DropdownMenuItem onClick={() => updateStatus(q.id, "cancelled")}>
+                                  <XCircle className="mr-2 h-4 w-4" /> Cancel
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => deleteQuote(q.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="recipients" className="mt-4">
+          <RecipientsView quotes={quotes} onOpenQuote={(q) => setHistoryQuote(q)} />
+        </TabsContent>
+      </Tabs>
 
       <QuoteBuilderDialog
         open={builderOpen}
@@ -350,6 +369,11 @@ export function QuotesPanel() {
           setEditing(null);
           load();
         }}
+      />
+
+      <QuoteHistoryDialog
+        quote={historyQuote}
+        onOpenChange={(open) => !open && setHistoryQuote(null)}
       />
     </div>
   );
