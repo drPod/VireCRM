@@ -55,6 +55,9 @@ import {
   CircleDot,
   Zap,
 } from "lucide-react";
+import { Sparkles, Download } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { regenerateQuotePdf } from "@/lib/quote-pdf.functions";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 
