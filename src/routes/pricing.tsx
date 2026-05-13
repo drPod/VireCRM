@@ -16,6 +16,39 @@ export const Route = createFileRoute("/pricing")({
       { name: "description", content: "Done-for-you CRM plans from $97/mo or white-label plans to resell under your brand." },
       { property: "og:title", content: "Genesis Pricing — Plans That Fit Your Business" },
       { property: "og:description", content: "CRM plans from $97/mo. White-label from $249/mo. Custom builds from $10K." },
+      { property: "og:url", content: "https://genesisx.space/pricing" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/pricing" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [
+            { "@type": "Question", name: "What's the difference between CRM plans and white-label plans?", acceptedAnswer: { "@type": "Answer", text: "CRM plans are for businesses that just want a CRM to manage their own sales. White-label plans let you resell the CRM under your own brand to your clients." } },
+            { "@type": "Question", name: "What are the setup fees?", acceptedAnswer: { "@type": "Answer", text: "Setup fees cover custom configuration, onboarding, and initial data migration. They're invoiced separately after a discovery call — not charged at checkout." } },
+            { "@type": "Question", name: "What does white-label mean?", acceptedAnswer: { "@type": "Answer", text: "Your logo, your colors, your domain, your brand. Your clients will never know it's built by us. White-label plans include full rebranding." } },
+            { "@type": "Question", name: "Can I upgrade from a CRM plan to white-label?", acceptedAnswer: { "@type": "Answer", text: "Yes! Contact us and we'll help you transition. We'll credit a portion of your existing payments toward the upgrade." } },
+            { "@type": "Question", name: "What's the Custom CRM build?", acceptedAnswer: { "@type": "Answer", text: "A fully bespoke system starting at $10K — tailored workflows, unique dashboards, and integrations built specifically for your business." } },
+            { "@type": "Question", name: "How do I reach you?", acceptedAnswer: { "@type": "Answer", text: "Call or text us at +1 (940) 365-6600 or email support@genesisx.space. We typically reply within one business day." } },
+          ],
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          name: "Genesis",
+          url: "https://genesisx.space/pricing",
+          telephone: "+1-940-365-6600",
+          email: "support@genesisx.space",
+          priceRange: "$97-$10000",
+        }),
+      },
     ],
   }),
 });

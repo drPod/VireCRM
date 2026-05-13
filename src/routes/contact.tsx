@@ -13,6 +13,10 @@ export const Route = createFileRoute("/contact")({
       { name: "description", content: "Get a custom-built CRM tailored to your business. Contact us for enterprise pricing starting at $14,000." },
       { property: "og:title", content: "Contact Us — Genesis Custom CRM" },
       { property: "og:description", content: "Get a custom-built CRM tailored to your business. Enterprise pricing from $14K." },
+      { property: "og:url", content: "https://genesisx.space/contact" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://genesisx.space/contact" },
     ],
   }),
 });
