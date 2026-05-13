@@ -55,6 +55,9 @@ import {
   CircleDot,
   Zap,
 } from "lucide-react";
+import { Sparkles, Download } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { regenerateQuotePdf } from "@/lib/quote-pdf.functions";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -64,6 +67,11 @@ interface LineItem {
   description: string;
   quantity: number;
   unit_price_cents: number;
+}
+
+interface Differentiator {
+  title: string;
+  body: string;
 }
 
 interface Quote {
@@ -85,6 +93,8 @@ interface Quote {
   paid_at: string | null;
   valid_until: string | null;
   created_at: string;
+  differentiators: Differentiator[] | null;
+  pdf_url: string | null;
 }
 
 const STATUS_STYLES: Record<QuoteStatus, string> = {
@@ -105,6 +115,15 @@ const emptyLineItem = (): LineItem => ({
   quantity: 1,
   unit_price_cents: 0,
 });
+
+const DEFAULT_DIFFERENTIATORS: Differentiator[] = [
+  { title: "Built-in AI sales team", body: "Lead scoring, reply classification, follow-up writing, and meeting booking are first-class agents — not bolt-ons." },
+  { title: "One platform replaces 6+ tools", body: "CRM, outreach, scheduling, pipeline, billing, and reporting in one place. No Zapier glue." },
+  { title: "True white-label, not a reseller skin", body: "Your domain, your branding, your login, your customers. Genesis is invisible." },
+  { title: "Capped, transparent pricing", body: "Flat monthly tiers — no per-seat creep, no usage surprises." },
+  { title: "Industry-tuned templates", body: "Pre-built pipelines, automations, and email templates for solar, insurance, real estate, gym, and more." },
+  { title: "Real human + AI support", body: "Founders in the loop. Slack-grade response time, not a help-desk maze." },
+];
 
 export function QuotesPanel() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -228,6 +247,20 @@ export function QuotesPanel() {
     load();
   };
 
+  const regeneratePdfFn = useServerFn(regenerateQuotePdf);
+  const regeneratePdf = async (q: Quote) => {
+    const t = toast.loading("Generating proposal PDF…");
+    try {
+      const res = await regeneratePdfFn({ data: { quoteId: q.id } });
+      toast.dismiss(t);
+      toast.success("PDF regenerated");
+      window.open(res.pdfUrl, "_blank");
+      load();
+    } catch (e) {
+      toast.dismiss(t);
+      toast.error(e instanceof Error ? e.message : "Failed to regenerate PDF");
+    }
+  };
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -351,6 +384,15 @@ export function QuotesPanel() {
                                 <Copy className="mr-2 h-4 w-4" /> Copy summary
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => regeneratePdf(q)}>
+                                <Sparkles className="mr-2 h-4 w-4" /> Regenerate proposal PDF
+                              </DropdownMenuItem>
+                              {q.pdf_url && (
+                                <DropdownMenuItem onClick={() => window.open(q.pdf_url!, "_blank")}>
+                                  <Download className="mr-2 h-4 w-4" /> Open latest PDF
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => generatePaymentLink(q, "total")}>
                                 <Zap className="mr-2 h-4 w-4" /> Generate Stripe link (total)
                               </DropdownMenuItem>
@@ -454,6 +496,7 @@ function QuoteBuilderDialog({
   const [discountDollars, setDiscountDollars] = useState("0");
   const [paymentLinkUrl, setPaymentLinkUrl] = useState("");
   const [validUntil, setValidUntil] = useState("");
+  const [differentiators, setDifferentiators] = useState<Differentiator[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -468,6 +511,11 @@ function QuoteBuilderDialog({
         setDiscountDollars((quote.discount_cents / 100).toString());
         setPaymentLinkUrl(quote.payment_link_url ?? "");
         setValidUntil(quote.valid_until ?? "");
+        setDifferentiators(
+          quote.differentiators && quote.differentiators.length > 0
+            ? quote.differentiators
+            : DEFAULT_DIFFERENTIATORS,
+        );
       } else {
         setRecipientName("");
         setRecipientEmail("");
@@ -478,6 +526,7 @@ function QuoteBuilderDialog({
         setDiscountDollars("0");
         setPaymentLinkUrl("");
         setValidUntil("");
+        setDifferentiators(DEFAULT_DIFFERENTIATORS);
       }
     }
   }, [open, quote]);
@@ -516,6 +565,9 @@ function QuoteBuilderDialog({
       total_cents: totalCents,
       payment_link_url: paymentLinkUrl.trim() || null,
       valid_until: validUntil || null,
+      differentiators: differentiators.filter(
+        (d) => d.title.trim() || d.body.trim(),
+      ) as unknown as import("@/integrations/supabase/types").Json,
     };
     let error;
     if (quote) {
@@ -652,6 +704,67 @@ function QuoteBuilderDialog({
                 onChange={(e) => setPaymentLinkUrl(e.target.value)}
                 maxLength={500}
               />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>What separates Genesis from other CRMs</Label>
+                <p className="text-xs text-muted-foreground">
+                  Bullets shown on the proposal PDF. Edit, add, or remove to tailor for this recipient.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setDifferentiators(DEFAULT_DIFFERENTIATORS)}>
+                  Reset to defaults
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDifferentiators((p) => [...p, { title: "", body: "" }])}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add bullet
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {differentiators.map((d, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-2 items-start rounded-md border border-border/50 bg-muted/20 p-3">
+                  <div className="col-span-11 space-y-2">
+                    <Input
+                      placeholder="Title (e.g. Built-in AI sales team)"
+                      value={d.title}
+                      maxLength={120}
+                      onChange={(e) =>
+                        setDifferentiators((p) => p.map((x, i) => (i === idx ? { ...x, title: e.target.value } : x)))
+                      }
+                    />
+                    <Textarea
+                      rows={2}
+                      placeholder="Supporting sentence shown under the title"
+                      value={d.body}
+                      maxLength={400}
+                      onChange={(e) =>
+                        setDifferentiators((p) => p.map((x, i) => (i === idx ? { ...x, body: e.target.value } : x)))
+                      }
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="col-span-1"
+                    onClick={() => setDifferentiators((p) => p.filter((_, i) => i !== idx))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {differentiators.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No bullets — section will be hidden in the PDF.
+                </p>
+              )}
             </div>
           </div>
 
