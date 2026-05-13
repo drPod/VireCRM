@@ -337,6 +337,13 @@ export function QuotesPanel() {
                               <DropdownMenuItem onClick={() => copyShare(q)}>
                                 <Copy className="mr-2 h-4 w-4" /> Copy summary
                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => generatePaymentLink(q, "total")}>
+                                <Zap className="mr-2 h-4 w-4" /> Generate Stripe link (total)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => generatePaymentLink(q, "items")}>
+                                <Zap className="mr-2 h-4 w-4" /> Generate Stripe link (per item)
+                              </DropdownMenuItem>
                               {q.payment_link_url && (
                                 <DropdownMenuItem
                                   onClick={() => window.open(q.payment_link_url!, "_blank")}
