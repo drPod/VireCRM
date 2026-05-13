@@ -192,6 +192,29 @@ export function QuotesPanel() {
     toast.success("Quote summary copied");
   };
 
+  const generatePaymentLink = async (q: Quote, mode: "total" | "items") => {
+    const t = toast.loading(
+      `Generating Stripe payment link (${mode === "items" ? "per item" : "total"})…`,
+    );
+    const clientToken = (import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined) ?? "";
+    const environment = clientToken.startsWith("pk_live_") ? "live" : "sandbox";
+    const { data, error } = await supabase.functions.invoke("create-quote-payment-link", {
+      body: { quoteId: q.id, mode, environment },
+    });
+    toast.dismiss(t);
+    if (error || !data?.payment_link_url) {
+      toast.error(error?.message || data?.error || "Failed to generate payment link");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(data.payment_link_url);
+    } catch {
+      /* clipboard may be blocked — link is already saved on the quote */
+    }
+    toast.success(`Payment link ready (${data.environment}) — copied to clipboard`);
+    load();
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
