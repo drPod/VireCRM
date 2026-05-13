@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_quote_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          from_status: Database["public"]["Enums"]["quote_status"] | null
+          id: string
+          note: string | null
+          quote_id: string
+          to_status: Database["public"]["Enums"]["quote_status"] | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: Database["public"]["Enums"]["quote_status"] | null
+          id?: string
+          note?: string | null
+          quote_id: string
+          to_status?: Database["public"]["Enums"]["quote_status"] | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: Database["public"]["Enums"]["quote_status"] | null
+          id?: string
+          note?: string | null
+          quote_id?: string
+          to_status?: Database["public"]["Enums"]["quote_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_quote_events_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "admin_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_quotes: {
         Row: {
           created_at: string
