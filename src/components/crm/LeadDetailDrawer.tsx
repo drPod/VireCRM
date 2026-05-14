@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { notifyLeadsChanged } from "@/lib/leads-events";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   Sheet,
