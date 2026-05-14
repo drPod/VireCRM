@@ -519,7 +519,7 @@ export function ImportLeadsDialog({
   onOpenChange: controlledOnOpenChange,
   hideTrigger,
 }: ImportLeadsDialogProps) {
-  const { organization } = useAuth();
+  const { organization, user } = useAuth();
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -655,6 +655,10 @@ export function ImportLeadsDialog({
 
   const handleImport = async () => {
     if (!organization?.id || parsed.length === 0) return;
+    if (!user?.id) {
+      toast.error("Please wait for your account to finish loading, then try again");
+      return;
+    }
     setLoading(true);
 
     const BATCH_SIZE = 50;
@@ -670,6 +674,7 @@ export function ImportLeadsDialog({
     for (let i = 0; i < parsed.length; i += BATCH_SIZE) {
       const batch = parsed.slice(i, i + BATCH_SIZE).map((l) => ({
         organization_id: organization.id,
+        created_by: user.id,
         name: l.name.slice(0, 200),
         email: l.email?.slice(0, 255) || null,
         phone: l.phone?.slice(0, 50) || null,
