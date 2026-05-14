@@ -328,6 +328,7 @@ export const importApolloListFn = createServerFn({ method: "POST" })
               person.organization?.industry ? `\nIndustry: ${person.organization.industry}` : ""
             }${person.linkedin_url ? `\nLinkedIn: ${person.linkedin_url}` : ""}`,
             source: `apollo_list:${data.listName}`.slice(0, 100),
+            created_by: userId,
           };
         });
 

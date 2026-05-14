@@ -459,6 +459,7 @@ export const importHubspotContactsFn = createServerFn({ method: "POST" })
           company: p.company ?? null,
           status: "new",
           source: "hubspot",
+          created_by: context.userId,
         });
         if (error) {
           skipped++;

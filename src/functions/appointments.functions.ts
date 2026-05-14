@@ -344,7 +344,7 @@ async function loadPublicCalendarOrThrow(
   const { data: cal, error } = await supabase
     .from("calendars")
     .select(
-      "id, organization_id, slot_duration_minutes, buffer_minutes, availability, name, is_active, access_password_hash",
+      "id, organization_id, slot_duration_minutes, buffer_minutes, availability, name, is_active, access_password_hash, created_by",
     )
     .eq("id", calendarId)
     .maybeSingle();
@@ -542,6 +542,7 @@ export const bookPublicAppointmentFn = createServerFn({ method: "POST" })
           source: "booking_link",
           status: "new",
           notes: `Booked via "${cal.name}" calendar`,
+          created_by: (cal as { created_by: string | null }).created_by ?? null,
         })
         .select("id")
         .single();
