@@ -50,6 +50,7 @@ import { Route as AppFollowupInboxRouteImport } from './routes/_app.followup-inb
 import { Route as AppExpensesRouteImport } from './routes/_app.expenses'
 import { Route as AppEnergyRouteImport } from './routes/_app.energy'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
+import { Route as AppDnsCheckRouteImport } from './routes/_app.dns-check'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
 import { Route as AppContactSubmissionsRouteImport } from './routes/_app.contact-submissions'
@@ -70,7 +71,6 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as ApiPublicContactRouteImport } from './routes/api/public/contact'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
 import { Route as AppSolarProjectsRouteImport } from './routes/_app.solar.projects'
-import { Route as AppSettingsDnsCheckRouteImport } from './routes/_app.settings.dns-check'
 import { Route as AppSettingsBrandingPreviewRouteImport } from './routes/_app.settings.branding-preview'
 import { Route as AppRealEstateShowingsRouteImport } from './routes/_app.real-estate.showings'
 import { Route as AppRealEstateListingsRouteImport } from './routes/_app.real-estate.listings'
@@ -304,6 +304,11 @@ const AppEmailMarketingRoute = AppEmailMarketingRouteImport.update({
   path: '/email-marketing',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDnsCheckRoute = AppDnsCheckRouteImport.update({
+  id: '/dns-check',
+  path: '/dns-check',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -403,11 +408,6 @@ const AppSolarProjectsRoute = AppSolarProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
   getParentRoute: () => AppSolarRoute,
-} as any)
-const AppSettingsDnsCheckRoute = AppSettingsDnsCheckRouteImport.update({
-  id: '/dns-check',
-  path: '/dns-check',
-  getParentRoute: () => AppSettingsRoute,
 } as any)
 const AppSettingsBrandingPreviewRoute =
   AppSettingsBrandingPreviewRouteImport.update({
@@ -585,6 +585,7 @@ export interface FileRoutesByFullPath {
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/dns-check': typeof AppDnsCheckRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/energy': typeof AppEnergyRouteWithChildren
   '/expenses': typeof AppExpensesRoute
@@ -625,7 +626,6 @@ export interface FileRoutesByFullPath {
   '/real-estate/listings': typeof AppRealEstateListingsRoute
   '/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
-  '/settings/dns-check': typeof AppSettingsDnsCheckRoute
   '/solar/projects': typeof AppSolarProjectsRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -675,6 +675,7 @@ export interface FileRoutesByTo {
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/dns-check': typeof AppDnsCheckRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/energy': typeof AppEnergyRouteWithChildren
   '/expenses': typeof AppExpensesRoute
@@ -715,7 +716,6 @@ export interface FileRoutesByTo {
   '/real-estate/listings': typeof AppRealEstateListingsRoute
   '/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
-  '/settings/dns-check': typeof AppSettingsDnsCheckRoute
   '/solar/projects': typeof AppSolarProjectsRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -767,6 +767,7 @@ export interface FileRoutesById {
   '/_app/contact-submissions': typeof AppContactSubmissionsRoute
   '/_app/conversations': typeof AppConversationsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/dns-check': typeof AppDnsCheckRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
   '/_app/energy': typeof AppEnergyRouteWithChildren
   '/_app/expenses': typeof AppExpensesRoute
@@ -807,7 +808,6 @@ export interface FileRoutesById {
   '/_app/real-estate/listings': typeof AppRealEstateListingsRoute
   '/_app/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/_app/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
-  '/_app/settings/dns-check': typeof AppSettingsDnsCheckRoute
   '/_app/solar/projects': typeof AppSolarProjectsRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -859,6 +859,7 @@ export interface FileRouteTypes {
     | '/contact-submissions'
     | '/conversations'
     | '/dashboard'
+    | '/dns-check'
     | '/email-marketing'
     | '/energy'
     | '/expenses'
@@ -899,7 +900,6 @@ export interface FileRouteTypes {
     | '/real-estate/listings'
     | '/real-estate/showings'
     | '/settings/branding-preview'
-    | '/settings/dns-check'
     | '/solar/projects'
     | '/workflows/$workflowId'
     | '/api/public/contact'
@@ -949,6 +949,7 @@ export interface FileRouteTypes {
     | '/contact-submissions'
     | '/conversations'
     | '/dashboard'
+    | '/dns-check'
     | '/email-marketing'
     | '/energy'
     | '/expenses'
@@ -989,7 +990,6 @@ export interface FileRouteTypes {
     | '/real-estate/listings'
     | '/real-estate/showings'
     | '/settings/branding-preview'
-    | '/settings/dns-check'
     | '/solar/projects'
     | '/workflows/$workflowId'
     | '/api/public/contact'
@@ -1040,6 +1040,7 @@ export interface FileRouteTypes {
     | '/_app/contact-submissions'
     | '/_app/conversations'
     | '/_app/dashboard'
+    | '/_app/dns-check'
     | '/_app/email-marketing'
     | '/_app/energy'
     | '/_app/expenses'
@@ -1080,7 +1081,6 @@ export interface FileRouteTypes {
     | '/_app/real-estate/listings'
     | '/_app/real-estate/showings'
     | '/_app/settings/branding-preview'
-    | '/_app/settings/dns-check'
     | '/_app/solar/projects'
     | '/_app/workflows/$workflowId'
     | '/api/public/contact'
@@ -1431,6 +1431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEmailMarketingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/dns-check': {
+      id: '/_app/dns-check'
+      path: '/dns-check'
+      fullPath: '/dns-check'
+      preLoaderRoute: typeof AppDnsCheckRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -1570,13 +1577,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/solar/projects'
       preLoaderRoute: typeof AppSolarProjectsRouteImport
       parentRoute: typeof AppSolarRoute
-    }
-    '/_app/settings/dns-check': {
-      id: '/_app/settings/dns-check'
-      path: '/dns-check'
-      fullPath: '/settings/dns-check'
-      preLoaderRoute: typeof AppSettingsDnsCheckRouteImport
-      parentRoute: typeof AppSettingsRoute
     }
     '/_app/settings/branding-preview': {
       id: '/_app/settings/branding-preview'
@@ -1862,12 +1862,10 @@ const AppRealEstateRouteWithChildren = AppRealEstateRoute._addFileChildren(
 
 interface AppSettingsRouteChildren {
   AppSettingsBrandingPreviewRoute: typeof AppSettingsBrandingPreviewRoute
-  AppSettingsDnsCheckRoute: typeof AppSettingsDnsCheckRoute
 }
 
 const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsBrandingPreviewRoute: AppSettingsBrandingPreviewRoute,
-  AppSettingsDnsCheckRoute: AppSettingsDnsCheckRoute,
 }
 
 const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
@@ -1900,6 +1898,7 @@ interface AppRouteChildren {
   AppContactSubmissionsRoute: typeof AppContactSubmissionsRoute
   AppConversationsRoute: typeof AppConversationsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDnsCheckRoute: typeof AppDnsCheckRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
   AppEnergyRoute: typeof AppEnergyRouteWithChildren
   AppExpensesRoute: typeof AppExpensesRoute
@@ -1936,6 +1935,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppContactSubmissionsRoute: AppContactSubmissionsRoute,
   AppConversationsRoute: AppConversationsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDnsCheckRoute: AppDnsCheckRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
   AppEnergyRoute: AppEnergyRouteWithChildren,
   AppExpensesRoute: AppExpensesRoute,

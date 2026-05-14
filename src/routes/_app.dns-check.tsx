@@ -38,7 +38,7 @@ interface DnsCheckSearch {
   org?: string;
 }
 
-export const Route = createFileRoute("/_app/settings/dns-check")({
+export const Route = createFileRoute("/_app/dns-check")({
   component: DnsCheckPage,
   validateSearch: (search: Record<string, unknown>): DnsCheckSearch => ({
     domain: typeof search.domain === "string" ? search.domain : undefined,
