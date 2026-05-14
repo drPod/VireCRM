@@ -39,24 +39,7 @@ export function ReportIssueDialog({
     setSubmitting(true);
     setErrorMsg(null);
     try {
-      // Best-effort user/org lookup (doesn't block submission)
-      let userId: string | null = null;
-      let organizationId: string | null = null;
-      try {
-        const { data } = await supabase.auth.getSession();
-        userId = data.session?.user?.id ?? null;
-        if (userId) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("organization_id")
-            .eq("user_id", userId)
-            .maybeSingle();
-          organizationId = profile?.organization_id ?? null;
-        }
-      } catch {
-        // ignore
-      }
-
+      // userId / organizationId are derived server-side from the session.
       const result = await submit({
         data: {
           description: description.trim(),
@@ -64,8 +47,6 @@ export function ReportIssueDialog({
           errorStack: error?.stack?.slice(0, 8000) ?? null,
           componentStack: componentStack?.slice(0, 8000) ?? null,
           url: typeof window !== "undefined" ? window.location.href : null,
-          userId,
-          organizationId,
         },
       });
 
