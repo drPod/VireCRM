@@ -71,6 +71,30 @@ export function PipelineView() {
     fetchLeads();
   }, [fetchLeads]);
 
+  // Realtime: re-fetch the pipeline whenever any lead in this org changes
+  // so newly created / moved / deleted leads appear without a manual refresh.
+  useEffect(() => {
+    if (!organization?.id) return;
+    const channel = supabase
+      .channel(`pipeline-${organization.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "leads",
+          filter: `organization_id=eq.${organization.id}`,
+        },
+        () => {
+          void fetchLeads();
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organization?.id, fetchLeads]);
+
   const handleDragStart = useCallback((e: React.DragEvent, leadId: string) => {
     setDraggedLeadId(leadId);
     e.dataTransfer.effectAllowed = "move";

@@ -303,6 +303,29 @@ function LeadsPage() {
     fetchLeads();
   }, [organization?.id, statusFilter, search, refreshKey, isOwner, assigneeFilter]);
 
+  // Realtime: refresh the list whenever a lead in this org is inserted,
+  // updated, or deleted (e.g. by another user, AI command, CSV import,
+  // public booking flow). Debounced via setRefreshKey to coalesce bursts.
+  useEffect(() => {
+    if (!organization?.id) return;
+    const channel = supabase
+      .channel(`leads-list-${organization.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "leads",
+          filter: `organization_id=eq.${organization.id}`,
+        },
+        () => setRefreshKey((k) => k + 1),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organization?.id]);
+
   // Drop any selected ids that are no longer in the visible list (e.g. after
   // filtering or refresh).
   useEffect(() => {
