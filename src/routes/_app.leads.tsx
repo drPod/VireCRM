@@ -737,6 +737,45 @@ function LeadsPage() {
               <Wand2 className="h-3.5 w-3.5" />
               Apply template
             </Button>
+            {/* Bulk move to a pipeline stage — optimistic relocation across
+                the leads list and pipeline view. */}
+            <div className="flex items-center gap-1.5">
+              <Select
+                value={bulkMoveStatus}
+                onValueChange={setBulkMoveStatus}
+                disabled={selectedLeadIds.length === 0 || bulkMoving}
+              >
+                <SelectTrigger className="h-9 w-[150px] text-xs" aria-label="Move to stage">
+                  <SelectValue placeholder="Move to stage…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusFilters
+                    .filter((s) => s !== "all")
+                    .map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">
+                        {s}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void runBulkMove(bulkMoveStatus)}
+                disabled={
+                  bulkMoving || selectedLeadIds.length === 0 || !bulkMoveStatus
+                }
+                className="gap-1.5"
+                title="Move every selected lead to the chosen pipeline stage"
+              >
+                {bulkMoving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <MoveRight className="h-3.5 w-3.5" />
+                )}
+                Move
+              </Button>
+            </div>
             {isOwner && (
               <Button
                 size="sm"
