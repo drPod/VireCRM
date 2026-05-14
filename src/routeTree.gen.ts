@@ -70,6 +70,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as ApiPublicContactRouteImport } from './routes/api/public/contact'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
 import { Route as AppSolarProjectsRouteImport } from './routes/_app.solar.projects'
+import { Route as AppSettingsDnsCheckRouteImport } from './routes/_app.settings.dns-check'
 import { Route as AppSettingsBrandingPreviewRouteImport } from './routes/_app.settings.branding-preview'
 import { Route as AppRealEstateShowingsRouteImport } from './routes/_app.real-estate.showings'
 import { Route as AppRealEstateListingsRouteImport } from './routes/_app.real-estate.listings'
@@ -403,6 +404,11 @@ const AppSolarProjectsRoute = AppSolarProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => AppSolarRoute,
 } as any)
+const AppSettingsDnsCheckRoute = AppSettingsDnsCheckRouteImport.update({
+  id: '/dns-check',
+  path: '/dns-check',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const AppSettingsBrandingPreviewRoute =
   AppSettingsBrandingPreviewRouteImport.update({
     id: '/branding-preview',
@@ -619,6 +625,7 @@ export interface FileRoutesByFullPath {
   '/real-estate/listings': typeof AppRealEstateListingsRoute
   '/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
+  '/settings/dns-check': typeof AppSettingsDnsCheckRoute
   '/solar/projects': typeof AppSolarProjectsRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -708,6 +715,7 @@ export interface FileRoutesByTo {
   '/real-estate/listings': typeof AppRealEstateListingsRoute
   '/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
+  '/settings/dns-check': typeof AppSettingsDnsCheckRoute
   '/solar/projects': typeof AppSolarProjectsRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -799,6 +807,7 @@ export interface FileRoutesById {
   '/_app/real-estate/listings': typeof AppRealEstateListingsRoute
   '/_app/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/_app/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
+  '/_app/settings/dns-check': typeof AppSettingsDnsCheckRoute
   '/_app/solar/projects': typeof AppSolarProjectsRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
@@ -890,6 +899,7 @@ export interface FileRouteTypes {
     | '/real-estate/listings'
     | '/real-estate/showings'
     | '/settings/branding-preview'
+    | '/settings/dns-check'
     | '/solar/projects'
     | '/workflows/$workflowId'
     | '/api/public/contact'
@@ -979,6 +989,7 @@ export interface FileRouteTypes {
     | '/real-estate/listings'
     | '/real-estate/showings'
     | '/settings/branding-preview'
+    | '/settings/dns-check'
     | '/solar/projects'
     | '/workflows/$workflowId'
     | '/api/public/contact'
@@ -1069,6 +1080,7 @@ export interface FileRouteTypes {
     | '/_app/real-estate/listings'
     | '/_app/real-estate/showings'
     | '/_app/settings/branding-preview'
+    | '/_app/settings/dns-check'
     | '/_app/solar/projects'
     | '/_app/workflows/$workflowId'
     | '/api/public/contact'
@@ -1559,6 +1571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSolarProjectsRouteImport
       parentRoute: typeof AppSolarRoute
     }
+    '/_app/settings/dns-check': {
+      id: '/_app/settings/dns-check'
+      path: '/dns-check'
+      fullPath: '/settings/dns-check'
+      preLoaderRoute: typeof AppSettingsDnsCheckRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     '/_app/settings/branding-preview': {
       id: '/_app/settings/branding-preview'
       path: '/branding-preview'
@@ -1843,10 +1862,12 @@ const AppRealEstateRouteWithChildren = AppRealEstateRoute._addFileChildren(
 
 interface AppSettingsRouteChildren {
   AppSettingsBrandingPreviewRoute: typeof AppSettingsBrandingPreviewRoute
+  AppSettingsDnsCheckRoute: typeof AppSettingsDnsCheckRoute
 }
 
 const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsBrandingPreviewRoute: AppSettingsBrandingPreviewRoute,
+  AppSettingsDnsCheckRoute: AppSettingsDnsCheckRoute,
 }
 
 const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
