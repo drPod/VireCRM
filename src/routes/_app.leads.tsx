@@ -760,6 +760,7 @@ function LeadsPage() {
                 setLeads((prev) => prev.filter((x) => x.id !== l.id));
                 setSelectedLeadIds((prev) => prev.filter((id) => id !== l.id));
                 setTotalCount((c) => Math.max(0, c - 1));
+                notifyLeadsChanged();
               }}
               onClick={() => {
                 // Per org policy, only the owner can open the full lead
