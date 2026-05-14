@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useServerFn } from "@tanstack/react-start";
 import { submitSupportTicket } from "@/functions/support-ticket.functions";
-import { supabase } from "@/integrations/supabase/client";
+
 import { CheckCircle2, Loader2 } from "lucide-react";
 
 interface ReportIssueDialogProps {
