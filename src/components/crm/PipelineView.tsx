@@ -96,6 +96,10 @@ export function PipelineView() {
     };
   }, [organization?.id, fetchLeads]);
 
+  // Cross-component signal for soft-deletes (RLS hides them on UPDATE so the
+  // realtime subscription above doesn't always fire).
+  useEffect(() => onLeadsChanged(() => void fetchLeads()), [fetchLeads]);
+
   const handleDragStart = useCallback((e: React.DragEvent, leadId: string) => {
     setDraggedLeadId(leadId);
     e.dataTransfer.effectAllowed = "move";
