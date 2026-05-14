@@ -104,7 +104,7 @@ export function AutoFindLeadsDialog({
   initialDescription,
   initialIndustry,
 }: AutoFindLeadsDialogProps) {
-  const { organization, role } = useAuth();
+  const { organization, role, user } = useAuth();
   const isOwner = role?.role === "owner";
   const { triggerOutreach } = useAutoOutreach();
   const { enabled: outreachEnabled, setEnabled: setOutreachEnabled } = useAutoOutreachPreference();
@@ -221,6 +221,10 @@ export function AutoFindLeadsDialog({
 
   const handleImport = async () => {
     if (!organization?.id || selected.size === 0) return;
+    if (!user?.id) {
+      toast.error("Please wait for your account to finish loading, then try again");
+      return;
+    }
     setImporting(true);
     const importStartedAt = Date.now();
 
@@ -228,6 +232,7 @@ export function AutoFindLeadsDialog({
       .filter((_, i) => selected.has(i))
       .map((l) => ({
         organization_id: organization.id,
+        created_by: user.id,
         name: l.name.slice(0, 200),
         email: l.email.slice(0, 255),
         phone: l.phone?.slice(0, 50) || null,

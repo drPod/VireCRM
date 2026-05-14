@@ -73,6 +73,10 @@ export function AddLeadDialog({
       toast.error("Lead name is required");
       return;
     }
+    if (!user?.id) {
+      toast.error("Please wait for your account to finish loading, then try again");
+      return;
+    }
     if (!organization?.id) {
       toast.error("No organization found");
       return;
@@ -92,7 +96,7 @@ export function AddLeadDialog({
         .from("leads")
         .insert({
           organization_id: organization.id,
-          created_by: user?.id ?? null,
+          created_by: user.id,
           name: form.name.trim(),
           email: form.email.trim() || null,
           phone: form.phone.trim() || null,
