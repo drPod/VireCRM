@@ -50,6 +50,7 @@ import { Route as AppFollowupInboxRouteImport } from './routes/_app.followup-inb
 import { Route as AppExpensesRouteImport } from './routes/_app.expenses'
 import { Route as AppEnergyRouteImport } from './routes/_app.energy'
 import { Route as AppEmailMarketingRouteImport } from './routes/_app.email-marketing'
+import { Route as AppDnsCheckRouteImport } from './routes/_app.dns-check'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
 import { Route as AppContactSubmissionsRouteImport } from './routes/_app.contact-submissions'
@@ -301,6 +302,11 @@ const AppEnergyRoute = AppEnergyRouteImport.update({
 const AppEmailMarketingRoute = AppEmailMarketingRouteImport.update({
   id: '/email-marketing',
   path: '/email-marketing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDnsCheckRoute = AppDnsCheckRouteImport.update({
+  id: '/dns-check',
+  path: '/dns-check',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -579,6 +585,7 @@ export interface FileRoutesByFullPath {
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/dns-check': typeof AppDnsCheckRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/energy': typeof AppEnergyRouteWithChildren
   '/expenses': typeof AppExpensesRoute
@@ -668,6 +675,7 @@ export interface FileRoutesByTo {
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/dns-check': typeof AppDnsCheckRoute
   '/email-marketing': typeof AppEmailMarketingRoute
   '/energy': typeof AppEnergyRouteWithChildren
   '/expenses': typeof AppExpensesRoute
@@ -759,6 +767,7 @@ export interface FileRoutesById {
   '/_app/contact-submissions': typeof AppContactSubmissionsRoute
   '/_app/conversations': typeof AppConversationsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/dns-check': typeof AppDnsCheckRoute
   '/_app/email-marketing': typeof AppEmailMarketingRoute
   '/_app/energy': typeof AppEnergyRouteWithChildren
   '/_app/expenses': typeof AppExpensesRoute
@@ -850,6 +859,7 @@ export interface FileRouteTypes {
     | '/contact-submissions'
     | '/conversations'
     | '/dashboard'
+    | '/dns-check'
     | '/email-marketing'
     | '/energy'
     | '/expenses'
@@ -939,6 +949,7 @@ export interface FileRouteTypes {
     | '/contact-submissions'
     | '/conversations'
     | '/dashboard'
+    | '/dns-check'
     | '/email-marketing'
     | '/energy'
     | '/expenses'
@@ -1029,6 +1040,7 @@ export interface FileRouteTypes {
     | '/_app/contact-submissions'
     | '/_app/conversations'
     | '/_app/dashboard'
+    | '/_app/dns-check'
     | '/_app/email-marketing'
     | '/_app/energy'
     | '/_app/expenses'
@@ -1417,6 +1429,13 @@ declare module '@tanstack/react-router' {
       path: '/email-marketing'
       fullPath: '/email-marketing'
       preLoaderRoute: typeof AppEmailMarketingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dns-check': {
+      id: '/_app/dns-check'
+      path: '/dns-check'
+      fullPath: '/dns-check'
+      preLoaderRoute: typeof AppDnsCheckRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
@@ -1879,6 +1898,7 @@ interface AppRouteChildren {
   AppContactSubmissionsRoute: typeof AppContactSubmissionsRoute
   AppConversationsRoute: typeof AppConversationsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDnsCheckRoute: typeof AppDnsCheckRoute
   AppEmailMarketingRoute: typeof AppEmailMarketingRoute
   AppEnergyRoute: typeof AppEnergyRouteWithChildren
   AppExpensesRoute: typeof AppExpensesRoute
@@ -1915,6 +1935,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppContactSubmissionsRoute: AppContactSubmissionsRoute,
   AppConversationsRoute: AppConversationsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDnsCheckRoute: AppDnsCheckRoute,
   AppEmailMarketingRoute: AppEmailMarketingRoute,
   AppEnergyRoute: AppEnergyRouteWithChildren,
   AppExpensesRoute: AppExpensesRoute,
