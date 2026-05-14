@@ -320,16 +320,34 @@ export function EditClientWhiteLabelDialog({
                       </Button>
                     </div>
                   </div>
-                  <Button
-                    variant="command"
-                    size="sm"
-                    className="w-full h-8 text-xs"
-                    onClick={verifyDomain}
-                    disabled={verifying}
-                  >
-                    {verifying && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                    Verify domain
-                  </Button>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      asChild
+                    >
+                      <a
+                        href={`/settings/dns-check?domain=${encodeURIComponent(savedDomain)}${
+                          clientOrgId ? `&org=${clientOrgId}` : ""
+                        }`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Run DNS check
+                      </a>
+                    </Button>
+                    <Button
+                      variant="command"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={verifyDomain}
+                      disabled={verifying}
+                    >
+                      {verifying && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                      Verify domain
+                    </Button>
+                  </div>
                 </div>
               )}
 
