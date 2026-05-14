@@ -64,10 +64,7 @@ export function isActivationKey(key: string): boolean {
  * read-only shield. Returns `true` if the event must be `preventDefault`'d
  * and the user should be notified.
  */
-export function shouldBlockKeyboardEvent(
-  key: string,
-  target: EventTarget | null,
-): boolean {
+export function shouldBlockKeyboardEvent(key: string, target: EventTarget | null): boolean {
   if (!isActivationKey(key)) return false;
   if (!(target instanceof Element)) return false;
   if (isAllowed(target)) return false;

@@ -126,10 +126,7 @@ export function ResendSettingsCard() {
 
   const testRecipientValid = EMAIL_RE.test(testRecipient.trim());
   const canSendTest =
-    !!status?.connectorAvailable &&
-    !!status.fromAddress &&
-    testRecipientValid &&
-    !sendLock.loading;
+    !!status?.connectorAvailable && !!status.fromAddress && testRecipientValid && !sendLock.loading;
 
   const handleSave = async () => {
     if (!organization?.id || !canSave) return;
@@ -219,7 +216,9 @@ export function ResendSettingsCard() {
     }
   };
 
-  const verifiedLabel = formatRelative(testResult?.ok ? testResult.verifiedAt : status?.lastVerifiedAt ?? null);
+  const verifiedLabel = formatRelative(
+    testResult?.ok ? testResult.verifiedAt : (status?.lastVerifiedAt ?? null),
+  );
 
   return (
     <Card className="p-6">
@@ -238,9 +237,9 @@ export function ResendSettingsCard() {
             )}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Send outreach emails through Resend. The connection is managed at the workspace
-            level — here you set the verified <strong>from</strong> address and an optional
-            reply-to. Resend takes priority over SendGrid when both are configured.
+            Send outreach emails through Resend. The connection is managed at the workspace level —
+            here you set the verified <strong>from</strong> address and an optional reply-to. Resend
+            takes priority over SendGrid when both are configured.
           </p>
         </div>
         <a
@@ -310,12 +309,7 @@ export function ResendSettingsCard() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="command"
-              size="sm"
-              onClick={handleSave}
-              disabled={saving || !canSave}
-            >
+            <Button variant="command" size="sm" onClick={handleSave} disabled={saving || !canSave}>
               {saving ? (
                 <>
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -325,12 +319,7 @@ export function ResendSettingsCard() {
                 "Save settings"
               )}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleTest}
-              disabled={testLock.loading}
-            >
+            <Button variant="outline" size="sm" onClick={handleTest} disabled={testLock.loading}>
               {testLock.loading ? (
                 <>
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -409,8 +398,9 @@ export function ResendSettingsCard() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Sends a real email through Resend from <code className="font-mono">{status.fromAddress}</code>.
-                Logged to your email send history.
+                Sends a real email through Resend from{" "}
+                <code className="font-mono">{status.fromAddress}</code>. Logged to your email send
+                history.
               </p>
             </div>
           )}

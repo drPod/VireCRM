@@ -30,7 +30,6 @@ export async function recordConnectorActivity(input: ConnectorLogInput): Promise
       payload: (input.payload ?? {}) as never,
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.warn("[connector-log] insert failed", err);
   }
 }

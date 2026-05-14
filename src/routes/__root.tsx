@@ -19,7 +19,10 @@ function NotFoundComponent() {
           The page you're looking for doesn't exist or has been moved.
         </p>
         <div className="mt-6">
-          <Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
             Go home
           </Link>
         </div>
@@ -34,22 +37,45 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Genesis — AI CRM that follows up so your team can close" },
-      { name: "description", content: "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing." },
+      {
+        name: "description",
+        content:
+          "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+      },
       { name: "theme-color", content: "#9333EA" },
       { property: "og:site_name", content: "Genesis" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "Genesis — AI CRM that follows up so your team can close" },
-      { property: "og:description", content: "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing." },
+      {
+        property: "og:description",
+        content:
+          "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+      },
       { name: "twitter:title", content: "Genesis — AI CRM that follows up so your team can close" },
-      { name: "twitter:description", content: "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1b33a389-d5b4-45ab-96df-16d7cd7b35f6" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1b33a389-d5b4-45ab-96df-16d7cd7b35f6" },
+      {
+        name: "twitter:description",
+        content:
+          "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1b33a389-d5b4-45ab-96df-16d7cd7b35f6",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1b33a389-d5b4-45ab-96df-16d7cd7b35f6",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+      },
       { rel: "stylesheet", href: appCss },
     ],
     scripts: [
@@ -89,8 +115,13 @@ export const Route = createRootRoute({
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head><HeadContent /></head>
-      <body>{children}<Scripts /></body>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
     </html>
   );
 }

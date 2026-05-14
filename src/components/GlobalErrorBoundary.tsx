@@ -137,7 +137,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       this.setState({ error: null, componentStack: null });
       return;
     }
-    // eslint-disable-next-line no-console
+
     console.error("GlobalErrorBoundary caught:", error, info);
     this.setState({ componentStack: info.componentStack ?? null });
     void logErrorToSupabase(error, info);
@@ -221,4 +221,3 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     );
   }
 }
-

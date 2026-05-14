@@ -56,9 +56,7 @@ function ResetPasswordPage() {
         }
 
         if (mounted) {
-          setSessionError(
-            "This reset link is invalid or has expired. Please request a new one.",
-          );
+          setSessionError("This reset link is invalid or has expired. Please request a new one.");
         }
       } catch (err) {
         if (mounted) {
@@ -119,7 +117,9 @@ function ResetPasswordPage() {
               <Terminal className="h-6 w-6 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Set new password</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Choose something memorable but strong</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose something memorable but strong
+            </p>
           </div>
 
           {sessionError && (
@@ -136,7 +136,12 @@ function ResetPasswordPage() {
             <input type="email" name="username" autoComplete="username" hidden readOnly value="" />
 
             <div>
-              <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-foreground">New Password</label>
+              <label
+                htmlFor="new-password"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                New Password
+              </label>
               <PasswordInput
                 id="new-password"
                 name="new-password"
@@ -150,7 +155,12 @@ function ResetPasswordPage() {
               />
             </div>
             <div>
-              <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-foreground">Confirm Password</label>
+              <label
+                htmlFor="confirm-password"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Confirm Password
+              </label>
               <PasswordInput
                 id="confirm-password"
                 name="confirm-password"
@@ -172,13 +182,18 @@ function ResetPasswordPage() {
             )}
 
             <Button type="submit" variant="command" className="w-full" disabled={!canSubmit}>
-              {(loading || (!sessionReady && !sessionError)) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {(loading || (!sessionReady && !sessionError)) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {!sessionReady && !sessionError ? "Verifying link..." : "Update Password"}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            <Link to="/login" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+            >
               <ArrowLeft className="h-3 w-3" />
               Back to Sign In
             </Link>
@@ -191,7 +206,9 @@ function ResetPasswordPage() {
 
 function Requirement({ met, label }: { met: boolean; label: string }) {
   return (
-    <li className={`flex items-center gap-1.5 ${met ? "text-foreground" : "text-muted-foreground"}`}>
+    <li
+      className={`flex items-center gap-1.5 ${met ? "text-foreground" : "text-muted-foreground"}`}
+    >
       {met ? <Check className="h-3 w-3 text-primary" /> : <X className="h-3 w-3" />}
       {label}
     </li>

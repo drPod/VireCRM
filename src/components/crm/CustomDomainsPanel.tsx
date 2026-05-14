@@ -91,18 +91,21 @@ const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9
 
 // Retry schedule (ms) — fast at first while DNS may already be cached, then back off.
 const RETRY_DELAYS_MS = [
-  3_000,    // ~immediate
-  7_000,    // 10s
-  15_000,   // 25s
-  30_000,   // 55s
-  60_000,   // ~2m
-  120_000,  // ~4m
-  180_000,  // ~7m
-  300_000,  // ~12m
-  600_000,  // ~22m
+  3_000, // ~immediate
+  7_000, // 10s
+  15_000, // 25s
+  30_000, // 55s
+  60_000, // ~2m
+  120_000, // ~4m
+  180_000, // ~7m
+  300_000, // ~12m
+  600_000, // ~22m
 ];
 
-async function lookupTxt(hostname: string, token: string): Promise<{ found: boolean; error: string | null }> {
+async function lookupTxt(
+  hostname: string,
+  token: string,
+): Promise<{ found: boolean; error: string | null }> {
   try {
     const lookup = `_vireon.${hostname}`;
     const res = await fetch(
@@ -393,7 +396,11 @@ export function CustomDomainsPanel({ organizationId }: Props) {
 
   const handleAdd = async () => {
     if (!organizationId) return;
-    const clean = newHost.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const clean = newHost
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "");
     if (!HOSTNAME_RE.test(clean)) {
       toast.error("Enter a valid hostname like crm.yourbrand.com");
       return;
@@ -511,7 +518,12 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   };
 
   const handleRemove = async (row: DomainRow) => {
-    if (!confirm(`Remove ${row.hostname}? Visitors won't be able to reach the CRM via this hostname anymore.`)) return;
+    if (
+      !confirm(
+        `Remove ${row.hostname}? Visitors won't be able to reach the CRM via this hostname anymore.`,
+      )
+    )
+      return;
     setBusyId(row.id);
     cancelledRef.current[row.id] = true;
     clearTimer(row.id);
@@ -597,8 +609,9 @@ export function CustomDomainsPanel({ organizationId }: Props) {
           <AlertCircle className="mt-0.5 h-3 w-3" />
           <div>
             Auto-verification stopped after {s.maxAttempts} attempts.
-            {s.lastError ? ` Last error: ${s.lastError}.` : ""} Add the TXT record at
-            {" "}<code className="text-destructive">_vireon.{row.hostname}</code>, then click <strong>Check now</strong>.
+            {s.lastError ? ` Last error: ${s.lastError}.` : ""} Add the TXT record at{" "}
+            <code className="text-destructive">_vireon.{row.hostname}</code>, then click{" "}
+            <strong>Check now</strong>.
           </div>
         </div>
       );
@@ -614,7 +627,8 @@ export function CustomDomainsPanel({ organizationId }: Props) {
           <div>
             <label className="text-sm font-medium text-foreground">Custom Hostnames</label>
             <p className="text-xs text-muted-foreground">
-              Serve the CRM under one or more hostnames. We'll auto-verify DNS once you add the TXT record.
+              Serve the CRM under one or more hostnames. We'll auto-verify DNS once you add the TXT
+              record.
             </p>
           </div>
         </div>
@@ -629,8 +643,8 @@ export function CustomDomainsPanel({ organizationId }: Props) {
       {!flagLoading && !enabled ? (
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
           <p className="text-xs text-foreground">
-            Multiple custom hostnames are part of the <strong>Enterprise White-Label add-on</strong>.
-            Once enabled, you can connect a primary domain plus any number of aliases.
+            Multiple custom hostnames are part of the <strong>Enterprise White-Label add-on</strong>
+            . Once enabled, you can connect a primary domain plus any number of aliases.
           </p>
         </div>
       ) : (
@@ -644,10 +658,14 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                 <Lock className="h-3.5 w-3.5 text-muted-foreground" />
               )}
               <span>Allowed to edit hostnames</span>
-              <Badge variant="outline" className="ml-auto text-[10px]">Owner only</Badge>
+              <Badge variant="outline" className="ml-auto text-[10px]">
+                Owner only
+              </Badge>
             </div>
             {owners.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">No owners found for this organization.</p>
+              <p className="text-[11px] text-muted-foreground">
+                No owners found for this organization.
+              </p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {owners.map((o) => (
@@ -659,7 +677,8 @@ export function CustomDomainsPanel({ organizationId }: Props) {
             )}
             {!isOwner && (
               <p className="text-[11px] text-muted-foreground">
-                Your role can view hostnames but cannot add, verify, remove, or change the primary. Ask an owner above to make changes.
+                Your role can view hostnames but cannot add, verify, remove, or change the primary.
+                Ask an owner above to make changes.
               </p>
             )}
           </div>
@@ -677,8 +696,17 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                   if (e.key === "Enter") void handleAdd();
                 }}
               />
-              <Button variant="command" onClick={handleAdd} disabled={adding || !newHost.trim()} className="gap-1.5">
-                {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              <Button
+                variant="command"
+                onClick={handleAdd}
+                disabled={adding || !newHost.trim()}
+                className="gap-1.5"
+              >
+                {adding ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
                 Add
               </Button>
             </div>
@@ -699,7 +727,8 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                 const verified = !!row.verified_at;
                 const isBusy = busyId === row.id;
                 const auto = autoState[row.id];
-                const isAutoChecking = !verified && (auto?.status === "checking" || auto?.status === "waiting");
+                const isAutoChecking =
+                  !verified && (auto?.status === "checking" || auto?.status === "waiting");
                 return (
                   <div
                     key={row.id}
@@ -765,14 +794,19 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                     {!verified && (
                       <div className="space-y-2 rounded-md border border-border bg-background/60 p-3">
                         <div>
-                          <p className="text-[11px] font-semibold text-foreground">Step 1 — Point DNS</p>
+                          <p className="text-[11px] font-semibold text-foreground">
+                            Step 1 — Point DNS
+                          </p>
                           <p className="text-[11px] text-muted-foreground">
-                            Add a CNAME or A record so <code className="text-foreground">{row.hostname}</code> points to this app.
+                            Add a CNAME or A record so{" "}
+                            <code className="text-foreground">{row.hostname}</code> points to this
+                            app.
                           </p>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-foreground">
-                            Step 2 — Add TXT at <code className="text-foreground">_vireon.{row.hostname}</code>
+                            Step 2 — Add TXT at{" "}
+                            <code className="text-foreground">_vireon.{row.hostname}</code>
                           </p>
                           <div className="mt-1 flex gap-2">
                             <input

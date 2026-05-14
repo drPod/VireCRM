@@ -1,6 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Coins, ArrowDownCircle, ArrowUpCircle, Clock, AlertCircle, Loader2, History, Download } from "lucide-react";
+import {
+  Coins,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Clock,
+  AlertCircle,
+  Loader2,
+  History,
+  Download,
+} from "lucide-react";
 import { CREDIT_PACKS } from "./CreditTopUpPanel";
 
 interface Props {
@@ -62,13 +71,17 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
     const [packsRes, usageRes] = await Promise.all([
       supabase
         .from("credit_packs")
-        .select("id, pack_key, credits_total, credits_remaining, purchased_at, expires_at, amount_cents, source, receipt_url, hosted_invoice_url")
+        .select(
+          "id, pack_key, credits_total, credits_remaining, purchased_at, expires_at, amount_cents, source, receipt_url, hosted_invoice_url",
+        )
         .eq("organization_id", organizationId)
         .order("purchased_at", { ascending: false })
         .limit(200),
       supabase
         .from("credit_usage_log")
-        .select("id, action, command_id, credits_charged, credits_before, credits_after, unlimited, status, metadata, created_at")
+        .select(
+          "id, action, command_id, credits_charged, credits_before, credits_after, unlimited, status, metadata, created_at",
+        )
         .eq("organization_id", organizationId)
         .order("created_at", { ascending: false })
         .limit(500),
@@ -96,7 +109,10 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
         kind: "purchase",
         delta: pack.credits_total,
         label: `${packLabel(pack.pack_key)} pack purchased`,
-        detail: pack.amount_cents != null ? `$${(pack.amount_cents / 100).toFixed(2)} · ${pack.credits_total.toLocaleString()} credits` : `${pack.credits_total.toLocaleString()} credits`,
+        detail:
+          pack.amount_cents != null
+            ? `$${(pack.amount_cents / 100).toFixed(2)} · ${pack.credits_total.toLocaleString()} credits`
+            : `${pack.credits_total.toLocaleString()} credits`,
         meta: pack.source === "auto_recharge" ? "auto-recharge" : undefined,
         receiptUrl: pack.receipt_url ?? pack.hosted_invoice_url ?? null,
       });
@@ -211,19 +227,21 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
                 e.kind === "purchase"
                   ? ArrowUpCircle
                   : e.kind === "expiry"
-                  ? AlertCircle
-                  : ArrowDownCircle;
+                    ? AlertCircle
+                    : ArrowDownCircle;
               const tone =
                 e.kind === "purchase"
                   ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
                   : e.kind === "expiry"
-                  ? "text-amber-400 bg-amber-500/10 border-amber-500/30"
-                  : e.kind === "usage_pack"
-                  ? "text-violet-400 bg-violet-500/10 border-violet-500/30"
-                  : "text-primary bg-primary/10 border-primary/30";
+                    ? "text-amber-400 bg-amber-500/10 border-amber-500/30"
+                    : e.kind === "usage_pack"
+                      ? "text-violet-400 bg-violet-500/10 border-violet-500/30"
+                      : "text-primary bg-primary/10 border-primary/30";
               return (
                 <li key={e.id} className="ml-5 relative">
-                  <span className={`absolute -left-[34px] top-0 flex h-6 w-6 items-center justify-center rounded-full border ${tone}`}>
+                  <span
+                    className={`absolute -left-[34px] top-0 flex h-6 w-6 items-center justify-center rounded-full border ${tone}`}
+                  >
                     <Icon className="h-3.5 w-3.5" />
                   </span>
                   <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -237,7 +255,9 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
                         {e.meta && (
                           <>
                             <span className="text-muted-foreground/60">·</span>
-                            <span className="px-1.5 py-0.5 rounded bg-muted/40 text-[10px] uppercase tracking-wider">{e.meta}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-muted/40 text-[10px] uppercase tracking-wider">
+                              {e.meta}
+                            </span>
                           </>
                         )}
                         {e.receiptUrl && (
@@ -256,8 +276,11 @@ export function CreditLedgerTimeline({ organizationId }: Props) {
                         )}
                       </div>
                     </div>
-                    <span className={`text-sm font-mono font-semibold tabular-nums shrink-0 ${positive ? "text-emerald-400" : e.kind === "expiry" ? "text-amber-400" : "text-foreground"}`}>
-                      {positive ? "+" : ""}{e.delta.toLocaleString()}
+                    <span
+                      className={`text-sm font-mono font-semibold tabular-nums shrink-0 ${positive ? "text-emerald-400" : e.kind === "expiry" ? "text-amber-400" : "text-foreground"}`}
+                    >
+                      {positive ? "+" : ""}
+                      {e.delta.toLocaleString()}
                     </span>
                   </div>
                 </li>

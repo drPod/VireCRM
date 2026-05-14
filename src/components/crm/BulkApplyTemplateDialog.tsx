@@ -110,7 +110,10 @@ export function BulkApplyTemplateDialog({ open, onOpenChange, recipients, onSent
       });
       const sent = result?.sent ?? 0;
       const skippedCount = (result?.skipped ?? 0) + skipped;
-      if (sent > 0) toast.success(`Sent ${sent} personalized emails${skippedCount ? ` · ${skippedCount} skipped` : ""}`);
+      if (sent > 0)
+        toast.success(
+          `Sent ${sent} personalized emails${skippedCount ? ` · ${skippedCount} skipped` : ""}`,
+        );
       else toast.error(`No emails sent${result?.errors?.[0] ? ` — ${result.errors[0]}` : ""}`);
       onOpenChange(false);
       onSent?.();
@@ -189,7 +192,10 @@ export function BulkApplyTemplateDialog({ open, onOpenChange, recipients, onSent
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
             Cancel
           </Button>
-          <Button onClick={handleSend} disabled={sending || loading || !templateId || eligible.length === 0}>
+          <Button
+            onClick={handleSend}
+            disabled={sending || loading || !templateId || eligible.length === 0}
+          >
             {sending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
             Personalize & send
           </Button>

@@ -463,7 +463,8 @@ function PayoutsPage() {
               <DollarSign className="mx-auto h-10 w-10 text-muted-foreground/40" />
               <h3 className="mt-4 text-sm font-semibold text-foreground">No payouts yet</h3>
               <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
-                Payouts are calculated on the 1st of each month for client subscriptions attributed to your reseller account.
+                Payouts are calculated on the 1st of each month for client subscriptions attributed
+                to your reseller account.
               </p>
             </div>
           ) : (
@@ -500,7 +501,9 @@ function PayoutsPage() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-foreground">{p.active_client_count}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          {p.active_client_count}
+                        </td>
                         <td className="px-4 py-3 text-sm text-foreground">
                           {formatCents(Number(p.gross_revenue_cents), p.currency)}
                         </td>
@@ -538,7 +541,9 @@ function PayoutsPage() {
                             {!lineItems[p.id] ? (
                               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                             ) : lineItems[p.id].length === 0 ? (
-                              <p className="text-xs text-muted-foreground">No line items recorded.</p>
+                              <p className="text-xs text-muted-foreground">
+                                No line items recorded.
+                              </p>
                             ) : (
                               <div className="space-y-1.5">
                                 {lineItems[p.id].map((li) => {
@@ -557,11 +562,18 @@ function PayoutsPage() {
                                         {li.client_name || "Unknown client"}
                                       </div>
                                       <div className="flex items-center gap-4">
-                                        <span className={isRefund ? "text-destructive" : "text-muted-foreground"}>
+                                        <span
+                                          className={
+                                            isRefund ? "text-destructive" : "text-muted-foreground"
+                                          }
+                                        >
                                           {formatCents(Number(li.amount_cents), p.currency)}
                                         </span>
-                                        <span className={`font-semibold w-20 text-right ${isRefund ? "text-destructive" : "text-foreground"}`}>
-                                          {isRefund ? "" : "+"}{formatCents(Number(li.commission_cents), p.currency)}
+                                        <span
+                                          className={`font-semibold w-20 text-right ${isRefund ? "text-destructive" : "text-foreground"}`}
+                                        >
+                                          {isRefund ? "" : "+"}
+                                          {formatCents(Number(li.commission_cents), p.currency)}
                                         </span>
                                       </div>
                                     </div>
@@ -636,7 +648,10 @@ function PayoutsPage() {
                         {formatCents(Number(t.amount_cents), t.currency)}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant={t.status === "completed" ? "secondary" : "outline"} className="text-[10px]">
+                        <Badge
+                          variant={t.status === "completed" ? "secondary" : "outline"}
+                          className="text-[10px]"
+                        >
                           {t.status}
                         </Badge>
                       </td>
@@ -649,7 +664,9 @@ function PayoutsPage() {
                             {t.payout_status && <PayoutStatusBadge status={t.payout_status} />}
                           </div>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground italic">Not yet rolled up</span>
+                          <span className="text-[10px] text-muted-foreground italic">
+                            Not yet rolled up
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -671,7 +688,10 @@ function PayoutsPage() {
                 <>
                   Confirm you've received{" "}
                   <span className="font-semibold text-foreground">
-                    {formatCents(Number(payDialogPayout.commission_cents), payDialogPayout.currency)}
+                    {formatCents(
+                      Number(payDialogPayout.commission_cents),
+                      payDialogPayout.currency,
+                    )}
                   </span>{" "}
                   for {format(new Date(payDialogPayout.period_start), "MMMM yyyy")}.
                 </>
@@ -744,7 +764,9 @@ function StatCard({
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
-        <Icon className={`h-4 w-4 ${tone === "success" ? "text-primary" : "text-muted-foreground"}`} />
+        <Icon
+          className={`h-4 w-4 ${tone === "success" ? "text-primary" : "text-muted-foreground"}`}
+        />
       </div>
       <div className="text-2xl font-bold text-foreground">{value}</div>
     </div>

@@ -53,8 +53,7 @@ export const FIELD_RULES: Record<string, FieldValidation> = {
   // ---- Slack ----
   "slack.defaultChannel": {
     required: true,
-    invalidMessage:
-      "Channel must start with # and use lowercase letters, numbers, dashes or dots.",
+    invalidMessage: "Channel must start with # and use lowercase letters, numbers, dashes or dots.",
     validate: (v) => SLACK_CHANNEL_RE.test(v),
   },
 
@@ -111,10 +110,7 @@ export interface FieldValidationResult {
   missing: boolean;
 }
 
-export function validateField(
-  ruleKey: string,
-  rawValue: string,
-): FieldValidationResult {
+export function validateField(ruleKey: string, rawValue: string): FieldValidationResult {
   const rule = FIELD_RULES[ruleKey];
   const value = (rawValue ?? "").trim();
 

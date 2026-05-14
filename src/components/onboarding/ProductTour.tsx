@@ -41,7 +41,12 @@ const RING_PADDING = 6;
 const TOOLTIP_GAP = 12;
 const TOOLTIP_WIDTH = 320;
 
-interface Rect { top: number; left: number; width: number; height: number; }
+interface Rect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
 
 function getRect(el: HTMLElement): Rect {
   const r = el.getBoundingClientRect();
@@ -100,7 +105,9 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
       }
     };
     tick();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open, step, isCenter]);
 
   // Re-measure on viewport changes & after scroll within any ancestor.
@@ -147,7 +154,10 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     }
     let placement = step.placement ?? "right";
     // Auto-flip if it would overflow.
-    if (placement === "right" && rect.left + rect.width + TOOLTIP_GAP + TOOLTIP_WIDTH > viewport.w) {
+    if (
+      placement === "right" &&
+      rect.left + rect.width + TOOLTIP_GAP + TOOLTIP_WIDTH > viewport.w
+    ) {
       placement = "left";
     }
     if (placement === "left" && rect.left - TOOLTIP_GAP - TOOLTIP_WIDTH < 0) {
@@ -160,7 +170,8 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
       placement = "bottom";
     }
 
-    let top = 0, left = 0;
+    let top = 0,
+      left = 0;
     if (placement === "right") {
       top = rect.top + rect.height / 2 - 90;
       left = rect.left + rect.width + TOOLTIP_GAP;
@@ -187,21 +198,23 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
 
   // Highlight ring around the target. Built with 4 dim overlays so we don't
   // need to fight stacking contexts inside the sidebar.
-  const ringStyle: React.CSSProperties | null = isCenter || !rect
-    ? null
-    : {
-        position: "fixed",
-        top: rect.top - RING_PADDING,
-        left: rect.left - RING_PADDING,
-        width: rect.width + RING_PADDING * 2,
-        height: rect.height + RING_PADDING * 2,
-        border: "2px solid hsl(var(--primary, 250 90% 65%))",
-        borderRadius: 10,
-        boxShadow: "0 0 0 9999px rgba(0,0,0,0.55), 0 0 24px hsl(var(--primary, 250 90% 65%) / 0.55)",
-        pointerEvents: "none",
-        zIndex: 10000,
-        transition: "all 200ms ease",
-      };
+  const ringStyle: React.CSSProperties | null =
+    isCenter || !rect
+      ? null
+      : {
+          position: "fixed",
+          top: rect.top - RING_PADDING,
+          left: rect.left - RING_PADDING,
+          width: rect.width + RING_PADDING * 2,
+          height: rect.height + RING_PADDING * 2,
+          border: "2px solid hsl(var(--primary, 250 90% 65%))",
+          borderRadius: 10,
+          boxShadow:
+            "0 0 0 9999px rgba(0,0,0,0.55), 0 0 24px hsl(var(--primary, 250 90% 65%) / 0.55)",
+          pointerEvents: "none",
+          zIndex: 10000,
+          transition: "all 200ms ease",
+        };
 
   return createPortal(
     <>
@@ -240,24 +253,18 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{index + 1} of {total}</span>
+          <span className="text-xs text-muted-foreground">
+            {index + 1} of {total}
+          </span>
           <div className="flex items-center gap-2">
             {index > 0 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIndex((i) => Math.max(0, i - 1))}
-              >
+              <Button size="sm" variant="ghost" onClick={() => setIndex((i) => Math.max(0, i - 1))}>
                 <ChevronLeft className="h-3.5 w-3.5" />
                 Back
               </Button>
             )}
             {!isLast && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => void finish()}
-              >
+              <Button size="sm" variant="ghost" onClick={() => void finish()}>
                 Skip
               </Button>
             )}
@@ -314,7 +321,7 @@ export const DEFAULT_TOUR_STEPS: TourStep[] = [
   {
     target: "nav-command-chat",
     title: "Command Chat",
-    body: "Type plain English commands like \"Run outreach on 200 leads\" and the AI plans + executes the work for you.",
+    body: 'Type plain English commands like "Run outreach on 200 leads" and the AI plans + executes the work for you.',
     placement: "right",
   },
   {
@@ -338,7 +345,7 @@ export const DEFAULT_TOUR_STEPS: TourStep[] = [
   {
     target: "_center",
     title: "You're all set 🎉",
-    body: "That's the grand tour. Click \"Restart tour\" in the sidebar anytime you want to see this again.",
+    body: 'That\'s the grand tour. Click "Restart tour" in the sidebar anytime you want to see this again.',
     placement: "center",
   },
 ];

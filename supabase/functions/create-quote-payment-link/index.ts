@@ -33,7 +33,10 @@ Deno.serve(async (req) => {
     // Auth: must be a platform admin.
     const auth = req.headers.get("Authorization");
     const token = auth?.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
     const { data: isAdmin, error: adminErr } = await supabase.rpc("is_platform_admin", {
@@ -159,9 +162,9 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("create-quote-payment-link error:", err);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message || "Failed" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: (err as Error).message || "Failed" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

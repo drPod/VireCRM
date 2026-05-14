@@ -62,7 +62,11 @@ export async function dispatchOutreachEmail(
 
   const template = TEMPLATES[input.templateName];
   if (!template) {
-    return { success: false, reason: "render_failed", error: `Template '${input.templateName}' not registered` };
+    return {
+      success: false,
+      reason: "render_failed",
+      error: `Template '${input.templateName}' not registered`,
+    };
   }
 
   // 1. Suppression check — fail-closed if the lookup itself fails.
@@ -156,7 +160,10 @@ export async function dispatchOutreachEmail(
   });
 
   const fromDisplayName =
-    (input.fromName ?? "").trim().replace(/["<>\r\n]/g, "").slice(0, 100) || SITE_NAME;
+    (input.fromName ?? "")
+      .trim()
+      .replace(/["<>\r\n]/g, "")
+      .slice(0, 100) || SITE_NAME;
 
   const replyToClean = (() => {
     const candidate = (input.replyTo ?? "").trim();

@@ -8,8 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -63,7 +62,9 @@ Deno.serve(async (req) => {
 
     // 3. Validate input
     const body = await req.json().catch(() => ({}));
-    const targetEmail = String(body.email ?? "").trim().toLowerCase();
+    const targetEmail = String(body.email ?? "")
+      .trim()
+      .toLowerCase();
     const planLabel = String(body.planLabel ?? "manual_enterprise").trim();
     const note = String(body.note ?? "").trim();
 
@@ -82,9 +83,7 @@ Deno.serve(async (req) => {
     while (page <= 20) {
       const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
       if (error) return json({ error: `User lookup failed: ${error.message}` }, 500);
-      const match = data.users.find(
-        (u) => (u.email ?? "").toLowerCase() === targetEmail,
-      );
+      const match = data.users.find((u) => (u.email ?? "").toLowerCase() === targetEmail);
       if (match) {
         targetUserId = match.id;
         break;

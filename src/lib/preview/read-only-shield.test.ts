@@ -204,21 +204,18 @@ describe("shouldBlockKeyboardEvent — opts out correctly", () => {
     },
   );
 
-  it.each(BLOCKED_CONTROLS)(
-    "does not block $name when an ancestor opts in",
-    ({ build }) => {
-      const wrapper = document.createElement("div");
-      wrapper.setAttribute("data-preview-allow", "true");
-      const target = build();
-      // Re-parent if build() already attached the element.
-      if (target.parentElement) target.parentElement.removeChild(target);
-      wrapper.appendChild(target);
-      document.body.appendChild(wrapper);
-      for (const key of ACTIVATION_KEYS) {
-        expect(shouldBlockKeyboardEvent(key, target)).toBe(false);
-      }
-    },
-  );
+  it.each(BLOCKED_CONTROLS)("does not block $name when an ancestor opts in", ({ build }) => {
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-preview-allow", "true");
+    const target = build();
+    // Re-parent if build() already attached the element.
+    if (target.parentElement) target.parentElement.removeChild(target);
+    wrapper.appendChild(target);
+    document.body.appendChild(wrapper);
+    for (const key of ACTIVATION_KEYS) {
+      expect(shouldBlockKeyboardEvent(key, target)).toBe(false);
+    }
+  });
 });
 
 describe("shouldBlockKeyboardEvent — leaves typing alone", () => {

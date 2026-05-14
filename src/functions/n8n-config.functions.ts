@@ -19,10 +19,7 @@ export interface N8nWebhookConfig {
 }
 
 const saveSchema = z.object({
-  webhooks: z.record(
-    z.enum(ACTION_TYPES),
-    z.string().trim().max(500),
-  ),
+  webhooks: z.record(z.enum(ACTION_TYPES), z.string().trim().max(500)),
   enabled: z.boolean().optional(),
 });
 

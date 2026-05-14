@@ -22,9 +22,7 @@ function leadsToRows(leads: Lead[]) {
     Status: l.status,
     Score: l.score,
     "Next Action": l.nextAction || "",
-    "Last Contact": l.lastContact
-      ? new Date(l.lastContact).toLocaleDateString()
-      : "",
+    "Last Contact": l.lastContact ? new Date(l.lastContact).toLocaleDateString() : "",
   }));
 }
 
@@ -56,13 +54,13 @@ function exportCSV(leads: Lead[]) {
             ? `"${val.replace(/"/g, '""')}"`
             : val;
         })
-        .join(",")
+        .join(","),
     ),
   ].join("\n");
 
   downloadBlob(
     new Blob([csvContent], { type: "text/csv;charset=utf-8;" }),
-    `leads-export-${new Date().toISOString().slice(0, 10)}.csv`
+    `leads-export-${new Date().toISOString().slice(0, 10)}.csv`,
   );
   toast.success(`Exported ${leads.length} leads as CSV`);
 }
@@ -80,10 +78,8 @@ async function exportXLSX(leads: Lead[]) {
 
     // Auto-size columns
     const colWidths = Object.keys(rows[0]).map((key) => ({
-      wch: Math.max(
-        key.length,
-        ...rows.map((r) => String(r[key as keyof typeof r] ?? "").length)
-      ) + 2,
+      wch:
+        Math.max(key.length, ...rows.map((r) => String(r[key as keyof typeof r] ?? "").length)) + 2,
     }));
     ws["!cols"] = colWidths;
 
@@ -106,9 +102,7 @@ export function ExportLeadsButton({ leads }: ExportLeadsButtonProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => exportCSV(leads)}>
-          Download as CSV
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => exportCSV(leads)}>Download as CSV</DropdownMenuItem>
         <DropdownMenuItem onClick={() => exportXLSX(leads)}>
           Download as Excel (.xlsx)
         </DropdownMenuItem>

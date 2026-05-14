@@ -29,9 +29,7 @@ interface BusinessEmailCardProps {
 
 export function BusinessEmailCard({ sendgridConnected }: BusinessEmailCardProps) {
   const { organization, refreshProfile } = useAuth();
-  const orgExt = organization as
-    | (typeof organization & { support_email?: string | null })
-    | null;
+  const orgExt = organization as (typeof organization & { support_email?: string | null }) | null;
   const initial = orgExt?.support_email ?? "";
   const [email, setEmail] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -43,8 +41,7 @@ export function BusinessEmailCard({ sendgridConnected }: BusinessEmailCardProps)
 
   const trimmed = email.trim();
   const dirty = trimmed !== (initial || "");
-  const looksValid =
-    !trimmed || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+  const looksValid = !trimmed || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
   const configured = !!initial;
 
   const handleSave = async () => {
@@ -78,9 +75,7 @@ export function BusinessEmailCard({ sendgridConnected }: BusinessEmailCardProps)
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-primary" />
-          <h3 className="text-base font-semibold text-foreground">
-            Sender identity
-          </h3>
+          <h3 className="text-base font-semibold text-foreground">Sender identity</h3>
           {configured ? (
             <Badge variant="secondary" className="gap-1">
               <CheckCircle2 className="h-3 w-3 text-success" />
@@ -96,9 +91,9 @@ export function BusinessEmailCard({ sendgridConnected }: BusinessEmailCardProps)
       </div>
 
       <p className="text-sm text-muted-foreground mb-3">
-        The address Genesis uses as <strong className="text-foreground">Reply-To</strong> on
-        every outreach email. When a lead hits Reply, the message lands in this inbox
-        instead of disappearing into a generic platform address.
+        The address Genesis uses as <strong className="text-foreground">Reply-To</strong> on every
+        outreach email. When a lead hits Reply, the message lands in this inbox instead of
+        disappearing into a generic platform address.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-2">
@@ -122,28 +117,28 @@ export function BusinessEmailCard({ sendgridConnected }: BusinessEmailCardProps)
       </div>
 
       {!looksValid && (
-        <p className="mt-2 text-xs text-destructive">
-          Please enter a valid email address.
-        </p>
+        <p className="mt-2 text-xs text-destructive">Please enter a valid email address.</p>
       )}
 
       <div className="mt-4 rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground space-y-1.5">
         <div className="flex items-start gap-2">
           <KeyRound className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
           <div>
-            <p className="font-medium text-foreground">Want emails to also send <em>from</em> your own domain?</p>
+            <p className="font-medium text-foreground">
+              Want emails to also send <em>from</em> your own domain?
+            </p>
             <p className="mt-0.5">
               {sendgridConnected ? (
                 <>
                   <CheckCircle2 className="inline h-3 w-3 text-success mr-1" />
-                  SendGrid is connected — outreach is now sent from your verified
-                  SendGrid sender, not the platform default.
+                  SendGrid is connected — outreach is now sent from your verified SendGrid sender,
+                  not the platform default.
                 </>
               ) : (
                 <>
-                  Connect <span className="font-medium text-foreground">SendGrid</span> below
-                  with a verified sender address. Outreach will then send from your own
-                  domain (proper DKIM/SPF) instead of the shared platform sender.
+                  Connect <span className="font-medium text-foreground">SendGrid</span> below with a
+                  verified sender address. Outreach will then send from your own domain (proper
+                  DKIM/SPF) instead of the shared platform sender.
                 </>
               )}
             </p>

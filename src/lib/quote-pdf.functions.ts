@@ -17,11 +17,11 @@ interface LineItem {
 }
 
 const NAVY = rgb(0.06, 0.09, 0.18);
-const NAVY_SOFT = rgb(0.10, 0.14, 0.24);
-const BLUE = rgb(0.30, 0.55, 0.95);
+const NAVY_SOFT = rgb(0.1, 0.14, 0.24);
+const BLUE = rgb(0.3, 0.55, 0.95);
 const WHITE = rgb(1, 1, 1);
 const MUTED = rgb(0.72, 0.78, 0.88);
-const BORDER = rgb(0.20, 0.25, 0.35);
+const BORDER = rgb(0.2, 0.25, 0.35);
 
 const PAGE_W = 612;
 const PAGE_H = 792;
@@ -110,16 +110,28 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
 
     // ---- Cover header ----
     page.drawText("GENESIS", {
-      x: MARGIN, y: y - 22, size: 22, font: sansBold, color: BLUE,
+      x: MARGIN,
+      y: y - 22,
+      size: 22,
+      font: sansBold,
+      color: BLUE,
     });
     y -= 30;
     page.drawText("Custom Proposal", {
-      x: MARGIN, y: y - 12, size: 12, font: sans, color: MUTED,
+      x: MARGIN,
+      y: y - 12,
+      size: 12,
+      font: sans,
+      color: MUTED,
     });
     y -= 30;
 
     page.drawText(quote.title, {
-      x: MARGIN, y: y - 24, size: 24, font: sansBold, color: WHITE,
+      x: MARGIN,
+      y: y - 24,
+      size: 24,
+      font: sansBold,
+      color: WHITE,
     });
     y -= 36;
     const meta = [
@@ -146,8 +158,10 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
     page.drawText("Total", { x: colTotalX, y: y - 10, size: 9, font: sansBold, color: MUTED });
     y -= 16;
     page.drawLine({
-      start: { x: MARGIN, y }, end: { x: PAGE_W - MARGIN, y },
-      thickness: 0.5, color: BORDER,
+      start: { x: MARGIN, y },
+      end: { x: PAGE_W - MARGIN, y },
+      thickness: 0.5,
+      color: BORDER,
     });
     y -= 8;
 
@@ -160,20 +174,36 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
         page.drawText(line, { x: colDescX, y: dy - 10, size: 10, font: sans, color: WHITE });
         dy -= 13;
       }
-      page.drawText(String(li.quantity), { x: colQtyX, y: y - 10, size: 10, font: sans, color: WHITE });
+      page.drawText(String(li.quantity), {
+        x: colQtyX,
+        y: y - 10,
+        size: 10,
+        font: sans,
+        color: WHITE,
+      });
       page.drawText(money(li.unit_price_cents, quote.currency), {
-        x: colPriceX, y: y - 10, size: 10, font: sans, color: WHITE,
+        x: colPriceX,
+        y: y - 10,
+        size: 10,
+        font: sans,
+        color: WHITE,
       });
       page.drawText(money(li.unit_price_cents * li.quantity, quote.currency), {
-        x: colTotalX, y: y - 10, size: 10, font: sansBold, color: WHITE,
+        x: colTotalX,
+        y: y - 10,
+        size: 10,
+        font: sansBold,
+        color: WHITE,
       });
       y -= rowH + 4;
     }
 
     y -= 6;
     page.drawLine({
-      start: { x: MARGIN, y }, end: { x: PAGE_W - MARGIN, y },
-      thickness: 0.5, color: BORDER,
+      start: { x: MARGIN, y },
+      end: { x: PAGE_W - MARGIN, y },
+      thickness: 0.5,
+      color: BORDER,
     });
     y -= 14;
 
@@ -204,7 +234,13 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
         page.drawCircle({ x: MARGIN + 3, y: y - 5, size: 2.5, color: BLUE });
 
         for (const line of titleLines) {
-          page.drawText(line, { x: MARGIN + 14, y: y - 11, size: 11, font: sansBold, color: WHITE });
+          page.drawText(line, {
+            x: MARGIN + 14,
+            y: y - 11,
+            size: 11,
+            font: sansBold,
+            color: WHITE,
+          });
           y -= 14;
         }
         for (const line of bodyLines) {
@@ -225,10 +261,13 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
     // ---- Footer on every page ----
     const pages = pdf.getPages();
     pages.forEach((p, idx) => {
-      p.drawText(
-        `Genesis  •  ${quote.quote_number}  •  Page ${idx + 1} of ${pages.length}`,
-        { x: MARGIN, y: 24, size: 8, font: sans, color: MUTED },
-      );
+      p.drawText(`Genesis  •  ${quote.quote_number}  •  Page ${idx + 1} of ${pages.length}`, {
+        x: MARGIN,
+        y: 24,
+        size: 8,
+        font: sans,
+        color: MUTED,
+      });
     });
 
     const bytes = await pdf.save();
@@ -243,10 +282,7 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
     const { data: pub } = supabaseAdmin.storage.from("quote-pdfs").getPublicUrl(path);
     const pdfUrl = pub.publicUrl;
 
-    await supabaseAdmin
-      .from("admin_quotes")
-      .update({ pdf_url: pdfUrl })
-      .eq("id", quote.id);
+    await supabaseAdmin.from("admin_quotes").update({ pdf_url: pdfUrl }).eq("id", quote.id);
 
     await supabaseAdmin.from("admin_quote_events").insert({
       quote_id: quote.id,

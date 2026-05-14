@@ -17,60 +17,64 @@ const sendInputSchema = z.object({
 export const sendQueuedTestEmailFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof sendInputSchema>) => sendInputSchema.parse(input))
-  .handler(async ({ data, context }): Promise<
-    | { ok: true; messageId: string; recipient: string }
-    | { ok: false; error: string }
-  > => {
-    const { userId, supabase } = context;
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<
+      { ok: true; messageId: string; recipient: string } | { ok: false; error: string }
+    > => {
+      const { userId, supabase } = context;
 
-    // Owner-only — same gate as the audit log
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!profile) return { ok: false, error: "No organization" };
+      // Owner-only — same gate as the audit log
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!profile) return { ok: false, error: "No organization" };
 
-    const { data: roleRow } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("organization_id", profile.organization_id)
-      .eq("role", "owner")
-      .maybeSingle();
-    if (!roleRow) return { ok: false, error: "Owner role required to send test emails." };
+      const { data: roleRow } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("organization_id", profile.organization_id)
+        .eq("role", "owner")
+        .maybeSingle();
+      if (!roleRow) return { ok: false, error: "Owner role required to send test emails." };
 
-    const { data: org } = await supabase
-      .from("organizations")
-      .select("brand_name, name")
-      .eq("id", profile.organization_id)
-      .maybeSingle();
-    const brandName = org?.brand_name || org?.name || "Genesis";
+      const { data: org } = await supabase
+        .from("organizations")
+        .select("brand_name, name")
+        .eq("id", profile.organization_id)
+        .maybeSingle();
+      const brandName = org?.brand_name || org?.name || "Genesis";
 
-    const idempotencyKey = `test-email-${userId}-${Date.now()}`;
+      const idempotencyKey = `test-email-${userId}-${Date.now()}`;
 
-    const result = await dispatchOutreachEmail({
-      templateName: "outreach-email",
-      recipientEmail: data.to,
-      idempotencyKey,
-      fromName: brandName,
-      templateData: {
-        subject: `Test email from ${brandName}`,
-        body:
-          "This is a deliverability test sent from your CRM.\n\n" +
-          "If you received this message, your sending pipeline is healthy: " +
-          "the message was queued, picked up by the dispatcher, and delivered.\n\n" +
-          "You can safely ignore or delete this email.",
-        brandName,
-      },
-    });
+      const result = await dispatchOutreachEmail({
+        templateName: "outreach-email",
+        recipientEmail: data.to,
+        idempotencyKey,
+        fromName: brandName,
+        templateData: {
+          subject: `Test email from ${brandName}`,
+          body:
+            "This is a deliverability test sent from your CRM.\n\n" +
+            "If you received this message, your sending pipeline is healthy: " +
+            "the message was queued, picked up by the dispatcher, and delivered.\n\n" +
+            "You can safely ignore or delete this email.",
+          brandName,
+        },
+      });
 
-    if (!result.success) {
-      return { ok: false, error: `${result.reason}${result.error ? `: ${result.error}` : ""}` };
-    }
+      if (!result.success) {
+        return { ok: false, error: `${result.reason}${result.error ? `: ${result.error}` : ""}` };
+      }
 
-    return { ok: true, messageId: result.messageId, recipient: data.to };
-  });
+      return { ok: true, messageId: result.messageId, recipient: data.to };
+    },
+  );
 
 export interface TestEmailStatus {
   messageId: string;
@@ -141,12 +145,7 @@ export const lookupTestEmailStatusFn = createServerFn({ method: "POST" })
       else if (raw === "sending") status = "sending";
       else if (raw === "sent" || raw === "delivered") status = "delivered";
       else if (raw === "suppressed") status = "suppressed";
-      else if (
-        raw === "failed" ||
-        raw === "dlq" ||
-        raw === "bounced" ||
-        raw === "complained"
-      )
+      else if (raw === "failed" || raw === "dlq" || raw === "bounced" || raw === "complained")
         status = "failed";
       latest.set(row.message_id, {
         messageId: row.message_id,

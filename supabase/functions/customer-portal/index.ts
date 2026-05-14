@@ -1,10 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  type StripeEnv,
-  createStripeClient,
-  corsHeaders,
-} from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, corsHeaders } from "../_shared/stripe.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -16,9 +12,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   try {
-    const authHeader = req.headers
-      .get("authorization")
-      ?.replace("Bearer ", "");
+    const authHeader = req.headers.get("authorization")?.replace("Bearer ", "");
     const {
       data: { user },
       error: authError,

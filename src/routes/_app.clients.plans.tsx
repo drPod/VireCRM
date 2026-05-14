@@ -121,7 +121,12 @@ function PlansPage() {
   };
 
   const handleDelete = async (plan: ResellerPlan) => {
-    if (!confirm(`Delete "${plan.name}"? Existing client subscriptions will keep working but the plan won't be sellable anymore.`)) return;
+    if (
+      !confirm(
+        `Delete "${plan.name}"? Existing client subscriptions will keep working but the plan won't be sellable anymore.`,
+      )
+    )
+      return;
     const { error } = await supabase.from("reseller_plans").delete().eq("id", plan.id);
     if (error) {
       toast.error("Delete failed: " + error.message);
@@ -205,7 +210,9 @@ function PlansPage() {
           </div>
           <div className="mt-1 text-2xl font-bold text-foreground">
             {formatCents(totalMrr)}{" "}
-            <span className="text-sm font-normal text-muted-foreground">/ mo per client × plan</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              / mo per client × plan
+            </span>
           </div>
         </div>
       )}
@@ -219,8 +226,8 @@ function PlansPage() {
           <Tags className="mx-auto h-10 w-10 text-muted-foreground/40" />
           <h3 className="mt-4 text-sm font-semibold text-foreground">No plans yet</h3>
           <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
-            Create your first plan to start reselling. Pick a base tier, set a markup, and share
-            the checkout link.
+            Create your first plan to start reselling. Pick a base tier, set a markup, and share the
+            checkout link.
           </p>
           <Button variant="command" onClick={() => setCreating(true)} className="mt-4 gap-2">
             <Plus className="h-4 w-4" />
@@ -241,9 +248,7 @@ function PlansPage() {
                     <h3 className="text-base font-semibold text-foreground truncate">
                       {plan.name}
                     </h3>
-                    <p className="text-xs text-muted-foreground font-mono truncate">
-                      /{plan.slug}
-                    </p>
+                    <p className="text-xs text-muted-foreground font-mono truncate">/{plan.slug}</p>
                   </div>
                   <Badge variant={plan.is_active ? "default" : "secondary"}>
                     {plan.is_active ? "Active" : "Paused"}

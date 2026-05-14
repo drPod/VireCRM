@@ -124,9 +124,7 @@ export function NewLeadInvoiceDialog({
 
     if (error || (data as { error?: string } | null)?.error) {
       toast.error(
-        (data as { error?: string } | null)?.error ||
-          error?.message ||
-          "Failed to send invoice",
+        (data as { error?: string } | null)?.error || error?.message || "Failed to send invoice",
       );
       return;
     }
@@ -147,8 +145,7 @@ export function NewLeadInvoiceDialog({
         <DialogHeader>
           <DialogTitle>New invoice</DialogTitle>
           <DialogDescription>
-            Send a custom Stripe invoice to a lead. They'll receive a hosted pay page
-            by email.
+            Send a custom Stripe invoice to a lead. They'll receive a hosted pay page by email.
           </DialogDescription>
         </DialogHeader>
 

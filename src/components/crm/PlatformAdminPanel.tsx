@@ -5,8 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Crown, Loader2, RefreshCw, ShieldCheck, Trash2, Users } from "lucide-react";
@@ -136,7 +149,9 @@ export function PlatformAdminPanel() {
       if (count === 0) {
         toast.info(`No active manual subscriptions found for ${trimmed}`);
       } else {
-        toast.success(`Revoked ${count} manual subscription${count === 1 ? "" : "s"} for ${trimmed}`);
+        toast.success(
+          `Revoked ${count} manual subscription${count === 1 ? "" : "s"} for ${trimmed}`,
+        );
       }
       setRevokeEmail("");
       void loadSubs();
@@ -156,16 +171,16 @@ export function PlatformAdminPanel() {
             <CardTitle>Platform Admin — Grant Manual Subscription</CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">
-            Comp any user (by email) with a lifetime manual subscription. Bypasses
-            Stripe. Use for internal team, partners, or offline-sold accounts.
+            Comp any user (by email) with a lifetime manual subscription. Bypasses Stripe. Use for
+            internal team, partners, or offline-sold accounts.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground flex items-start gap-2">
             <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <span>
-              Visible only to platform admins. Server-side authorization is enforced
-              independently — even if this UI leaked, the action would still be denied.
+              Visible only to platform admins. Server-side authorization is enforced independently —
+              even if this UI leaked, the action would still be denied.
             </span>
           </div>
 
@@ -228,8 +243,8 @@ export function PlatformAdminPanel() {
             <CardTitle>Revoke Manual Subscription</CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">
-            Cancel all active manual subscriptions for an email. Stripe-paid
-            subscriptions are not affected.
+            Cancel all active manual subscriptions for an email. Stripe-paid subscriptions are not
+            affected.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -310,9 +325,7 @@ export function PlatformAdminPanel() {
                     <TableRow key={s.id}>
                       <TableCell className="font-mono text-xs">{s.email}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {s.plan.replace("manual_", "")}
-                        </Badge>
+                        <Badge variant="outline">{s.plan.replace("manual_", "")}</Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(s.granted_at), {

@@ -80,9 +80,7 @@ function isWithinSendWindow(now: Date, seq: SequenceRow): boolean {
 }
 
 function nextSendForStep(now: Date, step: StepRow): string {
-  const ms =
-    step.delay_days * 24 * 60 * 60 * 1000 +
-    step.delay_hours * 60 * 60 * 1000;
+  const ms = step.delay_days * 24 * 60 * 60 * 1000 + step.delay_hours * 60 * 60 * 1000;
   return new Date(now.getTime() + ms).toISOString();
 }
 
@@ -93,17 +91,15 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-sequences")({
         const authHeader = request.headers.get("authorization");
         const token = authHeader?.replace("Bearer ", "");
         if (!token) {
-          return new Response(
-            JSON.stringify({ error: "Missing authorization header" }),
-            { status: 401, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
-        const supabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL!,
-          token,
-          { auth: { autoRefreshToken: false, persistSession: false } },
-        );
+        const supabase = createClient(import.meta.env.VITE_SUPABASE_URL!, token, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
 
         const startedAt = Date.now();
         let processed = 0;
@@ -123,10 +119,10 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-sequences")({
 
         if (enrErr) {
           console.error("[dispatch-sequences] enrollment fetch error", enrErr);
-          return new Response(
-            JSON.stringify({ success: false, error: enrErr.message }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ success: false, error: enrErr.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         if (!enrollments?.length) {
@@ -142,15 +138,22 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-sequences")({
         const orgIds = [...new Set(enrollments.map((e) => e.organization_id))];
 
         const [seqRes, leadRes, orgRes, stepRes] = await Promise.all([
-          supabase.from("outreach_sequences")
-            .select("id, organization_id, name, status, send_window_start_hour, send_window_end_hour, send_on_weekends")
+          supabase
+            .from("outreach_sequences")
+            .select(
+              "id, organization_id, name, status, send_window_start_hour, send_window_end_hour, send_on_weekends",
+            )
             .in("id", sequenceIds),
           supabase.from("leads").select("id, name, email, company").in("id", leadIds),
-          supabase.from("organizations")
+          supabase
+            .from("organizations")
             .select("id, brand_name, name, logo_url, primary_color, font_family, email_signature")
             .in("id", orgIds),
-          supabase.from("outreach_sequence_steps")
-            .select("id, sequence_id, step_index, template_id, subject_override, body_override, delay_days, delay_hours, is_active")
+          supabase
+            .from("outreach_sequence_steps")
+            .select(
+              "id, sequence_id, step_index, template_id, subject_override, body_override, delay_days, delay_hours, is_active",
+            )
             .in("sequence_id", sequenceIds)
             .order("step_index", { ascending: true }),
         ]);
@@ -308,14 +311,20 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-sequences")({
               lead_id: enrollment.lead_id,
               status: result.reason === "suppressed" ? "skipped" : "failed",
               subject,
-              error_message: result.reason === "suppressed"
-                ? "Recipient is on the suppression list"
-                : (result.error || result.reason),
+              error_message:
+                result.reason === "suppressed"
+                  ? "Recipient is on the suppression list"
+                  : result.error || result.reason,
             });
             if (result.reason === "suppressed") {
               await supabase
                 .from("outreach_sequence_enrollments")
-                .update({ status: "stopped", stop_reason: "suppressed", stopped_at: now.toISOString(), next_send_at: null })
+                .update({
+                  status: "stopped",
+                  stop_reason: "suppressed",
+                  stopped_at: now.toISOString(),
+                  next_send_at: null,
+                })
                 .eq("id", enrollment.id);
               skipped += 1;
             } else {
@@ -338,9 +347,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-sequences")({
           });
 
           const nextStepIndex = step.step_index + 1;
-          const nextStep = stepList.find(
-            (s) => s.step_index === nextStepIndex && s.is_active,
-          );
+          const nextStep = stepList.find((s) => s.step_index === nextStepIndex && s.is_active);
 
           if (nextStep) {
             await supabase

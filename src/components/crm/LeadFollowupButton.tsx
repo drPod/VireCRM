@@ -51,7 +51,11 @@ export function LeadFollowupButton({ leadId }: { leadId: string }) {
       // Function already saves to inbox (status: pending). The button gives
       // the user a chance to copy/edit immediately so they're not forced
       // to switch contexts.
-      setDraft({ subject: sug.subject ?? "", message: sug.message ?? "", reasoning: sug.reasoning });
+      setDraft({
+        subject: sug.subject ?? "",
+        message: sug.message ?? "",
+        reasoning: sug.reasoning,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to generate";
       toast.error(msg);
@@ -83,7 +87,8 @@ export function LeadFollowupButton({ leadId }: { leadId: string }) {
           <DialogHeader>
             <DialogTitle>AI-drafted follow-up</DialogTitle>
             <DialogDescription>
-              Edit before sending. Copy to your mail client, or queue in the follow-up inbox for review.
+              Edit before sending. Copy to your mail client, or queue in the follow-up inbox for
+              review.
             </DialogDescription>
           </DialogHeader>
 

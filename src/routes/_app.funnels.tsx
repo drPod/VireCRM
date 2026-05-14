@@ -58,8 +58,18 @@ interface Funnel {
 
 const FUNNEL_TEMPLATES = [
   { id: "lead-magnet", name: "Lead magnet", steps: ["Opt-in", "Thank you"], icon: "📥" },
-  { id: "webinar", name: "Webinar funnel", steps: ["Registration", "Confirmation", "Replay"], icon: "🎥" },
-  { id: "tripwire", name: "Tripwire", steps: ["Sales", "Order form", "Upsell", "Thank you"], icon: "💰" },
+  {
+    id: "webinar",
+    name: "Webinar funnel",
+    steps: ["Registration", "Confirmation", "Replay"],
+    icon: "🎥",
+  },
+  {
+    id: "tripwire",
+    name: "Tripwire",
+    steps: ["Sales", "Order form", "Upsell", "Thank you"],
+    icon: "💰",
+  },
   { id: "consult", name: "Consultation", steps: ["Booking", "Confirmation"], icon: "📅" },
   { id: "blank", name: "Blank funnel", steps: [], icon: "✨" },
 ];
@@ -222,7 +232,9 @@ function FunnelsPage() {
         ) : filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
             <Globe className="mx-auto h-10 w-10 text-muted-foreground/50" />
-            <h3 className="mt-3 font-semibold text-foreground">No {tab === "all" ? "pages" : tab + "s"} yet</h3>
+            <h3 className="mt-3 font-semibold text-foreground">
+              No {tab === "all" ? "pages" : tab + "s"} yet
+            </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Build your first high-converting funnel or website in seconds.
             </p>
@@ -236,7 +248,9 @@ function FunnelsPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filtered.map((f) => {
               const rate =
-                f.visits_count > 0 ? ((f.conversions_count / f.visits_count) * 100).toFixed(1) : "0";
+                f.visits_count > 0
+                  ? ((f.conversions_count / f.visits_count) * 100).toFixed(1)
+                  : "0";
               return (
                 <div
                   key={f.id}

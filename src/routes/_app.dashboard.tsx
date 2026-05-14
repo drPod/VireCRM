@@ -53,19 +53,45 @@ const COMMAND_TIMEOUT_MS = 45_000;
 
 type CommandErrorKind = "credits" | "rate_limit" | "timeout" | "network" | "auth" | "api";
 
-function classifyCommandError(err: unknown): { kind: CommandErrorKind; title: string; message: string } {
+function classifyCommandError(err: unknown): {
+  kind: CommandErrorKind;
+  title: string;
+  message: string;
+} {
   const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "Unknown error";
   const lower = raw.toLowerCase();
   if (lower.includes("timeout") || lower.includes("timed out") || lower.includes("aborted")) {
-    return { kind: "timeout", title: "Command timed out", message: "The AI took too long to respond. Try again or simplify the command." };
+    return {
+      kind: "timeout",
+      title: "Command timed out",
+      message: "The AI took too long to respond. Try again or simplify the command.",
+    };
   }
-  if (lower.includes("credit") || lower.includes("402") || lower.includes("exhausted") || lower.includes("insufficient")) {
-    return { kind: "credits", title: "Out of credits", message: "Top up your workspace credits to keep running commands." };
+  if (
+    lower.includes("credit") ||
+    lower.includes("402") ||
+    lower.includes("exhausted") ||
+    lower.includes("insufficient")
+  ) {
+    return {
+      kind: "credits",
+      title: "Out of credits",
+      message: "Top up your workspace credits to keep running commands.",
+    };
   }
-  if (lower.includes("429") || lower.includes("rate") ) {
-    return { kind: "rate_limit", title: "Rate limited", message: "AI is rate-limited. Wait a few seconds and retry." };
+  if (lower.includes("429") || lower.includes("rate")) {
+    return {
+      kind: "rate_limit",
+      title: "Rate limited",
+      message: "AI is rate-limited. Wait a few seconds and retry.",
+    };
   }
-  if (lower.includes("401") || lower.includes("unauthor") || lower.includes("forbidden") || lower.includes("403")) {
+  if (
+    lower.includes("401") ||
+    lower.includes("unauthor") ||
+    lower.includes("forbidden") ||
+    lower.includes("403")
+  ) {
     return { kind: "auth", title: "Not authorized", message: raw };
   }
   if (lower.includes("network") || lower.includes("fetch") || lower.includes("failed to fetch")) {
@@ -76,10 +102,19 @@ function classifyCommandError(err: unknown): { kind: CommandErrorKind; title: st
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms);
+    const t = setTimeout(
+      () => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)),
+      ms,
+    );
     promise.then(
-      (v) => { clearTimeout(t); resolve(v); },
-      (e) => { clearTimeout(t); reject(e); },
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
     );
   });
 }
@@ -121,7 +156,10 @@ export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard — Genesis" },
-      { name: "description", content: "Your AI-powered command center for sales pipeline, leads, and campaigns." },
+      {
+        name: "description",
+        content: "Your AI-powered command center for sales pipeline, leads, and campaigns.",
+      },
     ],
   }),
 });
@@ -174,7 +212,14 @@ function Dashboard() {
         description: info.message,
         duration: 8000,
         action: isCredits
-          ? { label: "Top up", onClick: () => router.navigate({ to: "/billing", search: { required: undefined, plan: undefined } as never }) }
+          ? {
+              label: "Top up",
+              onClick: () =>
+                router.navigate({
+                  to: "/billing",
+                  search: { required: undefined, plan: undefined } as never,
+                }),
+            }
           : { label: "Retry", onClick: () => void handleCommand(command) },
       });
     } finally {
@@ -188,22 +233,27 @@ function Dashboard() {
     setExecution(null);
 
     // Mark every planned step as queued, then animate "running" one at a time.
-    setTaskStatuses((prev) => prev.map((s) => ({ ...s, status: "queued" as const, message: undefined })));
+    setTaskStatuses((prev) =>
+      prev.map((s) => ({ ...s, status: "queued" as const, message: undefined })),
+    );
 
     const totalSteps = plan.steps.length;
     let runningIndex = 0;
-    const runningTimer = setInterval(() => {
-      setTaskStatuses((prev) => {
-        if (runningIndex >= prev.length) return prev;
-        const next = prev.map((s, i) => {
-          if (i < runningIndex) return s;
-          if (i === runningIndex) return { ...s, status: "running" as const };
-          return s;
+    const runningTimer = setInterval(
+      () => {
+        setTaskStatuses((prev) => {
+          if (runningIndex >= prev.length) return prev;
+          const next = prev.map((s, i) => {
+            if (i < runningIndex) return s;
+            if (i === runningIndex) return { ...s, status: "running" as const };
+            return s;
+          });
+          runningIndex += 1;
+          return next;
         });
-        runningIndex += 1;
-        return next;
-      });
-    }, Math.max(400, Math.min(1200, Math.floor(2400 / Math.max(1, totalSteps)))));
+      },
+      Math.max(400, Math.min(1200, Math.floor(2400 / Math.max(1, totalSteps)))),
+    );
 
     try {
       const result = await withTimeout(
@@ -221,11 +271,7 @@ function Dashboard() {
             return { ...s, status: "completed" as const };
           }
           const status: TaskStatusItem["status"] =
-            r.status === "ok"
-              ? "completed"
-              : r.status === "error"
-                ? "failed"
-                : "skipped";
+            r.status === "ok" ? "completed" : r.status === "error" ? "failed" : "skipped";
           return {
             ...s,
             status,
@@ -258,7 +304,14 @@ function Dashboard() {
         description: info.message,
         duration: 9000,
         action: isCredits
-          ? { label: "Top up", onClick: () => router.navigate({ to: "/billing", search: { required: undefined, plan: undefined } as never }) }
+          ? {
+              label: "Top up",
+              onClick: () =>
+                router.navigate({
+                  to: "/billing",
+                  search: { required: undefined, plan: undefined } as never,
+                }),
+            }
           : { label: "Retry", onClick: () => void handleExecute() },
       });
       setTaskStatuses((prev) =>
@@ -291,7 +344,14 @@ function Dashboard() {
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {(() => {
               const h = new Date().getHours();
-              const greeting = h < 5 ? "Working late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+              const greeting =
+                h < 5
+                  ? "Working late"
+                  : h < 12
+                    ? "Good morning"
+                    : h < 18
+                      ? "Good afternoon"
+                      : "Good evening";
               return firstName ? `${greeting}, ${firstName}` : "Command Center";
             })()}
           </h1>
@@ -398,8 +458,8 @@ function Dashboard() {
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-foreground">Get your first leads in</h2>
               <p className="mt-1 text-sm text-muted-foreground max-w-lg">
-                Genesis needs leads before it can score, message, and convert. Add your first
-                lead manually, import a CSV, or let our AI scout build a list for you.
+                Genesis needs leads before it can score, message, and convert. Add your first lead
+                manually, import a CSV, or let our AI scout build a list for you.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link to="/leads" search={{ action: "add" }}>
@@ -409,10 +469,14 @@ function Dashboard() {
                   </Button>
                 </Link>
                 <Link to="/leads" search={{ action: "import" }}>
-                  <Button variant="outline" size="sm">Import CSV</Button>
+                  <Button variant="outline" size="sm">
+                    Import CSV
+                  </Button>
                 </Link>
                 <Link to="/advisor">
-                  <Button variant="outline" size="sm">Let AI find leads</Button>
+                  <Button variant="outline" size="sm">
+                    Let AI find leads
+                  </Button>
                 </Link>
               </div>
             </div>
@@ -465,10 +529,7 @@ function Dashboard() {
   );
 }
 
-const ACTION_META: Record<
-  ExecutionResult["type"],
-  { label: string; Icon: typeof ListTodo }
-> = {
+const ACTION_META: Record<ExecutionResult["type"], { label: string; Icon: typeof ListTodo }> = {
   create_task: { label: "Task", Icon: ListTodo },
   draft_message: { label: "Email draft", Icon: Mail },
   score_leads: { label: "Lead scoring", Icon: TrendingDown },
@@ -522,9 +583,7 @@ function ExecutionResults({ data }: { data: ExecuteCommandResponse }) {
                       n8n
                     </span>
                   )}
-                  {r.status === "error" && (
-                    <XCircle className="h-3 w-3 text-destructive" />
-                  )}
+                  {r.status === "error" && <XCircle className="h-3 w-3 text-destructive" />}
                 </div>
                 <p className="text-sm text-foreground break-words">{r.message}</p>
               </div>

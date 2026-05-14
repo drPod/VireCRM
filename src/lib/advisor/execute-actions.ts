@@ -185,9 +185,7 @@ export async function runAdvisorActions({
     }
   }
 
-  async function resolveLead(
-    match?: string,
-  ): Promise<{ id: string; name: string } | null> {
+  async function resolveLead(match?: string): Promise<{ id: string; name: string } | null> {
     if (!match) return null;
     const term = match.trim();
     if (!term) return null;
@@ -233,9 +231,7 @@ export async function runAdvisorActions({
             status: dispatch.status,
             handler: "n8n",
             message: dispatch.message,
-            meta: dispatch.http_status
-              ? { http_status: dispatch.http_status }
-              : undefined,
+            meta: dispatch.http_status ? { http_status: dispatch.http_status } : undefined,
           });
           continue;
         }
@@ -260,7 +256,8 @@ export async function runAdvisorActions({
             .insert({
               organization_id: orgId,
               title: title.slice(0, 200),
-              description: typeof action.description === "string" ? action.description.slice(0, 2000) : null,
+              description:
+                typeof action.description === "string" ? action.description.slice(0, 2000) : null,
               priority: priorityValue(action.priority),
               due_date: dueDateFromDays(action.due_in_days),
               lead_id: lead?.id ?? null,
@@ -373,7 +370,8 @@ export async function runAdvisorActions({
             .insert({
               organization_id: orgId,
               name: campaignName.slice(0, 200),
-              objective: typeof action.objective === "string" ? action.objective.slice(0, 500) : null,
+              objective:
+                typeof action.objective === "string" ? action.objective.slice(0, 500) : null,
               status: "draft",
             })
             .select("id")
@@ -411,14 +409,22 @@ export async function runAdvisorActions({
         }
 
         case "update_lead_status": {
-          const validStatuses = ["new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
+          const validStatuses = [
+            "new",
+            "contacted",
+            "qualified",
+            "negotiation",
+            "won",
+            "lost",
+          ] as const;
           type LeadStatus = (typeof validStatuses)[number];
           const newStatus = action.new_status as LeadStatus | undefined;
           if (!newStatus || !validStatuses.includes(newStatus)) {
             results.push({
               type: "update_lead_status",
               status: "skipped",
-              message: "AI did not provide a valid new status (new, contacted, qualified, negotiation, won, lost).",
+              message:
+                "AI did not provide a valid new status (new, contacted, qualified, negotiation, won, lost).",
             });
             break;
           }
@@ -575,7 +581,10 @@ export async function runAdvisorActions({
               company,
               email,
               phone: typeof action.phone === "string" ? action.phone.slice(0, 50) : null,
-              source: typeof action.source === "string" ? action.source.slice(0, 100) : "ai_command_center",
+              source:
+                typeof action.source === "string"
+                  ? action.source.slice(0, 100)
+                  : "ai_command_center",
               status: action.status ?? "new",
               notes: typeof action.notes === "string" ? action.notes.slice(0, 2000) : null,
               created_by: userId,

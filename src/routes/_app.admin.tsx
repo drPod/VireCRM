@@ -5,7 +5,14 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +23,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Crown, Loader2, ShieldAlert, ShieldCheck, RefreshCw, Search, Building2, Users, Inbox, FileText, ChevronRight, ChevronDown, CreditCard, ExternalLink, DollarSign, TrendingUp, Activity, Receipt, Download } from "lucide-react";
+import {
+  Crown,
+  Loader2,
+  ShieldAlert,
+  ShieldCheck,
+  RefreshCw,
+  Search,
+  Building2,
+  Users,
+  Inbox,
+  FileText,
+  ChevronRight,
+  ChevronDown,
+  CreditCard,
+  ExternalLink,
+  DollarSign,
+  TrendingUp,
+  Activity,
+  Receipt,
+  Download,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { INDUSTRY_TEMPLATES, type IndustryKey } from "@/lib/industry-templates";
-import { PLAN_CATALOG, getPlan, planLineItems, planTotalCents, type PlanCatalogEntry } from "@/lib/plan-catalog";
+import {
+  PLAN_CATALOG,
+  getPlan,
+  planLineItems,
+  planTotalCents,
+  type PlanCatalogEntry,
+} from "@/lib/plan-catalog";
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { PlatformAdminsPanel } from "@/components/crm/PlatformAdminsPanel";
 import { QuotesPanel } from "@/components/admin/QuotesPanel";
@@ -114,14 +147,18 @@ const PLAN_LABELS: ReadonlyArray<{ value: string; label: string; price: string; 
     tagline: p.tagline,
   }));
 
-function planBadgeVariant(plan: string | null): "default" | "secondary" | "outline" | "destructive" {
+function planBadgeVariant(
+  plan: string | null,
+): "default" | "secondary" | "outline" | "destructive" {
   if (!plan || plan === "free") return "outline";
   if (plan === "ownership") return "default";
   if (plan === "enterprise" || plan === "pro") return "secondary";
   return "outline";
 }
 
-function subStatusVariant(status: string | null | undefined): "default" | "secondary" | "destructive" | "outline" {
+function subStatusVariant(
+  status: string | null | undefined,
+): "default" | "secondary" | "destructive" | "outline" {
   if (!status) return "outline";
   if (status === "active" || status === "trialing") return "default";
   if (status === "past_due" || status === "unpaid") return "destructive";
@@ -182,7 +219,10 @@ function AdminConsole() {
             <p className="text-sm text-muted-foreground">
               The platform admin console is only available to host administrators.
               {user?.email ? (
-                <> You're signed in as <span className="font-mono">{user.email}</span>.</>
+                <>
+                  {" "}
+                  You're signed in as <span className="font-mono">{user.email}</span>.
+                </>
               ) : null}
             </p>
           </CardContent>
@@ -393,13 +433,16 @@ function FinancialsPanel() {
     // realtime updates
     const channel = supabase
       .channel("admin-financials")
-      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "platform_invoices" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, () =>
+        load(),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "platform_invoices" }, () =>
+        load(),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading && !data) {
@@ -434,11 +477,16 @@ function FinancialsPanel() {
         <div>
           <h2 className="text-lg font-semibold text-foreground">Financial overview</h2>
           <p className="text-xs text-muted-foreground">
-            Live snapshot · updated {formatDistanceToNow(new Date(data.generated_at), { addSuffix: true })}
+            Live snapshot · updated{" "}
+            {formatDistanceToNow(new Date(data.generated_at), { addSuffix: true })}
           </p>
         </div>
         <Button onClick={load} variant="outline" size="sm" className="gap-2" disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
           Refresh
         </Button>
       </div>
@@ -548,12 +596,18 @@ function FinancialsPanel() {
                 {data.recent_invoices.map((iv) => (
                   <TableRow key={iv.id}>
                     <TableCell>
-                      <div className="font-medium text-foreground">{iv.customer_name || iv.customer_email}</div>
+                      <div className="font-medium text-foreground">
+                        {iv.customer_name || iv.customer_email}
+                      </div>
                       <div className="text-xs text-muted-foreground">{iv.customer_email}</div>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{iv.number || "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {iv.number || "—"}
+                    </TableCell>
                     <TableCell>
-                      <div className="font-medium text-foreground">{formatMoney(iv.amount_due_cents, iv.currency)}</div>
+                      <div className="font-medium text-foreground">
+                        {formatMoney(iv.amount_due_cents, iv.currency)}
+                      </div>
                       {iv.amount_paid_cents > 0 && iv.amount_paid_cents !== iv.amount_due_cents && (
                         <div className="text-xs text-emerald-400">
                           paid {formatMoney(iv.amount_paid_cents, iv.currency)}
@@ -611,12 +665,16 @@ function FinancialsPanel() {
               <TableBody>
                 {data.recent_subscriptions.map((sub) => (
                   <TableRow key={sub.id}>
-                    <TableCell className="font-medium text-foreground">{sub.email || sub.user_id.slice(0, 8)}</TableCell>
+                    <TableCell className="font-medium text-foreground">
+                      {sub.email || sub.user_id.slice(0, 8)}
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{sub.price_id}</TableCell>
                     <TableCell>
                       <Badge variant={subStatusVariant(sub.status)}>{sub.status}</Badge>
                       {sub.cancel_at_period_end && (
-                        <Badge variant="outline" className="ml-1 text-[10px]">cancels</Badge>
+                        <Badge variant="outline" className="ml-1 text-[10px]">
+                          cancels
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
@@ -625,7 +683,9 @@ function FinancialsPanel() {
                         : "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-[10px]">{sub.environment}</Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {sub.environment}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(sub.created_at), { addSuffix: true })}
@@ -733,7 +793,11 @@ function OrganizationsPanel() {
   };
 
   const handleRemovePlan = (orgId: string, orgLabel?: string) => {
-    if (!window.confirm(`Remove the assigned plan${orgLabel ? ` from ${orgLabel}` : ""}? The organization will be downgraded to Free.`)) {
+    if (
+      !window.confirm(
+        `Remove the assigned plan${orgLabel ? ` from ${orgLabel}` : ""}? The organization will be downgraded to Free.`,
+      )
+    ) {
       return;
     }
     void handlePlanChange(orgId, "free", orgLabel);
@@ -746,7 +810,12 @@ function OrganizationsPanel() {
           <CardTitle>All Organizations</CardTitle>
           <p className="mt-1 text-xs text-muted-foreground">
             Assign plans, industry templates, and inspect billing for every customer org.
-            {rows ? <> Showing {filtered.length} of {rows.length}.</> : null}
+            {rows ? (
+              <>
+                {" "}
+                Showing {filtered.length} of {rows.length}.
+              </>
+            ) : null}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -760,7 +829,11 @@ function OrganizationsPanel() {
             />
           </div>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </CardHeader>
@@ -815,12 +888,16 @@ function OrganizationsPanel() {
                           <div className="font-medium text-foreground">{org.name}</div>
                           <div className="font-mono text-xs text-muted-foreground">{org.slug}</div>
                           {org.is_reseller ? (
-                            <Badge variant="secondary" className="mt-1 text-[10px]">Reseller</Badge>
+                            <Badge variant="secondary" className="mt-1 text-[10px]">
+                              Reseller
+                            </Badge>
                           ) : null}
                         </TableCell>
                         <TableCell className="text-xs">
                           {org.owner_email ? (
-                            <span className="font-mono text-muted-foreground">{org.owner_email}</span>
+                            <span className="font-mono text-muted-foreground">
+                              {org.owner_email}
+                            </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
@@ -839,7 +916,10 @@ function OrganizationsPanel() {
                                       <Loader2 className="h-3 w-3 animate-spin" /> Saving…
                                     </span>
                                   ) : (
-                                    <Badge variant={planBadgeVariant(planValue)} className="capitalize">
+                                    <Badge
+                                      variant={planBadgeVariant(planValue)}
+                                      className="capitalize"
+                                    >
                                       {getPlan(planValue)?.label ?? planValue}
                                     </Badge>
                                   )}
@@ -851,9 +931,13 @@ function OrganizationsPanel() {
                                     <div className="flex flex-col">
                                       <div className="flex items-center justify-between gap-3">
                                         <span className="font-medium">{opt.label}</span>
-                                        <span className="text-[11px] tabular-nums text-muted-foreground">{opt.price}</span>
+                                        <span className="text-[11px] tabular-nums text-muted-foreground">
+                                          {opt.price}
+                                        </span>
                                       </div>
-                                      <span className="text-[10px] text-muted-foreground">{opt.tagline}</span>
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {opt.tagline}
+                                      </span>
                                     </div>
                                   </SelectItem>
                                 ))}
@@ -874,13 +958,18 @@ function OrganizationsPanel() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
-                            <Badge variant={subStatusVariant(org.subscription_status)} className="w-fit capitalize">
+                            <Badge
+                              variant={subStatusVariant(org.subscription_status)}
+                              className="w-fit capitalize"
+                            >
                               {org.subscription_status ?? "no subscription"}
                             </Badge>
                             {org.current_period_end ? (
                               <span className="text-[11px] text-muted-foreground">
                                 {org.cancel_at_period_end ? "ends " : "renews "}
-                                {formatDistanceToNow(new Date(org.current_period_end), { addSuffix: true })}
+                                {formatDistanceToNow(new Date(org.current_period_end), {
+                                  addSuffix: true,
+                                })}
                               </span>
                             ) : null}
                           </div>
@@ -898,7 +987,7 @@ function OrganizationsPanel() {
                                     <Loader2 className="h-3 w-3 animate-spin" /> Saving…
                                   </span>
                                 ) : (
-                                  tpl?.name ?? org.industry_template ?? "General"
+                                  (tpl?.name ?? org.industry_template ?? "General")
                                 )}
                               </SelectValue>
                             </SelectTrigger>
@@ -911,7 +1000,9 @@ function OrganizationsPanel() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{org.member_count}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {org.member_count}
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(org.created_at), { addSuffix: true })}
                         </TableCell>
@@ -945,7 +1036,9 @@ function OrgBillingDetails({ orgId }: { orgId: string }) {
     const load = async () => {
       setLoading(true);
       setError(null);
-      const { data: res, error: err } = await supabase.rpc("admin_org_billing", { p_org_id: orgId });
+      const { data: res, error: err } = await supabase.rpc("admin_org_billing", {
+        p_org_id: orgId,
+      });
       if (cancelled) return;
       setLoading(false);
       if (err) {
@@ -985,10 +1078,16 @@ function OrgBillingDetails({ orgId }: { orgId: string }) {
             {data.subscriptions.map((s) => (
               <li key={s.id} className="rounded-md border border-border/60 bg-card p-2 text-xs">
                 <div className="flex items-center justify-between gap-2">
-                  <Badge variant={subStatusVariant(s.status)} className="capitalize">{s.status}</Badge>
-                  <span className="font-mono text-[10px] text-muted-foreground">{s.environment}</span>
+                  <Badge variant={subStatusVariant(s.status)} className="capitalize">
+                    {s.status}
+                  </Badge>
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {s.environment}
+                  </span>
                 </div>
-                <div className="mt-1 font-mono text-[11px] text-muted-foreground">{s.price_id ?? "—"}</div>
+                <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                  {s.price_id ?? "—"}
+                </div>
                 {s.current_period_end ? (
                   <div className="text-[11px] text-muted-foreground">
                     {s.cancel_at_period_end ? "Ends " : "Renews "}
@@ -1013,13 +1112,21 @@ function OrgBillingDetails({ orgId }: { orgId: string }) {
               <li key={inv.id} className="rounded-md border border-border/60 bg-card p-2 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-[11px]">{inv.number ?? inv.id.slice(0, 8)}</span>
-                  <Badge variant={subStatusVariant(inv.status)} className="capitalize">{inv.status}</Badge>
+                  <Badge variant={subStatusVariant(inv.status)} className="capitalize">
+                    {inv.status}
+                  </Badge>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>
-                    {(inv.amount_paid_cents / 100).toLocaleString(undefined, { style: "currency", currency: inv.currency.toUpperCase() })}
+                    {(inv.amount_paid_cents / 100).toLocaleString(undefined, {
+                      style: "currency",
+                      currency: inv.currency.toUpperCase(),
+                    })}
                     {" / "}
-                    {(inv.amount_due_cents / 100).toLocaleString(undefined, { style: "currency", currency: inv.currency.toUpperCase() })}
+                    {(inv.amount_due_cents / 100).toLocaleString(undefined, {
+                      style: "currency",
+                      currency: inv.currency.toUpperCase(),
+                    })}
                   </span>
                   {inv.hosted_invoice_url ? (
                     <a
@@ -1103,7 +1210,11 @@ function UsersPanel() {
             className="w-56"
           />
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </CardHeader>
@@ -1127,7 +1238,9 @@ function UsersPanel() {
               <TableBody>
                 {filtered.map((u) => (
                   <TableRow key={u.user_id}>
-                    <TableCell>{u.full_name ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>
+                      {u.full_name ?? <span className="text-muted-foreground">—</span>}
+                    </TableCell>
                     <TableCell>{u.organization_name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(u.created_at), { addSuffix: true })}
@@ -1211,7 +1324,11 @@ function ContactSubmissionsPanel() {
       prev
         ? prev.map((r) =>
             r.id === id
-              ? { ...r, status, replied_at: status === "replied" ? new Date().toISOString() : r.replied_at }
+              ? {
+                  ...r,
+                  status,
+                  replied_at: status === "replied" ? new Date().toISOString() : r.replied_at,
+                }
               : r,
           )
         : prev,
@@ -1225,7 +1342,9 @@ function ContactSubmissionsPanel() {
       `Hi ${s.name.split(" ")[0] || s.name},`,
       "",
       `Thanks for reaching out about your ${s.project_type ?? "project"}${s.company ? ` at ${s.company}` : ""}.`,
-      s.budget ? `Based on the ${s.budget} budget you shared, here is your invoice:` : "Here is your invoice:",
+      s.budget
+        ? `Based on the ${s.budget} budget you shared, here is your invoice:`
+        : "Here is your invoice:",
       "",
       "Amount: $______",
       "Payment link: ______",
@@ -1243,8 +1362,14 @@ function ContactSubmissionsPanel() {
         <div>
           <CardTitle>Contact Submissions</CardTitle>
           <p className="mt-1 text-xs text-muted-foreground">
-            Latest 200 inquiries. Click a row to see the full message, AI classification, and send an invoice.
-            {rows ? <> Showing {filtered.length} of {rows.length}.</> : null}
+            Latest 200 inquiries. Click a row to see the full message, AI classification, and send
+            an invoice.
+            {rows ? (
+              <>
+                {" "}
+                Showing {filtered.length} of {rows.length}.
+              </>
+            ) : null}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1258,7 +1383,11 @@ function ContactSubmissionsPanel() {
             />
           </div>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </CardHeader>
@@ -1296,7 +1425,9 @@ function ContactSubmissionsPanel() {
                           <div className="font-medium text-foreground">{s.name}</div>
                           <div className="font-mono text-xs text-muted-foreground">{s.email}</div>
                           {s.test_mode ? (
-                            <Badge variant="outline" className="mt-1 text-[10px]">test</Badge>
+                            <Badge variant="outline" className="mt-1 text-[10px]">
+                              test
+                            </Badge>
                           ) : null}
                         </TableCell>
                         <TableCell>{s.company ?? "—"}</TableCell>
@@ -1308,7 +1439,8 @@ function ContactSubmissionsPanel() {
                           {s.priority_suggestion ? (
                             <Badge
                               variant={
-                                s.priority_suggestion === "critical" || s.priority_suggestion === "high"
+                                s.priority_suggestion === "critical" ||
+                                s.priority_suggestion === "high"
                                   ? "destructive"
                                   : "secondary"
                               }
@@ -1320,7 +1452,9 @@ function ContactSubmissionsPanel() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={s.status === "replied" ? "default" : "secondary"}>{s.status}</Badge>
+                          <Badge variant={s.status === "replied" ? "default" : "secondary"}>
+                            {s.status}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}
@@ -1331,38 +1465,83 @@ function ContactSubmissionsPanel() {
                           <TableCell colSpan={7} className="p-4">
                             <div className="grid gap-4 md:grid-cols-2">
                               <div className="space-y-2">
-                                <div className="text-xs font-semibold uppercase text-muted-foreground">Contact</div>
-                                <div className="text-sm">
-                                  <div><span className="text-muted-foreground">Email:</span> <a href={`mailto:${s.email}`} className="text-primary hover:underline">{s.email}</a></div>
-                                  {s.phone ? (
-                                    <div><span className="text-muted-foreground">Phone:</span> <a href={`tel:${s.phone}`} className="text-primary hover:underline">{s.phone}</a></div>
-                                  ) : null}
-                                  {s.company ? <div><span className="text-muted-foreground">Company:</span> {s.company}</div> : null}
-                                  {s.origin ? <div><span className="text-muted-foreground">Origin:</span> <span className="font-mono text-xs">{s.origin}</span></div> : null}
+                                <div className="text-xs font-semibold uppercase text-muted-foreground">
+                                  Contact
                                 </div>
-                                <div className="text-xs font-semibold uppercase text-muted-foreground pt-2">Message</div>
+                                <div className="text-sm">
+                                  <div>
+                                    <span className="text-muted-foreground">Email:</span>{" "}
+                                    <a
+                                      href={`mailto:${s.email}`}
+                                      className="text-primary hover:underline"
+                                    >
+                                      {s.email}
+                                    </a>
+                                  </div>
+                                  {s.phone ? (
+                                    <div>
+                                      <span className="text-muted-foreground">Phone:</span>{" "}
+                                      <a
+                                        href={`tel:${s.phone}`}
+                                        className="text-primary hover:underline"
+                                      >
+                                        {s.phone}
+                                      </a>
+                                    </div>
+                                  ) : null}
+                                  {s.company ? (
+                                    <div>
+                                      <span className="text-muted-foreground">Company:</span>{" "}
+                                      {s.company}
+                                    </div>
+                                  ) : null}
+                                  {s.origin ? (
+                                    <div>
+                                      <span className="text-muted-foreground">Origin:</span>{" "}
+                                      <span className="font-mono text-xs">{s.origin}</span>
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <div className="text-xs font-semibold uppercase text-muted-foreground pt-2">
+                                  Message
+                                </div>
                                 <div className="whitespace-pre-wrap rounded border border-border bg-background p-3 text-sm">
                                   {s.message}
                                 </div>
                               </div>
                               <div className="space-y-2">
-                                <div className="text-xs font-semibold uppercase text-muted-foreground">AI Classification</div>
+                                <div className="text-xs font-semibold uppercase text-muted-foreground">
+                                  AI Classification
+                                </div>
                                 <div className="text-sm space-y-1">
-                                  <div><span className="text-muted-foreground">Topic:</span> {s.topic ?? "—"}</div>
-                                  <div><span className="text-muted-foreground">Sentiment:</span> {s.sentiment ?? "—"}</div>
-                                  <div><span className="text-muted-foreground">Priority:</span> {s.priority_suggestion ?? "—"}</div>
+                                  <div>
+                                    <span className="text-muted-foreground">Topic:</span>{" "}
+                                    {s.topic ?? "—"}
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Sentiment:</span>{" "}
+                                    {s.sentiment ?? "—"}
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Priority:</span>{" "}
+                                    {s.priority_suggestion ?? "—"}
+                                  </div>
                                   {s.intent_summary ? (
                                     <div className="pt-1">
                                       <div className="text-muted-foreground">Intent:</div>
-                                      <div className="rounded border border-border bg-background p-2 text-xs">{s.intent_summary}</div>
+                                      <div className="rounded border border-border bg-background p-2 text-xs">
+                                        {s.intent_summary}
+                                      </div>
                                     </div>
                                   ) : null}
                                 </div>
                                 {s.metadata && Object.keys(s.metadata).length > 0 ? (
                                   <>
-                                    <div className="text-xs font-semibold uppercase text-muted-foreground pt-2">Metadata</div>
+                                    <div className="text-xs font-semibold uppercase text-muted-foreground pt-2">
+                                      Metadata
+                                    </div>
                                     <pre className="overflow-x-auto rounded border border-border bg-background p-2 text-[11px] leading-relaxed">
-{JSON.stringify(s.metadata, null, 2)}
+                                      {JSON.stringify(s.metadata, null, 2)}
                                     </pre>
                                   </>
                                 ) : null}
@@ -1392,7 +1571,10 @@ function ContactSubmissionsPanel() {
                                 </div>
                                 {s.replied_at ? (
                                   <div className="text-xs text-muted-foreground pt-1">
-                                    Replied {formatDistanceToNow(new Date(s.replied_at), { addSuffix: true })}
+                                    Replied{" "}
+                                    {formatDistanceToNow(new Date(s.replied_at), {
+                                      addSuffix: true,
+                                    })}
                                   </div>
                                 ) : null}
                                 <SubmissionPaymentHistory submission={s} />
@@ -1434,10 +1616,11 @@ interface PlatformInvoiceRow {
   created_at: string;
 }
 
-const stripeEnv: "sandbox" | "live" =
-  (import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined)?.startsWith("pk_live_")
-    ? "live"
-    : "sandbox";
+const stripeEnv: "sandbox" | "live" = (
+  import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined
+)?.startsWith("pk_live_")
+  ? "live"
+  : "sandbox";
 
 function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   if (status === "paid") return "default";
@@ -1518,7 +1701,11 @@ function SubmissionPaymentHistory({ submission }: { submission: AdminSubmissionR
           )}
         </div>
         <Button size="sm" variant="ghost" onClick={load} disabled={loading} className="h-7 gap-1">
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+          {loading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3 w-3" />
+          )}
         </Button>
       </div>
 
@@ -1534,7 +1721,9 @@ function SubmissionPaymentHistory({ submission }: { submission: AdminSubmissionR
           </div>
           <div className="rounded bg-background/50 px-2 py-1">
             <div className="text-muted-foreground">Outstanding</div>
-            <div className="font-semibold text-amber-400">{fmt(data.totals.outstanding_cents ?? 0)}</div>
+            <div className="font-semibold text-amber-400">
+              {fmt(data.totals.outstanding_cents ?? 0)}
+            </div>
           </div>
           <div className="rounded bg-background/50 px-2 py-1">
             <div className="text-muted-foreground">Stripe customers</div>
@@ -1566,7 +1755,9 @@ function SubmissionPaymentHistory({ submission }: { submission: AdminSubmissionR
             {data.invoices.map((iv) => (
               <TableRow key={iv.id}>
                 <TableCell className="text-xs">
-                  <div className="text-foreground">{iv.number || iv.stripe_invoice_id || iv.id.slice(0, 8)}</div>
+                  <div className="text-foreground">
+                    {iv.number || iv.stripe_invoice_id || iv.id.slice(0, 8)}
+                  </div>
                   {iv.description && (
                     <div className="text-muted-foreground line-clamp-1">{iv.description}</div>
                   )}
@@ -1574,14 +1765,18 @@ function SubmissionPaymentHistory({ submission }: { submission: AdminSubmissionR
                 <TableCell className="text-xs">
                   <div className="text-foreground">{fmt(iv.amount_due_cents, iv.currency)}</div>
                   {iv.amount_paid_cents > 0 && (
-                    <div className="text-emerald-400">paid {fmt(iv.amount_paid_cents, iv.currency)}</div>
+                    <div className="text-emerald-400">
+                      paid {fmt(iv.amount_paid_cents, iv.currency)}
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>
                   <Badge variant={statusVariant(iv.status)}>{iv.status}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-[10px]">{iv.environment}</Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {iv.environment}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(iv.created_at), { addSuffix: true })}
@@ -1622,11 +1817,19 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   ) => {
     let amountCents: number | undefined;
     if (action === "void") {
-      if (!window.confirm(`Void invoice ${inv.number ?? inv.stripe_invoice_id}? The customer will no longer be able to pay it.`)) {
+      if (
+        !window.confirm(
+          `Void invoice ${inv.number ?? inv.stripe_invoice_id}? The customer will no longer be able to pay it.`,
+        )
+      ) {
         return;
       }
     } else if (action === "resend") {
-      if (!window.confirm(`Resend invoice ${inv.number ?? inv.stripe_invoice_id} email to the prospect via Stripe?`)) {
+      if (
+        !window.confirm(
+          `Resend invoice ${inv.number ?? inv.stripe_invoice_id} email to the prospect via Stripe?`,
+        )
+      ) {
         return;
       }
     } else {
@@ -1654,10 +1857,7 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
     setActingId(null);
 
     if (error || (data as { error?: string } | null)?.error) {
-      const msg =
-        (data as { error?: string } | null)?.error ||
-        error?.message ||
-        "Action failed";
+      const msg = (data as { error?: string } | null)?.error || error?.message || "Action failed";
       toast.error(msg);
       return;
     }
@@ -1707,9 +1907,7 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
     if (!amountOverridden) {
       setAmount((planTotalCents(selectedPlan) / 100).toFixed(2));
     }
-    setDescription(
-      `${selectedPlan.label} plan — ${submission.company ?? submission.name}`,
-    );
+    setDescription(`${selectedPlan.label} plan — ${submission.company ?? submission.name}`);
   }, [selectedPlan, submission.company, submission.name, amountOverridden]);
 
   const load = async () => {
@@ -1736,7 +1934,12 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
       .channel(`platform_invoices:${submission.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "platform_invoices", filter: `submission_id=eq.${submission.id}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "platform_invoices",
+          filter: `submission_id=eq.${submission.id}`,
+        },
         () => void load(),
       )
       .subscribe();
@@ -1778,11 +1981,13 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
           toast.error("Enter an amount of at least $0.50");
           return;
         }
-        lineItems = [{
-          description: description || `${selectedPlan.label} plan (custom amount)`,
-          amount_cents: Math.round(dollars * 100),
-          quantity: 1,
-        }];
+        lineItems = [
+          {
+            description: description || `${selectedPlan.label} plan (custom amount)`,
+            amount_cents: Math.round(dollars * 100),
+            quantity: 1,
+          },
+        ];
       } else {
         lineItems = planLineItems(selectedPlan);
         if (lineItems.length === 0) {
@@ -1815,7 +2020,9 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
     });
     setCreating(false);
     if (error || (data as { error?: string })?.error) {
-      toast.error((data as { error?: string })?.error ?? error?.message ?? "Failed to create invoice");
+      toast.error(
+        (data as { error?: string })?.error ?? error?.message ?? "Failed to create invoice",
+      );
       return;
     }
     toast.success("Invoice created and sent");
@@ -1835,15 +2042,27 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
     <div className="space-y-2 pt-3 border-t border-border mt-3">
       <div className="flex items-center justify-between">
         <div className="text-xs font-semibold uppercase text-muted-foreground">
-          Stripe Invoice {stripeEnv === "sandbox" ? <Badge variant="outline" className="ml-2 text-[10px]">test mode</Badge> : null}
+          Stripe Invoice{" "}
+          {stripeEnv === "sandbox" ? (
+            <Badge variant="outline" className="ml-2 text-[10px]">
+              test mode
+            </Badge>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <Select
             disabled={assigningPlan}
             onValueChange={(v) => {
               if (v === "__remove__") {
-                if (!window.confirm(`Remove plan from ${submission.email}? They'll be downgraded to Free.`)) return;
-                void setPlanForCustomer("free").then((ok) => ok && toast.success("Plan removed (set to Free)"));
+                if (
+                  !window.confirm(
+                    `Remove plan from ${submission.email}? They'll be downgraded to Free.`,
+                  )
+                )
+                  return;
+                void setPlanForCustomer("free").then(
+                  (ok) => ok && toast.success("Plan removed (set to Free)"),
+                );
                 return;
               }
               const target = getPlan(v);
@@ -1853,7 +2072,9 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                 );
                 if (!ok) return;
               }
-              void setPlanForCustomer(v).then((ok) => ok && toast.success(`Assigned ${target?.label ?? v}`));
+              void setPlanForCustomer(v).then(
+                (ok) => ok && toast.success(`Assigned ${target?.label ?? v}`),
+              );
             }}
           >
             <SelectTrigger className="h-8 w-[220px] text-xs">
@@ -1865,7 +2086,9 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-medium">{p.label}</span>
-                      <span className="text-[11px] tabular-nums text-muted-foreground">{formatPlanPrice(p)}</span>
+                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                        {formatPlanPrice(p)}
+                      </span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">{p.tagline}</span>
                   </div>
@@ -1875,7 +2098,11 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
             </SelectContent>
           </Select>
           <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-            {showForm ? "Cancel" : invoices && invoices.length > 0 ? "+ New Invoice" : "Create Invoice"}
+            {showForm
+              ? "Cancel"
+              : invoices && invoices.length > 0
+                ? "+ New Invoice"
+                : "Create Invoice"}
           </Button>
         </div>
       </div>
@@ -1916,12 +2143,19 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
               <p className="text-[11px]">
                 None of <code className="rounded bg-muted px-1">interested_plan</code>,{" "}
                 <code className="rounded bg-muted px-1">budget</code>, or{" "}
-                <code className="rounded bg-muted px-1">project_type</code> matched a known plan tier.
+                <code className="rounded bg-muted px-1">project_type</code> matched a known plan
+                tier.
               </p>
             </div>
           )}
           <div className="grid gap-2 sm:grid-cols-[180px_1fr_120px_100px]">
-            <Select value={planValue} onValueChange={(v) => { setPlanValue(v); setAmountOverridden(false); }}>
+            <Select
+              value={planValue}
+              onValueChange={(v) => {
+                setPlanValue(v);
+                setAmountOverridden(false);
+              }}
+            >
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="Use plan…" />
               </SelectTrigger>
@@ -1932,7 +2166,9 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                     <div className="flex flex-col">
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-medium">{p.label}</span>
-                        <span className="text-[11px] tabular-nums text-muted-foreground">{formatPlanPrice(p)}</span>
+                        <span className="text-[11px] tabular-nums text-muted-foreground">
+                          {formatPlanPrice(p)}
+                        </span>
                       </div>
                       <span className="text-[10px] text-muted-foreground">{p.tagline}</span>
                     </div>
@@ -1947,7 +2183,10 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
             />
             <Input
               value={amount}
-              onChange={(e) => { setAmount(e.target.value); setAmountOverridden(true); }}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setAmountOverridden(true);
+              }}
               placeholder="Amount USD"
               inputMode="decimal"
               title={selectedPlan ? "Editing this overrides the plan's default amount" : undefined}
@@ -1962,7 +2201,9 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
 
           {selectedPlan ? (
             <div className="rounded bg-muted/40 p-2 text-xs space-y-1">
-              <div className="font-medium">{selectedPlan.label} — {selectedPlan.tagline}</div>
+              <div className="font-medium">
+                {selectedPlan.label} — {selectedPlan.tagline}
+              </div>
               {planLineItems(selectedPlan).map((li, i) => (
                 <div key={i} className="flex justify-between text-muted-foreground">
                   <span>{li.description}</span>
@@ -2001,7 +2242,9 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
               className="flex flex-wrap items-center gap-2 rounded border border-border bg-background p-2 text-sm"
             >
               <Badge variant={statusVariant(inv.status)}>{inv.status}</Badge>
-              <span className="font-mono text-xs text-muted-foreground">{inv.number ?? inv.stripe_invoice_id}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {inv.number ?? inv.stripe_invoice_id}
+              </span>
               <span className="tabular-nums">
                 ${(inv.amount_due_cents / 100).toFixed(2)} {inv.currency.toUpperCase()}
               </span>
@@ -2011,7 +2254,9 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                 </span>
               ) : null}
               {inv.environment === "sandbox" ? (
-                <Badge variant="outline" className="text-[10px]">test</Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  test
+                </Badge>
               ) : null}
               <span className="ml-auto flex gap-2">
                 {inv.hosted_invoice_url ? (
@@ -2042,7 +2287,11 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                     onClick={() => void runInvoiceAction(inv, "resend")}
                     title="Resend the Stripe-hosted invoice email to the prospect"
                   >
-                    {actingId === inv.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Resend email"}
+                    {actingId === inv.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      "Resend email"
+                    )}
                   </Button>
                 ) : null}
                 {inv.status !== "void" && inv.status !== "paid" && inv.status !== "refunded" ? (
@@ -2070,8 +2319,12 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
               </span>
               <div className="w-full text-[11px] text-muted-foreground">
                 Created {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
-                {inv.paid_at ? <> · paid {formatDistanceToNow(new Date(inv.paid_at), { addSuffix: true })}</> : null}
-                {inv.due_date && !inv.paid_at ? <> · due {new Date(inv.due_date).toLocaleDateString()}</> : null}
+                {inv.paid_at ? (
+                  <> · paid {formatDistanceToNow(new Date(inv.paid_at), { addSuffix: true })}</>
+                ) : null}
+                {inv.due_date && !inv.paid_at ? (
+                  <> · due {new Date(inv.due_date).toLocaleDateString()}</>
+                ) : null}
               </div>
             </div>
           ))}
@@ -2124,7 +2377,13 @@ function SuggestionSignals({
                   ? "inline-flex items-center gap-1 rounded border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground/70"
                   : "inline-flex items-center gap-1 rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground"
             }
-            title={matched ? "This field drove the suggestion" : empty ? "Not provided" : "Considered, no match"}
+            title={
+              matched
+                ? "This field drove the suggestion"
+                : empty
+                  ? "Not provided"
+                  : "Considered, no match"
+            }
           >
             <code className="font-mono text-[10px]">{f.label}</code>
             <span className="text-foreground/80">{empty ? "—" : f.value}</span>
@@ -2147,9 +2406,11 @@ function SuggestionSignals({
  * human-readable reason. Returns null when no signal is strong enough — the
  * panel falls back to the legacy "custom" amount in that case.
  */
-function suggestPlanForSubmission(
-  s: AdminSubmissionRow,
-): { plan: PlanCatalogEntry; reason: string; source: "interested_plan" | "budget" | "project_type" } | null {
+function suggestPlanForSubmission(s: AdminSubmissionRow): {
+  plan: PlanCatalogEntry;
+  reason: string;
+  source: "interested_plan" | "budget" | "project_type";
+} | null {
   const metaPlan =
     typeof s.metadata?.["interested_plan"] === "string"
       ? (s.metadata["interested_plan"] as string)
@@ -2164,7 +2425,12 @@ function suggestPlanForSubmission(
       normalized === "full";
     const key = isFullOwnership ? "full_ownership" : normalized;
     const p = getPlan(key);
-    if (p && p.invoiceable) return { plan: p, reason: "Prospect picked this plan on the site", source: "interested_plan" };
+    if (p && p.invoiceable)
+      return {
+        plan: p,
+        reason: "Prospect picked this plan on the site",
+        source: "interested_plan",
+      };
   }
 
   const b = (s.budget ?? "").toLowerCase();
@@ -2179,7 +2445,13 @@ function suggestPlanForSubmission(
     if (b.includes("14") || b.includes("10k") || b.includes("10,000") || b.includes("20k")) {
       return getPlan("pro");
     }
-    if (b.includes("5k") || b.includes("5,000") || b.includes("3k") || b.includes("2.5k") || b.includes("2500")) {
+    if (
+      b.includes("5k") ||
+      b.includes("5,000") ||
+      b.includes("3k") ||
+      b.includes("2.5k") ||
+      b.includes("2500")
+    ) {
       return getPlan("growth");
     }
     if (b.includes("1k") || b.includes("1,000") || b.includes("500")) {
@@ -2194,17 +2466,37 @@ function suggestPlanForSubmission(
   }
 
   const pt = (s.project_type ?? "").toLowerCase();
-  if (pt.includes("full ownership") || pt.includes("full_ownership") || pt.includes("source code") || pt.includes("buyout")) {
+  if (
+    pt.includes("full ownership") ||
+    pt.includes("full_ownership") ||
+    pt.includes("source code") ||
+    pt.includes("buyout")
+  ) {
     const p = getPlan("full_ownership");
-    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests Full Ownership`, source: "project_type" };
+    if (p)
+      return {
+        plan: p,
+        reason: `Project type "${s.project_type}" suggests Full Ownership`,
+        source: "project_type",
+      };
   }
   if (pt.includes("enterprise") || pt.includes("white") || pt.includes("custom")) {
     const p = getPlan("enterprise");
-    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests enterprise`, source: "project_type" };
+    if (p)
+      return {
+        plan: p,
+        reason: `Project type "${s.project_type}" suggests enterprise`,
+        source: "project_type",
+      };
   }
   if (pt.includes("crm") || pt.includes("sales")) {
     const p = getPlan("growth");
-    if (p) return { plan: p, reason: `Project type "${s.project_type}" suggests growth`, source: "project_type" };
+    if (p)
+      return {
+        plan: p,
+        reason: `Project type "${s.project_type}" suggests growth`,
+        source: "project_type",
+      };
   }
 
   return null;
@@ -2256,7 +2548,7 @@ function TemplateAuditPanel() {
       toast.error(error.message ?? "Failed to load audit log");
       return;
     }
-    setRows(((data ?? []) as unknown) as TemplateAuditRow[]);
+    setRows((data ?? []) as unknown as TemplateAuditRow[]);
   };
 
   useEffect(() => {
@@ -2318,7 +2610,11 @@ function TemplateAuditPanel() {
             <Badge variant="default">{counts.changed} changed</Badge>
             <Badge variant="destructive">{counts.denied} denied</Badge>
             <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
@@ -2369,7 +2665,10 @@ function TemplateAuditPanel() {
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => (
-                  <TableRow key={r.id} className={r.action === "denied" ? "bg-destructive/5" : undefined}>
+                  <TableRow
+                    key={r.id}
+                    className={r.action === "denied" ? "bg-destructive/5" : undefined}
+                  >
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                     </TableCell>
@@ -2387,7 +2686,9 @@ function TemplateAuditPanel() {
                       ) : null}
                     </TableCell>
                     <TableCell className="text-sm">
-                      <div>{r.actor_email ?? <span className="text-muted-foreground">unknown</span>}</div>
+                      <div>
+                        {r.actor_email ?? <span className="text-muted-foreground">unknown</span>}
+                      </div>
                       {r.actor_is_platform_admin ? (
                         <Badge variant="outline" className="text-[10px] mt-0.5">
                           <Crown className="h-2.5 w-2.5 mr-1" /> platform admin
@@ -2397,12 +2698,16 @@ function TemplateAuditPanel() {
                     <TableCell className="text-sm">
                       <span className="font-mono text-xs">{r.old_template ?? "—"}</span>
                       <span className="mx-2 text-muted-foreground">→</span>
-                      <span className="font-mono text-xs font-semibold">{r.new_template ?? "—"}</span>
+                      <span className="font-mono text-xs font-semibold">
+                        {r.new_template ?? "—"}
+                      </span>
                       {r.reason ? (
                         <div className="text-[11px] text-destructive mt-0.5">{r.reason}</div>
                       ) : null}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{r.source ?? "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {r.source ?? "—"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

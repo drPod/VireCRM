@@ -36,7 +36,10 @@ interface LeadRow {
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
 
-async function draftSuggestion(lead: LeadRow, industry: string | null): Promise<{
+async function draftSuggestion(
+  lead: LeadRow,
+  industry: string | null,
+): Promise<{
   subject: string;
   message: string;
   reasoning: string;
@@ -44,7 +47,9 @@ async function draftSuggestion(lead: LeadRow, industry: string | null): Promise<
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-  const lastTouch = lead.last_contact ? new Date(lead.last_contact).toISOString().slice(0, 10) : "never";
+  const lastTouch = lead.last_contact
+    ? new Date(lead.last_contact).toISOString().slice(0, 10)
+    : "never";
   const sys = `You are a CRM copywriter for a ${industry ?? "B2B"} business. Draft a concise, specific follow-up email (<120 words) for a lead. Tone: warm, professional, no fluff. Always include a clear next-step ask.`;
   const user = `Lead: ${lead.name}${lead.company ? ` at ${lead.company}` : ""}
 Status: ${lead.status}
@@ -64,29 +69,42 @@ Draft the follow-up message now.`;
         { role: "system", content: sys },
         { role: "user", content: user },
       ],
-      tools: [{
-        type: "function",
-        function: {
-          name: "draft_followup",
-          description: "Return a follow-up email draft.",
-          parameters: {
-            type: "object",
-            properties: {
-              subject: { type: "string", description: "Email subject line, <60 chars" },
-              message: { type: "string", description: "Email body, plain text, <120 words" },
-              reasoning: { type: "string", description: "1-2 sentence rationale for the angle/ask" },
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "draft_followup",
+            description: "Return a follow-up email draft.",
+            parameters: {
+              type: "object",
+              properties: {
+                subject: { type: "string", description: "Email subject line, <60 chars" },
+                message: { type: "string", description: "Email body, plain text, <120 words" },
+                reasoning: {
+                  type: "string",
+                  description: "1-2 sentence rationale for the angle/ask",
+                },
+              },
+              required: ["subject", "message", "reasoning"],
+              additionalProperties: false,
             },
-            required: ["subject", "message", "reasoning"],
-            additionalProperties: false,
           },
         },
-      }],
+      ],
       tool_choice: { type: "function", function: { name: "draft_followup" } },
     }),
   });
 
-  if (res.status === 429) throw new Response(JSON.stringify({ error: "Rate limited, try again shortly." }), { status: 429, headers: { ...cors, "Content-Type": "application/json" } });
-  if (res.status === 402) throw new Response(JSON.stringify({ error: "AI credits exhausted. Add credits to keep using AI follow-up." }), { status: 402, headers: { ...cors, "Content-Type": "application/json" } });
+  if (res.status === 429)
+    throw new Response(JSON.stringify({ error: "Rate limited, try again shortly." }), {
+      status: 429,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  if (res.status === 402)
+    throw new Response(
+      JSON.stringify({ error: "AI credits exhausted. Add credits to keep using AI follow-up." }),
+      { status: 402, headers: { ...cors, "Content-Type": "application/json" } },
+    );
   if (!res.ok) {
     const text = await res.text();
     console.error("AI gateway error", res.status, text);
@@ -122,10 +140,13 @@ Deno.serve(async (req) => {
     });
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    const { data: { user } } = await userClient.auth.getUser();
+    const {
+      data: { user },
+    } = await userClient.auth.getUser();
     if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...cors, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
@@ -140,7 +161,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!profile?.organization_id) {
       return new Response(JSON.stringify({ error: "No organization for user" }), {
-        status: 400, headers: { ...cors, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
     const orgId = profile.organization_id;
@@ -157,18 +179,22 @@ Deno.serve(async (req) => {
     if (mode === "lead") {
       if (!body.lead_id) {
         return new Response(JSON.stringify({ error: "lead_id required" }), {
-          status: 400, headers: { ...cors, "Content-Type": "application/json" },
+          status: 400,
+          headers: { ...cors, "Content-Type": "application/json" },
         });
       }
       const { data, error } = await admin
         .from("leads")
-        .select("id, organization_id, name, email, company, status, source, notes, next_action, last_contact, score")
+        .select(
+          "id, organization_id, name, email, company, status, source, notes, next_action, last_contact, score",
+        )
         .eq("id", body.lead_id)
         .eq("organization_id", orgId)
         .maybeSingle();
       if (error || !data) {
         return new Response(JSON.stringify({ error: "Lead not found" }), {
-          status: 404, headers: { ...cors, "Content-Type": "application/json" },
+          status: 404,
+          headers: { ...cors, "Content-Type": "application/json" },
         });
       }
       leads = [data as LeadRow];
@@ -177,7 +203,9 @@ Deno.serve(async (req) => {
       const cutoff = new Date(Date.now() - daysIdle * 24 * 60 * 60 * 1000).toISOString();
       const { data } = await admin
         .from("leads")
-        .select("id, organization_id, name, email, company, status, source, notes, next_action, last_contact, score")
+        .select(
+          "id, organization_id, name, email, company, status, source, notes, next_action, last_contact, score",
+        )
         .eq("organization_id", orgId)
         .is("deleted_at", null)
         .not("status", "in", '("won","lost","unqualified")')
@@ -194,7 +222,10 @@ Deno.serve(async (req) => {
     for (const lead of leads) {
       try {
         const draft = await draftSuggestion(lead, industry);
-        if (!draft) { errors++; continue; }
+        if (!draft) {
+          errors++;
+          continue;
+        }
         const { data: ins, error: insErr } = await admin
           .from("lead_followup_suggestions")
           .insert({
@@ -211,9 +242,17 @@ Deno.serve(async (req) => {
           })
           .select("id")
           .single();
-        if (insErr || !ins) { errors++; continue; }
+        if (insErr || !ins) {
+          errors++;
+          continue;
+        }
         created.push({ lead_id: lead.id, suggestion_id: ins.id });
-        drafts.push({ lead_id: lead.id, subject: draft.subject, message: draft.message, reasoning: draft.reasoning });
+        drafts.push({
+          lead_id: lead.id,
+          subject: draft.subject,
+          message: draft.message,
+          reasoning: draft.reasoning,
+        });
       } catch (e) {
         // If draftSuggestion threw a Response (rate-limit/credit), bubble it up
         if (e instanceof Response) return e;
@@ -222,17 +261,28 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({
-      ok: true, mode, processed: leads.length, created: created.length, errors,
-      // Single-lead callers (per-lead AI button) need the actual draft to show
-      // in the dialog; batch callers just need counts.
-      suggestion: mode === "lead" ? drafts[0] ?? null : undefined,
-      drafts: mode === "lead" ? undefined : drafts,
-    }), { headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        mode,
+        processed: leads.length,
+        created: created.length,
+        errors,
+        // Single-lead callers (per-lead AI button) need the actual draft to show
+        // in the dialog; batch callers just need counts.
+        suggestion: mode === "lead" ? (drafts[0] ?? null) : undefined,
+        drafts: mode === "lead" ? undefined : drafts,
+      }),
+      { headers: { ...cors, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("suggest-followup fatal", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...cors, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      {
+        status: 500,
+        headers: { ...cors, "Content-Type": "application/json" },
+      },
+    );
   }
 });

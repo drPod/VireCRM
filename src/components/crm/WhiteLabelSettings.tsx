@@ -102,7 +102,7 @@ export function WhiteLabelSettings() {
       toast.error(
         invalidColor.value.trim() === ""
           ? `${invalidColor.label} color is required`
-          : `${invalidColor.label} color must be a valid hex like #7c3aed`
+          : `${invalidColor.label} color must be a valid hex like #7c3aed`,
       );
       return;
     }
@@ -160,7 +160,6 @@ export function WhiteLabelSettings() {
   /* ---------------------------------------------------------------------- */
   /* Theme export / import                                                   */
   /* ---------------------------------------------------------------------- */
-
 
   const handleExportTheme = () => {
     const payload = {
@@ -272,9 +271,7 @@ export function WhiteLabelSettings() {
             <Palette className="h-5 w-5 text-primary" />
             White-Label Settings
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Customize your CRM branding
-          </p>
+          <p className="text-sm text-muted-foreground">Customize your CRM branding</p>
         </div>
         {!isEnterprise && (
           <Badge variant="warning" className="gap-1">
@@ -293,12 +290,15 @@ export function WhiteLabelSettings() {
               <div>
                 <h3 className="text-sm font-semibold text-foreground">Reseller Mode</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Onboard your own clients under your branded CRM. Each client gets an isolated workspace.
+                  Onboard your own clients under your branded CRM. Each client gets an isolated
+                  workspace.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {togglingReseller && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              {togglingReseller && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
               <Switch
                 checked={isReseller}
                 onCheckedChange={handleToggleReseller}
@@ -325,7 +325,7 @@ export function WhiteLabelSettings() {
                   className="gap-1.5"
                   onClick={() => {
                     void navigator.clipboard.writeText(
-                      `${window.location.origin}/r/${organization.slug}`
+                      `${window.location.origin}/r/${organization.slug}`,
                     );
                     toast.success("Storefront link copied");
                   }}
@@ -334,11 +334,7 @@ export function WhiteLabelSettings() {
                   Copy
                 </Button>
                 <Button variant="outline" size="sm" asChild>
-                  <a
-                    href={`/r/${organization.slug}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a href={`/r/${organization.slug}`} target="_blank" rel="noreferrer">
                     Open
                   </a>
                 </Button>
@@ -372,7 +368,8 @@ export function WhiteLabelSettings() {
               <div>
                 <label className="text-sm font-medium text-foreground">Brand Palette</label>
                 <p className="text-xs text-muted-foreground">
-                  Primary is required. The other colors are optional — leave them blank to derive them from primary.
+                  Primary is required. The other colors are optional — leave them blank to derive
+                  them from primary.
                 </p>
               </div>
             </div>
@@ -490,8 +487,8 @@ export function WhiteLabelSettings() {
             className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Square image (32×32 or 64×64 recommended). Shown in the browser tab on
-            your custom domain and reseller storefront. Supports PNG, SVG, or ICO.
+            Square image (32×32 or 64×64 recommended). Shown in the browser tab on your custom
+            domain and reseller storefront. Supports PNG, SVG, or ICO.
           </p>
           {faviconUrl && (
             <div className="mt-3 flex items-center gap-3 rounded-lg bg-secondary/50 p-3">
@@ -533,8 +530,8 @@ export function WhiteLabelSettings() {
             </div>
           )}
           <p className="mt-2 text-xs text-muted-foreground">
-            Applied across the CRM, reseller landing page, and emails so your
-            brand reads consistently everywhere.
+            Applied across the CRM, reseller landing page, and emails so your brand reads
+            consistently everywhere.
           </p>
         </div>
 
@@ -552,8 +549,8 @@ export function WhiteLabelSettings() {
             className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Appended to outbound emails sent through Genesis. Leave blank to use
-            the default sign-off ("— {brandName || "Your brand"}").
+            Appended to outbound emails sent through Genesis. Leave blank to use the default
+            sign-off ("— {brandName || "Your brand"}").
           </p>
         </div>
 
@@ -577,10 +574,10 @@ export function WhiteLabelSettings() {
             className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Used as the <strong className="text-foreground">Reply-To</strong> on outreach
-            emails sent through Genesis, and as the support address on your branded error
-            screens. When a lead hits Reply, the message lands in this inbox. To also
-            send <em>from</em> your own domain, connect SendGrid under Integrations.
+            Used as the <strong className="text-foreground">Reply-To</strong> on outreach emails
+            sent through Genesis, and as the support address on your branded error screens. When a
+            lead hits Reply, the message lands in this inbox. To also send <em>from</em> your own
+            domain, connect SendGrid under Integrations.
           </p>
         </div>
 
@@ -621,14 +618,15 @@ export function WhiteLabelSettings() {
       {!isEnterprise && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-center">
           <Crown className="mx-auto h-6 w-6 text-primary" />
-          <h3 className="mt-2 text-sm font-semibold text-foreground">
-            Upgrade to Enterprise
-          </h3>
+          <h3 className="mt-2 text-sm font-semibold text-foreground">Upgrade to Enterprise</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            White-labeling is available on the Enterprise plan. Customize your logo, colors, domain, and sell the CRM as your own.
+            White-labeling is available on the Enterprise plan. Customize your logo, colors, domain,
+            and sell the CRM as your own.
           </p>
           <Button variant="command" size="sm" className="mt-3" asChild>
-            <Link to="/billing" search={{ required: undefined, plan: undefined }}>Upgrade Now</Link>
+            <Link to="/billing" search={{ required: undefined, plan: undefined }}>
+              Upgrade Now
+            </Link>
           </Button>
         </div>
       )}
@@ -685,9 +683,7 @@ function ColorRow({
           <p className="text-xs font-semibold text-foreground">
             {label}
             {optional && (
-              <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">
-                Optional
-              </span>
+              <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">Optional</span>
             )}
           </p>
           <p className="text-[11px] text-muted-foreground">{description}</p>
@@ -717,9 +713,7 @@ function ColorRow({
           aria-invalid={showError}
           aria-describedby={showError ? errorId : undefined}
           className={`h-9 flex-1 rounded-md border bg-input px-2.5 text-sm font-mono text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 ${
-            showError
-              ? "border-destructive focus:ring-destructive"
-              : "border-input focus:ring-ring"
+            showError ? "border-destructive focus:ring-destructive" : "border-input focus:ring-ring"
           }`}
         />
         <div
@@ -729,17 +723,11 @@ function ColorRow({
         />
       </div>
       {showError && (
-        <p
-          id={errorId}
-          className="mt-1 flex items-center gap-1 text-[11px] text-destructive"
-        >
+        <p id={errorId} className="mt-1 flex items-center gap-1 text-[11px] text-destructive">
           <AlertCircle className="h-3 w-3 shrink-0" />
-          {isEmpty
-            ? "Primary color is required."
-            : "Use a 3- or 6-digit hex like #7c3aed."}
+          {isEmpty ? "Primary color is required." : "Use a 3- or 6-digit hex like #7c3aed."}
         </p>
       )}
     </div>
   );
 }
-

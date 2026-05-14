@@ -3,16 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Loader2,
-  Send,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  Ban,
-  Zap,
-  Trash2,
-} from "lucide-react";
+import { Loader2, Send, CheckCircle2, AlertCircle, Clock, Ban, Zap, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { useActionLock } from "@/hooks/useActionLock";
@@ -122,9 +113,7 @@ export function TestEmailReport() {
     const tick = async () => {
       try {
         const ids = rows
-          .filter(
-            (r) => r.status === "queued" || r.status === "sending" || r.status === "unknown",
-          )
+          .filter((r) => r.status === "queued" || r.status === "sending" || r.status === "unknown")
           .map((r) => r.messageId);
         if (ids.length === 0) return;
         const updates = await lookupFn({ data: { messageIds: ids } });

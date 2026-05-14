@@ -23,19 +23,13 @@ interface Props {
 }
 
 function generatePassword() {
-  const chars =
-    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const arr = new Uint32Array(16);
   crypto.getRandomValues(arr);
   return Array.from(arr, (n) => chars[n % chars.length]).join("");
 }
 
-export function ResetClientPasswordDialog({
-  open,
-  onOpenChange,
-  clientOrgId,
-  clientName,
-}: Props) {
+export function ResetClientPasswordDialog({ open, onOpenChange, clientOrgId, clientName }: Props) {
   const { organization } = useAuth();
   const [password, setPassword] = useState(() => generatePassword());
   const [loading, setLoading] = useState(false);
@@ -75,10 +69,9 @@ export function ResetClientPasswordDialog({
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "reset-client-password",
-        { body: { clientOrgId, newPassword: password } },
-      );
+      const { data, error } = await supabase.functions.invoke("reset-client-password", {
+        body: { clientOrgId, newPassword: password },
+      });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Reset failed");
       setDone({
@@ -136,8 +129,8 @@ export function ResetClientPasswordDialog({
             {clientName ? (
               <>
                 Generate a new password for{" "}
-                <span className="font-medium text-foreground">{clientName}</span>
-                . The old password will stop working immediately.
+                <span className="font-medium text-foreground">{clientName}</span>. The old password
+                will stop working immediately.
               </>
             ) : (
               "Generate a new password for this client."
@@ -169,8 +162,8 @@ export function ResetClientPasswordDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Save or send this password now — it will not be shown again after
-              you close this dialog.
+              Save or send this password now — it will not be shown again after you close this
+              dialog.
             </p>
             <DialogFooter>
               <Button onClick={() => handleClose(false)} variant="command">
@@ -201,25 +194,16 @@ export function ResetClientPasswordDialog({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                8–72 characters. The client's existing session will be revoked
-                next time they sign in.
+                8–72 characters. The client's existing session will be revoked next time they sign
+                in.
               </p>
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => handleClose(false)}
-                disabled={loading}
-              >
+              <Button variant="outline" onClick={() => handleClose(false)} disabled={loading}>
                 Cancel
               </Button>
-              <Button
-                variant="command"
-                onClick={handleSubmit}
-                disabled={loading}
-                className="gap-2"
-              >
+              <Button variant="command" onClick={handleSubmit} disabled={loading} className="gap-2">
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 Reset password
               </Button>
@@ -246,27 +230,15 @@ function CopyRow({
 }) {
   return (
     <div>
-      <div className="text-xs font-medium text-muted-foreground mb-1">
-        {label}
-      </div>
+      <div className="text-xs font-medium text-muted-foreground mb-1">{label}</div>
       <div className="flex gap-2">
         <input
           readOnly
           value={value}
           className={`h-9 flex-1 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none ${mono ? "font-mono" : ""}`}
         />
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={onCopy}
-          className="shrink-0"
-        >
-          {copied ? (
-            <Check className="h-4 w-4 text-emerald-500" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
+        <Button type="button" variant="outline" size="icon" onClick={onCopy} className="shrink-0">
+          {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
         </Button>
       </div>
     </div>

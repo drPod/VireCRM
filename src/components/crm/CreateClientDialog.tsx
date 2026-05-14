@@ -73,18 +73,13 @@ function formatCents(cents: number, currency = "USD") {
 }
 
 function generatePassword(length = 14) {
-  const chars =
-    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
   const arr = new Uint32Array(length);
   crypto.getRandomValues(arr);
   return Array.from(arr, (n) => chars[n % chars.length]).join("");
 }
 
-export function CreateClientDialog({
-  open,
-  onOpenChange,
-  onCreated,
-}: CreateClientDialogProps) {
+export function CreateClientDialog({ open, onOpenChange, onCreated }: CreateClientDialogProps) {
   const { organization } = useAuth();
   const [companyName, setCompanyName] = useState("");
   const [fullName, setFullName] = useState("");
@@ -132,8 +127,7 @@ export function CreateClientDialog({
   const selectedPlan = plans.find((p) => p.id === planId) || null;
   const isLifetime = planId === LIFETIME;
   const lifetimeAmountNum = parseFloat(lifetimeAmount);
-  const lifetimeAmountValid =
-    !Number.isNaN(lifetimeAmountNum) && lifetimeAmountNum > 0;
+  const lifetimeAmountValid = !Number.isNaN(lifetimeAmountNum) && lifetimeAmountNum > 0;
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -159,23 +153,18 @@ export function CreateClientDialog({
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "create-client-account",
-        {
-          body: {
-            email: trimmedEmail,
-            password,
-            companyName: trimmedCompany,
-            fullName: trimmedName,
-            resellerPlanId:
-              planId !== NO_PLAN && planId !== LIFETIME ? planId : null,
-          },
+      const { data, error } = await supabase.functions.invoke("create-client-account", {
+        body: {
+          email: trimmedEmail,
+          password,
+          companyName: trimmedCompany,
+          fullName: trimmedName,
+          resellerPlanId: planId !== NO_PLAN && planId !== LIFETIME ? planId : null,
         },
-      );
+      });
 
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to create");
-
 
       // For lifetime / paid-externally clients, stamp a deal note onto the
       // child org so the Clients table shows the terms at a glance.
@@ -193,9 +182,7 @@ export function CreateClientDialog({
           .eq("id", data.organization_id);
         if (noteErr) {
           console.error("Failed to save lifetime note", noteErr);
-          toast.warning(
-            "Account created, but couldn't save the lifetime note. Add it manually.",
-          );
+          toast.warning("Account created, but couldn't save the lifetime note. Add it manually.");
         }
       }
 
@@ -213,9 +200,7 @@ export function CreateClientDialog({
       // Auto-email credentials to the client. Failures must not block the
       // create flow — the reseller still has the credentials in the dialog.
       const senderName =
-        organization?.brand_name?.trim() ||
-        organization?.name?.trim() ||
-        trimmedCompany;
+        organization?.brand_name?.trim() || organization?.name?.trim() || trimmedCompany;
       const replyToAddress = organization?.support_email?.trim() || undefined;
       try {
         await sendTransactionalEmail({
@@ -232,18 +217,13 @@ export function CreateClientDialog({
             loginUrl,
           },
         });
-        setCreated((prev) =>
-          prev ? { ...prev, emailStatus: "sent" } : prev,
-        );
+        setCreated((prev) => (prev ? { ...prev, emailStatus: "sent" } : prev));
         toast.success("Login details emailed to the client");
       } catch (mailErr) {
-        const errMsg =
-          mailErr instanceof Error ? (mailErr as Error).message : "Unknown error";
+        const errMsg = mailErr instanceof Error ? (mailErr as Error).message : "Unknown error";
         console.error("Failed to email credentials", mailErr);
         setCreated((prev) =>
-          prev
-            ? { ...prev, emailStatus: "failed", emailError: errMsg }
-            : prev,
+          prev ? { ...prev, emailStatus: "failed", emailError: errMsg } : prev,
         );
         toast.warning(
           "Account created, but emailing the credentials failed. Copy them manually below.",
@@ -269,9 +249,7 @@ export function CreateClientDialog({
     if (!created || created.resending) return;
     setCreated((prev) => (prev ? { ...prev, resending: true } : prev));
     const senderName =
-      organization?.brand_name?.trim() ||
-      organization?.name?.trim() ||
-      created.brandName;
+      organization?.brand_name?.trim() || organization?.name?.trim() || created.brandName;
     const replyToAddress = organization?.support_email?.trim() || undefined;
     try {
       await sendTransactionalEmail({
@@ -286,9 +264,7 @@ export function CreateClientDialog({
           loginUrl: created.loginUrl,
         },
       });
-      setCreated((prev) =>
-        prev ? { ...prev, resending: false, resentWelcome: true } : prev,
-      );
+      setCreated((prev) => (prev ? { ...prev, resending: false, resentWelcome: true } : prev));
       toast.success("Welcome guide sent (no password included)");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -309,8 +285,8 @@ export function CreateClientDialog({
                 Client account ready
               </DialogTitle>
               <DialogDescription>
-                Share these credentials with your client. Save them now — the
-                password isn&apos;t stored anywhere we can show again.
+                Share these credentials with your client. Save them now — the password isn&apos;t
+                stored anywhere we can show again.
               </DialogDescription>
             </DialogHeader>
 
@@ -325,21 +301,15 @@ export function CreateClientDialog({
 
             <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4 font-mono text-xs">
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground mb-1">
-                  Login URL
-                </div>
+                <div className="text-[10px] uppercase text-muted-foreground mb-1">Login URL</div>
                 <div className="text-foreground break-all">{created.loginUrl}</div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground mb-1">
-                  Email
-                </div>
+                <div className="text-[10px] uppercase text-muted-foreground mb-1">Email</div>
                 <div className="text-foreground break-all">{created.email}</div>
               </div>
               <div>
-                <div className="text-[10px] uppercase text-muted-foreground mb-1">
-                  Password
-                </div>
+                <div className="text-[10px] uppercase text-muted-foreground mb-1">Password</div>
                 <div className="text-foreground break-all">{created.password}</div>
               </div>
             </div>
@@ -362,8 +332,8 @@ export function CreateClientDialog({
                 Create client account
               </DialogTitle>
               <DialogDescription>
-                Creates a new client organization under your reseller account
-                with the user as Owner. They can log in immediately.
+                Creates a new client organization under your reseller account with the user as
+                Owner. They can log in immediately.
               </DialogDescription>
             </DialogHeader>
 
@@ -410,25 +380,18 @@ export function CreateClientDialog({
 
               <div>
                 <Label htmlFor="cc-plan">Plan (optional)</Label>
-                <Select
-                  value={planId}
-                  onValueChange={setPlanId}
-                  disabled={submitting}
-                >
+                <Select value={planId} onValueChange={setPlanId} disabled={submitting}>
                   <SelectTrigger id="cc-plan" className="mt-1.5">
                     <SelectValue placeholder="No plan — assign later" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_PLAN}>
-                      No plan — assign later
-                    </SelectItem>
+                    <SelectItem value={NO_PLAN}>No plan — assign later</SelectItem>
                     <SelectItem value={LIFETIME}>
                       Lifetime / Paid externally (no recurring)
                     </SelectItem>
                     {plans.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.name} —{" "}
-                        {formatCents(p.monthly_price_cents, p.currency)}/mo
+                        {p.name} — {formatCents(p.monthly_price_cents, p.currency)}/mo
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -438,20 +401,14 @@ export function CreateClientDialog({
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Client pays</span>
                       <span className="font-medium text-foreground">
-                        {formatCents(
-                          selectedPlan.monthly_price_cents,
-                          selectedPlan.currency,
-                        )}
+                        {formatCents(selectedPlan.monthly_price_cents, selectedPlan.currency)}
                         /mo
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Base cost</span>
                       <span className="text-muted-foreground">
-                        {formatCents(
-                          selectedPlan.base_cost_cents,
-                          selectedPlan.currency,
-                        )}
+                        {formatCents(selectedPlan.base_cost_cents, selectedPlan.currency)}
                         /mo
                       </span>
                     </div>
@@ -459,8 +416,7 @@ export function CreateClientDialog({
                       <span className="text-primary font-medium">You earn</span>
                       <span className="font-bold text-primary">
                         {formatCents(
-                          selectedPlan.monthly_price_cents -
-                            selectedPlan.base_cost_cents,
+                          selectedPlan.monthly_price_cents - selectedPlan.base_cost_cents,
                           selectedPlan.currency,
                         )}
                         /mo
@@ -512,15 +468,14 @@ export function CreateClientDialog({
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      Saved as a deal note on this client and excluded from
-                      monthly markup totals.
+                      Saved as a deal note on this client and excluded from monthly markup totals.
                     </p>
                   </div>
                 )}
                 {plans.length === 0 && !isLifetime && (
                   <p className="text-[11px] text-muted-foreground mt-1.5">
-                    No active plans. Define one in Clients → Plans first, or
-                    use Lifetime for a one-off sale.
+                    No active plans. Define one in Clients → Plans first, or use Lifetime for a
+                    one-off sale.
                   </p>
                 )}
               </div>
@@ -545,11 +500,7 @@ export function CreateClientDialog({
                     onClick={() => setShowPassword((v) => !v)}
                     disabled={submitting}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                   <Button
                     type="button"
@@ -563,18 +514,13 @@ export function CreateClientDialog({
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1.5">
-                  Auto-generated and secure. Tell your client to change it after
-                  first login.
+                  Auto-generated and secure. Tell your client to change it after first login.
                 </p>
               </div>
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => handleClose(false)}
-                disabled={submitting}
-              >
+              <Button variant="outline" onClick={() => handleClose(false)} disabled={submitting}>
                 Cancel
               </Button>
               <Button
@@ -615,9 +561,7 @@ function EmailStatusBanner({
         <Loader2 className="h-4 w-4 mt-0.5 shrink-0 animate-spin text-muted-foreground" />
         <div>
           <div className="font-medium text-foreground">Sending credentials…</div>
-          <div className="text-muted-foreground mt-0.5 break-all">
-            Queuing email to {recipient}
-          </div>
+          <div className="text-muted-foreground mt-0.5 break-all">Queuing email to {recipient}</div>
         </div>
       </div>
     );
@@ -641,8 +585,7 @@ function EmailStatusBanner({
       <div className="flex-1 min-w-0">
         <div className="font-medium text-destructive">Email failed to send</div>
         <div className="text-muted-foreground mt-0.5 break-words">
-          {error || "Unknown error"}. Copy the credentials below and share them
-          manually.
+          {error || "Unknown error"}. Copy the credentials below and share them manually.
         </div>
         {onResendWelcome && (
           <div className="mt-2 flex items-center gap-2">
@@ -661,9 +604,7 @@ function EmailStatusBanner({
               )}
               {resentWelcome ? "Welcome guide sent" : "Resend welcome guide"}
             </Button>
-            <span className="text-[10px] text-muted-foreground">
-              No password — login link only
-            </span>
+            <span className="text-[10px] text-muted-foreground">No password — login link only</span>
           </div>
         )}
       </div>

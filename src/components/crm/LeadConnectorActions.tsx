@@ -433,18 +433,14 @@ export function LeadConnectorActions({
                         rows={6}
                         placeholder={f.placeholder}
                         value={values[f.key] ?? ""}
-                        onChange={(e) =>
-                          setValues((p) => ({ ...p, [f.key]: e.target.value }))
-                        }
+                        onChange={(e) => setValues((p) => ({ ...p, [f.key]: e.target.value }))}
                       />
                     ) : (
                       <input
                         className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
                         placeholder={f.placeholder}
                         value={values[f.key] ?? ""}
-                        onChange={(e) =>
-                          setValues((p) => ({ ...p, [f.key]: e.target.value }))
-                        }
+                        onChange={(e) => setValues((p) => ({ ...p, [f.key]: e.target.value }))}
                       />
                     )}
                   </div>
@@ -452,12 +448,7 @@ export function LeadConnectorActions({
               </div>
 
               <DialogFooter>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDialog(null)}
-                  disabled={busy}
-                >
+                <Button variant="outline" size="sm" onClick={() => setDialog(null)} disabled={busy}>
                   Cancel
                 </Button>
                 <Button variant="command" size="sm" onClick={handleSubmit} disabled={busy}>

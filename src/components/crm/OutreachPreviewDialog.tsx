@@ -43,7 +43,12 @@ const inputClass =
 const NO_TEMPLATE = "__none__";
 const TEMPLATE_ONLY = "__fill_only__";
 
-export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: OutreachPreviewDialogProps) {
+export function OutreachPreviewDialog({
+  open,
+  onOpenChange,
+  lead,
+  onSent,
+}: OutreachPreviewDialogProps) {
   const { organization } = useAuth();
   const preview = useAuthedServerFn(previewOutreachFn);
   const send = useAuthedServerFn(sendOutreachWithContentFn);
@@ -99,7 +104,9 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
       // Pure-template fill: no AI call, instant. Useful when the user wants
       // to send their template verbatim with placeholders substituted.
       if (choice === TEMPLATE_ONLY) {
-        const tpl = templates.find((t) => t.id !== undefined && templateChoice && t.id === templateChoice);
+        const tpl = templates.find(
+          (t) => t.id !== undefined && templateChoice && t.id === templateChoice,
+        );
         // Fall back to the first template (or the explicit selected one) when
         // the user picks "fill only" but already had a template chosen.
         const target =
@@ -162,7 +169,19 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
         setGenerating(false);
       }
     },
-    [organization?.id, organization?.brand_name, organization?.name, preview, lead.id, lead.name, lead.email, lead.company, lead.role, templates, templateChoice],
+    [
+      organization?.id,
+      organization?.brand_name,
+      organization?.name,
+      preview,
+      lead.id,
+      lead.name,
+      lead.email,
+      lead.company,
+      lead.role,
+      templates,
+      templateChoice,
+    ],
   );
 
   // Initial generation when the dialog opens (uses the selected default template).
@@ -255,7 +274,11 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
   const subjectStr = subject ?? "";
   const bodyStr = body ?? "";
   const canSend =
-    !generating && !sending && !genError && subjectStr.trim().length > 0 && bodyStr.trim().length > 0;
+    !generating &&
+    !sending &&
+    !genError &&
+    subjectStr.trim().length > 0 &&
+    bodyStr.trim().length > 0;
 
   const sourceLabel =
     generatedFrom === "template"
@@ -315,7 +338,8 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
           </div>
           {templates.length === 0 && (
             <p className="text-[10px] text-muted-foreground">
-              Tip: save reusable templates in Settings → Outreach so the AI can personalize your own copy per lead.
+              Tip: save reusable templates in Settings → Outreach so the AI can personalize your own
+              copy per lead.
             </p>
           )}
         </div>
@@ -368,12 +392,7 @@ export function OutreachPreviewDialog({ open, onOpenChange, lead, onSent }: Outr
           >
             Cancel
           </Button>
-          <Button
-            variant="command"
-            size="sm"
-            onClick={handleSend}
-            disabled={!canSend}
-          >
+          <Button variant="command" size="sm" onClick={handleSend} disabled={!canSend}>
             {sending ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
             ) : (

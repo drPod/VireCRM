@@ -42,9 +42,7 @@ export function bucketLeadsByStage(
   rows: readonly LeadStatusRow[],
   stages: readonly string[],
 ): BucketedCounts {
-  const counts: Record<string, number> = Object.fromEntries(
-    stages.map((s) => [s, 0]),
-  );
+  const counts: Record<string, number> = Object.fromEntries(stages.map((s) => [s, 0]));
   const stageSet = new Set(stages.map((s) => s.toLowerCase()));
   let unmapped = 0;
 

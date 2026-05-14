@@ -256,7 +256,9 @@ function ConversationsPage() {
       // Optimistic append (realtime may also deliver — dedupe by id)
       if (inserted) {
         setMessages((prev) =>
-          prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted as ConversationMessage],
+          prev.some((m) => m.id === inserted.id)
+            ? prev
+            : [...prev, inserted as ConversationMessage],
         );
       }
       await supabase
@@ -611,7 +613,11 @@ function ConversationsPage() {
                     variant="command"
                     className="h-auto self-end"
                   >
-                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {sending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -634,7 +640,9 @@ function ConversationsPage() {
               <Label className="text-xs">Lead</Label>
               <Select value={newLeadId} onValueChange={setNewLeadId}>
                 <SelectTrigger>
-                  <SelectValue placeholder={leadOptions.length ? "Pick a lead" : "No leads found"} />
+                  <SelectValue
+                    placeholder={leadOptions.length ? "Pick a lead" : "No leads found"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {leadOptions.map((l) => (
@@ -689,7 +697,11 @@ function ConversationsPage() {
               onClick={createConversation}
               disabled={creating || !newLeadId || !newBody.trim()}
             >
-              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {creating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
               Start conversation
             </Button>
           </DialogFooter>

@@ -212,7 +212,9 @@ export function AiAdvisorPanel() {
               <p className="text-xs font-medium text-muted-foreground mb-2">Buying Signals</p>
               <div className="flex flex-wrap gap-2">
                 {result.icp.buying_signals.map((s, i) => (
-                  <Badge key={i} variant="info">{s}</Badge>
+                  <Badge key={i} variant="info">
+                    {s}
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -233,7 +235,9 @@ export function AiAdvisorPanel() {
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">Industries</p>
                 <div className="flex flex-wrap gap-1.5">
                   {result.searchFilters.industries.map((ind) => (
-                    <Badge key={ind} variant="secondary">{ind}</Badge>
+                    <Badge key={ind} variant="secondary">
+                      {ind}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -241,7 +245,9 @@ export function AiAdvisorPanel() {
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">Job Titles</p>
                 <div className="flex flex-wrap gap-1.5">
                   {result.searchFilters.job_titles.map((t) => (
-                    <Badge key={t} variant="secondary">{t}</Badge>
+                    <Badge key={t} variant="secondary">
+                      {t}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -249,7 +255,9 @@ export function AiAdvisorPanel() {
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">Keywords</p>
                 <div className="flex flex-wrap gap-1.5">
                   {result.searchFilters.keywords.map((k) => (
-                    <Badge key={k} variant="outline">{k}</Badge>
+                    <Badge key={k} variant="outline">
+                      {k}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -258,7 +266,8 @@ export function AiAdvisorPanel() {
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">Company Size</p>
                     <p className="text-sm text-foreground">
-                      {result.searchFilters.company_size_min} — {result.searchFilters.company_size_max} employees
+                      {result.searchFilters.company_size_min} —{" "}
+                      {result.searchFilters.company_size_max} employees
                     </p>
                   </div>
                   <div>
@@ -298,12 +307,17 @@ export function AiAdvisorPanel() {
                     to: "/leads",
                     search: {
                       action: "auto-find",
-                      ai_desc: `${result.icp.title} — ${result.icp.decision_maker} at ${result.icp.industry} companies (${result.icp.company_size})`.slice(0, 1000),
+                      ai_desc:
+                        `${result.icp.title} — ${result.icp.decision_maker} at ${result.icp.industry} companies (${result.icp.company_size})`.slice(
+                          0,
+                          1000,
+                        ),
                       ai_industry: result.searchFilters.industries[0] ?? result.icp.industry,
                     },
                   });
                   toast.success("Opening auto-find with your ICP preloaded", {
-                    description: "Toggle 'AI auto-outreach' on before importing to email leads automatically.",
+                    description:
+                      "Toggle 'AI auto-outreach' on before importing to email leads automatically.",
                   });
                 }}
               >

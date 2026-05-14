@@ -13,10 +13,7 @@
 // The test creates two ephemeral organizations, exercises the RPC, and
 // cleans them up regardless of pass/fail.
 
-import {
-  assertEquals,
-  assert,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -62,11 +59,14 @@ async function pgrest(
   return text ? JSON.parse(text) : null;
 }
 
-async function makeOrg(name: string, opts: {
-  plan: string;
-  monthly_credit_quota: number;
-  unlimited_credits: boolean;
-}) {
+async function makeOrg(
+  name: string,
+  opts: {
+    plan: string;
+    monthly_credit_quota: number;
+    unlimited_credits: boolean;
+  },
+) {
   const slug = `credit-test-${crypto.randomUUID().slice(0, 8)}`;
   const rows = await pgrest("POST", "organizations", {
     name,
@@ -82,7 +82,12 @@ async function makeOrg(name: string, opts: {
 
 async function dropOrg(id: string) {
   // org_features may have FK references — clear first, then delete the org.
-  await pgrest("DELETE", `org_features?organization_id=eq.${id}`, undefined, "return=minimal").catch(() => {});
+  await pgrest(
+    "DELETE",
+    `org_features?organization_id=eq.${id}`,
+    undefined,
+    "return=minimal",
+  ).catch(() => {});
   await pgrest("DELETE", `organizations?id=eq.${id}`, undefined, "return=minimal");
 }
 
@@ -96,18 +101,18 @@ Deno.test({
       unlimited_credits: false,
     });
     try {
-      const r1 = await rpc<{ ok: boolean; used: number; remaining: number }>(
-        "consume_credit",
-        { p_org_id: orgId, p_count: 1 },
-      );
-      const r2 = await rpc<{ ok: boolean; used: number; remaining: number }>(
-        "consume_credit",
-        { p_org_id: orgId, p_count: 1 },
-      );
-      const r3 = await rpc<{ ok: boolean; used: number; remaining: number }>(
-        "consume_credit",
-        { p_org_id: orgId, p_count: 1 },
-      );
+      const r1 = await rpc<{ ok: boolean; used: number; remaining: number }>("consume_credit", {
+        p_org_id: orgId,
+        p_count: 1,
+      });
+      const r2 = await rpc<{ ok: boolean; used: number; remaining: number }>("consume_credit", {
+        p_org_id: orgId,
+        p_count: 1,
+      });
+      const r3 = await rpc<{ ok: boolean; used: number; remaining: number }>("consume_credit", {
+        p_org_id: orgId,
+        p_count: 1,
+      });
 
       assertEquals(r1.ok, true);
       assertEquals(r1.used, 1);
@@ -141,10 +146,10 @@ Deno.test({
     try {
       // Three consecutive outreach actions
       for (let i = 0; i < 3; i++) {
-        const r = await rpc<{ ok: boolean; unlimited?: boolean }>(
-          "consume_credit",
-          { p_org_id: orgId, p_count: 1 },
-        );
+        const r = await rpc<{ ok: boolean; unlimited?: boolean }>("consume_credit", {
+          p_org_id: orgId,
+          p_count: 1,
+        });
         assertEquals(r.ok, true, `call ${i + 1} should succeed`);
         assertEquals(r.unlimited, true, `call ${i + 1} should report unlimited`);
       }
@@ -183,10 +188,10 @@ Deno.test({
         p_org_id: orgId,
         p_count: 1,
       });
-      const fail = await rpc<{ ok: boolean; error?: string }>(
-        "consume_credit",
-        { p_org_id: orgId, p_count: 1 },
-      );
+      const fail = await rpc<{ ok: boolean; error?: string }>("consume_credit", {
+        p_org_id: orgId,
+        p_count: 1,
+      });
       assertEquals(ok1.ok, true);
       assertEquals(ok2.ok, true);
       assertEquals(fail.ok, false);

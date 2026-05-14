@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Check, ChevronsUpDown, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -56,7 +52,7 @@ export function AssigneeMultiSelect({
     selected.length === 0
       ? placeholder
       : selected.length === 1
-        ? options.find((o) => o.user_id === selected[0])?.full_name ?? "1 selected"
+        ? (options.find((o) => o.user_id === selected[0])?.full_name ?? "1 selected")
         : `${selected.length} selected`;
 
   return (
@@ -112,10 +108,7 @@ export function AssigneeMultiSelect({
               <>
                 <CommandSeparator />
                 <CommandGroup>
-                  <CommandItem
-                    onSelect={() => onChange([])}
-                    className="text-muted-foreground"
-                  >
+                  <CommandItem onSelect={() => onChange([])} className="text-muted-foreground">
                     <X className="mr-2 h-4 w-4" /> Clear selection
                   </CommandItem>
                 </CommandGroup>

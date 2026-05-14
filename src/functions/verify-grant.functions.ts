@@ -101,9 +101,7 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" })
         enabled: true,
         notes: grant.notes ?? "Self-healed via post-signup verification",
       }));
-      await admin
-        .from("org_features")
-        .upsert(rows, { onConflict: "organization_id,feature_key" });
+      await admin.from("org_features").upsert(rows, { onConflict: "organization_id,feature_key" });
     }
 
     // 5. Mark grant consumed if not already.

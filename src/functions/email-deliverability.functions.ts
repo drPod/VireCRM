@@ -96,15 +96,13 @@ async function resolveTxt(name: string): Promise<string[]> {
     if (!res.ok) return [];
     const json = (await res.json()) as DohResponse;
     if (json.Status !== 0 || !json.Answer) return [];
-    return json.Answer
-      .filter((a) => a.type === 16)
-      .map((a) => {
-        // TXT data may come as \"v=spf1 ...\" or multiple quoted chunks
-        // joined: \"chunk1\" \"chunk2\". Strip outer quotes and join.
-        const parts = a.data.match(/"([^"]*)"/g);
-        if (parts) return parts.map((p) => p.slice(1, -1)).join("");
-        return a.data;
-      });
+    return json.Answer.filter((a) => a.type === 16).map((a) => {
+      // TXT data may come as \"v=spf1 ...\" or multiple quoted chunks
+      // joined: \"chunk1\" \"chunk2\". Strip outer quotes and join.
+      const parts = a.data.match(/"([^"]*)"/g);
+      if (parts) return parts.map((p) => p.slice(1, -1)).join("");
+      return a.data;
+    });
   } catch {
     return [];
   }
@@ -189,18 +187,18 @@ async function checkSpf(domain: string): Promise<DeliverabilityRecord> {
 }
 
 const DKIM_SELECTORS = [
-  "google",     // Google Workspace
-  "selector1",  // Microsoft 365
-  "selector2",  // Microsoft 365
-  "s1",         // SendGrid
-  "s2",         // SendGrid
-  "k1",         // Mailchimp
-  "mte1",       // Mailgun (default)
+  "google", // Google Workspace
+  "selector1", // Microsoft 365
+  "selector2", // Microsoft 365
+  "s1", // SendGrid
+  "s2", // SendGrid
+  "k1", // Mailchimp
+  "mte1", // Mailgun (default)
   "mte2",
-  "default",    // Postmark / common
-  "resend",     // Resend
-  "krs",        // Klaviyo
-  "lovable",    // Lovable Emails
+  "default", // Postmark / common
+  "resend", // Resend
+  "krs", // Klaviyo
+  "lovable", // Lovable Emails
 ];
 
 async function checkDkim(domain: string): Promise<DeliverabilityRecord> {
@@ -363,7 +361,10 @@ function extractDomainFromEmail(email: string | null | undefined): string | null
   if (!email) return null;
   const at = email.indexOf("@");
   if (at < 0) return null;
-  const host = email.slice(at + 1).trim().toLowerCase();
+  const host = email
+    .slice(at + 1)
+    .trim()
+    .toLowerCase();
   return host || null;
 }
 
@@ -425,9 +426,7 @@ export const checkEmailDeliverability = createServerFn({ method: "POST" })
       .maybeSingle();
 
     let domain = extractDomainFromEmail(org?.support_email);
-    let source: CheckEmailDeliverabilityResponse["source"] = domain
-      ? "support_email"
-      : "none";
+    let source: CheckEmailDeliverabilityResponse["source"] = domain ? "support_email" : "none";
 
     if (!domain) {
       // Fallback: the org's primary verified custom domain.

@@ -81,10 +81,7 @@ export type DeliverOutreachEmailResult =
 const EMAIL_PROVIDER_PRIORITY: ConnectorProvider[] = ["gmail", "microsoft_outlook"];
 
 function plainTextToHtml(body: string): string {
-  const escaped = body
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  const escaped = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   return escaped
     .split(/\n{2,}/)
@@ -166,9 +163,7 @@ function toSafeEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
-  return /^[^\s<>@"]+@[^\s<>@"]+\.[^\s<>@"]+$/.test(trimmed)
-    ? trimmed.toLowerCase()
-    : null;
+  return /^[^\s<>@"]+@[^\s<>@"]+\.[^\s<>@"]+$/.test(trimmed) ? trimmed.toLowerCase() : null;
 }
 
 function toSafeLogoUrl(value: unknown): string | null {
@@ -282,7 +277,9 @@ export async function deliverOutreachEmail(
   if (input.organizationId) {
     const { data: org, error } = await supabaseAdmin
       .from("organizations")
-      .select("monthly_credit_quota, credits_used_this_period, unlimited_credits, credit_period_start")
+      .select(
+        "monthly_credit_quota, credits_used_this_period, unlimited_credits, credit_period_start",
+      )
       .eq("id", input.organizationId)
       .maybeSingle();
 
@@ -301,9 +298,7 @@ export async function deliverOutreachEmail(
       currentMonth.setUTCDate(1);
       currentMonth.setUTCHours(0, 0, 0, 0);
       const used =
-        periodStart && periodStart < currentMonth
-          ? 0
-          : org.credits_used_this_period ?? 0;
+        periodStart && periodStart < currentMonth ? 0 : (org.credits_used_this_period ?? 0);
       const quota = org.monthly_credit_quota ?? 0;
 
       if (used >= quota) {
@@ -321,7 +316,8 @@ export async function deliverOutreachEmail(
     return {
       success: false,
       suppressed: true,
-      reason: "This recipient previously unsubscribed, bounced, or reported spam, so outreach was not sent.",
+      reason:
+        "This recipient previously unsubscribed, bounced, or reported spam, so outreach was not sent.",
     };
   }
 
@@ -340,9 +336,7 @@ export async function deliverOutreachEmail(
         subject: input.subject,
         html: brandedHtml,
         replyTo:
-          toSafeEmail(input.replyTo) ??
-          toSafeEmail(input.channels.resend.replyTo) ??
-          undefined,
+          toSafeEmail(input.replyTo) ?? toSafeEmail(input.channels.resend.replyTo) ?? undefined,
       });
       await supabaseAdmin.from("email_send_log").insert({
         recipient_email: input.recipientEmail,
@@ -462,7 +456,8 @@ export async function deliverOutreachEmail(
     return {
       success: false,
       suppressed: true,
-      reason: "This recipient previously unsubscribed, bounced, or reported spam, so outreach was not sent.",
+      reason:
+        "This recipient previously unsubscribed, bounced, or reported spam, so outreach was not sent.",
     };
   }
 

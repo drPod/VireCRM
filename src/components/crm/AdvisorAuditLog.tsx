@@ -34,10 +34,7 @@ import {
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  listAdvisorAuditFn,
-  type AdvisorAuditEntry,
-} from "@/functions/advisor-audit.functions";
+import { listAdvisorAuditFn, type AdvisorAuditEntry } from "@/functions/advisor-audit.functions";
 import { replayCommandPlanFn } from "@/functions/command-execute.functions";
 import {
   getAuditRetentionFn,
@@ -64,7 +61,12 @@ function entryStatusMatches(entry: AdvisorAuditEntry, status: StatusFilter): boo
   if (status === "errors") return entry.error_count > 0 || !!entry.error_message;
   if (status === "skipped") return entry.skipped_count > 0;
   // success
-  return entry.error_count === 0 && !entry.error_message && entry.phase === "execute" && entry.ok_count > 0;
+  return (
+    entry.error_count === 0 &&
+    !entry.error_message &&
+    entry.phase === "execute" &&
+    entry.ok_count > 0
+  );
 }
 
 export function AdvisorAuditLog() {
@@ -265,9 +267,7 @@ export function AdvisorAuditLog() {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/40 px-5 py-3">
         <div className="flex items-center gap-2">
           <ScrollText className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold text-foreground">
-            Advisor Audit Log
-          </span>
+          <span className="text-sm font-semibold text-foreground">Advisor Audit Log</span>
           <Badge variant="secondary" className="text-[10px]">
             {stats.total}
             {activeFilterCount > 0 ? ` / ${entries.length}` : ""} entries
@@ -345,9 +345,7 @@ export function AdvisorAuditLog() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
-              <Label className="text-[11px] font-semibold text-muted-foreground">
-                User
-              </Label>
+              <Label className="text-[11px] font-semibold text-muted-foreground">User</Label>
               <Select value={userFilter} onValueChange={setUserFilter}>
                 <SelectTrigger className="h-8 text-xs mt-1">
                   <SelectValue placeholder="All users" />
@@ -364,9 +362,7 @@ export function AdvisorAuditLog() {
             </div>
 
             <div>
-              <Label className="text-[11px] font-semibold text-muted-foreground">
-                Status
-              </Label>
+              <Label className="text-[11px] font-semibold text-muted-foreground">Status</Label>
               <Select
                 value={statusFilter}
                 onValueChange={(v) => setStatusFilter(v as StatusFilter)}
@@ -384,9 +380,7 @@ export function AdvisorAuditLog() {
             </div>
 
             <div>
-              <Label className="text-[11px] font-semibold text-muted-foreground">
-                From
-              </Label>
+              <Label className="text-[11px] font-semibold text-muted-foreground">From</Label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -396,9 +390,7 @@ export function AdvisorAuditLog() {
             </div>
 
             <div>
-              <Label className="text-[11px] font-semibold text-muted-foreground">
-                To
-              </Label>
+              <Label className="text-[11px] font-semibold text-muted-foreground">To</Label>
               <Input
                 type="date"
                 value={dateTo}
@@ -413,12 +405,7 @@ export function AdvisorAuditLog() {
               <span className="text-[11px] text-muted-foreground">
                 Showing {filteredEntries.length} of {entries.length} entries
               </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={clearFilters}
-                className="h-7 text-xs"
-              >
+              <Button size="sm" variant="ghost" onClick={clearFilters} className="h-7 text-xs">
                 <X className="h-3 w-3 mr-1" />
                 Clear filters
               </Button>
@@ -504,8 +491,8 @@ export function AdvisorAuditLog() {
         <div className="px-5 py-6 text-sm text-muted-foreground">Loading…</div>
       ) : entries.length === 0 ? (
         <div className="px-5 py-6 text-sm text-muted-foreground">
-          No Advisor activity yet. Run a command from the Command Bar above to
-          see plans, workflow runs, and CRM updates here.
+          No Advisor activity yet. Run a command from the Command Bar above to see plans, workflow
+          runs, and CRM updates here.
         </div>
       ) : filteredEntries.length === 0 ? (
         <div className="px-5 py-6 text-sm text-muted-foreground flex items-center justify-between">
@@ -579,9 +566,7 @@ export function AdvisorAuditLog() {
                       )}
                     </div>
                     {e.summary && (
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {e.summary}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{e.summary}</p>
                     )}
                     <div className="text-[11px] text-muted-foreground mt-0.5">
                       {timeAgo(e.created_at)} · {e.duration_ms}ms
@@ -599,21 +584,18 @@ export function AdvisorAuditLog() {
                           CRM updates
                         </div>
                         <ul className="space-y-1">
-                          {(e.results as Array<Record<string, unknown>>).map(
-                            (r, i) => (
-                              <li
-                                key={i}
-                                className="text-xs text-foreground bg-background/40 border border-border rounded-md px-2.5 py-1.5"
-                              >
-                                <span className="text-muted-foreground mr-2">
-                                  {String(r.type ?? "?")} ·{" "}
-                                  {String(r.status ?? "?")}
-                                  {r.handler === "n8n" ? " · n8n" : ""}
-                                </span>
-                                {String(r.message ?? "")}
-                              </li>
-                            ),
-                          )}
+                          {(e.results as Array<Record<string, unknown>>).map((r, i) => (
+                            <li
+                              key={i}
+                              className="text-xs text-foreground bg-background/40 border border-border rounded-md px-2.5 py-1.5"
+                            >
+                              <span className="text-muted-foreground mr-2">
+                                {String(r.type ?? "?")} · {String(r.status ?? "?")}
+                                {r.handler === "n8n" ? " · n8n" : ""}
+                              </span>
+                              {String(r.message ?? "")}
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}

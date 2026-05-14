@@ -4,7 +4,8 @@ import { EnergyTablePage, type EnergyTableConfig } from "@/components/energy/Ene
 const config: EnergyTableConfig = {
   table: "renewals",
   title: "Renewals",
-  description: "Upcoming contract renewals. Reach out 90–120 days before expiration to lock in pricing.",
+  description:
+    "Upcoming contract renewals. Reach out 90–120 days before expiration to lock in pricing.",
   statusOptions: ["upcoming", "in_progress", "won", "lost"],
   columns: [
     { key: "current_supplier", label: "Current Supplier" },

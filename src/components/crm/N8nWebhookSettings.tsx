@@ -114,10 +114,9 @@ export function N8nWebhookSettings() {
             n8n workflow routing
           </h3>
           <p className="mt-1 text-xs text-muted-foreground max-w-xl">
-            For each AI Advisor action type, paste an n8n webhook URL to
-            handle it externally. If left blank, the CRM runs the action
-            in-app. n8n receives a JSON payload with the AI's structured
-            arguments.
+            For each AI Advisor action type, paste an n8n webhook URL to handle it externally. If
+            left blank, the CRM runs the action in-app. n8n receives a JSON payload with the AI's
+            structured arguments.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -132,9 +131,7 @@ export function N8nWebhookSettings() {
           return (
             <div key={t} className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">
-                  {meta.label}
-                </label>
+                <label className="text-sm font-medium text-foreground">{meta.label}</label>
                 {urls[t] && (
                   <span className="text-[10px] uppercase tracking-wide text-success font-semibold">
                     routed
@@ -144,9 +141,7 @@ export function N8nWebhookSettings() {
               <Input
                 placeholder="https://your.n8n.cloud/webhook/..."
                 value={urls[t] ?? ""}
-                onChange={(e) =>
-                  setUrls((prev) => ({ ...prev, [t]: e.target.value }))
-                }
+                onChange={(e) => setUrls((prev) => ({ ...prev, [t]: e.target.value }))}
                 disabled={!enabled}
               />
               <p className="text-[11px] text-muted-foreground">{meta.help}</p>
@@ -165,7 +160,13 @@ export function N8nWebhookSettings() {
           n8n Webhook node docs
           <ExternalLink className="h-3 w-3" />
         </a>
-        <Button onClick={handleSave} disabled={saving} variant="command" size="sm" className="gap-1.5">
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          variant="command"
+          size="sm"
+          className="gap-1.5"
+        >
           {saving ? (
             <>
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

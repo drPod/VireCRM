@@ -44,16 +44,13 @@ export interface CheckDomainHealthResponse {
 // We accept ANY of these — the published build, the preview shell, or a
 // recognisable TanStack Start asset hash all count as "this app".
 const APP_FINGERPRINTS = [
-  "/_build/assets/",       // Vite/TanStack asset prefix
+  "/_build/assets/", // Vite/TanStack asset prefix
   "data-tanstack-router",
-  "id=\"root\"",
+  'id="root"',
   "/__root",
 ];
 
-async function probeHostname(
-  hostname: string,
-  domainId: string,
-): Promise<DomainHealthResult> {
+async function probeHostname(hostname: string, domainId: string): Promise<DomainHealthResult> {
   const url = `https://${hostname}/`;
   const startedAt = Date.now();
   const issues: DomainHealthIssue[] = [];
@@ -204,7 +201,8 @@ async function probeHostname(
     httpsReachable &&
     sslValid &&
     servesThisApp &&
-    (httpStatus !== null && httpStatus < 400) &&
+    httpStatus !== null &&
+    httpStatus < 400 &&
     issues.every((i) => i.severity !== "error");
 
   return {
@@ -284,9 +282,7 @@ export const checkDomainHealth = createServerFn({ method: "POST" })
     }
 
     // Probe in parallel — one slow host shouldn't block the rest.
-    const results = await Promise.all(
-      verified.map((d) => probeHostname(d.hostname, d.id)),
-    );
+    const results = await Promise.all(verified.map((d) => probeHostname(d.hostname, d.id)));
 
     return {
       ok: results.every((r) => r.ok),

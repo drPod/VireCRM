@@ -20,9 +20,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   try {
-    const authHeader = req.headers
-      .get("authorization")
-      ?.replace("Bearer ", "");
+    const authHeader = req.headers.get("authorization")?.replace("Bearer ", "");
     const {
       data: { user },
       error: authErr,
@@ -42,18 +40,14 @@ serve(async (req) => {
       .maybeSingle();
 
     const callerOrgId = callerProfile?.organization_id as string | undefined;
-    const isReseller = (
-      callerProfile?.organizations as { is_reseller?: boolean } | null
-    )?.is_reseller;
+    const isReseller = (callerProfile?.organizations as { is_reseller?: boolean } | null)
+      ?.is_reseller;
 
     if (!callerOrgId || !isReseller) {
-      return new Response(
-        JSON.stringify({ error: "Caller is not a reseller owner" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return new Response(JSON.stringify({ error: "Caller is not a reseller owner" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const { data: roleRow } = await supabaseAdmin
@@ -63,36 +57,28 @@ serve(async (req) => {
       .eq("organization_id", callerOrgId)
       .maybeSingle();
     if (roleRow?.role !== "owner") {
-      return new Response(
-        JSON.stringify({ error: "Owner role required" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return new Response(JSON.stringify({ error: "Owner role required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const { email, password, companyName, fullName, resellerPlanId } =
-      await req.json();
+    const { email, password, companyName, fullName, resellerPlanId } = await req.json();
 
     if (!email || !password || !companyName) {
-      return new Response(
-        JSON.stringify({ error: "email, password, companyName required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return new Response(JSON.stringify({ error: "email, password, companyName required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Create user (auto-confirm so they can log in immediately)
-    const { data: created, error: createErr } =
-      await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name: fullName || companyName },
-      });
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName || companyName },
+    });
     if (createErr || !created.user) {
       return new Response(
         JSON.stringify({
@@ -117,13 +103,10 @@ serve(async (req) => {
 
     const childOrgId = profile?.organization_id;
     if (!childOrgId) {
-      return new Response(
-        JSON.stringify({ error: "Auto-created org not found" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return new Response(JSON.stringify({ error: "Auto-created org not found" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     await supabaseAdmin

@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Loader2, Sparkles, X, ChevronDown, ChevronRight } from "lucide-react";
@@ -55,8 +61,7 @@ export function AddLeadDialog({
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const addCustomField = () =>
-    setCustomFields((prev) => [...prev, { label: "", value: "" }]);
+  const addCustomField = () => setCustomFields((prev) => [...prev, { label: "", value: "" }]);
   const updateCustomField = (idx: number, key: "label" | "value", v: string) =>
     setCustomFields((prev) => prev.map((f, i) => (i === idx ? { ...f, [key]: v } : f)));
   const removeCustomField = (idx: number) =>
@@ -83,20 +88,23 @@ export function AddLeadDialog({
 
     setLoading(true);
     try {
-      const { error, data: inserted } = await supabase.from("leads").insert({
-        organization_id: organization.id,
-        created_by: user?.id ?? null,
-        name: form.name.trim(),
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
-        company: form.company.trim() || null,
-        status: form.status,
-        score: form.score,
-        next_action: form.next_action.trim() || null,
-        notes: composedNotes,
-        contract_end_date: form.contract_end_date || null,
-        current_supplier: form.current_supplier.trim() || null,
-      }).select("id, name, email, company");
+      const { error, data: inserted } = await supabase
+        .from("leads")
+        .insert({
+          organization_id: organization.id,
+          created_by: user?.id ?? null,
+          name: form.name.trim(),
+          email: form.email.trim() || null,
+          phone: form.phone.trim() || null,
+          company: form.company.trim() || null,
+          status: form.status,
+          score: form.score,
+          next_action: form.next_action.trim() || null,
+          notes: composedNotes,
+          contract_end_date: form.contract_end_date || null,
+          current_supplier: form.current_supplier.trim() || null,
+        })
+        .select("id, name, email, company");
       if (error) throw error;
       toast.success(`Lead "${form.name}" added!`);
       setForm({
@@ -197,7 +205,9 @@ export function AddLeadDialog({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-foreground">Score (0–100)</label>
+              <label className="mb-1 block text-xs font-medium text-foreground">
+                Score (0–100)
+              </label>
               <input
                 type="number"
                 min={0}
@@ -218,7 +228,9 @@ export function AddLeadDialog({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-foreground">Notes / description</label>
+            <label className="mb-1 block text-xs font-medium text-foreground">
+              Notes / description
+            </label>
             <textarea
               className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
               rows={2}

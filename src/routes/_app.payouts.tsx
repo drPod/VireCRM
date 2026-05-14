@@ -169,7 +169,7 @@ function PayoutsPage() {
           .reduce<Record<string, number>>((acc, e) => {
             acc[e.user_id] = (acc[e.user_id] || 0) + e.commission_cents;
             return acc;
-          }, {})
+          }, {}),
       )
         .map(([userId, cents]) => ({
           userId,
@@ -198,7 +198,17 @@ function PayoutsPage() {
   };
 
   const exportCsv = () => {
-    const header = ["Date", "Rep", "Lead", "Deal value", "Commission", "Currency", "Status", "Paid at", "Reference"];
+    const header = [
+      "Date",
+      "Rep",
+      "Lead",
+      "Deal value",
+      "Commission",
+      "Currency",
+      "Status",
+      "Paid at",
+      "Reference",
+    ];
     const rows = filtered.map((e) => [
       new Date(e.created_at).toISOString(),
       profilesById[e.user_id]?.full_name || e.user_id,
@@ -317,14 +327,21 @@ function PayoutsPage() {
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center">
             <Wallet className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
-            <p className="text-sm text-foreground">No {filter === "all" ? "" : filter} earnings yet.</p>
+            <p className="text-sm text-foreground">
+              No {filter === "all" ? "" : filter} earnings yet.
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               {isOwner
                 ? "Set up a commission rule and close a deal to see earnings here."
                 : "Earnings appear when you close a lead with a deal value set."}
             </p>
             {isOwner && (
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => setRulesOpen(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => setRulesOpen(true)}
+              >
                 Set up commission rule
               </Button>
             )}
@@ -352,7 +369,9 @@ function PayoutsPage() {
                       <td className="px-4 py-3 text-muted-foreground">
                         {new Date(e.created_at).toLocaleDateString()}
                       </td>
-                      {isOwner && <td className="px-4 py-3 font-medium text-foreground">{repName}</td>}
+                      {isOwner && (
+                        <td className="px-4 py-3 font-medium text-foreground">{repName}</td>
+                      )}
                       <td className="px-4 py-3">
                         {lead ? (
                           <div>

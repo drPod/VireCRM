@@ -3,23 +3,25 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
-import {
-  deliverOutreachEmail,
-  loadOutreachDeliveryChannels,
-} from "@/lib/email/outreach-delivery";
+import { deliverOutreachEmail, loadOutreachDeliveryChannels } from "@/lib/email/outreach-delivery";
 import { fillTemplateTokens } from "@/lib/outreach/template-fill";
 import { z } from "zod";
 
 const outreachSchema = z.object({
   organizationId: z.string().uuid(),
-  leads: z.array(z.object({
-    id: z.string().uuid(),
-    name: z.string().min(1).max(200),
-    email: z.string().email().optional(),
-    company: z.string().max(200).optional(),
-    role: z.string().max(200).optional(),
-    score: z.number().min(0).max(100).optional(),
-  })).min(1).max(50),
+  leads: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string().min(1).max(200),
+        email: z.string().email().optional(),
+        company: z.string().max(200).optional(),
+        role: z.string().max(200).optional(),
+        score: z.number().min(0).max(100).optional(),
+      }),
+    )
+    .min(1)
+    .max(50),
   businessContext: z.string().min(1).max(5000).optional(),
   /** Optional saved template ID to use as the structural base for AI personalization. */
   templateId: z.string().uuid().optional().nullable(),
@@ -71,7 +73,9 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     // into the platform default.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, support_email, ai_tokens_used, ai_tokens_limit, logo_url, primary_color, font_family, email_signature")
+      .select(
+        "name, brand_name, support_email, ai_tokens_used, ai_tokens_limit, logo_url, primary_color, font_family, email_signature",
+      )
       .eq("id", data.organizationId)
       .single();
 
@@ -106,9 +110,12 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       ? `Business context: ${data.businessContext}`
       : `Business: ${businessName}`;
 
-    const leadsInfo = leadsWithEmail.map((l) =>
-      `- ${l.name}${l.company ? ` at ${l.company}` : ""}${l.role ? ` (${l.role})` : ""}${l.score ? ` [score: ${l.score}]` : ""}`
-    ).join("\n");
+    const leadsInfo = leadsWithEmail
+      .map(
+        (l) =>
+          `- ${l.name}${l.company ? ` at ${l.company}` : ""}${l.role ? ` (${l.role})` : ""}${l.score ? ` [score: ${l.score}]` : ""}`,
+      )
+      .join("\n");
 
     // ----- Pull the chosen template (or org default) and feed it to the AI
     // as the structural base. The AI keeps the user's voice + key talking
@@ -196,7 +203,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
 
     for (const email of generatedEmails) {
       const lead = leadsWithEmail.find(
-        (l) => l.name.toLowerCase() === email.lead_name.toLowerCase()
+        (l) => l.name.toLowerCase() === email.lead_name.toLowerCase(),
       );
       if (!lead || !lead.email) {
         skipped++;
@@ -270,10 +277,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
         }
 
         // c) Mark message sent + advance lead to "contacted" if still new.
-        await supabase
-          .from("messages")
-          .update({ status: "sent" })
-          .eq("id", inserted.id);
+        await supabase.from("messages").update({ status: "sent" }).eq("id", inserted.id);
 
         await supabase
           .from("leads")

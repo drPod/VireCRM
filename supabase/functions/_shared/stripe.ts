@@ -20,21 +20,17 @@ export function createStripeClient(env: StripeEnv): Stripe {
   if (!lovableApiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
   return new Stripe(connectionApiKey, {
-    httpClient: Stripe.createFetchHttpClient(
-      (url: string | URL, init?: RequestInit) => {
-        const gatewayUrl = url
-          .toString()
-          .replace("https://api.stripe.com", GATEWAY_STRIPE_BASE);
-        return fetch(gatewayUrl, {
-          ...init,
-          headers: {
-            ...Object.fromEntries(new Headers(init?.headers).entries()),
-            "X-Connection-Api-Key": connectionApiKey,
-            "Lovable-API-Key": lovableApiKey,
-          },
-        });
-      },
-    ),
+    httpClient: Stripe.createFetchHttpClient((url: string | URL, init?: RequestInit) => {
+      const gatewayUrl = url.toString().replace("https://api.stripe.com", GATEWAY_STRIPE_BASE);
+      return fetch(gatewayUrl, {
+        ...init,
+        headers: {
+          ...Object.fromEntries(new Headers(init?.headers).entries()),
+          "X-Connection-Api-Key": connectionApiKey,
+          "Lovable-API-Key": lovableApiKey,
+        },
+      });
+    }),
   });
 }
 
@@ -91,9 +87,55 @@ export async function verifyWebhook(
   return JSON.parse(body);
 }
 
+// Allowed origins for browser-initiated calls. Server-to-server callers
+// (no Origin header) are unaffected.
+const ALLOWED_ORIGIN_SUFFIXES = [
+  ".lovable.app",
+  ".vireonx.space",
+  "vireonx.space",
+  ".genesisx.space",
+  "genesisx.space",
+  "localhost",
+];
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const host = new URL(origin).hostname;
+    return ALLOWED_ORIGIN_SUFFIXES.some((s) =>
+      s.startsWith(".") ? host.endsWith(s) : host === s || host.startsWith(`${s}:`),
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function buildCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin");
+  return {
+    "Access-Control-Allow-Origin": isAllowedOrigin(origin) ? origin! : "https://genesisxsx.lovable.app",
+    "Vary": "Origin",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  };
+}
+
+// Backward-compatible default (kept for any caller not yet migrated). Prefer buildCorsHeaders(req).
 export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Origin": "https://genesisxsx.lovable.app",
+  "Vary": "Origin",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
+
+/**
+ * Sanitize an error for client response. Logs full details server-side
+ * and returns a generic message to avoid leaking Stripe internals.
+ */
+export function safeErrorResponse(error: unknown, status = 500, headers: Record<string, string> = {}): Response {
+  console.error("[stripe-edge-fn]", error);
+  return new Response(
+    JSON.stringify({ error: "An unexpected error occurred" }),
+    { status, headers: { ...headers, "Content-Type": "application/json" } },
+  );
+}

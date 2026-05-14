@@ -1,13 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Terminal, Check, Zap, Bot, BrainCircuit, CalendarCheck, Sparkles, ArrowRight } from "lucide-react";
+import {
+  Loader2,
+  Terminal,
+  Check,
+  Zap,
+  Bot,
+  BrainCircuit,
+  CalendarCheck,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  applyBrandFont,
-  applyFavicon,
-  applyWhiteLabelColor,
-} from "@/lib/white-label-theme";
+import { applyBrandFont, applyFavicon, applyWhiteLabelColor } from "@/lib/white-label-theme";
 
 export const Route = createFileRoute("/r/$resellerSlug/")({
   component: ResellerLandingPage,
@@ -192,8 +198,8 @@ function ResellerLandingPage() {
             <span style={{ color: accent }}>go cold again.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-            {brandName} responds instantly, follows up relentlessly, and surfaces
-            your hottest leads — so your team always knows who to call next.
+            {brandName} responds instantly, follows up relentlessly, and surfaces your hottest leads
+            — so your team always knows who to call next.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button variant="command" size="lg" className="gap-2" asChild>
@@ -208,9 +214,7 @@ function ResellerLandingPage() {
               </Button>
             )}
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">
-            No credit card required to start
-          </p>
+          <p className="mt-4 text-xs text-muted-foreground">No credit card required to start</p>
         </div>
       </section>
 
@@ -222,8 +226,8 @@ function ResellerLandingPage() {
               Built to help your team close more deals
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              Stop losing revenue to slow follow-up. {brandName} does the chasing —
-              your team does the closing.
+              Stop losing revenue to slow follow-up. {brandName} does the chasing — your team does
+              the closing.
             </p>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -249,19 +253,14 @@ function ResellerLandingPage() {
                 desc: "Hot leads land in your reps' hands with full context — ready to close.",
               },
             ].map((f) => (
-              <div
-                key={f.title}
-                className="rounded-2xl border border-border bg-card p-6"
-              >
+              <div key={f.title} className="rounded-2xl border border-border bg-card p-6">
                 <div
                   className="flex h-10 w-10 items-center justify-center rounded-lg"
                   style={{ backgroundColor: accent ? `${accent}22` : undefined }}
                 >
                   <f.icon className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-foreground">
-                  {f.title}
-                </h3>
+                <h3 className="mt-4 text-base font-semibold text-foreground">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.desc}</p>
               </div>
             ))}
@@ -308,13 +307,9 @@ function ResellerLandingPage() {
                         Most popular
                       </div>
                     )}
-                    <h3 className="text-lg font-semibold text-foreground">
-                      {plan.name}
-                    </h3>
+                    <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
                     {plan.description && (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {plan.description}
-                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
                     )}
                     <div className="mt-6 flex items-baseline gap-1">
                       <span className="text-4xl font-bold text-foreground">
@@ -324,14 +319,8 @@ function ResellerLandingPage() {
                     </div>
                     <ul className="mt-6 space-y-3">
                       {plan.features.map((feat) => (
-                        <li
-                          key={feat}
-                          className="flex items-start gap-2 text-sm text-foreground"
-                        >
-                          <Check
-                            className="mt-0.5 h-4 w-4 shrink-0"
-                            style={{ color: accent }}
-                          />
+                        <li key={feat} className="flex items-start gap-2 text-sm text-foreground">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accent }} />
                           <span>{feat}</span>
                         </li>
                       ))}
@@ -383,10 +372,7 @@ function ResellerLandingPage() {
             © {new Date().getFullYear()} {brandName}. All rights reserved.
           </div>
           {branding?.support_email && (
-            <a
-              href={`mailto:${branding.support_email}`}
-              className="hover:text-foreground"
-            >
+            <a href={`mailto:${branding.support_email}`} className="hover:text-foreground">
               {branding.support_email}
             </a>
           )}

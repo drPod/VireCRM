@@ -100,14 +100,20 @@ function StatusPill({ status }: { status: ConnectorActivityEntry["status"] }) {
   }
   if (status === "partial") {
     return (
-      <Badge variant="outline" className="gap-1 text-[10px] py-0 px-1.5 h-4 border-warning/50 text-warning">
+      <Badge
+        variant="outline"
+        className="gap-1 text-[10px] py-0 px-1.5 h-4 border-warning/50 text-warning"
+      >
         <AlertTriangle className="h-3 w-3" />
         Partial
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="gap-1 text-[10px] py-0 px-1.5 h-4 border-destructive/50 text-destructive">
+    <Badge
+      variant="outline"
+      className="gap-1 text-[10px] py-0 px-1.5 h-4 border-destructive/50 text-destructive"
+    >
       <AlertCircle className="h-3 w-3" />
       Failed
     </Badge>
@@ -180,7 +186,11 @@ export function IntegrationActivityLog() {
           className="text-xs text-primary hover:underline flex items-center gap-1"
           disabled={loading}
         >
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+          {loading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3 w-3" />
+          )}
           Refresh
         </button>
       </div>
@@ -231,7 +241,9 @@ export function IntegrationActivityLog() {
                       )}
                     </div>
                     {e.summary && (
-                      <p className="mt-0.5 text-xs text-muted-foreground break-words">{e.summary}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground break-words">
+                        {e.summary}
+                      </p>
                     )}
                     {e.errorMessage && (
                       <p className="mt-1 text-[11px] text-destructive break-words">

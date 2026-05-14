@@ -369,9 +369,7 @@ export function ConnectorIntegrations() {
           <Plug className="h-5 w-5 text-primary mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h3 className="text-base font-semibold text-foreground">
-                One-click integrations
-              </h3>
+              <h3 className="text-base font-semibold text-foreground">One-click integrations</h3>
               {!loading && (
                 <Badge variant="secondary" className="gap-1 text-[11px]">
                   <CheckCircle2 className="h-3 w-3 text-success" />
@@ -384,14 +382,19 @@ export function ConnectorIntegrations() {
             </p>
             <ol className="mt-2 space-y-1 text-xs text-muted-foreground list-decimal pl-4">
               <li>
-                Click <span className="font-medium text-foreground">Connect</span> on any card to enable it for your workspace.
+                Click <span className="font-medium text-foreground">Connect</span> on any card to
+                enable it for your workspace.
               </li>
               <li>
-                A sign-in window for that provider will open — finish the sign-in to authorize access. The card flips to
-                <span className="font-medium text-foreground"> Connected </span> automatically (usually within a few seconds).
+                A sign-in window for that provider will open — finish the sign-in to authorize
+                access. The card flips to
+                <span className="font-medium text-foreground"> Connected </span> automatically
+                (usually within a few seconds).
               </li>
               <li>
-                If a window doesn't open, use the <span className="font-medium text-foreground">"Ask AI to finish setup"</span> button on the card to copy a ready-made prompt for your AI assistant.
+                If a window doesn't open, use the{" "}
+                <span className="font-medium text-foreground">"Ask AI to finish setup"</span> button
+                on the card to copy a ready-made prompt for your AI assistant.
               </li>
             </ol>
           </div>
@@ -577,7 +580,10 @@ function ConnectorRow({
                   Connected
                 </Badge>
               ) : verified === false ? (
-                <Badge variant="outline" className="gap-1 text-[10px] border-warning/50 text-warning">
+                <Badge
+                  variant="outline"
+                  className="gap-1 text-[10px] border-warning/50 text-warning"
+                >
                   <AlertTriangle className="h-3 w-3" />
                   Reconnect
                 </Badge>
@@ -587,13 +593,18 @@ function ConnectorRow({
                   Enabled
                 </Badge>
               ) : (
-                <Badge variant="outline" className="gap-1 text-[10px] border-warning/50 text-warning">
+                <Badge
+                  variant="outline"
+                  className="gap-1 text-[10px] border-warning/50 text-warning"
+                >
                   <AlertTriangle className="h-3 w-3" />
                   Awaiting auth
                 </Badge>
               )
             ) : (
-              <Badge variant="outline" className="text-[10px]">Not connected</Badge>
+              <Badge variant="outline" className="text-[10px]">
+                Not connected
+              </Badge>
             )}
             {/* Inline help — explains what "Verified" / "Connected" actually
                 means for a one-click connector (gateway token refresh + a
@@ -621,29 +632,24 @@ function ConnectorRow({
         <AwaitingAuthHelper providerLabel={meta.name} connectorId={meta.connectorId} />
       )}
 
-      {!loading && (() => {
-        // While editing, feed the in-progress draft so the prerequisites
-        // panel updates live (e.g. "Send-from address is required" disappears
-        // the moment the user types a valid email — no save needed).
-        const prereqs = deriveConnectorPrerequisites(
-          meta,
-          status,
-          editing ? draftConfig : null,
-        );
-        if (prereqs.length === 0) return null;
-        return (
-          <div className="mb-3">
-            <PrerequisitesPanel
-              prerequisites={prereqs}
-              providerLabel={meta.name}
-              verification={{
-                // Prefer the freshest signal: an in-memory test run beats the
-                // last server-known timestamp. enabledAt is the fallback so
-                // newly-enabled cards still show *something* useful.
-                lastVerifiedAt:
-                  testResult?.verifiedAt ?? status?.enabledAt ?? null,
-                outcome:
-                  testResult
+      {!loading &&
+        (() => {
+          // While editing, feed the in-progress draft so the prerequisites
+          // panel updates live (e.g. "Send-from address is required" disappears
+          // the moment the user types a valid email — no save needed).
+          const prereqs = deriveConnectorPrerequisites(meta, status, editing ? draftConfig : null);
+          if (prereqs.length === 0) return null;
+          return (
+            <div className="mb-3">
+              <PrerequisitesPanel
+                prerequisites={prereqs}
+                providerLabel={meta.name}
+                verification={{
+                  // Prefer the freshest signal: an in-memory test run beats the
+                  // last server-known timestamp. enabledAt is the fallback so
+                  // newly-enabled cards still show *something* useful.
+                  lastVerifiedAt: testResult?.verifiedAt ?? status?.enabledAt ?? null,
+                  outcome: testResult
                     ? testResult.ok
                       ? "ok"
                       : "failed"
@@ -652,42 +658,42 @@ function ConnectorRow({
                       : status?.verified === false
                         ? "failed"
                         : "unknown",
-                failureReason:
-                  testResult && !testResult.ok
-                    ? (testResult.reason ?? null)
-                    : (status?.verifyError ?? null),
-              }}
-              onAction={async (p) => {
-                switch (p.actionId) {
-                  case "connect":
-                    await handleEnable();
-                    break;
-                  case "reconnect":
-                    // Re-trigger the enable flow — for OAuth connectors this
-                    // re-runs the gateway's connect handshake.
-                    await handleEnable();
-                    toast.info(`Finish ${meta.name} sign-in`, {
-                      description:
-                        "If a provider window didn't open, your workspace owner needs to approve the connection.",
-                    });
-                    break;
-                  case "test":
-                    await handleTest();
-                    break;
-                  case "edit-config":
-                    if (hasConfigFields) openEditor();
-                    break;
-                  case "open-docs":
-                    window.open(meta.docsUrl, "_blank", "noopener,noreferrer");
-                    break;
-                  default:
-                    break;
-                }
-              }}
-            />
-          </div>
-        );
-      })()}
+                  failureReason:
+                    testResult && !testResult.ok
+                      ? (testResult.reason ?? null)
+                      : (status?.verifyError ?? null),
+                }}
+                onAction={async (p) => {
+                  switch (p.actionId) {
+                    case "connect":
+                      await handleEnable();
+                      break;
+                    case "reconnect":
+                      // Re-trigger the enable flow — for OAuth connectors this
+                      // re-runs the gateway's connect handshake.
+                      await handleEnable();
+                      toast.info(`Finish ${meta.name} sign-in`, {
+                        description:
+                          "If a provider window didn't open, your workspace owner needs to approve the connection.",
+                      });
+                      break;
+                    case "test":
+                      await handleTest();
+                      break;
+                    case "edit-config":
+                      if (hasConfigFields) openEditor();
+                      break;
+                    case "open-docs":
+                      window.open(meta.docsUrl, "_blank", "noopener,noreferrer");
+                      break;
+                    default:
+                      break;
+                  }
+                }}
+              />
+            </div>
+          );
+        })()}
 
       {(testResult || testing) && (
         <div className="mb-3">
@@ -696,91 +702,92 @@ function ConnectorRow({
       )}
 
       {/* Inline config editor */}
-      {enabled && editing && hasConfigFields && (() => {
-        const { errors: fieldErrors, valid: draftValid } = validateDraft(
-          meta.id,
-          meta.configFields ?? [],
-          draftConfig,
-        );
-        return (
-        <div className="space-y-3 mb-3 p-3 rounded-md bg-secondary/30 border border-border">
-          {(meta.configFields ?? []).map((f) => {
-            const ruleKey = `${meta.id}.${f.key}`;
-            const rule = FIELD_RULES[ruleKey];
-            const rawErr = fieldErrors[f.key];
-            // Only surface the inline error after the user has blurred the
-            // field at least once — keeps the UI quiet while they type the
-            // first character, but updates instantly on subsequent edits.
-            const err = touchedFields[f.key] ? rawErr : null;
-            return (
-              <div key={f.key} className="space-y-1">
-                <label className="block text-[11px] font-medium text-foreground">
-                  {f.label}
-                  {rule?.required && (
-                    <span className="text-destructive ml-0.5" aria-hidden="true">
-                      *
-                    </span>
-                  )}
-                </label>
-                <input
-                  value={draftConfig[f.key] ?? ""}
-                  onChange={(e) =>
-                    setDraftConfig((prev) => ({ ...prev, [f.key]: e.target.value }))
-                  }
-                  onBlur={() =>
-                    setTouchedFields((prev) =>
-                      prev[f.key] ? prev : { ...prev, [f.key]: true },
-                    )
-                  }
-                  placeholder={f.placeholder}
-                  aria-invalid={err ? true : undefined}
-                  aria-describedby={err ? `${meta.id}-${f.key}-err` : undefined}
-                  className={`h-8 w-full rounded-md border bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring ${
-                    err ? "border-destructive/60" : "border-input"
-                  }`}
-                  spellCheck={false}
-                />
-                {err ? (
-                  <p
-                    id={`${meta.id}-${f.key}-err`}
-                    className="text-[10px] text-destructive"
-                  >
-                    {err}
-                  </p>
-                ) : f.helper ? (
-                  <p className="text-[10px] text-muted-foreground">{f.helper}</p>
-                ) : null}
+      {enabled &&
+        editing &&
+        hasConfigFields &&
+        (() => {
+          const { errors: fieldErrors, valid: draftValid } = validateDraft(
+            meta.id,
+            meta.configFields ?? [],
+            draftConfig,
+          );
+          return (
+            <div className="space-y-3 mb-3 p-3 rounded-md bg-secondary/30 border border-border">
+              {(meta.configFields ?? []).map((f) => {
+                const ruleKey = `${meta.id}.${f.key}`;
+                const rule = FIELD_RULES[ruleKey];
+                const rawErr = fieldErrors[f.key];
+                // Only surface the inline error after the user has blurred the
+                // field at least once — keeps the UI quiet while they type the
+                // first character, but updates instantly on subsequent edits.
+                const err = touchedFields[f.key] ? rawErr : null;
+                return (
+                  <div key={f.key} className="space-y-1">
+                    <label className="block text-[11px] font-medium text-foreground">
+                      {f.label}
+                      {rule?.required && (
+                        <span className="text-destructive ml-0.5" aria-hidden="true">
+                          *
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      value={draftConfig[f.key] ?? ""}
+                      onChange={(e) =>
+                        setDraftConfig((prev) => ({ ...prev, [f.key]: e.target.value }))
+                      }
+                      onBlur={() =>
+                        setTouchedFields((prev) =>
+                          prev[f.key] ? prev : { ...prev, [f.key]: true },
+                        )
+                      }
+                      placeholder={f.placeholder}
+                      aria-invalid={err ? true : undefined}
+                      aria-describedby={err ? `${meta.id}-${f.key}-err` : undefined}
+                      className={`h-8 w-full rounded-md border bg-input px-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring ${
+                        err ? "border-destructive/60" : "border-input"
+                      }`}
+                      spellCheck={false}
+                    />
+                    {err ? (
+                      <p id={`${meta.id}-${f.key}-err`} className="text-[10px] text-destructive">
+                        {err}
+                      </p>
+                    ) : f.helper ? (
+                      <p className="text-[10px] text-muted-foreground">{f.helper}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
+              <div className="flex gap-2">
+                <Button
+                  variant="command"
+                  size="sm"
+                  onClick={handleSaveConfig}
+                  disabled={savingConfig || !draftValid}
+                  title={!draftValid ? "Fix the highlighted fields before saving." : undefined}
+                >
+                  {savingConfig ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Save
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditing(false)}
+                  disabled={savingConfig}
+                >
+                  Cancel
+                </Button>
               </div>
-            );
-          })}
-          <div className="flex gap-2">
-            <Button
-              variant="command"
-              size="sm"
-              onClick={handleSaveConfig}
-              disabled={savingConfig || !draftValid}
-              title={!draftValid ? "Fix the highlighted fields before saving." : undefined}
-            >
-              {savingConfig ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Save
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={savingConfig}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-        );
-      })()}
+            </div>
+          );
+        })()}
 
       {/* Inline "Send test email" — only for Gmail. SendGrid has its own
           version on the BYO key card in IntegrationsSettings. */}
       {meta.id === "gmail" && enabled && credentialPresent && !editing && (
         <div className="mb-3">
-          <SendTestEmailControl
-            provider="gmail"
-            providerLabel="Gmail"
-            disabledReason={null}
-          />
+          <SendTestEmailControl provider="gmail" providerLabel="Gmail" disabledReason={null} />
         </div>
       )}
 
@@ -865,17 +872,16 @@ function ConnectorRow({
               onClick={() => setConfirmDisconnect(true)}
               disabled={busy}
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Power className="h-3.5 w-3.5" />
+              )}
               Disconnect
             </Button>
           </div>
         ) : (
-          <Button
-            variant="command"
-            size="sm"
-            onClick={handleEnable}
-            disabled={busy}
-          >
+          <Button variant="command" size="sm" onClick={handleEnable} disabled={busy}>
             {busy ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
@@ -957,8 +963,8 @@ function AwaitingAuthHelper({
             One last step — finish sign-in with your AI assistant
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            We've enabled {providerLabel} for your workspace. To complete the OAuth handshake,
-            ask your AI assistant to link the connector. Copy the prompt below and paste it into chat.
+            We've enabled {providerLabel} for your workspace. To complete the OAuth handshake, ask
+            your AI assistant to link the connector. Copy the prompt below and paste it into chat.
           </p>
         </div>
       </div>

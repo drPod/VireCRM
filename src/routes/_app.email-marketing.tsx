@@ -194,9 +194,7 @@ function EmailMarketingPage() {
             ) : campaigns.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
                 <Mail className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                <p className="mt-3 text-sm font-medium text-foreground">
-                  No campaigns yet
-                </p>
+                <p className="mt-3 text-sm font-medium text-foreground">No campaigns yet</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Create your first email campaign to start tracking performance.
                 </p>
@@ -243,9 +241,7 @@ function EmailMarketingPage() {
                           </Badge>
                         </div>
                         {campaign.objective && (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {campaign.objective}
-                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">{campaign.objective}</p>
                         )}
                         <p className="mt-1 text-xs text-muted-foreground">
                           Updated {new Date(campaign.updated_at).toLocaleDateString()}
@@ -294,9 +290,7 @@ function EmailMarketingPage() {
                     <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-muted-foreground">Last sent</span>
                   </div>
-                  <span className="font-medium text-foreground">
-                    {lastSent ?? "Never"}
-                  </span>
+                  <span className="font-medium text-foreground">{lastSent ?? "Never"}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -322,8 +316,8 @@ function EmailMarketingPage() {
                 Send via campaigns &amp; workflows
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Build outreach sequences in Workflows, then attribute sends to a
-                Campaign here to track reply rate over time.
+                Build outreach sequences in Workflows, then attribute sends to a Campaign here to
+                track reply rate over time.
               </p>
               <Link to="/workflows">
                 <Button variant="outline" size="sm" className="mt-3 w-full gap-1 text-xs">

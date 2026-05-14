@@ -61,7 +61,10 @@ export const mapImportColumnsFn = createServerFn({ method: "POST" })
     const trimmedHeaders = data.headers.slice(0, MAX_COLS);
     const previewRows = data.sampleRows
       .map((row) => row.slice(0, MAX_COLS))
-      .map((row, idx) => `Row ${idx + 1}: ${row.map((v, i) => `[${i}] ${truncate(v, 60)}`).join(" | ")}`)
+      .map(
+        (row, idx) =>
+          `Row ${idx + 1}: ${row.map((v, i) => `[${i}] ${truncate(v, 60)}`).join(" | ")}`,
+      )
       .join("\n");
 
     const result = await callAiWithFallback<{

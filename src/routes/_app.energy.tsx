@@ -8,7 +8,16 @@
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { FileText, Gauge, DollarSign, FileSignature, Building2, RefreshCw, Loader2, Users } from "lucide-react";
+import {
+  FileText,
+  Gauge,
+  DollarSign,
+  FileSignature,
+  Building2,
+  RefreshCw,
+  Loader2,
+  Users,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,13 +29,62 @@ export const Route = createFileRoute("/_app/energy")({
 });
 
 const MODULES = [
-  { key: "loa_requests", label: "LOA Requests", icon: FileText, table: "loa_requests" as const, hint: "Letter of Authorization tracking", to: "/energy/loa" },
-  { key: "usage_requests", label: "Usage Requests", icon: Gauge, table: "usage_requests" as const, hint: "Utility usage data pulls", to: "/energy/usage" },
-  { key: "pricing_requests", label: "Pricing Requests", icon: DollarSign, table: "pricing_requests" as const, hint: "Supplier pricing comparisons", to: "/energy/pricing" },
-  { key: "contract_requests", label: "Contract Requests", icon: FileSignature, table: "contract_requests" as const, hint: "Contract submission pipeline", to: "/energy/contracts" },
-  { key: "energy_suppliers", label: "Suppliers", icon: Building2, table: "energy_suppliers" as const, hint: "Supplier directory & terms", to: "/energy/suppliers" },
-  { key: "renewals", label: "Renewals", icon: RefreshCw, table: "renewals" as const, hint: "Upcoming renewal opportunities", to: "/energy/renewals" },
-  { key: "energy_customers", label: "Active Customers", icon: Users, table: "energy_customers" as const, hint: "Currently enrolled customers & contract terms", to: "/energy/customers" },
+  {
+    key: "loa_requests",
+    label: "LOA Requests",
+    icon: FileText,
+    table: "loa_requests" as const,
+    hint: "Letter of Authorization tracking",
+    to: "/energy/loa",
+  },
+  {
+    key: "usage_requests",
+    label: "Usage Requests",
+    icon: Gauge,
+    table: "usage_requests" as const,
+    hint: "Utility usage data pulls",
+    to: "/energy/usage",
+  },
+  {
+    key: "pricing_requests",
+    label: "Pricing Requests",
+    icon: DollarSign,
+    table: "pricing_requests" as const,
+    hint: "Supplier pricing comparisons",
+    to: "/energy/pricing",
+  },
+  {
+    key: "contract_requests",
+    label: "Contract Requests",
+    icon: FileSignature,
+    table: "contract_requests" as const,
+    hint: "Contract submission pipeline",
+    to: "/energy/contracts",
+  },
+  {
+    key: "energy_suppliers",
+    label: "Suppliers",
+    icon: Building2,
+    table: "energy_suppliers" as const,
+    hint: "Supplier directory & terms",
+    to: "/energy/suppliers",
+  },
+  {
+    key: "renewals",
+    label: "Renewals",
+    icon: RefreshCw,
+    table: "renewals" as const,
+    hint: "Upcoming renewal opportunities",
+    to: "/energy/renewals",
+  },
+  {
+    key: "energy_customers",
+    label: "Active Customers",
+    icon: Users,
+    table: "energy_customers" as const,
+    hint: "Currently enrolled customers & contract terms",
+    to: "/energy/customers",
+  },
 ];
 
 function EnergyHub() {
@@ -41,7 +99,9 @@ function EnergyHub() {
       setLoading(true);
       const results = await Promise.all(
         MODULES.map(async (m) => {
-          const { count } = await supabase.from(m.table).select("id", { count: "exact", head: true });
+          const { count } = await supabase
+            .from(m.table)
+            .select("id", { count: "exact", head: true });
           return [m.key, count ?? 0] as const;
         }),
       );
@@ -50,7 +110,9 @@ function EnergyHub() {
         setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -97,11 +159,15 @@ function EnergyHub() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Energy pipeline stages</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Energy pipeline stages</CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {template.pipelineStages.map((stage) => (
-              <Badge key={stage} variant="outline" className="border-border">{stage}</Badge>
+              <Badge key={stage} variant="outline" className="border-border">
+                {stage}
+              </Badge>
             ))}
           </div>
         </CardContent>

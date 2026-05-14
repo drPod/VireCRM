@@ -48,7 +48,8 @@ export function FeaturesSection() {
         </div>
 
         <p className="mx-auto mt-8 max-w-xl text-center text-muted-foreground">
-          We fix this by automating the entire follow-up and lead-nurturing process — so your team can focus on closing.
+          We fix this by automating the entire follow-up and lead-nurturing process — so your team
+          can focus on closing.
         </p>
 
         {/* Positioning Shift */}
@@ -72,7 +73,8 @@ export function FeaturesSection() {
         {/* Core Promise */}
         <div className="mx-auto mt-20 max-w-3xl rounded-2xl border border-primary/20 bg-primary/5 p-10 text-center">
           <h3 className="text-2xl font-bold text-foreground sm:text-3xl">
-            If a lead shows interest…<br />
+            If a lead shows interest…
+            <br />
             <span className="text-gradient-primary">our system doesn't let it die.</span>
           </h3>
           <p className="mt-4 text-sm text-muted-foreground">It automatically:</p>
@@ -83,7 +85,10 @@ export function FeaturesSection() {
               { icon: BrainCircuit, text: "Nurtures them with AI messaging" },
               { icon: CalendarCheck, text: "Surfaces hot leads ready for your team" },
             ].map((item) => (
-              <div key={item.text} className="flex items-center gap-3 rounded-lg bg-background/60 px-4 py-3">
+              <div
+                key={item.text}
+                className="flex items-center gap-3 rounded-lg bg-background/60 px-4 py-3"
+              >
                 <item.icon className="h-4 w-4 shrink-0 text-primary" />
                 <span className="text-sm font-medium text-foreground">{item.text}</span>
               </div>
@@ -97,9 +102,7 @@ export function FeaturesSection() {
         {/* Full Feature Grid */}
         <div className="mt-20">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-foreground">
-              Everything Under the Hood
-            </h2>
+            <h2 className="text-3xl font-bold text-foreground">Everything Under the Hood</h2>
             <p className="mt-3 text-muted-foreground">
               A complete sales infrastructure — not another tool to manage
             </p>
@@ -107,15 +110,51 @@ export function FeaturesSection() {
 
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { icon: Bot, title: "AI Command Center", desc: "Natural language commands that execute full outreach campaigns automatically." },
-              { icon: Zap, title: "Auto Follow-Ups", desc: "AI writes personalized messages, sends at optimal times, and follows up on no-replies." },
-              { icon: BrainCircuit, title: "Smart Lead Scoring", desc: "AI analyzes every lead and assigns conversion probability. Focus on the hottest prospects." },
-              { icon: MessageSquare, title: "Unified Inbox", desc: "All conversations in one place — email, SMS, WhatsApp, social DMs." },
-              { icon: CalendarCheck, title: "Appointment Booking", desc: "Booking links, calendar sync, automated reminders, and round-robin assignment." },
-              { icon: BarChart3, title: "Revenue Analytics", desc: "Pipeline reports, revenue forecasting, campaign ROI tracking, and team performance." },
-              { icon: Shield, title: "White-Label Ready", desc: "Custom branding, colors, logo, and domain. Sell it as your own product." },
-              { icon: Clock, title: "Instant Response", desc: "Leads get a response within seconds — not hours. Speed-to-lead on autopilot." },
-              { icon: MailWarning, title: "SMS & Email Automation", desc: "Multi-channel drip sequences, broadcast campaigns, and text-to-pay links." },
+              {
+                icon: Bot,
+                title: "AI Command Center",
+                desc: "Natural language commands that execute full outreach campaigns automatically.",
+              },
+              {
+                icon: Zap,
+                title: "Auto Follow-Ups",
+                desc: "AI writes personalized messages, sends at optimal times, and follows up on no-replies.",
+              },
+              {
+                icon: BrainCircuit,
+                title: "Smart Lead Scoring",
+                desc: "AI analyzes every lead and assigns conversion probability. Focus on the hottest prospects.",
+              },
+              {
+                icon: MessageSquare,
+                title: "Unified Inbox",
+                desc: "All conversations in one place — email, SMS, WhatsApp, social DMs.",
+              },
+              {
+                icon: CalendarCheck,
+                title: "Appointment Booking",
+                desc: "Booking links, calendar sync, automated reminders, and round-robin assignment.",
+              },
+              {
+                icon: BarChart3,
+                title: "Revenue Analytics",
+                desc: "Pipeline reports, revenue forecasting, campaign ROI tracking, and team performance.",
+              },
+              {
+                icon: Shield,
+                title: "White-Label Ready",
+                desc: "Custom branding, colors, logo, and domain. Sell it as your own product.",
+              },
+              {
+                icon: Clock,
+                title: "Instant Response",
+                desc: "Leads get a response within seconds — not hours. Speed-to-lead on autopilot.",
+              },
+              {
+                icon: MailWarning,
+                title: "SMS & Email Automation",
+                desc: "Multi-channel drip sequences, broadcast campaigns, and text-to-pay links.",
+              },
             ].map((f) => (
               <div
                 key={f.title}

@@ -84,7 +84,9 @@ function WorkflowsListPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("workflows")
-      .select("id, name, description, status, trigger_type, nodes, enrolled_count, completed_count, last_run_at, updated_at")
+      .select(
+        "id, name, description, status, trigger_type, nodes, enrolled_count, completed_count, last_run_at, updated_at",
+      )
       .eq("organization_id", organization.id)
       .order("updated_at", { ascending: false });
     if (error) {
@@ -106,9 +108,7 @@ function WorkflowsListPage() {
       return;
     }
     toast.success(
-      next === "active"
-        ? "Marked ready — execution engine launches soon"
-        : "Marked paused",
+      next === "active" ? "Marked ready — execution engine launches soon" : "Marked paused",
     );
     void loadWorkflows();
   };
@@ -145,7 +145,9 @@ function WorkflowsListPage() {
           <Button
             variant="command"
             className="gap-2"
-            onClick={() => navigate({ to: "/workflows/$workflowId", params: { workflowId: "new" } })}
+            onClick={() =>
+              navigate({ to: "/workflows/$workflowId", params: { workflowId: "new" } })
+            }
           >
             <Plus className="h-4 w-4" />
             Create Workflow
@@ -156,10 +158,9 @@ function WorkflowsListPage() {
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">Builder preview.</span>{" "}
-            Design and save your workflows now. Triggers will start firing on real
-            lead events when the execution engine ships — your saved drafts will
-            switch on automatically.
+            <span className="font-semibold text-foreground">Builder preview.</span> Design and save
+            your workflows now. Triggers will start firing on real lead events when the execution
+            engine ships — your saved drafts will switch on automatically.
           </div>
         </div>
 
@@ -193,7 +194,9 @@ function WorkflowsListPage() {
             </p>
             <Button
               variant="command"
-              onClick={() => navigate({ to: "/workflows/$workflowId", params: { workflowId: "new" } })}
+              onClick={() =>
+                navigate({ to: "/workflows/$workflowId", params: { workflowId: "new" } })
+              }
               className="mt-4 gap-2"
             >
               <Plus className="h-4 w-4" />
@@ -243,7 +246,8 @@ function WorkflowsListPage() {
                         </p>
                         <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <GitBranch className="h-3 w-3" /> {stepCount} {stepCount === 1 ? "step" : "steps"}
+                            <GitBranch className="h-3 w-3" /> {stepCount}{" "}
+                            {stepCount === 1 ? "step" : "steps"}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" /> Updated {formatRelative(wf.updated_at)}
@@ -271,7 +275,9 @@ function WorkflowsListPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => navigate({ to: "/workflows/$workflowId", params: { workflowId: wf.id } })}
+                        onClick={() =>
+                          navigate({ to: "/workflows/$workflowId", params: { workflowId: wf.id } })
+                        }
                         title="Edit"
                       >
                         <Pencil className="h-4 w-4" />

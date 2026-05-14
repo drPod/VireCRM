@@ -42,7 +42,7 @@ export function useActionLock(options?: { cooldownMs?: number }) {
   }, []);
 
   const run = useCallback(
-    async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
+    async <T>(fn: () => Promise<T>): Promise<T | undefined> => {
       // Guard 1: another run is already in flight. Synchronous check via ref
       // so two clicks in the same tick can't both pass.
       if (inFlightRef.current) return undefined;

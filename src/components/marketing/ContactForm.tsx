@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Send, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
@@ -22,11 +28,7 @@ function generateCaptcha() {
 // schema in src/routes/api/public/contact.ts so users get inline feedback
 // before round-tripping the network.
 const contactSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Please enter your full name")
-    .max(200, "Name is too long"),
+  name: z.string().trim().min(2, "Please enter your full name").max(200, "Name is too long"),
   email: z
     .string()
     .trim()
@@ -367,7 +369,14 @@ export function ContactForm() {
       {/* Honeypot — visually hidden, off-screen, not focusable. Bots fill it; humans don't. */}
       <div
         aria-hidden="true"
-        style={{ position: "absolute", left: "-10000px", top: "auto", width: 1, height: 1, overflow: "hidden" }}
+        style={{
+          position: "absolute",
+          left: "-10000px",
+          top: "auto",
+          width: 1,
+          height: 1,
+          overflow: "hidden",
+        }}
       >
         <label htmlFor="website">Website (leave blank)</label>
         <input

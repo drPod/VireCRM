@@ -86,7 +86,15 @@ export const analyzeBusinessFn = createServerFn({ method: "POST" })
               pain_points: { type: "array", items: { type: "string" } },
               buying_signals: { type: "array", items: { type: "string" } },
             },
-            required: ["title", "industry", "company_size", "revenue_range", "decision_maker", "pain_points", "buying_signals"],
+            required: [
+              "title",
+              "industry",
+              "company_size",
+              "revenue_range",
+              "decision_maker",
+              "pain_points",
+              "buying_signals",
+            ],
           },
           search_filters: {
             type: "object",

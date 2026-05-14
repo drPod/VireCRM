@@ -4,8 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, RotateCcw, ShieldCheck, Wand2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  Wand2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
@@ -128,9 +143,10 @@ export function PriceConsistencyCheck() {
           currency: null,
           recurring: null,
           diffCents: null,
-          message: tier.price.toLowerCase() === "custom"
-            ? "Custom quote — no Stripe price configured (expected)"
-            : "No stripePriceId configured for this tier",
+          message:
+            tier.price.toLowerCase() === "custom"
+              ? "Custom quote — no Stripe price configured (expected)"
+              : "No stripePriceId configured for this tier",
           overridden: false,
         });
         continue;
@@ -158,7 +174,9 @@ export function PriceConsistencyCheck() {
 
         const stripeCents = typeof data.amount === "number" ? data.amount : null;
         const currency = typeof data.currency === "string" ? data.currency : null;
-        const recurring = data.recurring?.interval ? `every ${data.recurring.interval}` : "one-time";
+        const recurring = data.recurring?.interval
+          ? `every ${data.recurring.interval}`
+          : "one-time";
 
         if (expectedCents == null || stripeCents == null) {
           out.push({
@@ -170,9 +188,10 @@ export function PriceConsistencyCheck() {
             currency,
             recurring,
             diffCents: null,
-            message: expectedCents == null
-              ? `Could not parse displayed price "${tier.price}"`
-              : "Stripe did not return a unit_amount",
+            message:
+              expectedCents == null
+                ? `Could not parse displayed price "${tier.price}"`
+                : "Stripe did not return a unit_amount",
             overridden,
           });
           continue;
@@ -262,7 +281,9 @@ export function PriceConsistencyCheck() {
     }
     saveOverrides(next);
     setOverridesState(next);
-    toast.success(`Updated ${drifted.length} tier${drifted.length === 1 ? "" : "s"} to match Stripe.`);
+    toast.success(
+      `Updated ${drifted.length} tier${drifted.length === 1 ? "" : "s"} to match Stripe.`,
+    );
     setApplying(false);
     // Re-run so the table reflects the new state.
     void runCheck();
@@ -299,18 +320,23 @@ export function PriceConsistencyCheck() {
               Pricing consistency check
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              Verifies displayed CRM tier prices match the configured Stripe price IDs ({env}). Auto-update rewrites
-              displayed prices for any tier whose Stripe amount differs by more than the tolerance below.
+              Verifies displayed CRM tier prices match the configured Stripe price IDs ({env}).
+              Auto-update rewrites displayed prices for any tier whose Stripe amount differs by more
+              than the tolerance below.
             </p>
             {overrideCount > 0 && (
               <p className="mt-2 text-xs text-info">
-                {overrideCount} active price override{overrideCount === 1 ? "" : "s"} applied to the marketing page.
+                {overrideCount} active price override{overrideCount === 1 ? "" : "s"} applied to the
+                marketing page.
               </p>
             )}
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="price-tolerance" className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <Label
+                htmlFor="price-tolerance"
+                className="text-[11px] uppercase tracking-wide text-muted-foreground"
+              >
                 Tolerance ($)
               </Label>
               <Input
@@ -324,8 +350,18 @@ export function PriceConsistencyCheck() {
                 className="h-9 w-24"
               />
             </div>
-            <Button onClick={runCheck} disabled={running} size="sm" variant="outline" className="gap-2">
-              {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            <Button
+              onClick={runCheck}
+              disabled={running}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              {running ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
               {running ? "Checking…" : "Run check"}
             </Button>
             <Button
@@ -335,7 +371,11 @@ export function PriceConsistencyCheck() {
               variant="default"
               className="gap-2"
             >
-              {applying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+              {applying ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Wand2 className="h-3.5 w-3.5" />
+              )}
               Auto-update {driftedCount > 0 && `(${driftedCount})`}
             </Button>
             <Button
@@ -354,8 +394,9 @@ export function PriceConsistencyCheck() {
       <CardContent>
         {!rows && !running && (
           <p className="text-sm text-muted-foreground">
-            Click <strong>Run check</strong> to compare each tier's displayed price against its Stripe price. Use
-            tolerance to ignore small rounding differences (e.g. promo math) before triggering Auto-update.
+            Click <strong>Run check</strong> to compare each tier's displayed price against its
+            Stripe price. Use tolerance to ignore small rounding differences (e.g. promo math)
+            before triggering Auto-update.
           </p>
         )}
         {running && !rows && (
@@ -372,7 +413,9 @@ export function PriceConsistencyCheck() {
               {summary.withinTolerance > 0 && (
                 <Badge variant="info">Within tolerance: {summary.withinTolerance}</Badge>
               )}
-              {summary.mismatch > 0 && <Badge variant="destructive">Mismatch: {summary.mismatch}</Badge>}
+              {summary.mismatch > 0 && (
+                <Badge variant="destructive">Mismatch: {summary.mismatch}</Badge>
+              )}
               {summary.missing > 0 && <Badge variant="warning">Skipped: {summary.missing}</Badge>}
               {summary.error > 0 && <Badge variant="destructive">Errors: {summary.error}</Badge>}
             </div>
@@ -404,7 +447,9 @@ export function PriceConsistencyCheck() {
                       <TableCell>
                         <Badge variant="outline">{r.group}</Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{r.tier.stripePriceId || "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {r.tier.stripePriceId || "—"}
+                      </TableCell>
                       <TableCell className="text-xs">
                         {r.expectedCents != null ? `${r.tier.price}${r.tier.period}` : r.tier.price}
                       </TableCell>

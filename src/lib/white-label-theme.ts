@@ -67,7 +67,13 @@ const BUTTON_FOREGROUND_TOKENS = ["--wl-button-foreground"] as const;
 function hexToRgb(hex: string): [number, number, number] | null {
   const m = hex.replace("#", "").trim();
   if (m.length !== 3 && m.length !== 6) return null;
-  const full = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+  const full =
+    m.length === 3
+      ? m
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : m;
   const num = parseInt(full, 16);
   if (Number.isNaN(num)) return null;
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
@@ -97,11 +103,7 @@ function readableForeground(color: string): string | null {
  * cleanup so the caller can restore the previous values. Centralises the
  * "remember + restore" dance every applier needs.
  */
-function setTokens(
-  tokens: readonly string[],
-  value: string,
-  store: Map<string, string>,
-) {
+function setTokens(tokens: readonly string[], value: string, store: Map<string, string>) {
   const root = document.documentElement;
   for (const token of tokens) {
     if (!store.has(token)) store.set(token, root.style.getPropertyValue(token));
@@ -130,12 +132,16 @@ export function applyWhiteLabelColor(
   if (typeof document === "undefined") return () => {};
 
   const palette: BrandPalette =
-    typeof paletteOrPrimary === "string"
-      ? { primary: paletteOrPrimary }
-      : paletteOrPrimary || {};
+    typeof paletteOrPrimary === "string" ? { primary: paletteOrPrimary } : paletteOrPrimary || {};
 
   // Nothing to apply → no-op cleanup
-  if (!palette.primary && !palette.secondary && !palette.accent && !palette.sidebar && !palette.button) {
+  if (
+    !palette.primary &&
+    !palette.secondary &&
+    !palette.accent &&
+    !palette.sidebar &&
+    !palette.button
+  ) {
     return () => {};
   }
 
@@ -230,11 +236,9 @@ const FONT_STACKS: Record<string, string> = {
   "Plus Jakarta Sans":
     "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   "DM Sans": "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  "Space Grotesk":
-    "'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "Space Grotesk": "'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   Outfit: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  "IBM Plex Sans":
-    "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "IBM Plex Sans": "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
 
 export const SUPPORTED_FONTS = Object.keys(FONT_STACKS);

@@ -3,8 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -105,17 +104,17 @@ Deno.serve(async (req) => {
     }
 
     // 6. Get email + reset password
-    const { data: targetUser, error: getUserErr } =
-      await admin.auth.admin.getUserById(clientOwnerRole.user_id);
+    const { data: targetUser, error: getUserErr } = await admin.auth.admin.getUserById(
+      clientOwnerRole.user_id,
+    );
 
     if (getUserErr || !targetUser.user) {
       return json({ error: "Target user not found" }, 404);
     }
 
-    const { error: updateErr } = await admin.auth.admin.updateUserById(
-      clientOwnerRole.user_id,
-      { password: newPassword },
-    );
+    const { error: updateErr } = await admin.auth.admin.updateUserById(clientOwnerRole.user_id, {
+      password: newPassword,
+    });
 
     if (updateErr) {
       return json({ error: updateErr.message }, 400);
@@ -129,9 +128,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("reset-client-password error:", err);
-    return json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
-      500,
-    );
+    return json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
   }
 });

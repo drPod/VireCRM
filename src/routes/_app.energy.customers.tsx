@@ -4,7 +4,8 @@ import { EnergyTablePage, type EnergyTableConfig } from "@/components/energy/Ene
 const config: EnergyTableConfig = {
   table: "energy_customers",
   title: "Active Customers",
-  description: "Customers currently enrolled — track deal details, supplier switches, and contract terms.",
+  description:
+    "Customers currently enrolled — track deal details, supplier switches, and contract terms.",
   statusOptions: ["active", "inactive", "churned"],
   columns: [
     { key: "deal_name", label: "Deal" },

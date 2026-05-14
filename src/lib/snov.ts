@@ -59,10 +59,7 @@ async function getSnovAccessToken(rawKey: string): Promise<string> {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw makeSnovError(
-      `Snov auth failed (${res.status}): ${text.slice(0, 200)}`,
-      res.status,
-    );
+    throw makeSnovError(`Snov auth failed (${res.status}): ${text.slice(0, 200)}`, res.status);
   }
 
   const json = (await res.json()) as { access_token?: string };

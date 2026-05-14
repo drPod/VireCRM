@@ -5,7 +5,16 @@ const config: EnergyTableConfig = {
   table: "solar_projects",
   title: "Solar Projects",
   description: "Track every homeowner from site survey through PTO.",
-  statusOptions: ["site_survey", "design", "proposal_sent", "contract_signed", "permitting", "installed", "pto", "lost"],
+  statusOptions: [
+    "site_survey",
+    "design",
+    "proposal_sent",
+    "contract_signed",
+    "permitting",
+    "installed",
+    "pto",
+    "lost",
+  ],
   columns: [
     { key: "homeowner_name", label: "Homeowner" },
     { key: "property_address", label: "Address" },

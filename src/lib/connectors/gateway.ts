@@ -14,7 +14,10 @@ const GATEWAY_BASE = "https://connector-gateway.lovable.dev";
 
 function requireEnv(name: string): string {
   const v = process.env[name];
-  if (!v) throw new Error(`${name} is not configured. Connect this integration in Settings → Integrations.`);
+  if (!v)
+    throw new Error(
+      `${name} is not configured. Connect this integration in Settings → Integrations.`,
+    );
   return v;
 }
 
@@ -70,7 +73,9 @@ export async function callGateway<T = unknown>(opts: GatewayCallOptions): Promis
 
   if (!res.ok) {
     const detail = typeof data === "string" ? data : JSON.stringify(data);
-    throw new Error(`${opts.connectorId} gateway call failed [${res.status}]: ${detail.slice(0, 500)}`);
+    throw new Error(
+      `${opts.connectorId} gateway call failed [${res.status}]: ${detail.slice(0, 500)}`,
+    );
   }
 
   return data as T;
@@ -87,7 +92,9 @@ export async function callGateway<T = unknown>(opts: GatewayCallOptions): Promis
  * This call ensures any cached tokens at the gateway layer are dropped so the
  * next call requires re-auth.
  */
-export async function revokeConnectorCredentials(envVar: string): Promise<{ ok: boolean; error?: string }> {
+export async function revokeConnectorCredentials(
+  envVar: string,
+): Promise<{ ok: boolean; error?: string }> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const connectorKey = process.env[envVar];
   if (!lovableKey || !connectorKey) {
@@ -118,7 +125,9 @@ export async function revokeConnectorCredentials(envVar: string): Promise<{ ok: 
  * Best-effort credentials check — used by the UI to display a "verified" badge
  * without actually performing a destructive action.
  */
-export async function verifyConnectorCredentials(envVar: string): Promise<{ ok: boolean; error?: string }> {
+export async function verifyConnectorCredentials(
+  envVar: string,
+): Promise<{ ok: boolean; error?: string }> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const connectorKey = process.env[envVar];
   if (!lovableKey || !connectorKey) {

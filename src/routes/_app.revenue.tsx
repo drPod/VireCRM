@@ -206,7 +206,11 @@ function RevenuePage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={m.monthly}>
-                  <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+                  <CartesianGrid
+                    stroke="hsl(var(--border))"
+                    strokeDasharray="3 3"
+                    vertical={false}
+                  />
                   <XAxis
                     dataKey="month"
                     stroke="hsl(var(--muted-foreground))"
@@ -223,9 +227,24 @@ function RevenuePage() {
                   />
                   <Tooltip content={<MoneyTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="revenue" name="Revenue" fill="oklch(0.7 0.18 160)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expenses" name="Expenses" fill="oklch(0.7 0.18 30)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="payouts" name="Payouts" fill="oklch(0.7 0.18 290)" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="revenue"
+                    name="Revenue"
+                    fill="oklch(0.7 0.18 160)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="expenses"
+                    name="Expenses"
+                    fill="oklch(0.7 0.18 30)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="payouts"
+                    name="Payouts"
+                    fill="oklch(0.7 0.18 290)"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -259,15 +278,19 @@ function RevenuePage() {
           <Sparkles className="mx-auto h-8 w-8 text-primary/50 mb-3" />
           <h3 className="text-sm font-semibold text-foreground">No revenue tracked yet</h3>
           <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-            Add a deal value to your leads and mark them as <span className="font-medium">won</span> to start tracking
-            revenue. Or log an expense to track your business costs.
+            Add a deal value to your leads and mark them as <span className="font-medium">won</span>{" "}
+            to start tracking revenue. Or log an expense to track your business costs.
           </p>
           <div className="flex gap-2 justify-center mt-4">
             <Link to="/leads">
-              <Button variant="outline" size="sm">Go to Leads</Button>
+              <Button variant="outline" size="sm">
+                Go to Leads
+              </Button>
             </Link>
             <Link to="/expenses">
-              <Button variant="command" size="sm">Log first expense</Button>
+              <Button variant="command" size="sm">
+                Log first expense
+              </Button>
             </Link>
           </div>
         </div>
@@ -338,7 +361,9 @@ function PlRow({
           : "text-foreground";
   return (
     <div className="flex items-center justify-between">
-      <span className={`text-sm ${bold ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+      <span
+        className={`text-sm ${bold ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+      >
         {label}
       </span>
       <span className={`text-sm tabular-nums ${bold ? "font-bold" : "font-medium"} ${color}`}>
@@ -373,7 +398,11 @@ function ChartSkeleton() {
   return <div className="h-full w-full rounded-lg bg-muted/30 animate-pulse" />;
 }
 
-function MoneyTooltip(props: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
+function MoneyTooltip(props: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+}) {
   if (!props.active || !props.payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-popover p-2.5 shadow-lg">

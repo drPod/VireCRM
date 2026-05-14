@@ -10,15 +10,7 @@ import {
   applyWhiteLabelColor,
   SUPPORTED_FONTS,
 } from "@/lib/white-label-theme";
-import {
-  ArrowLeft,
-  Eye,
-  Mail,
-  Sparkles,
-  Users,
-  TrendingUp,
-  Shield,
-} from "lucide-react";
+import { ArrowLeft, Eye, Mail, Sparkles, Users, TrendingUp, Shield } from "lucide-react";
 
 const searchSchema = z.object({
   brandName: z.string().optional(),
@@ -80,8 +72,7 @@ function BrandingPreviewPage() {
   const initial: DraftBranding = useMemo(
     () => ({
       brandName: search.brandName ?? organization?.brand_name ?? "Acme CRM",
-      primaryColor:
-        search.primaryColor ?? organization?.primary_color ?? "#7c3aed",
+      primaryColor: search.primaryColor ?? organization?.primary_color ?? "#7c3aed",
       secondaryColor: search.secondaryColor ?? orgExt?.secondary_color ?? "",
       accentColor: search.accentColor ?? orgExt?.accent_color ?? "",
       sidebarColor: search.sidebarColor ?? orgExt?.sidebar_color ?? "",
@@ -130,7 +121,10 @@ function BrandingPreviewPage() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            <Link to="/settings" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+            <Link
+              to="/settings"
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+            >
               <ArrowLeft className="h-3 w-3" />
               Back to Settings
             </Link>
@@ -140,7 +134,8 @@ function BrandingPreviewPage() {
             Branding Preview
           </h1>
           <p className="text-sm text-muted-foreground">
-            Tweak your branding here to see it live across the CRM, storefront, and emails. Nothing is saved until you publish from Settings.
+            Tweak your branding here to see it live across the CRM, storefront, and emails. Nothing
+            is saved until you publish from Settings.
           </p>
         </div>
         <Badge variant="secondary" className="gap-1">
@@ -249,17 +244,15 @@ function BrandingPreviewPage() {
             </div>
 
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Changes here only affect your current browser tab. Use the Settings page to save them for everyone on your team.
+              Changes here only affect your current browser tab. Use the Settings page to save them
+              for everyone on your team.
             </p>
           </div>
         </aside>
 
         {/* Live previews */}
         <div className="space-y-6 min-w-0">
-          <PreviewBlock
-            title="CRM dashboard"
-            description="How your team sees the app every day."
-          >
+          <PreviewBlock title="CRM dashboard" description="How your team sees the app every day.">
             <CrmPreview draft={draft} />
           </PreviewBlock>
 
@@ -270,10 +263,7 @@ function BrandingPreviewPage() {
             <StorefrontPreview draft={draft} />
           </PreviewBlock>
 
-          <PreviewBlock
-            title="Outbound email"
-            description="Branded outreach sent on your behalf."
-          >
+          <PreviewBlock title="Outbound email" description="Branded outreach sent on your behalf.">
             <EmailPreview draft={draft} />
           </PreviewBlock>
         </div>
@@ -308,11 +298,7 @@ function PaletteField({
       <div className="flex items-center justify-between">
         <label className="text-xs font-medium text-muted-foreground">
           {label}
-          {optional && (
-            <span className="ml-1 text-[10px] text-muted-foreground/70">
-              optional
-            </span>
-          )}
+          {optional && <span className="ml-1 text-[10px] text-muted-foreground/70">optional</span>}
         </label>
         {optional && value && (
           <button
@@ -387,10 +373,7 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
               onError={(e) => (e.currentTarget.style.display = "none")}
             />
           ) : (
-            <div
-              className="h-6 w-6 rounded"
-              style={{ backgroundColor: draft.primaryColor }}
-            />
+            <div className="h-6 w-6 rounded" style={{ backgroundColor: draft.primaryColor }} />
           )}
           <span className="text-sm font-semibold text-foreground">
             {draft.brandName || "Your brand"}
@@ -432,9 +415,7 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
                 className="h-3.5 w-3.5"
                 style={!active ? { color: draft.primaryColor } : undefined}
               />
-              <span className={active ? "font-semibold" : undefined}>
-                {label}
-              </span>
+              <span className={active ? "font-semibold" : undefined}>{label}</span>
             </div>
           ))}
         </div>
@@ -443,9 +424,7 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
         <div className="p-4 space-y-4">
           <div>
             <p className="text-xs text-muted-foreground">Welcome back</p>
-            <h2 className="text-base font-semibold text-foreground">
-              Pipeline this week
-            </h2>
+            <h2 className="text-base font-semibold text-foreground">Pipeline this week</h2>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
@@ -461,10 +440,7 @@ function CrmPreview({ draft }: { draft: DraftBranding }) {
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   {m.label}
                 </p>
-                <p
-                  className="text-lg font-bold"
-                  style={{ color: draft.primaryColor }}
-                >
+                <p className="text-lg font-bold" style={{ color: draft.primaryColor }}>
                   {m.value}
                 </p>
               </div>
@@ -518,10 +494,7 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
               onError={(e) => (e.currentTarget.style.display = "none")}
             />
           ) : (
-            <div
-              className="h-6 w-6 rounded"
-              style={{ backgroundColor: draft.primaryColor }}
-            />
+            <div className="h-6 w-6 rounded" style={{ backgroundColor: draft.primaryColor }} />
           )}
           <span className="text-sm font-semibold text-foreground">
             {draft.brandName || "Your brand"}
@@ -549,9 +522,7 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
         >
           Built for {draft.brandName || "your business"}
         </span>
-        <h2 className="text-2xl font-bold text-foreground">
-          The CRM your team will actually use.
-        </h2>
+        <h2 className="text-2xl font-bold text-foreground">The CRM your team will actually use.</h2>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           Capture leads, automate follow-ups, and close more deals — all under your brand.
         </p>
@@ -588,10 +559,12 @@ function StorefrontPreview({ draft }: { draft: DraftBranding }) {
 
 function EmailPreview({ draft }: { draft: DraftBranding }) {
   const fontStyle = draft.fontFamily ? { fontFamily: draft.fontFamily } : undefined;
-  const signature =
-    draft.emailSignature.trim() || `— The ${draft.brandName || "Your brand"} team`;
+  const signature = draft.emailSignature.trim() || `— The ${draft.brandName || "Your brand"} team`;
   return (
-    <div className="rounded-lg border border-border bg-background overflow-hidden" style={fontStyle}>
+    <div
+      className="rounded-lg border border-border bg-background overflow-hidden"
+      style={fontStyle}
+    >
       <div
         className="px-5 py-4 flex items-center gap-3"
         style={{
@@ -606,15 +579,10 @@ function EmailPreview({ draft }: { draft: DraftBranding }) {
             onError={(e) => (e.currentTarget.style.display = "none")}
           />
         ) : (
-          <div
-            className="h-8 w-8 rounded"
-            style={{ backgroundColor: draft.primaryColor }}
-          />
+          <div className="h-8 w-8 rounded" style={{ backgroundColor: draft.primaryColor }} />
         )}
         <div>
-          <p className="text-sm font-semibold text-foreground">
-            {draft.brandName || "Your brand"}
-          </p>
+          <p className="text-sm font-semibold text-foreground">{draft.brandName || "Your brand"}</p>
           <p className="text-[11px] text-muted-foreground">
             no-reply@{(draft.brandName || "yourbrand").toLowerCase().replace(/\s+/g, "")}.com
           </p>
@@ -623,9 +591,8 @@ function EmailPreview({ draft }: { draft: DraftBranding }) {
       <div className="p-5 space-y-3 text-sm text-foreground">
         <p>Hi Jordan,</p>
         <p>
-          I noticed your team has been growing fast — congrats! I'd love to show
-          you how {draft.brandName || "we"} can help you keep every new lead
-          warm without lifting a finger.
+          I noticed your team has been growing fast — congrats! I'd love to show you how{" "}
+          {draft.brandName || "we"} can help you keep every new lead warm without lifting a finger.
         </p>
         <p>Are you open to a 15-minute call this week?</p>
         <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
@@ -641,7 +608,13 @@ function EmailPreview({ draft }: { draft: DraftBranding }) {
 function hexToRgb(hex: string): [number, number, number] | null {
   const m = hex.replace("#", "").trim();
   if (m.length !== 3 && m.length !== 6) return null;
-  const full = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+  const full =
+    m.length === 3
+      ? m
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : m;
   const num = parseInt(full, 16);
   if (Number.isNaN(num)) return null;
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];

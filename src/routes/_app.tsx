@@ -72,7 +72,9 @@ function AppLayout() {
         .maybeSingle();
       if (!cancelled) setOnboardingDone(!!data?.onboarding_completed_at);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user, profile?.organization_id]);
 
   // Product tour state — auto-launches on first sign-in once onboarding is
@@ -96,7 +98,9 @@ function AppLayout() {
         setTimeout(() => setTourOpen(true), 600);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user, onboardingDone]);
 
   // Listen for manual "Restart tour" requests from the sidebar.
@@ -124,7 +128,7 @@ function AppLayout() {
         // Preserve the path (and query) the user was trying to reach so /login
         // can send them back after they sign in. Defaults to /dashboard.
         const returnTo = safeReturnTo(
-          `${location.pathname}${location.search ?? ""}` || "/dashboard"
+          `${location.pathname}${location.search ?? ""}` || "/dashboard",
         );
         navigate({
           to: "/login",
@@ -172,7 +176,6 @@ function AppLayout() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <CrmSidebar />
         <main className="flex-1 overflow-y-auto">

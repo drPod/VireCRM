@@ -46,7 +46,10 @@ const VERIFIERS: Record<string, Verifier> = {
       .gte("created_at", since);
     if (error) return { status: "fail", detail: `messages query error: ${error.message}` };
     return (count ?? 0) > 0
-      ? { status: "pass", detail: `Found ${count} message(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      ? {
+          status: "pass",
+          detail: `Found ${count} message(s) in the last ${VERIFY_WINDOW_MIN} min.`,
+        }
       : { status: "fail", detail: `No messages created in the last ${VERIFY_WINDOW_MIN} min.` };
   },
   "reply-thread": async () => {
@@ -57,7 +60,10 @@ const VERIFIERS: Record<string, Verifier> = {
       .gte("created_at", since);
     if (error) return { status: "fail", detail: `conversation_messages error: ${error.message}` };
     return (count ?? 0) > 0
-      ? { status: "pass", detail: `Found ${count} reply/message(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      ? {
+          status: "pass",
+          detail: `Found ${count} reply/message(s) in the last ${VERIFY_WINDOW_MIN} min.`,
+        }
       : { status: "fail", detail: `No replies in the last ${VERIFY_WINDOW_MIN} min.` };
   },
   "command-plan": async () => {
@@ -103,7 +109,10 @@ const VERIFIERS: Record<string, Verifier> = {
       .gte("deleted_at", since);
     if (error) return { status: "fail", detail: `leads query error: ${error.message}` };
     return (count ?? 0) > 0
-      ? { status: "pass", detail: `Found ${count} soft-deleted lead(s) in the last ${VERIFY_WINDOW_MIN} min.` }
+      ? {
+          status: "pass",
+          detail: `Found ${count} soft-deleted lead(s) in the last ${VERIFY_WINDOW_MIN} min.`,
+        }
       : { status: "fail", detail: `No leads soft-deleted in the last ${VERIFY_WINDOW_MIN} min.` };
   },
 };
@@ -199,7 +208,8 @@ const SECTIONS: QaSection[] = [
           'Submit: "Draft a re-engagement email for cold leads".',
           "Confirm planned steps render in the Task Status panel.",
         ],
-        expect: "Plan returns within ~10s, steps appear as 'planned'. No silent failure — errors surface as toasts.",
+        expect:
+          "Plan returns within ~10s, steps appear as 'planned'. No silent failure — errors surface as toasts.",
       },
       {
         id: "command-execute",
@@ -227,7 +237,7 @@ const SECTIONS: QaSection[] = [
         href: { to: "/leads", label: "Open Leads" },
         steps: [
           "Open Leads and pick a disposable test lead.",
-          'Click the delete (trash) icon on the lead card.',
+          "Click the delete (trash) icon on the lead card.",
           "Inspect the confirm dialog: hard vs soft delete copy and the related-data note should be visible.",
         ],
         expect:
@@ -312,7 +322,10 @@ function QaChecklistPage() {
     saveState({ statuses, notes, log });
   }, [statuses, notes, log, hydrated]);
 
-  const allSteps = useMemo(() => SECTIONS.flatMap((s) => s.steps.map((step) => ({ section: s, step }))), []);
+  const allSteps = useMemo(
+    () => SECTIONS.flatMap((s) => s.steps.map((step) => ({ section: s, step }))),
+    [],
+  );
   const totals = useMemo(() => {
     let pass = 0;
     let fail = 0;
@@ -365,7 +378,13 @@ function QaChecklistPage() {
       setStatuses((prev) => ({ ...prev, [stepId]: result.status }));
       setLog((prev) =>
         [
-          { ts: new Date().toISOString(), sectionId, stepId, status: result.status, note: `auto: ${result.detail}` },
+          {
+            ts: new Date().toISOString(),
+            sectionId,
+            stepId,
+            status: result.status,
+            note: `auto: ${result.detail}`,
+          },
           ...prev,
         ].slice(0, 200),
       );
@@ -436,7 +455,8 @@ function QaChecklistPage() {
           </div>
           <h1 className="text-2xl font-bold text-foreground">QA Checklist</h1>
           <p className="text-sm text-muted-foreground">
-            Walk through the four buyer-critical flows. Mark each step pass or fail and export the log when done.
+            Walk through the four buyer-critical flows. Mark each step pass or fail and export the
+            log when done.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -468,7 +488,10 @@ function QaChecklistPage() {
 
       <div className="space-y-5">
         {SECTIONS.map((section) => (
-          <section key={section.id} className="rounded-xl border border-border bg-card overflow-hidden">
+          <section
+            key={section.id}
+            className="rounded-xl border border-border bg-card overflow-hidden"
+          >
             <div className="border-b border-border p-4">
               <h2 className="text-lg font-semibold text-foreground">{section.title}</h2>
               <p className="text-sm text-muted-foreground mt-0.5">{section.summary}</p>
@@ -592,7 +615,9 @@ function QaChecklistPage() {
                     </span>
                   </div>
                   {entry.note && (
-                    <p className="text-muted-foreground mt-1 whitespace-pre-wrap break-words">{entry.note}</p>
+                    <p className="text-muted-foreground mt-1 whitespace-pre-wrap break-words">
+                      {entry.note}
+                    </p>
                   )}
                 </div>
               </li>

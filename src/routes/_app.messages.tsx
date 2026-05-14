@@ -96,7 +96,12 @@ function asMessageType(t: string): MessageType {
   return t === "email" || t === "sms" || t === "ai_generated" ? t : "email";
 }
 function asMessageStatus(s: string): MessageStatus {
-  return s === "draft" || s === "sent" || s === "delivered" || s === "opened" || s === "replied" || s === "bounced"
+  return s === "draft" ||
+    s === "sent" ||
+    s === "delivered" ||
+    s === "opened" ||
+    s === "replied" ||
+    s === "bounced"
     ? s
     : "draft";
 }
@@ -309,7 +314,10 @@ function MessagesPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-2">
-                  <Badge variant={statusVariants[selected.status]} className="capitalize text-[10px]">
+                  <Badge
+                    variant={statusVariants[selected.status]}
+                    className="capitalize text-[10px]"
+                  >
                     {selected.status}
                   </Badge>
                   {selected.sentiment && (

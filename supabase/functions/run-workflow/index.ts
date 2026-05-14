@@ -71,7 +71,9 @@ Deno.serve(async (req: Request) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin: any = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  const { data: { user } } = await userClient.auth.getUser();
+  const {
+    data: { user },
+  } = await userClient.auth.getUser();
   if (!user) return json({ error: "Unauthorized" }, 401);
 
   const { data: profile } = await admin
@@ -124,10 +126,19 @@ Deno.serve(async (req: Request) => {
   return json({ run_id: run.id, ...out });
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function executeRun(admin: any, authHeader: string, orgId: string, runId: string, workflowId: string, leadId: string | null) {
+async function executeRun(
+  admin: any,
+  authHeader: string,
+  orgId: string,
+  runId: string,
+  workflowId: string,
+  leadId: string | null,
+) {
   const startedAt = new Date().toISOString();
-  await admin.from("workflow_runs").update({ status: "running", started_at: startedAt }).eq("id", runId);
+  await admin
+    .from("workflow_runs")
+    .update({ status: "running", started_at: startedAt })
+    .eq("id", runId);
 
   const { data: wf, error: wfErr } = await admin
     .from("workflows")
@@ -136,7 +147,14 @@ async function executeRun(admin: any, authHeader: string, orgId: string, runId: 
     .eq("organization_id", orgId)
     .maybeSingle();
   if (wfErr || !wf) {
-    await admin.from("workflow_runs").update({ status: "failed", error: "workflow not found", finished_at: new Date().toISOString() }).eq("id", runId);
+    await admin
+      .from("workflow_runs")
+      .update({
+        status: "failed",
+        error: "workflow not found",
+        finished_at: new Date().toISOString(),
+      })
+      .eq("id", runId);
     return { status: "failed", error: "workflow not found" };
   }
 
@@ -145,7 +163,10 @@ async function executeRun(admin: any, authHeader: string, orgId: string, runId: 
 
   const trigger = nodes.find((n) => n.data?.kind?.startsWith("trigger."));
   if (!trigger) {
-    await admin.from("workflow_runs").update({ status: "failed", error: "no trigger node", finished_at: new Date().toISOString() }).eq("id", runId);
+    await admin
+      .from("workflow_runs")
+      .update({ status: "failed", error: "no trigger node", finished_at: new Date().toISOString() })
+      .eq("id", runId);
     return { status: "failed", error: "no trigger node" };
   }
 
@@ -171,7 +192,10 @@ async function executeRun(admin: any, authHeader: string, orgId: string, runId: 
       const step = await executeNode(admin, authHeader, node, leadId);
       await logStep(admin, runId, node, step.status, step.message, step.output, step.duration_ms);
       if (step.status === "error") {
-        await admin.from("workflow_runs").update({ status: "failed", error: step.message, finished_at: new Date().toISOString() }).eq("id", runId);
+        await admin
+          .from("workflow_runs")
+          .update({ status: "failed", error: step.message, finished_at: new Date().toISOString() })
+          .eq("id", runId);
         return { status: "failed", error: step.message };
       }
       if (step.pause_until) {
@@ -194,11 +218,21 @@ async function executeRun(admin: any, authHeader: string, orgId: string, runId: 
   }
 
   if (pausedUntil) {
-    await admin.from("workflow_runs").update({ status: "paused", paused_until: pausedUntil, finished_at: new Date().toISOString() }).eq("id", runId);
+    await admin
+      .from("workflow_runs")
+      .update({
+        status: "paused",
+        paused_until: pausedUntil,
+        finished_at: new Date().toISOString(),
+      })
+      .eq("id", runId);
     return { status: "paused", paused_until: pausedUntil };
   }
 
-  await admin.from("workflow_runs").update({ status: "completed", finished_at: new Date().toISOString() }).eq("id", runId);
+  await admin
+    .from("workflow_runs")
+    .update({ status: "completed", finished_at: new Date().toISOString() })
+    .eq("id", runId);
   return { status: "completed", steps_executed: executed };
 }
 
@@ -238,7 +272,8 @@ async function executeNode(
         body: JSON.stringify({ lead_id: leadId, ...config }),
       });
       const out = await res.json().catch(() => ({}));
-      if (!res.ok) return done(start, "error", out.error ?? `Agent ${fnName} failed (${res.status})`, out);
+      if (!res.ok)
+        return done(start, "error", out.error ?? `Agent ${fnName} failed (${res.status})`, out);
       return done(start, "ok", `${fnName} done`, out);
     }
 
@@ -246,7 +281,11 @@ async function executeNode(
       if (!leadId) return done(start, "skipped", "no lead", {});
       const tag = String(config.tag ?? "").trim();
       if (!tag) return done(start, "skipped", "empty tag", {});
-      const { data: lead } = await admin.from("leads").select("tags").eq("id", leadId).maybeSingle();
+      const { data: lead } = await admin
+        .from("leads")
+        .select("tags")
+        .eq("id", leadId)
+        .maybeSingle();
       const next = Array.from(new Set([...(lead?.tags ?? []), tag]));
       await admin.from("leads").update({ tags: next }).eq("id", leadId);
       return done(start, "ok", `tagged "${tag}"`, { tags: next });
@@ -258,7 +297,11 @@ async function executeNode(
       const subject = String(config.subject ?? "");
       const body = String(config.body ?? "");
       if (!subject && !body) return done(start, "skipped", "empty email", {});
-      const { data: lead } = await admin.from("leads").select("organization_id").eq("id", leadId).maybeSingle();
+      const { data: lead } = await admin
+        .from("leads")
+        .select("organization_id")
+        .eq("id", leadId)
+        .maybeSingle();
       if (!lead?.organization_id) return done(start, "error", "lead has no org", {});
       await admin.from("messages").insert({
         organization_id: lead.organization_id,
@@ -275,7 +318,8 @@ async function executeNode(
     if (kind === "action.wait") {
       const amount = Number(config.amount ?? 0);
       const unit = String(config.unit ?? "minutes");
-      const ms = unit === "days" ? amount * 86400000 : unit === "hours" ? amount * 3600000 : amount * 60000;
+      const ms =
+        unit === "days" ? amount * 86400000 : unit === "hours" ? amount * 3600000 : amount * 60000;
       const until = new Date(Date.now() + ms).toISOString();
       return { ...done(start, "ok", `waiting until ${until}`, { until }), pause_until: until };
     }
@@ -291,15 +335,32 @@ async function executeNode(
       const right = isNaN(Number(value)) ? value : Number(value);
       let pass = false;
       switch (op) {
-        case ">": pass = Number(left) > Number(right); break;
-        case "<": pass = Number(left) < Number(right); break;
-        case ">=": pass = Number(left) >= Number(right); break;
-        case "<=": pass = Number(left) <= Number(right); break;
-        case "==": case "=": pass = left == right; break;
-        case "!=": pass = left != right; break;
-        default: pass = false;
+        case ">":
+          pass = Number(left) > Number(right);
+          break;
+        case "<":
+          pass = Number(left) < Number(right);
+          break;
+        case ">=":
+          pass = Number(left) >= Number(right);
+          break;
+        case "<=":
+          pass = Number(left) <= Number(right);
+          break;
+        case "==":
+        case "=":
+          pass = left == right;
+          break;
+        case "!=":
+          pass = left != right;
+          break;
+        default:
+          pass = false;
       }
-      return { ...done(start, "ok", `${field} ${op} ${right} → ${pass}`, { pass }), next_handle: pass ? "true" : "false" };
+      return {
+        ...done(start, "ok", `${field} ${op} ${right} → ${pass}`, { pass }),
+        next_handle: pass ? "true" : "false",
+      };
     }
 
     return done(start, "skipped", `unsupported kind ${kind}`, {});
@@ -308,7 +369,12 @@ async function executeNode(
   }
 }
 
-function done(start: number, status: "ok" | "error" | "skipped", message: string, output: Record<string, unknown>): StepResult {
+function done(
+  start: number,
+  status: "ok" | "error" | "skipped",
+  message: string,
+  output: Record<string, unknown>,
+): StepResult {
   return { status, message, output, duration_ms: Date.now() - start };
 }
 

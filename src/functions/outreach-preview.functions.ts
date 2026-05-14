@@ -3,10 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
-import {
-  deliverOutreachEmail,
-  loadOutreachDeliveryChannels,
-} from "@/lib/email/outreach-delivery";
+import { deliverOutreachEmail, loadOutreachDeliveryChannels } from "@/lib/email/outreach-delivery";
 import { fillTemplateTokens } from "@/lib/outreach/template-fill";
 import { z } from "zod";
 
@@ -208,7 +205,9 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
     // Pull org branding + reply-to (business inbox) in one shot.
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, support_email, logo_url, primary_color, font_family, email_signature")
+      .select(
+        "name, brand_name, support_email, logo_url, primary_color, font_family, email_signature",
+      )
       .eq("id", data.organizationId)
       .maybeSingle();
 
@@ -290,10 +289,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
     }
 
     // 3. Mark sent + advance lead to "contacted" if still new.
-    await supabase
-      .from("messages")
-      .update({ status: "sent" })
-      .eq("id", inserted.id);
+    await supabase.from("messages").update({ status: "sent" }).eq("id", inserted.id);
 
     await supabase
       .from("leads")

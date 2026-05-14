@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle2, XCircle, Clock, PlayCircle, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  PlayCircle,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RunRow {
@@ -23,13 +31,14 @@ interface RunStep {
   created_at: string;
 }
 
-const STATUS_META: Record<RunRow["status"], { icon: typeof Clock; color: string; label: string }> = {
-  queued: { icon: Clock, color: "text-muted-foreground", label: "Queued" },
-  running: { icon: Loader2, color: "text-primary animate-spin", label: "Running" },
-  completed: { icon: CheckCircle2, color: "text-success", label: "Completed" },
-  failed: { icon: XCircle, color: "text-destructive", label: "Failed" },
-  paused: { icon: PlayCircle, color: "text-amber-400", label: "Paused" },
-};
+const STATUS_META: Record<RunRow["status"], { icon: typeof Clock; color: string; label: string }> =
+  {
+    queued: { icon: Clock, color: "text-muted-foreground", label: "Queued" },
+    running: { icon: Loader2, color: "text-primary animate-spin", label: "Running" },
+    completed: { icon: CheckCircle2, color: "text-success", label: "Completed" },
+    failed: { icon: XCircle, color: "text-destructive", label: "Failed" },
+    paused: { icon: PlayCircle, color: "text-amber-400", label: "Paused" },
+  };
 
 export function WorkflowRunsPanel({ workflowId }: { workflowId: string }) {
   const [runs, setRuns] = useState<RunRow[]>([]);
@@ -53,7 +62,10 @@ export function WorkflowRunsPanel({ workflowId }: { workflowId: string }) {
     };
     void load();
     const t = setInterval(load, 4000);
-    return () => { active = false; clearInterval(t); };
+    return () => {
+      active = false;
+      clearInterval(t);
+    };
   }, [workflowId]);
 
   const toggleExpand = async (runId: string) => {
@@ -76,7 +88,11 @@ export function WorkflowRunsPanel({ workflowId }: { workflowId: string }) {
     return <div className="p-3 text-xs text-muted-foreground">Loading runs…</div>;
   }
   if (runs.length === 0) {
-    return <div className="p-3 text-xs text-muted-foreground">No runs yet. Click "Test run" to fire one.</div>;
+    return (
+      <div className="p-3 text-xs text-muted-foreground">
+        No runs yet. Click "Test run" to fire one.
+      </div>
+    );
   }
 
   return (
@@ -92,7 +108,11 @@ export function WorkflowRunsPanel({ workflowId }: { workflowId: string }) {
               onClick={() => void toggleExpand(run.id)}
               className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/50"
             >
-              {isOpen ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+              {isOpen ? (
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              )}
               <Icon className={`h-3.5 w-3.5 ${meta.color}`} />
               <span className="font-medium text-foreground">{meta.label}</span>
               <span className="text-muted-foreground">·</span>
@@ -103,17 +123,25 @@ export function WorkflowRunsPanel({ workflowId }: { workflowId: string }) {
             </button>
             {isOpen && (
               <div className="space-y-1 bg-muted/20 px-6 py-2">
-                {run.error && (
-                  <p className="text-destructive">{run.error}</p>
-                )}
+                {run.error && <p className="text-destructive">{run.error}</p>}
                 {(steps[run.id] ?? []).map((s) => (
                   <div key={s.id} className="flex items-center gap-2">
-                    <span className={s.status === "error" ? "text-destructive" : s.status === "skipped" ? "text-muted-foreground" : "text-success"}>
+                    <span
+                      className={
+                        s.status === "error"
+                          ? "text-destructive"
+                          : s.status === "skipped"
+                            ? "text-muted-foreground"
+                            : "text-success"
+                      }
+                    >
                       {s.status === "ok" ? "✓" : s.status === "error" ? "✕" : "·"}
                     </span>
                     <span className="font-mono text-foreground">{s.node_kind}</span>
                     {s.message && <span className="text-muted-foreground">— {s.message}</span>}
-                    {s.duration_ms ? <span className="ml-auto text-muted-foreground">{s.duration_ms}ms</span> : null}
+                    {s.duration_ms ? (
+                      <span className="ml-auto text-muted-foreground">{s.duration_ms}ms</span>
+                    ) : null}
                   </div>
                 ))}
                 {(steps[run.id]?.length ?? 0) === 0 && (

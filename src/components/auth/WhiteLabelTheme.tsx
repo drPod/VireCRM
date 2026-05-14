@@ -1,10 +1,6 @@
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useEffect } from "react";
-import {
-  applyBrandFont,
-  applyFavicon,
-  applyWhiteLabelColor,
-} from "@/lib/white-label-theme";
+import { applyBrandFont, applyFavicon, applyWhiteLabelColor } from "@/lib/white-label-theme";
 
 /**
  * Applies dynamic white-label theming based on the org's branding fields:

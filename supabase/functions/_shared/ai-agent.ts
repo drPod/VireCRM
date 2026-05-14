@@ -56,7 +56,9 @@ export async function authenticate(req: Request): Promise<AgentContext | Respons
   });
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  const { data: { user } } = await userClient.auth.getUser();
+  const {
+    data: { user },
+  } = await userClient.auth.getUser();
   if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
 
   const { data: profile } = await admin
@@ -132,7 +134,10 @@ export async function callStructured<T = any>(args: CallAIArgs): Promise<T> {
     throw jsonResponse({ error: "AI rate limit exceeded — try again shortly." }, 429);
   }
   if (res.status === 402) {
-    throw jsonResponse({ error: "AI credits exhausted. Top up in Settings → Workspace → Usage." }, 402);
+    throw jsonResponse(
+      { error: "AI credits exhausted. Top up in Settings → Workspace → Usage." },
+      402,
+    );
   }
   if (!res.ok) {
     const text = await res.text();

@@ -111,7 +111,9 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
       });
       setResult(res);
       if (res.inserted > 0) {
-        toast.success(`Imported ${res.inserted} new lead${res.inserted > 1 ? "s" : ""} from "${list.name}"`);
+        toast.success(
+          `Imported ${res.inserted} new lead${res.inserted > 1 ? "s" : ""} from "${list.name}"`,
+        );
         onLeadsImported?.();
       } else if (res.duplicates > 0) {
         toast.info(`All ${res.duplicates} leads from this list are already in your CRM.`);
@@ -128,8 +130,7 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
     }
   };
 
-  const showSettingsCta =
-    isOwner && (errorCode === "INTEGRATION_MISSING" || errorCode === "AUTH");
+  const showSettingsCta = isOwner && (errorCode === "INTEGRATION_MISSING" || errorCode === "AUTH");
 
   return (
     <Dialog
@@ -152,7 +153,8 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
             Import from Apollo List
           </DialogTitle>
           <DialogDescription>
-            Pull contacts from a saved list in your Apollo workspace. Each lead burns 1 Apollo credit on your account.
+            Pull contacts from a saved list in your Apollo workspace. Each lead burns 1 Apollo
+            credit on your account.
           </DialogDescription>
         </DialogHeader>
 
@@ -182,10 +184,24 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
               </div>
             </div>
             <div className="flex gap-2 justify-center pt-2">
-              <Button variant="outline" size="sm" onClick={() => { setResult(null); setSelectedListId(null); }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setResult(null);
+                  setSelectedListId(null);
+                }}
+              >
                 Import another
               </Button>
-              <Button variant="command" size="sm" onClick={() => { setOpen(false); reset(); }}>
+              <Button
+                variant="command"
+                size="sm"
+                onClick={() => {
+                  setOpen(false);
+                  reset();
+                }}
+              >
                 Done
               </Button>
             </div>
@@ -209,7 +225,16 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
                 Ask your organization owner to add an Apollo API key.
               </p>
             )}
-            <Button variant="ghost" size="sm" className="w-full" onClick={() => { setError(null); setErrorCode(null); void loadLists(); }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                setError(null);
+                setErrorCode(null);
+                void loadLists();
+              }}
+            >
               Retry
             </Button>
           </div>
@@ -258,7 +283,9 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
                     }`}
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-foreground truncate">{list.name}</div>
+                      <div className="text-sm font-medium text-foreground truncate">
+                        {list.name}
+                      </div>
                       {list.count !== null && (
                         <div className="text-xs text-muted-foreground">
                           {list.count.toLocaleString()} contact{list.count !== 1 ? "s" : ""}
@@ -266,7 +293,9 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
                       )}
                     </div>
                     {selectedListId === list.id && (
-                      <Badge variant="info" className="ml-2 shrink-0">Selected</Badge>
+                      <Badge variant="info" className="ml-2 shrink-0">
+                        Selected
+                      </Badge>
                     )}
                   </button>
                 ))}
@@ -294,7 +323,8 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
                   ))}
                 </div>
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Burns up to {maxLeads} Apollo email credits ({maxLeads} × $0.01 ≈ ${(maxLeads * 0.01).toFixed(2)}).
+                  Burns up to {maxLeads} Apollo email credits ({maxLeads} × $0.01 ≈ $
+                  {(maxLeads * 0.01).toFixed(2)}).
                 </p>
               </div>
             )}

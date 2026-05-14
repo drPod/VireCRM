@@ -44,16 +44,11 @@ async function logLeadEmail(input: {
       .eq("id", input.leadId)
       .eq("status", "new");
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.warn(`[${input.provider}] message log insert failed`, err);
   }
 }
 
-async function assertMemberAndConnector(
-  userId: string,
-  organizationId: string,
-  provider: string,
-) {
+async function assertMemberAndConnector(userId: string, organizationId: string, provider: string) {
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("organization_id")
@@ -349,7 +344,12 @@ export const createLinearIssueFn = createServerFn({ method: "POST" })
 
     try {
       const result = await callGateway<{
-        data?: { issueCreate?: { success?: boolean; issue?: { id: string; identifier: string; url: string } } };
+        data?: {
+          issueCreate?: {
+            success?: boolean;
+            issue?: { id: string; identifier: string; url: string };
+          };
+        };
         errors?: Array<{ message: string }>;
       }>({
         connectorId: meta.connectorId,
@@ -428,9 +428,10 @@ export const importHubspotContactsFn = createServerFn({ method: "POST" })
 
       for (const c of contacts) {
         const p = c.properties ?? {};
-        const fullName = [p.firstname, p.lastname].filter(Boolean).join(" ").trim()
-          || p.email
-          || `HubSpot contact ${c.id}`;
+        const fullName =
+          [p.firstname, p.lastname].filter(Boolean).join(" ").trim() ||
+          p.email ||
+          `HubSpot contact ${c.id}`;
 
         if (!p.email) {
           skipped++;
@@ -603,10 +604,7 @@ const sendgridSchema = z.object({
 
 /** Convert a plain-text body to minimal HTML so SendGrid renders line breaks. */
 function plainTextToHtml(body: string): string {
-  const escaped = body
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  const escaped = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return escaped
     .split(/\n{2,}/)
     .map((p) => `<p>${p.replace(/\n/g, "<br />")}</p>`)
@@ -813,8 +811,7 @@ export const sendTestEmailFn = createServerFn({ method: "POST" })
         data.organizationId,
         "gmail",
       );
-      const fromAddress =
-        typeof config.fromAddress === "string" ? config.fromAddress : undefined;
+      const fromAddress = typeof config.fromAddress === "string" ? config.fromAddress : undefined;
 
       try {
         const raw = buildGmailRawMessage({

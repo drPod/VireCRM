@@ -1,6 +1,15 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Receipt, Trash2, AlertTriangle, Megaphone, Wrench, UserCircle, Box } from "lucide-react";
+import {
+  Plus,
+  Receipt,
+  Trash2,
+  AlertTriangle,
+  Megaphone,
+  Wrench,
+  UserCircle,
+  Box,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -347,7 +356,9 @@ function ExpenseDialog({
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button variant="command" onClick={submit} disabled={saving}>
             {saving ? "Saving…" : "Save expense"}
           </Button>

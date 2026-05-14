@@ -1,11 +1,18 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useServerFn } from "@tanstack/react-start";
 import { submitSupportTicket } from "@/functions/support-ticket.functions";
-import { supabase } from "@/integrations/supabase/client";
+
 import { CheckCircle2, Loader2 } from "lucide-react";
 
 interface ReportIssueDialogProps {
@@ -15,7 +22,12 @@ interface ReportIssueDialogProps {
   componentStack?: string | null;
 }
 
-export function ReportIssueDialog({ open, onOpenChange, error, componentStack }: ReportIssueDialogProps) {
+export function ReportIssueDialog({
+  open,
+  onOpenChange,
+  error,
+  componentStack,
+}: ReportIssueDialogProps) {
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -27,24 +39,7 @@ export function ReportIssueDialog({ open, onOpenChange, error, componentStack }:
     setSubmitting(true);
     setErrorMsg(null);
     try {
-      // Best-effort user/org lookup (doesn't block submission)
-      let userId: string | null = null;
-      let organizationId: string | null = null;
-      try {
-        const { data } = await supabase.auth.getSession();
-        userId = data.session?.user?.id ?? null;
-        if (userId) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("organization_id")
-            .eq("user_id", userId)
-            .maybeSingle();
-          organizationId = profile?.organization_id ?? null;
-        }
-      } catch {
-        // ignore
-      }
-
+      // userId / organizationId are derived server-side from the session.
       const result = await submit({
         data: {
           description: description.trim(),
@@ -52,8 +47,6 @@ export function ReportIssueDialog({ open, onOpenChange, error, componentStack }:
           errorStack: error?.stack?.slice(0, 8000) ?? null,
           componentStack: componentStack?.slice(0, 8000) ?? null,
           url: typeof window !== "undefined" ? window.location.href : null,
-          userId,
-          organizationId,
         },
       });
 
@@ -94,7 +87,9 @@ export function ReportIssueDialog({ open, onOpenChange, error, componentStack }:
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button onClick={() => handleClose(false)} className="w-full">Close</Button>
+              <Button onClick={() => handleClose(false)} className="w-full">
+                Close
+              </Button>
             </DialogFooter>
           </>
         ) : (
@@ -102,7 +97,8 @@ export function ReportIssueDialog({ open, onOpenChange, error, componentStack }:
             <DialogHeader>
               <DialogTitle>Report this issue</DialogTitle>
               <DialogDescription>
-                Tell us what you were doing when this happened. Technical details are attached automatically.
+                Tell us what you were doing when this happened. Technical details are attached
+                automatically.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
@@ -122,12 +118,12 @@ export function ReportIssueDialog({ open, onOpenChange, error, componentStack }:
               {error?.message && (
                 <div className="rounded-md bg-muted p-3">
                   <p className="text-xs font-medium text-muted-foreground">Error attached</p>
-                  <p className="mt-1 break-all font-mono text-xs text-destructive">{error.message}</p>
+                  <p className="mt-1 break-all font-mono text-xs text-destructive">
+                    {error.message}
+                  </p>
                 </div>
               )}
-              {errorMsg && (
-                <p className="text-sm text-destructive">{errorMsg}</p>
-              )}
+              {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => handleClose(false)} disabled={submitting}>

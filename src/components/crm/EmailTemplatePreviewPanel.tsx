@@ -68,9 +68,7 @@ export function EmailTemplatePreviewPanel() {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        toast.error(
-          err instanceof Error ? err.message : "Couldn't load email templates",
-        );
+        toast.error(err instanceof Error ? err.message : "Couldn't load email templates");
       })
       .finally(() => {
         if (!cancelled) setLoadingList(false);
@@ -94,9 +92,7 @@ export function EmailTemplatePreviewPanel() {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        toast.error(
-          err instanceof Error ? err.message : "Couldn't render template",
-        );
+        toast.error(err instanceof Error ? err.message : "Couldn't render template");
       })
       .finally(() => {
         if (!cancelled) setLoadingRender(false);
@@ -108,10 +104,7 @@ export function EmailTemplatePreviewPanel() {
   }, [organizationId, activeName]);
 
   const sortedTemplates = useMemo(
-    () =>
-      (templates ?? [])
-        .slice()
-        .sort((a, b) => a.displayName.localeCompare(b.displayName)),
+    () => (templates ?? []).slice().sort((a, b) => a.displayName.localeCompare(b.displayName)),
     [templates],
   );
 
@@ -127,9 +120,8 @@ export function EmailTemplatePreviewPanel() {
           Email template previews
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Click a Genesis transactional template to see exactly how it will
-          render in a recipient's inbox. Previews use sample data — no email
-          is sent.
+          Click a Genesis transactional template to see exactly how it will render in a recipient's
+          inbox. Previews use sample data — no email is sent.
         </p>
       </CardHeader>
       <CardContent>
@@ -155,9 +147,7 @@ export function EmailTemplatePreviewPanel() {
                               : "hover:bg-muted text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          <div className="font-medium truncate">
-                            {tpl.displayName}
-                          </div>
+                          <div className="font-medium truncate">{tpl.displayName}</div>
                           <div className="text-xs text-muted-foreground/80 font-mono truncate">
                             {tpl.name}
                           </div>
@@ -165,9 +155,7 @@ export function EmailTemplatePreviewPanel() {
                       );
                     })}
                 {!loadingList && sortedTemplates.length === 0 && (
-                  <p className="text-sm text-muted-foreground p-3">
-                    No registered templates yet.
-                  </p>
+                  <p className="text-sm text-muted-foreground p-3">No registered templates yet.</p>
                 )}
               </div>
             </ScrollArea>
@@ -177,19 +165,14 @@ export function EmailTemplatePreviewPanel() {
           <div className="border rounded-lg bg-background overflow-hidden flex flex-col h-[560px]">
             <div className="px-4 py-3 border-b bg-muted/40 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Subject
-                </div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Subject</div>
                 <div className="text-sm font-medium truncate">
-                  {loadingRender && !rendered
-                    ? "Loading…"
-                    : (rendered?.subject ?? "—")}
+                  {loadingRender && !rendered ? "Loading…" : (rendered?.subject ?? "—")}
                 </div>
                 {rendered?.fixedRecipient && (
                   <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                     <Lock className="h-3 w-3" />
-                    Always sent to{" "}
-                    <span className="font-mono">{rendered.fixedRecipient}</span>
+                    Always sent to <span className="font-mono">{rendered.fixedRecipient}</span>
                   </div>
                 )}
               </div>
@@ -206,9 +189,7 @@ export function EmailTemplatePreviewPanel() {
                   disabled={!activeName || loadingRender}
                   title="Re-render preview"
                 >
-                  <RefreshCw
-                    className={`h-4 w-4 ${loadingRender ? "animate-spin" : ""}`}
-                  />
+                  <RefreshCw className={`h-4 w-4 ${loadingRender ? "animate-spin" : ""}`} />
                 </Button>
               </div>
             </div>

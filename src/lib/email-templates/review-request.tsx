@@ -8,17 +8,17 @@ import {
   Preview,
   Section,
   Text,
-} from '@react-email/components'
-import type { TemplateEntry } from './registry'
+} from "@react-email/components";
+import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = 'Genesis'
+const SITE_NAME = "Genesis";
 
 interface ReviewRequestProps {
-  brandName?: string
-  customerName?: string
-  senderName?: string
-  reviewUrl?: string
-  customMessage?: string
+  brandName?: string;
+  customerName?: string;
+  senderName?: string;
+  reviewUrl?: string;
+  customMessage?: string;
 }
 
 const ReviewRequestEmail = ({
@@ -28,9 +28,9 @@ const ReviewRequestEmail = ({
   reviewUrl,
   customMessage,
 }: ReviewRequestProps) => {
-  const fromBrand = brandName || SITE_NAME
-  const greeting = customerName ? `Hi ${customerName},` : 'Hi there,'
-  const signOff = senderName ? `— ${senderName}, ${fromBrand}` : `— The ${fromBrand} team`
+  const fromBrand = brandName || SITE_NAME;
+  const greeting = customerName ? `Hi ${customerName},` : "Hi there,";
+  const signOff = senderName ? `— ${senderName}, ${fromBrand}` : `— The ${fromBrand} team`;
 
   return (
     <Html lang="en" dir="ltr">
@@ -54,8 +54,8 @@ const ReviewRequestEmail = ({
           )}
 
           <Text style={text}>
-            If something didn't go the way you'd hoped, just reply to this email
-            and let us know — we'd rather hear it directly so we can fix it.
+            If something didn't go the way you'd hoped, just reply to this email and let us know —
+            we'd rather hear it directly so we can fix it.
           </Text>
 
           <Text style={footer}>
@@ -66,8 +66,8 @@ const ReviewRequestEmail = ({
         </Container>
       </Body>
     </Html>
-  )
-}
+  );
+};
 
 export const template = {
   component: ReviewRequestEmail,
@@ -75,52 +75,51 @@ export const template = {
     data?.customerName
       ? `${data.customerName}, would you share a quick review?`
       : `Would you share a quick review of ${data?.brandName || SITE_NAME}?`,
-  displayName: 'Review request',
+  displayName: "Review request",
   previewData: {
-    brandName: 'Acme CRM',
-    customerName: 'Jane',
-    senderName: 'Alex',
-    reviewUrl: 'https://g.page/r/example/review',
+    brandName: "Acme CRM",
+    customerName: "Jane",
+    senderName: "Alex",
+    reviewUrl: "https://g.page/r/example/review",
   },
-} satisfies TemplateEntry
+} satisfies TemplateEntry;
 
 const main = {
-  backgroundColor: '#ffffff',
-  fontFamily:
-    "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif",
-}
-const container = { padding: '32px 24px', maxWidth: '560px' }
+  backgroundColor: "#ffffff",
+  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif",
+};
+const container = { padding: "32px 24px", maxWidth: "560px" };
 const h1 = {
-  fontSize: '22px',
+  fontSize: "22px",
   fontWeight: 600,
-  color: '#0b0f1c',
-  margin: '0 0 16px',
-}
+  color: "#0b0f1c",
+  margin: "0 0 16px",
+};
 const lede = {
-  fontSize: '15px',
-  color: '#0b0f1c',
-  margin: '0 0 12px',
-}
+  fontSize: "15px",
+  color: "#0b0f1c",
+  margin: "0 0 12px",
+};
 const text = {
-  fontSize: '14px',
-  color: '#475569',
-  lineHeight: '1.6',
-  margin: '0 0 16px',
-}
-const ctaWrap = { margin: '20px 0 24px' }
+  fontSize: "14px",
+  color: "#475569",
+  lineHeight: "1.6",
+  margin: "0 0 16px",
+};
+const ctaWrap = { margin: "20px 0 24px" };
 const ctaBtn = {
-  backgroundColor: '#3b82f6',
-  color: '#ffffff',
-  fontSize: '14px',
+  backgroundColor: "#3b82f6",
+  color: "#ffffff",
+  fontSize: "14px",
   fontWeight: 600,
-  padding: '12px 22px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  display: 'inline-block',
-}
+  padding: "12px 22px",
+  borderRadius: "8px",
+  textDecoration: "none",
+  display: "inline-block",
+};
 const footer = {
-  fontSize: '13px',
-  color: '#94a3b8',
-  margin: '28px 0 0',
-  lineHeight: '1.5',
-}
+  fontSize: "13px",
+  color: "#94a3b8",
+  margin: "28px 0 0",
+  lineHeight: "1.5",
+};

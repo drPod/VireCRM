@@ -20,10 +20,7 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import {
-  INDUSTRY_TEMPLATES,
-  type IndustryKey,
-} from "../../src/lib/industry-templates";
+import { INDUSTRY_TEMPLATES, type IndustryKey } from "../../src/lib/industry-templates";
 
 const REQUIRED_ENV = [
   "QA_TEST_EMAIL",
@@ -42,11 +39,9 @@ for (const key of REQUIRED_ENV) {
 }
 
 const ORG_ID = process.env.QA_TEST_ORG_ID!;
-const admin = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } },
-);
+const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: { persistSession: false },
+});
 
 // Industries we cycle through, in the order specified by the user.
 const INDUSTRIES: {
@@ -118,9 +113,7 @@ test.describe("Industry switching E2E", () => {
   });
 
   test.afterAll(async () => {
-    const original = test.info().annotations.find(
-      (a) => a.type === "original-state",
-    );
+    const original = test.info().annotations.find((a) => a.type === "original-state");
     if (!original?.description) return;
     const parsed = JSON.parse(original.description);
     await admin
@@ -144,15 +137,11 @@ test.describe("Industry switching E2E", () => {
       const sidebar = page.getByRole("navigation");
 
       // 1. Active hub link present.
-      await expect(
-        sidebar.getByRole("link", { name: industry.hubLabel }),
-      ).toBeVisible();
+      await expect(sidebar.getByRole("link", { name: industry.hubLabel })).toBeVisible();
 
       // 2. Stale hubs from other industries must NOT appear.
       for (const stale of industry.staleHubs) {
-        await expect(
-          sidebar.getByRole("link", { name: stale }),
-        ).toHaveCount(0);
+        await expect(sidebar.getByRole("link", { name: stale })).toHaveCount(0);
       }
 
       // 3. Navigate to hub and verify heading.
@@ -161,11 +150,10 @@ test.describe("Industry switching E2E", () => {
 
       const template = INDUSTRY_TEMPLATES[industry.key];
       // Energy hub uses a static heading; others render template.name.
-      const expectedHeading =
-        industry.key === "energy" ? "Energy CRM" : template.name;
-      await expect(
-        page.getByRole("heading", { level: 1, name: expectedHeading }),
-      ).toBeVisible({ timeout: 10_000 });
+      const expectedHeading = industry.key === "energy" ? "Energy CRM" : template.name;
+      await expect(page.getByRole("heading", { level: 1, name: expectedHeading })).toBeVisible({
+        timeout: 10_000,
+      });
 
       // 4. Pipeline counts: every defined stage for this template renders,
       //    and the total never exceeds total leads in the org (sanity check).
@@ -173,8 +161,7 @@ test.describe("Industry switching E2E", () => {
         for (const stage of template.pipelineStages) {
           // Stage labels appear as text on the hub. Use first() because the
           // label can repeat in the legend + chart.
-          await expect(page.getByText(stage, { exact: false }).first())
-            .toBeVisible();
+          await expect(page.getByText(stage, { exact: false }).first()).toBeVisible();
         }
       }
 
@@ -186,9 +173,7 @@ test.describe("Industry switching E2E", () => {
         .eq("organization_id", ORG_ID);
       expect(error).toBeNull();
 
-      const stageSet = new Set(
-        template.pipelineStages.map((s) => s.toLowerCase()),
-      );
+      const stageSet = new Set(template.pipelineStages.map((s) => s.toLowerCase()));
       const bucketed = (leads ?? []).filter((l) =>
         stageSet.has((l.status ?? "").trim().toLowerCase()),
       ).length;

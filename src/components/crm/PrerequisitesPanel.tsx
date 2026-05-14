@@ -8,7 +8,14 @@
  * current status, and which action handler to wire to the "Run next step"
  * button via the optional `onAction` prop.
  */
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock, ExternalLink, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -19,13 +26,13 @@ export type PrerequisiteSeverity = "blocking" | "recommended";
  * The card owner interprets these — we don't hard-code behaviour here.
  */
 export type PrerequisiteActionId =
-  | "connect"          // Start the OAuth/Enable flow.
-  | "reconnect"        // Disconnect + reconnect (or rerun OAuth).
-  | "test"             // Re-run the verify/test call.
-  | "edit-config"      // Open the inline config editor.
-  | "edit-key"         // Open the BYO API key editor.
-  | "focus-key-input"  // Focus the empty API key field on a fresh card.
-  | "open-docs";       // Fallback — open the provider's docs.
+  | "connect" // Start the OAuth/Enable flow.
+  | "reconnect" // Disconnect + reconnect (or rerun OAuth).
+  | "test" // Re-run the verify/test call.
+  | "edit-config" // Open the inline config editor.
+  | "edit-key" // Open the BYO API key editor.
+  | "focus-key-input" // Focus the empty API key field on a fresh card.
+  | "open-docs"; // Fallback — open the provider's docs.
 
 export interface Prerequisite {
   /** Stable id for React keys + analytics. */
@@ -120,9 +127,7 @@ export function PrerequisitesPanel({
   }
 
   const hasBlocking = prerequisites.some((p) => p.severity === "blocking");
-  const tone = hasBlocking
-    ? "border-warning/40 bg-warning/5"
-    : "border-border bg-secondary/30";
+  const tone = hasBlocking ? "border-warning/40 bg-warning/5" : "border-border bg-secondary/30";
   const iconTone = hasBlocking ? "text-warning" : "text-muted-foreground";
 
   const handleRun = async (p: Prerequisite) => {
@@ -202,31 +207,33 @@ export function PrerequisitesPanel({
           );
         })}
       </ul>
-      {hasBlocking && verification && (verification.lastVerifiedAt || verification.failureReason) && (
-        <div className="mt-1 pt-2 border-t border-warning/20 text-[10.5px] text-muted-foreground space-y-0.5">
-          {verification.lastVerifiedAt && (
-            <div
-              className="flex items-center gap-1"
-              title={new Date(verification.lastVerifiedAt).toLocaleString()}
-            >
-              <Clock className="h-3 w-3 shrink-0" />
-              <span>
-                Last checked {formatRelative(verification.lastVerifiedAt)}
-                {verification.outcome === "ok"
-                  ? " — succeeded"
-                  : verification.outcome === "failed"
-                    ? " — failed"
-                    : ""}
-              </span>
-            </div>
-          )}
-          {verification.outcome === "failed" && verification.failureReason && (
-            <div className="text-foreground/80 break-words leading-snug">
-              <span className="font-medium">Cause:</span> {verification.failureReason}
-            </div>
-          )}
-        </div>
-      )}
+      {hasBlocking &&
+        verification &&
+        (verification.lastVerifiedAt || verification.failureReason) && (
+          <div className="mt-1 pt-2 border-t border-warning/20 text-[10.5px] text-muted-foreground space-y-0.5">
+            {verification.lastVerifiedAt && (
+              <div
+                className="flex items-center gap-1"
+                title={new Date(verification.lastVerifiedAt).toLocaleString()}
+              >
+                <Clock className="h-3 w-3 shrink-0" />
+                <span>
+                  Last checked {formatRelative(verification.lastVerifiedAt)}
+                  {verification.outcome === "ok"
+                    ? " — succeeded"
+                    : verification.outcome === "failed"
+                      ? " — failed"
+                      : ""}
+                </span>
+              </div>
+            )}
+            {verification.outcome === "failed" && verification.failureReason && (
+              <div className="text-foreground/80 break-words leading-snug">
+                <span className="font-medium">Cause:</span> {verification.failureReason}
+              </div>
+            )}
+          </div>
+        )}
     </div>
   );
 }

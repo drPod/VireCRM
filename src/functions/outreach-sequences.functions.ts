@@ -209,9 +209,7 @@ const upsertStepSchema = seqScope.extend({
 
 export const upsertStepFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: z.infer<typeof upsertStepSchema>) =>
-    upsertStepSchema.parse(input),
-  )
+  .inputValidator((input: z.infer<typeof upsertStepSchema>) => upsertStepSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachSequenceStep> => {
     const { supabase, userId } = context;
     await ensureMember(supabase, userId, data.organizationId);

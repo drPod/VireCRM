@@ -17,7 +17,13 @@
  */
 import { useState } from "react";
 import { Loader2, Check, ChevronRight, Building2, Palette, Shield } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,9 +61,11 @@ export function OnboardingWizard({
   const lockedTemplate = !isPlatformAdmin;
   const defaultKey: IndustryKey = (currentIndustry ?? "general") as IndustryKey;
   const initialTemplate = lockedTemplate
-    ? INDUSTRY_LIST.find((t) => t.key === defaultKey) ?? INDUSTRY_LIST.find((t) => t.key === "general") ?? null
+    ? (INDUSTRY_LIST.find((t) => t.key === defaultKey) ??
+      INDUSTRY_LIST.find((t) => t.key === "general") ??
+      null)
     : currentIndustry
-      ? INDUSTRY_LIST.find((t) => t.key === currentIndustry) ?? null
+      ? (INDUSTRY_LIST.find((t) => t.key === currentIndustry) ?? null)
       : null;
   const [step, setStep] = useState(lockedTemplate ? 1 : 0);
   const [industry, setIndustry] = useState<IndustryKey | null>(
@@ -68,7 +76,6 @@ export function OnboardingWizard({
   );
   const [strictIsolation, setStrictIsolation] = useState(currentStrictIsolation ?? false);
   const [saving, setSaving] = useState(false);
-
 
   // Non-owners get a dismissible heads-up — they can still use the CRM
   // while the owner finishes setup. We track dismissal in sessionStorage so
@@ -93,8 +100,8 @@ export function OnboardingWizard({
           <DialogHeader>
             <DialogTitle>Setup still in progress</DialogTitle>
             <DialogDescription>
-              Your workspace owner hasn’t finished the initial setup yet. You can keep using the
-              CRM — some defaults (industry template, branding) may change once they complete it.
+              Your workspace owner hasn’t finished the initial setup yet. You can keep using the CRM
+              — some defaults (industry template, branding) may change once they complete it.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end pt-2">
@@ -115,7 +122,7 @@ export function OnboardingWizard({
   }
 
   const selectedTemplate: IndustryTemplate | null = industry
-    ? INDUSTRY_LIST.find((t) => t.key === industry) ?? null
+    ? (INDUSTRY_LIST.find((t) => t.key === industry) ?? null)
     : null;
 
   const handleSelectIndustry = (key: IndustryKey) => {
@@ -149,7 +156,9 @@ export function OnboardingWizard({
         .eq("id", organizationId);
 
       if (error) throw error;
-      toast.success(lockedTemplate ? "Workspace ready" : `${selectedTemplate.name} workspace ready`);
+      toast.success(
+        lockedTemplate ? "Workspace ready" : `${selectedTemplate.name} workspace ready`,
+      );
       onComplete();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save setup");
@@ -171,7 +180,8 @@ export function OnboardingWizard({
             {step === 2 && "Lead privacy"}
           </DialogTitle>
           <DialogDescription>
-            Step {lockedTemplate ? step : step + 1} of {lockedTemplate ? 2 : 3} — only owners see this setup.
+            Step {lockedTemplate ? step : step + 1} of {lockedTemplate ? 2 : 3} — only owners see
+            this setup.
           </DialogDescription>
         </DialogHeader>
 
@@ -187,7 +197,9 @@ export function OnboardingWizard({
                 <div className="flex items-center gap-3 mb-2">
                   <div
                     className="h-8 w-8 rounded-md flex-shrink-0 ring-1 ring-border/50"
-                    style={{ background: `linear-gradient(135deg, ${tmpl.theme.primary}, ${tmpl.theme.accent})` }}
+                    style={{
+                      background: `linear-gradient(135deg, ${tmpl.theme.primary}, ${tmpl.theme.accent})`,
+                    }}
                   />
                   <div>
                     <h3 className="font-semibold text-foreground">{tmpl.name}</h3>
@@ -210,8 +222,10 @@ export function OnboardingWizard({
               {lockedTemplate ? (
                 <>Pick your brand color — applies to buttons, links, and the sidebar accent.</>
               ) : (
-                <>Default color for <strong>{selectedTemplate.name}</strong>. Override it to match your brand
-                — applies to buttons, links, and the sidebar accent.</>
+                <>
+                  Default color for <strong>{selectedTemplate.name}</strong>. Override it to match
+                  your brand — applies to buttons, links, and the sidebar accent.
+                </>
               )}
             </p>
             <div className="flex items-center gap-3">
@@ -231,12 +245,21 @@ export function OnboardingWizard({
             </div>
             <div className="rounded-lg border border-border p-4 bg-muted/30">
               <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Preview</p>
-              <Button style={{ backgroundColor: brandColor, color: "#fff" }} className="hover:opacity-90">
+              <Button
+                style={{ backgroundColor: brandColor, color: "#fff" }}
+                className="hover:opacity-90"
+              >
                 Sample button
               </Button>
             </div>
             <div className="flex justify-between">
-              {lockedTemplate ? <span /> : <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>}
+              {lockedTemplate ? (
+                <span />
+              ) : (
+                <Button variant="ghost" onClick={() => setStep(0)}>
+                  Back
+                </Button>
+              )}
               <Button onClick={() => setStep(2)}>Continue</Button>
             </div>
           </div>
@@ -259,7 +282,11 @@ export function OnboardingWizard({
                     When OFF, all org members can see every lead in the workspace (current default).
                   </p>
                 </div>
-                <Switch id="strict-toggle" checked={strictIsolation} onCheckedChange={setStrictIsolation} />
+                <Switch
+                  id="strict-toggle"
+                  checked={strictIsolation}
+                  onCheckedChange={setStrictIsolation}
+                />
               </div>
             </div>
 
@@ -268,17 +295,35 @@ export function OnboardingWizard({
               <div className="text-sm text-muted-foreground space-y-1">
                 {!lockedTemplate && (
                   <>
-                    <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Industry: <strong className="text-foreground">{selectedTemplate.name}</strong></div>
-                    <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Modules enabled: <strong className="text-foreground">{selectedTemplate.defaultModules.length}</strong></div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-primary" /> Industry:{" "}
+                      <strong className="text-foreground">{selectedTemplate.name}</strong>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-primary" /> Modules enabled:{" "}
+                      <strong className="text-foreground">
+                        {selectedTemplate.defaultModules.length}
+                      </strong>
+                    </div>
                   </>
                 )}
-                <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Brand color: <span className="font-mono text-foreground">{brandColor}</span></div>
-                <div className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Lead privacy: <strong className="text-foreground">{strictIsolation ? "Strict (per-user)" : "Shared (org-wide)"}</strong></div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-primary" /> Brand color:{" "}
+                  <span className="font-mono text-foreground">{brandColor}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-primary" /> Lead privacy:{" "}
+                  <strong className="text-foreground">
+                    {strictIsolation ? "Strict (per-user)" : "Shared (org-wide)"}
+                  </strong>
+                </div>
               </div>
             </div>
 
             <div className="flex justify-between">
-              <Button variant="ghost" onClick={() => setStep(1)} disabled={saving}>Back</Button>
+              <Button variant="ghost" onClick={() => setStep(1)} disabled={saving}>
+                Back
+              </Button>
               <Button onClick={handleFinish} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Finish setup

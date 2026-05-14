@@ -32,10 +32,7 @@ export interface SuggestedLead {
 }
 
 // Error codes the UI matches against to render the right CTA.
-export type FindLeadsErrorCode =
-  | "INTEGRATION_MISSING"
-  | "QUOTA_EXCEEDED"
-  | "PLATFORM_KEY_MISSING";
+export type FindLeadsErrorCode = "INTEGRATION_MISSING" | "QUOTA_EXCEEDED" | "PLATFORM_KEY_MISSING";
 
 // Encode error code into the message so it survives serialization across the
 // server-fn boundary (custom Error subclasses get flattened to plain Error).
@@ -47,89 +44,94 @@ function codedError(code: FindLeadsErrorCode, msg: string, meta?: Record<string,
 export const findLeadsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof findLeadsSchema>) => findLeadsSchema.parse(input))
-  .handler(async ({ data, context }): Promise<{
-    leads: SuggestedLead[];
-    meta: {
-      searched: number;
-      revealed: number;
-      provider: LeadProvider;
-      keySource: "byo" | "platform";
-    };
-  }> => {
-    const { supabase, userId } = context;
-    const startedAt = Date.now();
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<{
+      leads: SuggestedLead[];
+      meta: {
+        searched: number;
+        revealed: number;
+        provider: LeadProvider;
+        keySource: "byo" | "platform";
+      };
+    }> => {
+      const { supabase, userId } = context;
+      const startedAt = Date.now();
 
-    try {
-      // 1. Org membership
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (!profile || profile.organization_id !== data.organizationId) {
-        throw new Error("Unauthorized: not a member of this organization");
+      try {
+        // 1. Org membership
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (!profile || profile.organization_id !== data.organizationId) {
+          throw new Error("Unauthorized: not a member of this organization");
+        }
+
+        // 2. Token budget (still applies — protects against runaway costs)
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("ai_tokens_used, ai_tokens_limit")
+          .eq("id", data.organizationId)
+          .maybeSingle();
+        if (!org) throw new Error("Organization not found");
+        if (org.ai_tokens_used >= org.ai_tokens_limit) {
+          throw new Error("AI token limit reached. Upgrade your plan for more analyses.");
+        }
+
+        // 3. Dispatch by provider.
+        const result =
+          data.provider === "hunter" || data.provider === "snov"
+            ? await runDomainSearchProvider(data, userId)
+            : await runApolloProvider(data, userId);
+
+        await recordLeadSync({
+          organizationId: data.organizationId,
+          userId,
+          provider: result.meta.provider,
+          source: "auto_find_search",
+          status: result.leads.length > 0 ? "success" : "partial",
+          fetched: result.meta.searched,
+          revealed: result.leads.length,
+          noEmail: Math.max(0, result.meta.revealed - result.leads.length),
+          durationMs: Date.now() - startedAt,
+          metadata: {
+            requested_count: data.count,
+            industry: data.industry ?? null,
+            persona: data.persona ?? null,
+            company_domain: data.companyDomain ?? null,
+            key_source: result.meta.keySource,
+          },
+        });
+
+        return result;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const codeMatch = message.match(/^\[([A-Z_]+)\]/);
+        const errorCode = codeMatch?.[1] ?? "UNKNOWN";
+        await recordLeadSync({
+          organizationId: data.organizationId,
+          userId,
+          provider: data.provider,
+          source: "auto_find_search",
+          status: errorCode === "QUOTA_EXCEEDED" ? "quota_exceeded" : "error",
+          durationMs: Date.now() - startedAt,
+          errorCode,
+          errorMessage: message.slice(0, 500),
+          metadata: {
+            requested_count: data.count,
+            industry: data.industry ?? null,
+            persona: data.persona ?? null,
+            company_domain: data.companyDomain ?? null,
+          },
+        });
+        throw err;
       }
-
-      // 2. Token budget (still applies — protects against runaway costs)
-      const { data: org } = await supabase
-        .from("organizations")
-        .select("ai_tokens_used, ai_tokens_limit")
-        .eq("id", data.organizationId)
-        .maybeSingle();
-      if (!org) throw new Error("Organization not found");
-      if (org.ai_tokens_used >= org.ai_tokens_limit) {
-        throw new Error("AI token limit reached. Upgrade your plan for more analyses.");
-      }
-
-      // 3. Dispatch by provider.
-      const result =
-        data.provider === "hunter" || data.provider === "snov"
-          ? await runDomainSearchProvider(data, userId)
-          : await runApolloProvider(data, userId);
-
-      await recordLeadSync({
-        organizationId: data.organizationId,
-        userId,
-        provider: result.meta.provider,
-        source: "auto_find_search",
-        status: result.leads.length > 0 ? "success" : "partial",
-        fetched: result.meta.searched,
-        revealed: result.leads.length,
-        noEmail: Math.max(0, result.meta.revealed - result.leads.length),
-        durationMs: Date.now() - startedAt,
-        metadata: {
-          requested_count: data.count,
-          industry: data.industry ?? null,
-          persona: data.persona ?? null,
-          company_domain: data.companyDomain ?? null,
-          key_source: result.meta.keySource,
-        },
-      });
-
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      const codeMatch = message.match(/^\[([A-Z_]+)\]/);
-      const errorCode = codeMatch?.[1] ?? "UNKNOWN";
-      await recordLeadSync({
-        organizationId: data.organizationId,
-        userId,
-        provider: data.provider,
-        source: "auto_find_search",
-        status: errorCode === "QUOTA_EXCEEDED" ? "quota_exceeded" : "error",
-        durationMs: Date.now() - startedAt,
-        errorCode,
-        errorMessage: message.slice(0, 500),
-        metadata: {
-          requested_count: data.count,
-          industry: data.industry ?? null,
-          persona: data.persona ?? null,
-          company_domain: data.companyDomain ?? null,
-        },
-      });
-      throw err;
-    }
-  });
+    },
+  );
 
 // ===== Apollo path (with platform-quota fallback) =====
 
@@ -138,7 +140,12 @@ async function runApolloProvider(
   userId: string,
 ): Promise<{
   leads: SuggestedLead[];
-  meta: { searched: number; revealed: number; provider: LeadProvider; keySource: "byo" | "platform" };
+  meta: {
+    searched: number;
+    revealed: number;
+    provider: LeadProvider;
+    keySource: "byo" | "platform";
+  };
 }> {
   const { data: byoIntegration } = await supabaseAdmin
     .from("org_integrations")
@@ -229,13 +236,19 @@ async function runApolloProvider(
     const apErr = err as ApolloError;
     if (apErr.isAuthError) {
       if (keySource === "platform") {
-        throw codedError("PLATFORM_KEY_MISSING", "Platform Apollo key was rejected. Add your own Apollo key in Settings → Integrations to keep finding leads.");
+        throw codedError(
+          "PLATFORM_KEY_MISSING",
+          "Platform Apollo key was rejected. Add your own Apollo key in Settings → Integrations to keep finding leads.",
+        );
       }
       throw new Error("Apollo rejected the API key. Update it in Settings → Integrations.");
     }
     if (apErr.isCreditError) {
       if (keySource === "platform") {
-        throw codedError("PLATFORM_KEY_MISSING", "Platform Apollo workspace is temporarily out of credits. Add your own Apollo key in Settings → Integrations to keep finding leads.");
+        throw codedError(
+          "PLATFORM_KEY_MISSING",
+          "Platform Apollo workspace is temporarily out of credits. Add your own Apollo key in Settings → Integrations to keep finding leads.",
+        );
       }
       throw new Error("Your Apollo workspace is out of credits. Top up at apollo.io.");
     }
@@ -335,7 +348,12 @@ async function runDomainSearchProvider(
   _userId: string,
 ): Promise<{
   leads: SuggestedLead[];
-  meta: { searched: number; revealed: number; provider: LeadProvider; keySource: "byo" | "platform" };
+  meta: {
+    searched: number;
+    revealed: number;
+    provider: LeadProvider;
+    keySource: "byo" | "platform";
+  };
 }> {
   const provider = data.provider as "hunter" | "snov";
   const providerLabel = provider === "hunter" ? "Hunter.io" : "Snov.io";
@@ -412,10 +430,14 @@ async function runDomainSearchProvider(
   } catch (err) {
     const e = err as HunterError | SnovError;
     if (e.isAuthError) {
-      throw new Error(`${providerLabel} rejected the API key. Update it in Settings → Integrations.`);
+      throw new Error(
+        `${providerLabel} rejected the API key. Update it in Settings → Integrations.`,
+      );
     }
     if (e.isCreditError) {
-      throw new Error(`Your ${providerLabel} account is out of credits or rate-limited. Top up and retry.`);
+      throw new Error(
+        `Your ${providerLabel} account is out of credits or rate-limited. Top up and retry.`,
+      );
     }
     throw new Error(e.message || `${providerLabel} search failed.`);
   }

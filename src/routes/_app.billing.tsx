@@ -106,10 +106,7 @@ function InlinePlans({
         // confusing (credit applied later, not refunded today). Users can
         // still downgrade through the billing portal if they really want to.
         const isDowngrade =
-          !isCurrent &&
-          currentPrice !== null &&
-          tierPrice !== null &&
-          tierPrice < currentPrice;
+          !isCurrent && currentPrice !== null && tierPrice !== null && tierPrice < currentPrice;
 
         return (
           <div
@@ -136,7 +133,9 @@ function InlinePlans({
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
               <h3 className="text-base font-bold text-foreground">{tier.name}</h3>
               {tier.badge && !isCurrent && (
-                <Badge variant="secondary" className="text-[10px]">{tier.badge}</Badge>
+                <Badge variant="secondary" className="text-[10px]">
+                  {tier.badge}
+                </Badge>
               )}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">{tier.description}</p>
@@ -152,7 +151,11 @@ function InlinePlans({
                   ) : (
                     <X className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 mt-0.5" />
                   )}
-                  <span className={f.included ? "text-foreground" : "text-muted-foreground/60 line-through"}>
+                  <span
+                    className={
+                      f.included ? "text-foreground" : "text-muted-foreground/60 line-through"
+                    }
+                  >
                     {f.text}
                   </span>
                 </li>
@@ -207,7 +210,9 @@ function BillingErrorComponent({ error, reset }: { error: Error; reset: () => vo
             Try again
           </Button>
           <Link to="/pricing">
-            <Button variant="outline" size="sm">View plans</Button>
+            <Button variant="outline" size="sm">
+              View plans
+            </Button>
           </Link>
         </div>
       </div>
@@ -393,23 +398,26 @@ function BillingPage() {
           </div>
         )}
 
-        {search.plan && (() => {
-          const tier = findTierByPriceId(search.plan);
-          if (!tier) return null;
-          return (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">You're subscribing to</p>
-              <div className="mt-1 flex items-baseline justify-between gap-3 flex-wrap">
-                <h2 className="text-xl font-bold text-foreground">{tier.name}</h2>
-                <p className="text-lg font-semibold text-foreground">
-                  {tier.price}
-                  <span className="text-sm font-normal text-muted-foreground">{tier.period}</span>
+        {search.plan &&
+          (() => {
+            const tier = findTierByPriceId(search.plan);
+            if (!tier) return null;
+            return (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  You're subscribing to
                 </p>
+                <div className="mt-1 flex items-baseline justify-between gap-3 flex-wrap">
+                  <h2 className="text-xl font-bold text-foreground">{tier.name}</h2>
+                  <p className="text-lg font-semibold text-foreground">
+                    {tier.price}
+                    <span className="text-sm font-normal text-muted-foreground">{tier.period}</span>
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">{tier.description}</p>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">{tier.description}</p>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
           <div className="flex items-start gap-3 mb-4">
@@ -424,7 +432,9 @@ function BillingPage() {
           <InlinePlans onSelect={handleSelectTier} />
           <div className="mt-4 flex justify-center">
             <Link to="/contact">
-              <Button variant="outline" size="sm">Talk to sales</Button>
+              <Button variant="outline" size="sm">
+                Talk to sales
+              </Button>
             </Link>
           </div>
         </div>
@@ -502,7 +512,8 @@ function BillingPage() {
             <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
             <span>
               Your subscription is scheduled to cancel on{" "}
-              <strong>{formatDate(subscription.current_period_end)}</strong>. You'll lose access after that date.
+              <strong>{formatDate(subscription.current_period_end)}</strong>. You'll lose access
+              after that date.
             </span>
           </div>
         )}
@@ -518,9 +529,7 @@ function BillingPage() {
       )}
 
       {/* Credits ledger timeline */}
-      {organization?.id && (
-        <CreditLedgerTimeline organizationId={organization.id} />
-      )}
+      {organization?.id && <CreditLedgerTimeline organizationId={organization.id} />}
 
       {/* Manage subscription via Stripe portal */}
       {!isManual && (
@@ -555,10 +564,7 @@ function BillingPage() {
             </Button>
           </div>
           {showPlans && (
-            <InlinePlans
-              onSelect={handleSelectTier}
-              currentPriceId={subscription.price_id}
-            />
+            <InlinePlans onSelect={handleSelectTier} currentPriceId={subscription.price_id} />
           )}
         </div>
       )}
@@ -569,8 +575,8 @@ function BillingPage() {
           <div>
             <p className="text-sm font-medium text-foreground">Lifetime access</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              This account was provisioned with a one-off payment. There's nothing to renew or cancel.
-              Contact your account manager for any changes.
+              This account was provisioned with a one-off payment. There's nothing to renew or
+              cancel. Contact your account manager for any changes.
             </p>
           </div>
         </div>
@@ -628,10 +634,9 @@ function BillingHistorySection() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke(
-        "list-billing-history",
-        { body: { environment: getStripeEnvironment() } },
-      );
+      const { data, error: invokeError } = await supabase.functions.invoke("list-billing-history", {
+        body: { environment: getStripeEnvironment() },
+      });
       if (invokeError) throw new Error(invokeError.message);
       if (data?.error) throw new Error(data.error);
       setItems((data?.items ?? []) as BillingHistoryItem[]);
@@ -696,8 +701,7 @@ function BillingHistorySection() {
             </thead>
             <tbody className="divide-y divide-border">
               {items.map((item) => {
-                const isPaid =
-                  item.status === "paid" || item.status === "succeeded";
+                const isPaid = item.status === "paid" || item.status === "succeeded";
                 return (
                   <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/20">
                     <td className="px-3 py-2.5 text-foreground whitespace-nowrap">
@@ -722,7 +726,9 @@ function BillingHistorySection() {
                     </td>
                     <td className="px-3 py-2.5">
                       <Badge
-                        variant={isPaid ? "default" : item.status === "open" ? "secondary" : "warning"}
+                        variant={
+                          isPaid ? "default" : item.status === "open" ? "secondary" : "warning"
+                        }
                         className="text-[10px] capitalize"
                       >
                         {item.status}
@@ -809,7 +815,9 @@ function PlanSwitchConfirmDialog({
               <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">From</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      From
+                    </p>
                     <p className="font-medium text-foreground truncate">
                       {currentTier?.name ?? "Current plan"}
                     </p>
@@ -849,22 +857,24 @@ function PlanSwitchConfirmDialog({
                   </div>
 
                   {/* Proration estimate */}
-                  {switchSummary.proration && isUpgrade && switchSummary.proration.prorationToday > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Charged today (prorated, {switchSummary.proration.daysRemaining} of{" "}
-                        {switchSummary.proration.cycleDays} days left)
-                      </span>
-                      <span className="font-semibold text-foreground">
-                        ~${switchSummary.proration.prorationToday.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
+                  {switchSummary.proration &&
+                    isUpgrade &&
+                    switchSummary.proration.prorationToday > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Charged today (prorated, {switchSummary.proration.daysRemaining} of{" "}
+                          {switchSummary.proration.cycleDays} days left)
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          ~${switchSummary.proration.prorationToday.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
 
                   {isDowngrade && (
                     <p className="text-xs text-muted-foreground">
-                      You'll receive a credit for the unused portion of your current plan, applied to
-                      your next invoice. No charge today.
+                      You'll receive a credit for the unused portion of your current plan, applied
+                      to your next invoice. No charge today.
                     </p>
                   )}
 

@@ -63,9 +63,7 @@ export function TestResultPanel({ result, testing, providerLabel }: TestResultPa
           {!result.ok && result.reason && (
             // Provider error verbatim — break-words so long stack-trace-y
             // strings don't blow out the card width.
-            <div className="text-foreground/90 break-words leading-snug">
-              {result.reason}
-            </div>
+            <div className="text-foreground/90 break-words leading-snug">{result.reason}</div>
           )}
           <div
             className="text-muted-foreground"

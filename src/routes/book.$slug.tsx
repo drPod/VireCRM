@@ -60,10 +60,7 @@ function PublicBookingPage() {
   const [verifying, setVerifying] = useState(false);
 
   const userTz = useMemo(
-    () =>
-      typeof Intl !== "undefined"
-        ? Intl.DateTimeFormat().resolvedOptions().timeZone
-        : "UTC",
+    () => (typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"),
     [],
   );
 
@@ -411,7 +408,9 @@ function PublicBookingPage() {
                               {date.getUTCDate()}
                             </span>
                             <span className="text-[10px] text-muted-foreground tabular-nums">
-                              {hasSlots ? `${daySlots.length} slot${daySlots.length > 1 ? "s" : ""}` : "—"}
+                              {hasSlots
+                                ? `${daySlots.length} slot${daySlots.length > 1 ? "s" : ""}`
+                                : "—"}
                             </span>
                           </button>
                         );
@@ -500,9 +499,7 @@ function PublicBookingPage() {
                       placeholder="Jane Doe"
                       aria-invalid={!!errors.name}
                     />
-                    {errors.name && (
-                      <p className="text-xs text-destructive">{errors.name}</p>
-                    )}
+                    {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="bk-email">Email</Label>
@@ -517,13 +514,13 @@ function PublicBookingPage() {
                       placeholder="jane@company.com"
                       aria-invalid={!!errors.email}
                     />
-                    {errors.email && (
-                      <p className="text-xs text-destructive">{errors.email}</p>
-                    )}
+                    {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="bk-phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Label htmlFor="bk-phone">
+                    Phone <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
                   <Input
                     id="bk-phone"
                     type="tel"
@@ -533,7 +530,10 @@ function PublicBookingPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="bk-notes">What would you like to discuss? <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Label htmlFor="bk-notes">
+                    What would you like to discuss?{" "}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
                   <Textarea
                     id="bk-notes"
                     rows={3}

@@ -7,13 +7,7 @@ const listSchema = z.object({
   phase: z.enum(["plan", "execute", "all"]).default("all").optional(),
 });
 
-type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface AdvisorAuditEntry {
   id: string;

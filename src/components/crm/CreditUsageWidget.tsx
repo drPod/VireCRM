@@ -1,5 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { Zap, Infinity as InfinityIcon, FlaskConical, Loader2, History, RefreshCw } from "lucide-react";
+import {
+  Zap,
+  Infinity as InfinityIcon,
+  FlaskConical,
+  Loader2,
+  History,
+  RefreshCw,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
@@ -256,9 +263,7 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Used</p>
-              <p className="text-lg font-semibold text-foreground">
-                {state.used.toLocaleString()}
-              </p>
+              <p className="text-lg font-semibold text-foreground">{state.used.toLocaleString()}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Remaining</p>
@@ -327,8 +332,7 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
               expected quota {testResult.step.expected.quota}
               {testResult.step.expected.unlimited ? " (∞)" : ""} · got{" "}
               {testResult.step.actual.quota}
-              {testResult.step.actual.unlimited ? " (∞)" : ""} · plan{" "}
-              {testResult.step.actual.plan}
+              {testResult.step.actual.unlimited ? " (∞)" : ""} · plan {testResult.step.actual.plan}
             </div>
             {testResult.restored && (
               <div className="mt-1 text-muted-foreground">
@@ -374,9 +378,7 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
               </div>
             ) : (
               logRows.map((row) => {
-                const actor = row.user_id
-                  ? actorNames[row.user_id] ?? "Member"
-                  : "System";
+                const actor = row.user_id ? (actorNames[row.user_id] ?? "Member") : "System";
                 const isReject = row.status === "rejected_quota";
                 const isUnlim = row.status === "bypass_unlimited";
                 return (
@@ -401,11 +403,7 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
                               : "bg-foreground/10 text-foreground"
                         }`}
                       >
-                        {isReject
-                          ? "Blocked"
-                          : isUnlim
-                            ? "Unlimited"
-                            : `−${row.credits_charged}`}
+                        {isReject ? "Blocked" : isUnlim ? "Unlimited" : `−${row.credits_charged}`}
                       </span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted-foreground">
