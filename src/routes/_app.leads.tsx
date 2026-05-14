@@ -28,6 +28,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { notifyLeadsChanged, onLeadsChanged } from "@/lib/leads-events";
 import { toast } from "sonner";
 
 type LeadsAction = "add" | "import" | "auto-find";
@@ -326,6 +327,11 @@ function LeadsPage() {
     };
   }, [organization?.id]);
 
+  // Cross-component signal: soft deletes flip RLS visibility on UPDATE, so
+  // realtime subscribers don't always receive the change. Listen for the
+  // local `leads:changed` event and refetch.
+  useEffect(() => onLeadsChanged(() => setRefreshKey((k) => k + 1)), []);
+
   // Drop any selected ids that are no longer in the visible list (e.g. after
   // filtering or refresh).
   useEffect(() => {
@@ -382,6 +388,7 @@ function LeadsPage() {
       setLeads((prev) => prev.filter((l) => !selectedLeadIds.includes(l.id)));
       setTotalCount((c) => Math.max(0, c - success));
       handleClearSelection();
+      notifyLeadsChanged();
     }
     if (failures.length > 0) {
       toast.error(`${failures.length} lead${failures.length === 1 ? "" : "s"} failed`, {
@@ -753,6 +760,7 @@ function LeadsPage() {
                 setLeads((prev) => prev.filter((x) => x.id !== l.id));
                 setSelectedLeadIds((prev) => prev.filter((id) => id !== l.id));
                 setTotalCount((c) => Math.max(0, c - 1));
+                notifyLeadsChanged();
               }}
               onClick={() => {
                 // Per org policy, only the owner can open the full lead

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { notifyLeadsChanged, onLeadsChanged } from "@/lib/leads-events";
 
 const stages = [
   { key: "new" as const, label: "New" },
@@ -95,6 +96,10 @@ export function PipelineView() {
     };
   }, [organization?.id, fetchLeads]);
 
+  // Cross-component signal for soft-deletes (RLS hides them on UPDATE so the
+  // realtime subscription above doesn't always fire).
+  useEffect(() => onLeadsChanged(() => void fetchLeads()), [fetchLeads]);
+
   const handleDragStart = useCallback((e: React.DragEvent, leadId: string) => {
     setDraggedLeadId(leadId);
     e.dataTransfer.effectAllowed = "move";
@@ -161,6 +166,7 @@ export function PipelineView() {
         toast.error("Failed to update lead status");
       } else {
         toast.success(`Moved "${lead.name}" to ${newStatus}`);
+        notifyLeadsChanged();
       }
     },
     [leads],
