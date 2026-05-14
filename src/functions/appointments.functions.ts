@@ -397,8 +397,15 @@ async function loadPublicCalendarOrThrow(
   const hash = (cal as { access_password_hash: string | null }).access_password_hash;
   if (hash) {
     if (!password) throw new Error("Password required");
-    const candidate = await hashPassword(password);
-    if (!timingSafeStringEqual(candidate, hash)) throw new Error("Incorrect password");
+    const result = verifyPassword(password, hash);
+    if (!result.ok) throw new Error("Incorrect password");
+    // Transparently upgrade legacy SHA-256 hashes to scrypt on first successful verify.
+    if (result.upgradedHash) {
+      await supabase
+        .from("calendars")
+        .update({ access_password_hash: result.upgradedHash } as never)
+        .eq("id", cal.id);
+    }
   }
   return cal;
 }
