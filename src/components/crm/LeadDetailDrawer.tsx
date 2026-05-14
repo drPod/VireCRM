@@ -630,6 +630,7 @@ export function LeadDetailDrawer({
       setForm((prev) => ({ ...prev, status: "won" }));
       setActivityRefetchKey((k) => k + 1);
       onUpdated();
+      notifyLeadsChanged();
     }
   };
 
