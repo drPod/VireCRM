@@ -378,6 +378,63 @@ function LeadsPage() {
   const handleClearSelection = () => {
     setSelectedLeadIds([]);
     setBulkAssignTargets([]);
+    setBulkMoveStatus("");
+  };
+
+  /**
+   * Bulk move: relocate every selected lead to a new pipeline stage with an
+   * optimistic update so the cards disappear/relocate instantly across the
+   * leads list and the pipeline view (the latter listens for `leads:changed`).
+   */
+  const runBulkMove = async (newStatus: string) => {
+    if (selectedLeadIds.length === 0 || !newStatus) return;
+    const ids = [...selectedLeadIds];
+    const prevStatusById = new Map(
+      leads.filter((l) => ids.includes(l.id)).map((l) => [l.id, l.status]),
+    );
+    setBulkMoving(true);
+    // Optimistic: update statuses in place; if the active filter no longer
+    // matches the new status, drop them from the visible list immediately.
+    setLeads((prev) => {
+      const updated = prev.map((l) =>
+        ids.includes(l.id) ? { ...l, status: newStatus as Lead["status"] } : l,
+      );
+      if (statusFilter !== "all" && statusFilter !== newStatus) {
+        return updated.filter((l) => !ids.includes(l.id));
+      }
+      return updated;
+    });
+    notifyLeadsChanged();
+
+    const { error } = await supabase
+      .from("leads")
+      .update({ status: newStatus })
+      .in("id", ids);
+
+    setBulkMoving(false);
+
+    if (error) {
+      // Roll back to pre-move statuses and re-add any rows we filtered out.
+      setLeads((prev) => {
+        const restored = new Map(prev.map((l) => [l.id, l]));
+        prevStatusById.forEach((status, id) => {
+          const existing = restored.get(id);
+          if (existing) {
+            restored.set(id, { ...existing, status: status as Lead["status"] });
+          }
+        });
+        return Array.from(restored.values());
+      });
+      notifyLeadsChanged();
+      handleLeadAdded();
+      toast.error("Failed to move leads", { description: error.message });
+      return;
+    }
+
+    toast.success(
+      `Moved ${ids.length} lead${ids.length === 1 ? "" : "s"} to ${newStatus}`,
+    );
+    handleClearSelection();
   };
 
   const runBulkDelete = async (mode: "soft" | "hard") => {
