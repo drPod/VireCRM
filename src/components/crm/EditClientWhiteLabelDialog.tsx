@@ -328,7 +328,7 @@ export function EditClientWhiteLabelDialog({
                       asChild
                     >
                       <a
-                        href={`/settings/dns-check?domain=${encodeURIComponent(savedDomain)}${
+                        href={`/dns-check?domain=${encodeURIComponent(savedDomain)}${
                           clientOrgId ? `&org=${clientOrgId}` : ""
                         }`}
                         target="_blank"
