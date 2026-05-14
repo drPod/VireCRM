@@ -12,7 +12,11 @@ const BATCH_SIZE = 10;
 export const Route = createFileRoute("/api/public/hooks/classify-contact-submissions")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const cronSecret = process.env.CRON_SECRET;
+        if (!cronSecret || request.headers.get("x-cron-secret") !== cronSecret) {
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!supabaseUrl || !serviceKey) {
