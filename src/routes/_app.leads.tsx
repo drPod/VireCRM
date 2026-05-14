@@ -119,6 +119,9 @@ function LeadsPage() {
   const [bulkTemplateOpen, setBulkTemplateOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  // Owner-only: bulk move target status (pipeline stage to relocate selected leads to).
+  const [bulkMoveStatus, setBulkMoveStatus] = useState<string>("");
+  const [bulkMoving, setBulkMoving] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
