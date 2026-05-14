@@ -12,6 +12,7 @@ const stages = [
   { key: "qualified" as const, label: "Qualified" },
   { key: "negotiation" as const, label: "Negotiation" },
   { key: "won" as const, label: "Won" },
+  { key: "lost" as const, label: "Lost" },
 ];
 
 export function PipelineView() {
