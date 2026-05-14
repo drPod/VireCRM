@@ -606,6 +606,10 @@ export function LeadDetailDrawer({
       return;
     }
     setMarkingWon(true);
+    // Optimistic patch first.
+    onOptimisticPatch?.(lead.id, {
+      status: "won",
+    });
     const { error } = await supabase
       .from("leads")
       .update({
@@ -617,6 +621,7 @@ export function LeadDetailDrawer({
     setMarkingWon(false);
     if (error) {
       toast.error("Failed to mark lead as won");
+      onUpdated();
     } else {
       if (lead.status !== "won") {
         await recordWonActivity(dealParsed.cents, form.deal_currency || "USD");
