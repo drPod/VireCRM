@@ -272,17 +272,23 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
 
     const bytes = await pdf.save();
 
-    // Upload (admin client bypasses RLS)
+    // Upload (admin client bypasses RLS). Bucket is private — readers must
+    // request a short-lived signed URL via getQuotePdfSignedUrl.
     const path = `${quote.id}/${quote.quote_number}-${Date.now()}.pdf`;
     const { error: upErr } = await supabaseAdmin.storage
       .from("quote-pdfs")
       .upload(path, bytes, { contentType: "application/pdf", upsert: true });
     if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
 
-    const { data: pub } = supabaseAdmin.storage.from("quote-pdfs").getPublicUrl(path);
-    const pdfUrl = pub.publicUrl;
+    // Store the storage path in pdf_url so we can re-sign on demand.
+    await supabaseAdmin.from("admin_quotes").update({ pdf_url: path }).eq("id", quote.id);
 
-    await supabaseAdmin.from("admin_quotes").update({ pdf_url: pdfUrl }).eq("id", quote.id);
+    const { data: signed, error: signErr } = await supabaseAdmin.storage
+      .from("quote-pdfs")
+      .createSignedUrl(path, 60 * 60); // 1 hour
+    if (signErr || !signed?.signedUrl) {
+      throw new Error(signErr?.message || "Failed to sign PDF URL");
+    }
 
     await supabaseAdmin.from("admin_quote_events").insert({
       quote_id: quote.id,
@@ -291,5 +297,42 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
       note: `PDF regenerated`,
     });
 
-    return { pdfUrl };
+    return { pdfUrl: signed.signedUrl, pdfPath: path };
+  });
+
+/**
+ * Returns a short-lived signed URL for an admin quote's stored PDF. Callable
+ * only by platform admins. Handles legacy rows where `pdf_url` was stored as a
+ * full public URL by extracting the object path from it.
+ */
+export const getQuotePdfSignedUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof inputSchema>) => inputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<{ signedUrl: string }> => {
+    const { userId } = context;
+
+    const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", { p_user_id: userId });
+    if (!isAdmin) throw new Error("Unauthorized: platform admin required");
+
+    const { data: quote, error } = await supabaseAdmin
+      .from("admin_quotes")
+      .select("id, pdf_url")
+      .eq("id", data.quoteId)
+      .single();
+    if (error || !quote) throw new Error(error?.message ?? "Quote not found");
+    if (!quote.pdf_url) throw new Error("This quote has no generated PDF yet");
+
+    // Legacy rows stored a public URL instead of a path — extract the path.
+    let path = quote.pdf_url;
+    const marker = "/quote-pdfs/";
+    const idx = path.indexOf(marker);
+    if (idx >= 0) path = path.slice(idx + marker.length);
+
+    const { data: signed, error: signErr } = await supabaseAdmin.storage
+      .from("quote-pdfs")
+      .createSignedUrl(path, 60 * 60);
+    if (signErr || !signed?.signedUrl) {
+      throw new Error(signErr?.message || "Failed to sign PDF URL");
+    }
+    return { signedUrl: signed.signedUrl };
   });
