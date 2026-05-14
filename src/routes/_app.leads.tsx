@@ -23,7 +23,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Loader2, UserPlus, X, Wand2, Trash2 } from "lucide-react";
+import { Search, Loader2, UserPlus, X, Wand2, Trash2, MoveRight } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
@@ -112,6 +119,9 @@ function LeadsPage() {
   const [bulkTemplateOpen, setBulkTemplateOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  // Owner-only: bulk move target status (pipeline stage to relocate selected leads to).
+  const [bulkMoveStatus, setBulkMoveStatus] = useState<string>("");
+  const [bulkMoving, setBulkMoving] = useState(false);
 
   // Sync search input when URL ?q= changes (e.g., navigating from AI Advisor)
   useEffect(() => {
@@ -368,6 +378,63 @@ function LeadsPage() {
   const handleClearSelection = () => {
     setSelectedLeadIds([]);
     setBulkAssignTargets([]);
+    setBulkMoveStatus("");
+  };
+
+  /**
+   * Bulk move: relocate every selected lead to a new pipeline stage with an
+   * optimistic update so the cards disappear/relocate instantly across the
+   * leads list and the pipeline view (the latter listens for `leads:changed`).
+   */
+  const runBulkMove = async (newStatus: string) => {
+    if (selectedLeadIds.length === 0 || !newStatus) return;
+    const ids = [...selectedLeadIds];
+    const prevStatusById = new Map(
+      leads.filter((l) => ids.includes(l.id)).map((l) => [l.id, l.status]),
+    );
+    setBulkMoving(true);
+    // Optimistic: update statuses in place; if the active filter no longer
+    // matches the new status, drop them from the visible list immediately.
+    setLeads((prev) => {
+      const updated = prev.map((l) =>
+        ids.includes(l.id) ? { ...l, status: newStatus as Lead["status"] } : l,
+      );
+      if (statusFilter !== "all" && statusFilter !== newStatus) {
+        return updated.filter((l) => !ids.includes(l.id));
+      }
+      return updated;
+    });
+    notifyLeadsChanged();
+
+    const { error } = await supabase
+      .from("leads")
+      .update({ status: newStatus })
+      .in("id", ids);
+
+    setBulkMoving(false);
+
+    if (error) {
+      // Roll back to pre-move statuses and re-add any rows we filtered out.
+      setLeads((prev) => {
+        const restored = new Map(prev.map((l) => [l.id, l]));
+        prevStatusById.forEach((status, id) => {
+          const existing = restored.get(id);
+          if (existing) {
+            restored.set(id, { ...existing, status: status as Lead["status"] });
+          }
+        });
+        return Array.from(restored.values());
+      });
+      notifyLeadsChanged();
+      handleLeadAdded();
+      toast.error("Failed to move leads", { description: error.message });
+      return;
+    }
+
+    toast.success(
+      `Moved ${ids.length} lead${ids.length === 1 ? "" : "s"} to ${newStatus}`,
+    );
+    handleClearSelection();
   };
 
   const runBulkDelete = async (mode: "soft" | "hard") => {
@@ -670,6 +737,45 @@ function LeadsPage() {
               <Wand2 className="h-3.5 w-3.5" />
               Apply template
             </Button>
+            {/* Bulk move to a pipeline stage — optimistic relocation across
+                the leads list and pipeline view. */}
+            <div className="flex items-center gap-1.5">
+              <Select
+                value={bulkMoveStatus}
+                onValueChange={setBulkMoveStatus}
+                disabled={selectedLeadIds.length === 0 || bulkMoving}
+              >
+                <SelectTrigger className="h-9 w-[150px] text-xs" aria-label="Move to stage">
+                  <SelectValue placeholder="Move to stage…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusFilters
+                    .filter((s) => s !== "all")
+                    .map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">
+                        {s}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void runBulkMove(bulkMoveStatus)}
+                disabled={
+                  bulkMoving || selectedLeadIds.length === 0 || !bulkMoveStatus
+                }
+                className="gap-1.5"
+                title="Move every selected lead to the chosen pipeline stage"
+              >
+                {bulkMoving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <MoveRight className="h-3.5 w-3.5" />
+                )}
+                Move
+              </Button>
+            </div>
             {isOwner && (
               <Button
                 size="sm"
