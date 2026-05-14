@@ -166,6 +166,7 @@ export function PipelineView() {
         toast.error("Failed to update lead status");
       } else {
         toast.success(`Moved "${lead.name}" to ${newStatus}`);
+        notifyLeadsChanged();
       }
     },
     [leads],
