@@ -788,6 +788,9 @@ function LeadsPage() {
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
           onUpdated={handleLeadAdded}
+          onOptimisticPatch={(id, patch) =>
+            setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+          }
         />
       )}
 
