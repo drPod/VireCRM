@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { notifyLeadsChanged, onLeadsChanged } from "@/lib/leads-events";
 
 const stages = [
   { key: "new" as const, label: "New" },
