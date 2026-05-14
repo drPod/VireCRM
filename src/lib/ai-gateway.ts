@@ -43,7 +43,15 @@ export interface AiGatewayCallOptions {
   userId?: string | null;
 }
 
-type LogStatus = "success" | "fallback" | "error" | "hard_error" | "network_error" | "no_tool_calls" | "malformed_json" | "non_json_response";
+type LogStatus =
+  | "success"
+  | "fallback"
+  | "error"
+  | "hard_error"
+  | "network_error"
+  | "no_tool_calls"
+  | "malformed_json"
+  | "non_json_response";
 
 function logAiCall(entry: {
   feature: string;
@@ -83,15 +91,16 @@ function logAiCall(entry: {
  * already exhausted fallbacks by the time this is thrown.
  */
 export class AiGatewayError extends Error {
-  constructor(message: string, public readonly status?: number) {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
     super(message);
     this.name = "AiGatewayError";
   }
 }
 
-export async function callAiWithFallback<T = unknown>(
-  opts: AiGatewayCallOptions,
-): Promise<T> {
+export async function callAiWithFallback<T = unknown>(opts: AiGatewayCallOptions): Promise<T> {
   const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
   if (!LOVABLE_API_KEY) {
     throw new AiGatewayError("AI service not configured");
@@ -168,7 +177,10 @@ export async function callAiWithFallback<T = unknown>(
           http_status: 429,
           error_message: "rate limited",
         });
-        throw new AiGatewayError("AI is rate-limited right now. Please wait ~30 seconds and try again.", 429);
+        throw new AiGatewayError(
+          "AI is rate-limited right now. Please wait ~30 seconds and try again.",
+          429,
+        );
       }
       if (response.status === 402) {
         logAiCall({
@@ -228,12 +240,13 @@ export async function callAiWithFallback<T = unknown>(
       continue;
     }
 
-    const toolCallArgs =
-      (parsed as {
+    const toolCallArgs = (
+      parsed as {
         choices?: Array<{
           message?: { tool_calls?: Array<{ function?: { arguments?: string } }> };
         }>;
-      })?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      }
+    )?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
 
     if (!toolCallArgs) {
       lastReason = "no tool_calls returned";
@@ -282,7 +295,4 @@ export async function callAiWithFallback<T = unknown>(
 }
 
 /** Default fallback chain for general-purpose tool-calling features. */
-export const DEFAULT_TEXT_MODELS = [
-  "google/gemini-2.5-flash",
-  "google/gemini-2.5-flash-lite",
-];
+export const DEFAULT_TEXT_MODELS = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];

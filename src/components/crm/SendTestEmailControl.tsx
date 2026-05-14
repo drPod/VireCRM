@@ -28,10 +28,7 @@ interface SendTestEmailControlProps {
   disabledReason?: string | null;
 }
 
-type Result =
-  | { kind: "idle" }
-  | { kind: "ok"; to: string }
-  | { kind: "err"; reason: string };
+type Result = { kind: "idle" } | { kind: "ok"; to: string } | { kind: "err"; reason: string };
 
 export function SendTestEmailControl({
   provider,
@@ -100,9 +97,7 @@ export function SendTestEmailControl({
           <Send className="h-3.5 w-3.5" />
           Send test email
         </Button>
-        {disabled && (
-          <p className="text-[11px] text-muted-foreground">{disabledReason}</p>
-        )}
+        {disabled && <p className="text-[11px] text-muted-foreground">{disabledReason}</p>}
         {result.kind === "ok" && (
           <ResultPill kind="ok">Test email delivered to {result.to}.</ResultPill>
         )}

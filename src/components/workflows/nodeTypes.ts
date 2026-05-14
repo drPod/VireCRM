@@ -145,7 +145,10 @@ export const NODE_TYPE_BY_KIND: Record<WorkflowNodeKind, NodeTypeMeta> = NODE_TY
   {} as Record<WorkflowNodeKind, NodeTypeMeta>,
 );
 
-export const TRIGGER_KIND_TO_DB: Record<string, "lead_created" | "status_changed" | "message_received"> = {
+export const TRIGGER_KIND_TO_DB: Record<
+  string,
+  "lead_created" | "status_changed" | "message_received"
+> = {
   "trigger.lead_created": "lead_created",
   "trigger.status_changed": "status_changed",
   "trigger.message_received": "message_received",

@@ -8,7 +8,13 @@ interface MetricCardProps {
   icon: LucideIcon;
 }
 
-export function MetricCard({ label, value, change, changeType = "neutral", icon: Icon }: MetricCardProps) {
+export function MetricCard({
+  label,
+  value,
+  change,
+  changeType = "neutral",
+  icon: Icon,
+}: MetricCardProps) {
   const changeColor =
     changeType === "positive"
       ? "text-success"
@@ -26,9 +32,7 @@ export function MetricCard({ label, value, change, changeType = "neutral", icon:
       </div>
       <div className="mt-3">
         <span className="text-2xl font-bold text-foreground">{value}</span>
-        {change && (
-          <span className={`ml-2 text-xs font-medium ${changeColor}`}>{change}</span>
-        )}
+        {change && <span className={`ml-2 text-xs font-medium ${changeColor}`}>{change}</span>}
       </div>
     </div>
   );

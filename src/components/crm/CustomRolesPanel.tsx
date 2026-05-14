@@ -31,14 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Plus,
-  Loader2,
-  Shield,
-  Trash2,
-  Pencil,
-  Lock,
-} from "lucide-react";
+import { Plus, Loader2, Shield, Trash2, Pencil, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   PERMISSION_CATALOG,
@@ -184,10 +177,7 @@ export function CustomRolesPanel() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    const { error } = await supabase
-      .from("custom_roles")
-      .delete()
-      .eq("id", deleteTarget.id);
+    const { error } = await supabase.from("custom_roles").delete().eq("id", deleteTarget.id);
     if (error) {
       toast.error(error.message);
     } else {
@@ -252,7 +242,9 @@ export function CustomRolesPanel() {
                     />
                     <h3 className="text-sm font-semibold text-foreground">{r.name}</h3>
                     {r.is_builtin && (
-                      <Badge variant="secondary" className="text-[10px]">Built-in</Badge>
+                      <Badge variant="secondary" className="text-[10px]">
+                        Built-in
+                      </Badge>
                     )}
                     <Badge variant="outline" className="text-[10px] capitalize">
                       {r.base_role.replace("_", " ")} tier
@@ -360,10 +352,7 @@ export function CustomRolesPanel() {
                   <h5 className="text-xs font-semibold text-foreground mb-2">{group}</h5>
                   <div className="space-y-2">
                     {perms.map((p) => (
-                      <label
-                        key={p.key}
-                        className="flex items-start gap-2 cursor-pointer"
-                      >
+                      <label key={p.key} className="flex items-start gap-2 cursor-pointer">
                         <Checkbox
                           checked={form.permissions.includes(p.key)}
                           onCheckedChange={() => togglePerm(p.key)}
@@ -398,7 +387,8 @@ export function CustomRolesPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this role?</AlertDialogTitle>
             <AlertDialogDescription>
-              Members assigned this role will fall back to their base tier&apos;s default permissions.
+              Members assigned this role will fall back to their base tier&apos;s default
+              permissions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

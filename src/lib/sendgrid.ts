@@ -16,7 +16,10 @@ export async function verifySendgridKey(
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     if (res.status === 401 || res.status === 403) {
-      return { ok: false, reason: "SendGrid rejected this API key. Make sure it has at least 'Mail Send' permission." };
+      return {
+        ok: false,
+        reason: "SendGrid rejected this API key. Make sure it has at least 'Mail Send' permission.",
+      };
     }
     if (!res.ok) {
       const text = await res.text().catch(() => "");
@@ -42,7 +45,9 @@ export interface SendgridSendOpts {
   replyTo?: string;
 }
 
-export async function sendSendgridEmail(opts: SendgridSendOpts): Promise<{ messageId: string | null }> {
+export async function sendSendgridEmail(
+  opts: SendgridSendOpts,
+): Promise<{ messageId: string | null }> {
   const res = await fetch(`${SENDGRID_BASE}/mail/send`, {
     method: "POST",
     headers: {

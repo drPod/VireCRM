@@ -17,7 +17,10 @@ Deno.serve(async (req) => {
   try {
     const auth = req.headers.get("Authorization");
     const token = auth?.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
     const body = await req.json().catch(() => ({}));
@@ -105,9 +108,9 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("connect-stripe-account error:", err);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message || "Failed" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: (err as Error).message || "Failed" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

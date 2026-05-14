@@ -150,32 +150,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialized = false;
 
     // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
 
-        if (currentSession?.user) {
-          // Use setTimeout to avoid Supabase deadlock
-          const uid = currentSession.user.id;
-          setTimeout(() => {
-            fetchUserData(uid);
-            // Verify pre-paid grant on sign-in (idempotent, runs once per user/session).
-            if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-              verifyGrantOnce(uid);
-            }
-          }, 0);
-        } else {
-          setProfile(null);
-          setRole(null);
-          setOrganization(null);
-          grantCheckedFor.current = null;
-        }
-        // Only release loading after the initial session check has run, so the
-        // app doesn't briefly see user=null and bounce to /login.
-        if (initialized) setLoading(false);
+      if (currentSession?.user) {
+        // Use setTimeout to avoid Supabase deadlock
+        const uid = currentSession.user.id;
+        setTimeout(() => {
+          fetchUserData(uid);
+          // Verify pre-paid grant on sign-in (idempotent, runs once per user/session).
+          if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+            verifyGrantOnce(uid);
+          }
+        }, 0);
+      } else {
+        setProfile(null);
+        setRole(null);
+        setOrganization(null);
+        grantCheckedFor.current = null;
       }
-    );
+      // Only release loading after the initial session check has run, so the
+      // app doesn't briefly see user=null and bounce to /login.
+      if (initialized) setLoading(false);
+    });
 
     // THEN check existing session — this is the authoritative initial state.
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {

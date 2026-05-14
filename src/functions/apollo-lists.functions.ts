@@ -97,7 +97,10 @@ export const listApolloListsFn = createServerFn({ method: "POST" })
     } catch (err) {
       const apErr = err as ApolloError;
       if (apErr.isAuthError) {
-        throw codedError("AUTH", "Apollo rejected your API key. Update it in Settings → Integrations.");
+        throw codedError(
+          "AUTH",
+          "Apollo rejected your API key. Update it in Settings → Integrations.",
+        );
       }
       throw new Error(apErr.message || "Failed to load Apollo lists.");
     }
@@ -156,7 +159,13 @@ export const importApolloListFn = createServerFn({ method: "POST" })
       const slice = collected.slice(0, data.maxLeads);
 
       if (slice.length === 0) {
-        const result = { fetched: collected.length, revealed: 0, inserted: 0, duplicates: 0, noEmail: 0 };
+        const result = {
+          fetched: collected.length,
+          revealed: 0,
+          inserted: 0,
+          duplicates: 0,
+          noEmail: 0,
+        };
         await recordLeadSync({
           organizationId: data.organizationId,
           userId,
@@ -270,7 +279,11 @@ export const importApolloListFn = createServerFn({ method: "POST" })
           revealed: 0,
           noEmail: slice.length,
           durationMs: Date.now() - startedAt,
-          metadata: { list_id: data.listId, list_name: data.listName, credit_exhausted: creditExhausted },
+          metadata: {
+            list_id: data.listId,
+            list_name: data.listName,
+            credit_exhausted: creditExhausted,
+          },
         });
         return result;
       }
@@ -282,7 +295,9 @@ export const importApolloListFn = createServerFn({ method: "POST" })
         .select("email")
         .eq("organization_id", data.organizationId)
         .in("email", emails);
-      const existingSet = new Set((existing ?? []).map((r) => r.email?.toLowerCase()).filter(Boolean));
+      const existingSet = new Set(
+        (existing ?? []).map((r) => r.email?.toLowerCase()).filter(Boolean),
+      );
 
       const toInsert = enriched
         .filter((e) => !existingSet.has(e.email.toLowerCase()))

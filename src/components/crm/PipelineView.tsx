@@ -39,10 +39,7 @@ export function PipelineView() {
         .select("*")
         .eq("organization_id", organization.id)
         .order("score", { ascending: false }),
-      supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .eq("organization_id", organization.id),
+      supabase.from("profiles").select("user_id, full_name").eq("organization_id", organization.id),
     ]);
 
     const nameByUserId = new Map<string, string>();
@@ -63,8 +60,8 @@ export function PipelineView() {
           nextAction: l.next_action ?? undefined,
           lastContact: l.last_contact ?? undefined,
           assignedTo: l.assigned_to ?? null,
-          assigneeName: l.assigned_to ? nameByUserId.get(l.assigned_to) ?? null : null,
-        }))
+          assigneeName: l.assigned_to ? (nameByUserId.get(l.assigned_to) ?? null) : null,
+        })),
       );
     }
     setLoading(false);
@@ -126,32 +123,23 @@ export function PipelineView() {
       // Optimistic update
       const oldStatus = lead.status;
       setLeads((prev) =>
-        prev.map((l) =>
-          l.id === leadId ? { ...l, status: newStatus as Lead["status"] } : l
-        )
+        prev.map((l) => (l.id === leadId ? { ...l, status: newStatus as Lead["status"] } : l)),
       );
       setUpdating(leadId);
 
-      const { error } = await supabase
-        .from("leads")
-        .update({ status: newStatus })
-        .eq("id", leadId);
+      const { error } = await supabase.from("leads").update({ status: newStatus }).eq("id", leadId);
 
       setUpdating(null);
 
       if (error) {
         // Revert on failure
-        setLeads((prev) =>
-          prev.map((l) =>
-            l.id === leadId ? { ...l, status: oldStatus } : l
-          )
-        );
+        setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: oldStatus } : l)));
         toast.error("Failed to update lead status");
       } else {
         toast.success(`Moved "${lead.name}" to ${newStatus}`);
       }
     },
-    [leads]
+    [leads],
   );
 
   // Track scroll position to show/hide arrow affordances

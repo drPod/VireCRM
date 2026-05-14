@@ -9,10 +9,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 export const Route = createFileRoute("/r/$resellerSlug/checkout/$planSlug")({
   component: ResellerCheckoutPage,
   head: () => ({
-    meta: [
-      { title: "Checkout" },
-      { name: "description", content: "Complete your subscription" },
-    ],
+    meta: [{ title: "Checkout" }, { name: "description", content: "Complete your subscription" }],
   }),
 });
 
@@ -158,4 +155,3 @@ function ResellerCheckoutPage() {
     </div>
   );
 }
-

@@ -64,7 +64,9 @@ function makeApolloError(message: string, status?: number): ApolloError {
 }
 
 /** Lightweight credentials check — calls /auth/health which doesn't burn credits. */
-export async function verifyApolloKey(apiKey: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+export async function verifyApolloKey(
+  apiKey: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
   try {
     const res = await fetch(`${APOLLO_BASE}/auth/health`, {
       method: "GET",

@@ -96,10 +96,7 @@ describe("pipeline counts: organization_id scoping", () => {
 
     // Replay the exact query shape from src/routes/_app.solar.tsx:
     //   supabase.from("leads").select("status").eq("organization_id", organization.id)
-    await supabase
-      .from("leads")
-      .select("status")
-      .eq("organization_id", TEST_ORG_ID);
+    await supabase.from("leads").select("status").eq("organization_id", TEST_ORG_ID);
 
     expectOrgScopedCall("leads", TEST_ORG_ID);
   });
@@ -182,16 +179,12 @@ describe("pipeline counts: source-level org_id audit", () => {
     async (relPath) => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
-      const source = await fs.readFile(
-        path.resolve(process.cwd(), relPath),
-        "utf8",
-      );
+      const source = await fs.readFile(path.resolve(process.cwd(), relPath), "utf8");
 
       // Match each `.from("X")` call followed (loosely) by a chain. We then
       // require the chain (up to the next blank line or `;`) to mention
       // `organization_id`.
-      const re =
-        /\.from\(\s*["'](leads|messages|replies)["']\s*\)([\s\S]*?)(?:;|\n\n)/g;
+      const re = /\.from\(\s*["'](leads|messages|replies)["']\s*\)([\s\S]*?)(?:;|\n\n)/g;
       const offenders: Array<{ table: string; snippet: string }> = [];
 
       for (const match of source.matchAll(re)) {

@@ -1,24 +1,24 @@
-import * as React from 'react'
-import { render } from '@react-email/components'
-import { createClient } from '@supabase/supabase-js'
-import { createFileRoute } from '@tanstack/react-router'
-import { TEMPLATES } from '@/lib/email-templates/registry'
+import * as React from "react";
+import { render } from "@react-email/components";
+import { createClient } from "@supabase/supabase-js";
+import { createFileRoute } from "@tanstack/react-router";
+import { TEMPLATES } from "@/lib/email-templates/registry";
 
 // Match the constants used by the transactional send route.
-const SITE_NAME = 'Genesis'
-const SENDER_DOMAIN = 'notify.vireonx.space'
-const FROM_DOMAIN = 'vireonx.space'
+const SITE_NAME = "Genesis";
+const SENDER_DOMAIN = "notify.vireonx.space";
+const FROM_DOMAIN = "vireonx.space";
 
-const TEMPLATE_NAME = 'client-welcome'
-const MAX_ATTEMPTS = 5
-const BATCH_SIZE = 25
+const TEMPLATE_NAME = "client-welcome";
+const MAX_ATTEMPTS = 5;
+const BATCH_SIZE = 25;
 
 function generateToken(): string {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
   return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -35,187 +35,176 @@ function generateToken(): string {
  * Idempotency: each pending row has a unique `id` used as the idempotency
  * key, and rows are marked `sent_at` immediately after enqueue.
  */
-export const Route = createFileRoute('/hooks/send-pending-welcomes')({
+export const Route = createFileRoute("/hooks/send-pending-welcomes")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const authHeader = request.headers.get('authorization')
-        const token = authHeader?.replace('Bearer ', '')
+        const authHeader = request.headers.get("authorization");
+        const token = authHeader?.replace("Bearer ", "");
 
         if (!token) {
-          return new Response(
-            JSON.stringify({ error: 'Missing authorization header' }),
-            { status: 401, headers: { 'Content-Type': 'application/json' } },
-          )
+          return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
-        const supabaseUrl =
-          process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+        const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
         if (!supabaseUrl || !serviceKey) {
-          return new Response(
-            JSON.stringify({ error: 'Server misconfigured' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } },
-          )
+          return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         const supabase = createClient(supabaseUrl, serviceKey, {
           auth: { autoRefreshToken: false, persistSession: false },
-        })
+        });
 
         // Pull due, un-sent rows
         const { data: rows, error: fetchErr } = await supabase
-          .from('pending_welcome_emails')
-          .select(
-            'id, recipient_email, full_name, brand_name, login_url, attempts, reseller_id',
-          )
-          .is('sent_at', null)
-          .is('failed_at', null)
-          .lte('send_after', new Date().toISOString())
-          .lt('attempts', MAX_ATTEMPTS)
-          .order('send_after', { ascending: true })
-          .limit(BATCH_SIZE)
+          .from("pending_welcome_emails")
+          .select("id, recipient_email, full_name, brand_name, login_url, attempts, reseller_id")
+          .is("sent_at", null)
+          .is("failed_at", null)
+          .lte("send_after", new Date().toISOString())
+          .lt("attempts", MAX_ATTEMPTS)
+          .order("send_after", { ascending: true })
+          .limit(BATCH_SIZE);
 
         if (fetchErr) {
-          console.error('Failed to fetch pending welcome emails:', fetchErr)
-          return new Response(
-            JSON.stringify({ success: false, error: fetchErr.message }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } },
-          )
+          console.error("Failed to fetch pending welcome emails:", fetchErr);
+          return new Response(JSON.stringify({ success: false, error: fetchErr.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         if (!rows || rows.length === 0) {
-          return new Response(
-            JSON.stringify({ success: true, processed: 0 }),
-            { headers: { 'Content-Type': 'application/json' } },
-          )
+          return new Response(JSON.stringify({ success: true, processed: 0 }), {
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         // Batch-load reseller branding so reply-to / from-name match the
         // reseller the client signed up under (white-label experience).
-        const resellerIds = Array.from(
-          new Set(rows.map((r) => r.reseller_id).filter(Boolean)),
-        )
+        const resellerIds = Array.from(new Set(rows.map((r) => r.reseller_id).filter(Boolean)));
         const resellerBranding = new Map<
           string,
           { brand_name: string | null; support_email: string | null }
-        >()
+        >();
         if (resellerIds.length > 0) {
           const { data: resellerRows } = await supabase
-            .from('organizations')
-            .select('id, brand_name, name, support_email')
-            .in('id', resellerIds)
+            .from("organizations")
+            .select("id, brand_name, name, support_email")
+            .in("id", resellerIds);
           for (const r of resellerRows ?? []) {
             resellerBranding.set(r.id, {
               brand_name: r.brand_name ?? r.name ?? null,
               support_email: r.support_email ?? null,
-            })
+            });
           }
         }
 
-        const template = TEMPLATES[TEMPLATE_NAME]
+        const template = TEMPLATES[TEMPLATE_NAME];
         if (!template) {
-          console.error(`Template '${TEMPLATE_NAME}' missing from registry`)
-          return new Response(
-            JSON.stringify({ success: false, error: 'Template missing' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } },
-          )
+          console.error(`Template '${TEMPLATE_NAME}' missing from registry`);
+          return new Response(JSON.stringify({ success: false, error: "Template missing" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
-        let sent = 0
-        let skipped = 0
-        let failed = 0
+        let sent = 0;
+        let skipped = 0;
+        let failed = 0;
 
         for (const row of rows) {
           try {
-            const recipient = row.recipient_email.toLowerCase()
+            const recipient = row.recipient_email.toLowerCase();
 
             // Suppression check
             const { data: suppressed } = await supabase
-              .from('suppressed_emails')
-              .select('id')
-              .eq('email', recipient)
-              .maybeSingle()
+              .from("suppressed_emails")
+              .select("id")
+              .eq("email", recipient)
+              .maybeSingle();
 
             if (suppressed) {
               await supabase
-                .from('pending_welcome_emails')
-                .update({ sent_at: new Date().toISOString(), last_error: 'suppressed' })
-                .eq('id', row.id)
-              skipped++
-              continue
+                .from("pending_welcome_emails")
+                .update({ sent_at: new Date().toISOString(), last_error: "suppressed" })
+                .eq("id", row.id);
+              skipped++;
+              continue;
             }
 
             // Unsubscribe token (reuse if exists)
-            let unsubscribeToken: string
+            let unsubscribeToken: string;
             const { data: existingToken } = await supabase
-              .from('email_unsubscribe_tokens')
-              .select('token, used_at')
-              .eq('email', recipient)
-              .maybeSingle()
+              .from("email_unsubscribe_tokens")
+              .select("token, used_at")
+              .eq("email", recipient)
+              .maybeSingle();
 
             if (existingToken && !existingToken.used_at) {
-              unsubscribeToken = existingToken.token
+              unsubscribeToken = existingToken.token;
             } else if (!existingToken) {
-              unsubscribeToken = generateToken()
+              unsubscribeToken = generateToken();
               await supabase
-                .from('email_unsubscribe_tokens')
+                .from("email_unsubscribe_tokens")
                 .upsert(
                   { token: unsubscribeToken, email: recipient },
-                  { onConflict: 'email', ignoreDuplicates: true },
-                )
+                  { onConflict: "email", ignoreDuplicates: true },
+                );
               const { data: storedToken } = await supabase
-                .from('email_unsubscribe_tokens')
-                .select('token')
-                .eq('email', recipient)
-                .maybeSingle()
-              if (!storedToken) throw new Error('Failed to store unsubscribe token')
-              unsubscribeToken = storedToken.token
+                .from("email_unsubscribe_tokens")
+                .select("token")
+                .eq("email", recipient)
+                .maybeSingle();
+              if (!storedToken) throw new Error("Failed to store unsubscribe token");
+              unsubscribeToken = storedToken.token;
             } else {
               // token used → treat as suppressed
               await supabase
-                .from('pending_welcome_emails')
-                .update({ sent_at: new Date().toISOString(), last_error: 'unsubscribed' })
-                .eq('id', row.id)
-              skipped++
-              continue
+                .from("pending_welcome_emails")
+                .update({ sent_at: new Date().toISOString(), last_error: "unsubscribed" })
+                .eq("id", row.id);
+              skipped++;
+              continue;
             }
 
             const templateData = {
               brandName: row.brand_name,
               fullName: row.full_name,
               loginUrl: row.login_url,
-            }
-            const element = React.createElement(template.component, templateData)
-            const html = await render(element)
-            const plainText = await render(element, { plainText: true })
+            };
+            const element = React.createElement(template.component, templateData);
+            const html = await render(element);
+            const plainText = await render(element, { plainText: true });
             const subject =
-              typeof template.subject === 'function'
+              typeof template.subject === "function"
                 ? template.subject(templateData)
-                : template.subject
+                : template.subject;
 
-            const messageId = crypto.randomUUID()
+            const messageId = crypto.randomUUID();
 
-            await supabase.from('email_send_log').insert({
+            await supabase.from("email_send_log").insert({
               message_id: messageId,
               template_name: TEMPLATE_NAME,
               recipient_email: row.recipient_email,
-              status: 'pending',
-            })
+              status: "pending",
+            });
 
-            const branding = row.reseller_id
-              ? resellerBranding.get(row.reseller_id)
-              : undefined
-            const fromDisplayName =
-              branding?.brand_name?.trim() || row.brand_name || SITE_NAME
-            const safeFromName = fromDisplayName
-              .replace(/["<>\r\n]/g, '')
-              .slice(0, 100)
-            const replyTo = branding?.support_email?.trim().toLowerCase()
+            const branding = row.reseller_id ? resellerBranding.get(row.reseller_id) : undefined;
+            const fromDisplayName = branding?.brand_name?.trim() || row.brand_name || SITE_NAME;
+            const safeFromName = fromDisplayName.replace(/["<>\r\n]/g, "").slice(0, 100);
+            const replyTo = branding?.support_email?.trim().toLowerCase();
 
-            const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
-              queue_name: 'transactional_emails',
+            const { error: enqueueErr } = await supabase.rpc("enqueue_email", {
+              queue_name: "transactional_emails",
               payload: {
                 message_id: messageId,
                 to: row.recipient_email,
@@ -224,45 +213,45 @@ export const Route = createFileRoute('/hooks/send-pending-welcomes')({
                 subject,
                 html,
                 text: plainText,
-                purpose: 'transactional',
+                purpose: "transactional",
                 label: TEMPLATE_NAME,
                 idempotency_key: `welcome-${row.id}`,
                 unsubscribe_token: unsubscribeToken,
                 reply_to: replyTo || undefined,
                 queued_at: new Date().toISOString(),
               },
-            })
+            });
 
-            if (enqueueErr) throw new Error(enqueueErr.message)
+            if (enqueueErr) throw new Error(enqueueErr.message);
 
             await supabase
-              .from('pending_welcome_emails')
+              .from("pending_welcome_emails")
               .update({ sent_at: new Date().toISOString() })
-              .eq('id', row.id)
+              .eq("id", row.id);
 
-            sent++
+            sent++;
           } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error'
-            const nextAttempts = (row.attempts ?? 0) + 1
-            const isFinal = nextAttempts >= MAX_ATTEMPTS
+            const message = err instanceof Error ? err.message : "Unknown error";
+            const nextAttempts = (row.attempts ?? 0) + 1;
+            const isFinal = nextAttempts >= MAX_ATTEMPTS;
             await supabase
-              .from('pending_welcome_emails')
+              .from("pending_welcome_emails")
               .update({
                 attempts: nextAttempts,
                 last_error: message,
                 failed_at: isFinal ? new Date().toISOString() : null,
               })
-              .eq('id', row.id)
-            failed++
-            console.error('Welcome email send failed', { id: row.id, message })
+              .eq("id", row.id);
+            failed++;
+            console.error("Welcome email send failed", { id: row.id, message });
           }
         }
 
         return new Response(
           JSON.stringify({ success: true, processed: rows.length, sent, skipped, failed }),
-          { headers: { 'Content-Type': 'application/json' } },
-        )
+          { headers: { "Content-Type": "application/json" } },
+        );
       },
     },
   },
-})
+});

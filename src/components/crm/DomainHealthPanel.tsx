@@ -50,7 +50,6 @@ function openExternal(url: string) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-
 interface Props {
   organizationId: string | undefined;
 }
@@ -127,11 +126,10 @@ export function DomainHealthPanel({ organizationId }: Props) {
         <div className="flex items-center gap-3">
           <Activity className="h-4 w-4 text-muted-foreground" />
           <div>
-            <label className="text-sm font-medium text-foreground">
-              SSL & Route Health
-            </label>
+            <label className="text-sm font-medium text-foreground">SSL & Route Health</label>
             <p className="text-xs text-muted-foreground">
-              Live HTTPS probes for every verified hostname. We check certificate validity, the response code, and that the page actually loads this CRM.
+              Live HTTPS probes for every verified hostname. We check certificate validity, the
+              response code, and that the page actually loads this CRM.
             </p>
           </div>
         </div>
@@ -187,7 +185,8 @@ export function DomainHealthPanel({ organizationId }: Props) {
         </div>
       ) : results === null ? null : results.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border bg-secondary/20 px-4 py-6 text-center text-xs text-muted-foreground">
-          No verified hostnames yet. Add and verify a hostname above, then come back here to monitor it.
+          No verified hostnames yet. Add and verify a hostname above, then come back here to monitor
+          it.
         </p>
       ) : (
         <div className="space-y-3">
@@ -206,34 +205,20 @@ export function DomainHealthPanel({ organizationId }: Props) {
                   </Badge>
                 )}
                 {r.responseMs !== null && (
-                  <span className="text-[11px] text-muted-foreground">
-                    {r.responseMs}ms
-                  </span>
+                  <span className="text-[11px] text-muted-foreground">{r.responseMs}ms</span>
                 )}
               </div>
 
               {/* Check matrix */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <CheckPill
-                  label="HTTPS"
-                  ok={r.httpsReachable}
-                  failLabel="Unreachable"
-                />
-                <CheckPill
-                  label="SSL"
-                  ok={r.sslValid}
-                  failLabel="Invalid cert"
-                />
+                <CheckPill label="HTTPS" ok={r.httpsReachable} failLabel="Unreachable" />
+                <CheckPill label="SSL" ok={r.sslValid} failLabel="Invalid cert" />
                 <CheckPill
                   label="Status"
                   ok={r.httpStatus !== null && r.httpStatus < 400}
                   failLabel={r.httpStatus ? `HTTP ${r.httpStatus}` : "No response"}
                 />
-                <CheckPill
-                  label="Serves this app"
-                  ok={r.servesThisApp}
-                  failLabel="Wrong content"
-                />
+                <CheckPill label="Serves this app" ok={r.servesThisApp} failLabel="Wrong content" />
               </div>
 
               {/* Issues */}
@@ -303,7 +288,6 @@ export function DomainHealthPanel({ organizationId }: Props) {
                 </Button>
               </div>
 
-
               {r.redirected && r.finalUrl && (
                 <p className="text-[11px] text-muted-foreground">
                   Final URL: <code className="text-foreground">{r.finalUrl}</code>
@@ -314,23 +298,12 @@ export function DomainHealthPanel({ organizationId }: Props) {
         </div>
       )}
 
-      <RedirectGuideDialog
-        result={redirectGuide}
-        onClose={() => setRedirectGuide(null)}
-      />
+      <RedirectGuideDialog result={redirectGuide} onClose={() => setRedirectGuide(null)} />
     </div>
   );
 }
 
-function CheckPill({
-  label,
-  ok,
-  failLabel,
-}: {
-  label: string;
-  ok: boolean;
-  failLabel: string;
-}) {
+function CheckPill({ label, ok, failLabel }: { label: string; ok: boolean; failLabel: string }) {
   return (
     <div
       className={
@@ -364,10 +337,7 @@ function IssueActions({
   const buttons: { label: string; icon: React.ReactNode; onClick: () => void }[] = [];
 
   // DNS / unreachable / wrong content → DNS-fix actions.
-  if (
-    issue.check === "https" ||
-    issue.check === "app_match"
-  ) {
+  if (issue.check === "https" || issue.check === "app_match") {
     buttons.push({
       label: "Copy A record value",
       icon: <Copy className="h-3 w-3" />,
@@ -484,20 +454,19 @@ function RedirectGuideDialog({
             <p className="font-medium text-foreground">Redirect strategy</p>
             <p className="text-muted-foreground">
               Add <code className="text-foreground">{apex}</code> AND{" "}
-              <code className="text-foreground">{wwwHost}</code> as separate
-              hostnames. Mark one as <strong>Primary</strong> — the other will
-              automatically redirect to it. Don't add a 301 at your registrar;
-              the app handles it.
+              <code className="text-foreground">{wwwHost}</code> as separate hostnames. Mark one as{" "}
+              <strong>Primary</strong> — the other will automatically redirect to it. Don't add a
+              301 at your registrar; the app handles it.
             </p>
             <ul className="list-disc pl-5 text-muted-foreground space-y-0.5">
               <li>
-                Visiting <code className="text-foreground">http://{host}</code> →
-                redirects to <code className="text-foreground">https://{host}</code>
+                Visiting <code className="text-foreground">http://{host}</code> → redirects to{" "}
+                <code className="text-foreground">https://{host}</code>
               </li>
               <li>
                 Visiting <code className="text-foreground">https://{isWww ? apex : wwwHost}</code> →
-                redirects to <code className="text-foreground">https://{host}</code>{" "}
-                (when {host} is primary)
+                redirects to <code className="text-foreground">https://{host}</code> (when {host} is
+                primary)
               </li>
             </ul>
           </div>
@@ -507,8 +476,8 @@ function RedirectGuideDialog({
               <p className="font-medium">Currently redirecting to</p>
               <code className="text-foreground">{result.finalUrl}</code>
               <p className="mt-1 opacity-80">
-                If this isn't the URL you expect, remove any 301/302 rules at
-                your registrar or upstream proxy.
+                If this isn't the URL you expect, remove any 301/302 rules at your registrar or
+                upstream proxy.
               </p>
             </div>
           )}
@@ -535,7 +504,9 @@ function RecordRow({
     <div className="rounded-md border border-border bg-secondary/20 p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-foreground">{label}</p>
-        <Badge variant="outline" className="text-[10px]">{type}</Badge>
+        <Badge variant="outline" className="text-[10px]">
+          {type}
+        </Badge>
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <CopyField label="Name" value={name} />

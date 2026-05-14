@@ -96,9 +96,7 @@ function eventIcon(type: string) {
   }
 }
 
-function statusBadgeVariant(
-  status: string,
-): "secondary" | "warning" | "destructive" | "outline" {
+function statusBadgeVariant(status: string): "secondary" | "warning" | "destructive" | "outline" {
   switch (status) {
     case "success":
       return "secondary";
@@ -178,9 +176,7 @@ export function CustomDomainAuditLog({ organizationId, refreshKey }: Props) {
         <div className="flex items-center gap-3">
           <ScrollText className="h-4 w-4 text-muted-foreground" />
           <div>
-            <label className="text-sm font-medium text-foreground">
-              Custom Domain Audit Log
-            </label>
+            <label className="text-sm font-medium text-foreground">Custom Domain Audit Log</label>
             <p className="text-xs text-muted-foreground">
               Every hostname change and verification attempt for this organization, with timestamps.
             </p>
@@ -231,10 +227,7 @@ export function CustomDomainAuditLog({ organizationId, refreshKey }: Props) {
                     <span className="text-xs font-medium text-foreground">
                       {eventLabel(row.event_type)}
                     </span>
-                    <Badge
-                      variant={statusBadgeVariant(row.status)}
-                      className="text-[10px]"
-                    >
+                    <Badge variant={statusBadgeVariant(row.status)} className="text-[10px]">
                       {row.status}
                     </Badge>
                     <code className="text-[11px] font-mono text-muted-foreground">
@@ -252,7 +245,9 @@ export function CustomDomainAuditLog({ organizationId, refreshKey }: Props) {
                   )}
                   <p className="text-[10px] text-muted-foreground/80">
                     {actor ? (
-                      <>by <span className="text-foreground">{actor}</span></>
+                      <>
+                        by <span className="text-foreground">{actor}</span>
+                      </>
                     ) : row.user_id ? (
                       <>by user {row.user_id.slice(0, 8)}</>
                     ) : (

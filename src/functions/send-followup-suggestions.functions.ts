@@ -2,10 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import {
-  deliverOutreachEmail,
-  loadOutreachDeliveryChannels,
-} from "@/lib/email/outreach-delivery";
+import { deliverOutreachEmail, loadOutreachDeliveryChannels } from "@/lib/email/outreach-delivery";
 import { z } from "zod";
 
 /**
@@ -48,7 +45,9 @@ export const sendFollowupSuggestionsFn = createServerFn({ method: "POST" })
 
     const { data: org } = await supabase
       .from("organizations")
-      .select("name, brand_name, support_email, logo_url, primary_color, font_family, email_signature")
+      .select(
+        "name, brand_name, support_email, logo_url, primary_color, font_family, email_signature",
+      )
       .eq("id", data.organizationId)
       .single();
     if (!org) throw new Error("Organization not found");

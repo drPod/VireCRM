@@ -3,12 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -135,7 +130,9 @@ export function OrgFeaturesPanel() {
 
   async function handleRevoke(featureKey: string) {
     if (!selectedOrgId) return;
-    if (!window.confirm(`Revoke "${FEATURE_BY_KEY[featureKey]?.name ?? featureKey}" for this org?`)) {
+    if (
+      !window.confirm(`Revoke "${FEATURE_BY_KEY[featureKey]?.name ?? featureKey}" for this org?`)
+    ) {
       return;
     }
     try {
@@ -166,10 +163,9 @@ export function OrgFeaturesPanel() {
           <CardTitle>Custom Features (Per Org)</CardTitle>
         </div>
         <p className="text-sm text-muted-foreground">
-          Toggle premium / enterprise features for any organization without
-          changing the base CRM. Add features to{" "}
-          <code className="text-xs">src/lib/features/catalog.ts</code>, gate UI
-          with <code className="text-xs">{`<FeatureGate feature="...">`}</code>.
+          Toggle premium / enterprise features for any organization without changing the base CRM.
+          Add features to <code className="text-xs">src/lib/features/catalog.ts</code>, gate UI with{" "}
+          <code className="text-xs">{`<FeatureGate feature="...">`}</code>.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -190,18 +186,11 @@ export function OrgFeaturesPanel() {
                 className="pl-8"
               />
             </div>
-            <Button
-              variant="outline"
-              onClick={() => void loadOrgs(search)}
-              disabled={loadingOrgs}
-            >
+            <Button variant="outline" onClick={() => void loadOrgs(search)} disabled={loadingOrgs}>
               {loadingOrgs ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
             </Button>
           </div>
-          <Select
-            value={selectedOrgId ?? ""}
-            onValueChange={(v) => setSelectedOrgId(v || null)}
-          >
+          <Select value={selectedOrgId ?? ""} onValueChange={(v) => setSelectedOrgId(v || null)}>
             <SelectTrigger>
               <SelectValue placeholder="Select an organization" />
             </SelectTrigger>
@@ -214,9 +203,7 @@ export function OrgFeaturesPanel() {
                 </SelectItem>
               ))}
               {orgs.length === 0 && (
-                <div className="px-3 py-2 text-sm text-muted-foreground">
-                  No organizations
-                </div>
+                <div className="px-3 py-2 text-sm text-muted-foreground">No organizations</div>
               )}
             </SelectContent>
           </Select>

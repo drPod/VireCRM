@@ -375,7 +375,11 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) return null;
-    const org = (row as unknown as { organizations?: { name: string; brand_name: string | null; logo_url: string | null } }).organizations;
+    const org = (
+      row as unknown as {
+        organizations?: { name: string; brand_name: string | null; logo_url: string | null };
+      }
+    ).organizations;
     return {
       id: row.id,
       name: row.name,
@@ -398,9 +402,7 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
  */
 export const verifyCalendarPasswordFn = createServerFn({ method: "POST" })
   .inputValidator((input: { calendarId: string; password: string }) =>
-    z
-      .object({ calendarId: z.string().uuid(), password: z.string().min(1).max(200) })
-      .parse(input),
+    z.object({ calendarId: z.string().uuid(), password: z.string().min(1).max(200) }).parse(input),
   )
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const supabase = getServiceClient();
@@ -413,16 +415,15 @@ export const verifyCalendarPasswordFn = createServerFn({ method: "POST" })
  * Subtracts already-booked appointments (excluding cancelled).
  */
 export const getAvailableSlotsFn = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: { calendarId: string; from: string; to: string; password?: string }) =>
-      z
-        .object({
-          calendarId: z.string().uuid(),
-          from: z.string(),
-          to: z.string(),
-          password: z.string().max(200).optional(),
-        })
-        .parse(input),
+  .inputValidator((input: { calendarId: string; from: string; to: string; password?: string }) =>
+    z
+      .object({
+        calendarId: z.string().uuid(),
+        from: z.string(),
+        to: z.string(),
+        password: z.string().max(200).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data }): Promise<{ slots: string[] }> => {
     const supabase = getServiceClient();
@@ -472,17 +473,11 @@ export const getAvailableSlotsFn = createServerFn({ method: "POST" })
         const dayEnd = new Date(cursor);
         dayEnd.setUTCHours(eh, em, 0, 0);
 
-        for (
-          let t = dayStart.getTime();
-          t + slotMs <= dayEnd.getTime();
-          t += slotMs + bufferMs
-        ) {
+        for (let t = dayStart.getTime(); t + slotMs <= dayEnd.getTime(); t += slotMs + bufferMs) {
           if (t < nowMs) continue; // skip past
           if (t < fromDate.getTime() || t > toDate.getTime()) continue;
           const slotEnd = t + slotMs;
-          const conflict = taken.some(
-            (b) => !(slotEnd <= b.start || t >= b.end),
-          );
+          const conflict = taken.some((b) => !(slotEnd <= b.start || t >= b.end));
           if (!conflict) slots.push(new Date(t).toISOString());
         }
       }

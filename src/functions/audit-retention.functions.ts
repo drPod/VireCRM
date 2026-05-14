@@ -55,8 +55,8 @@ export const getAuditRetentionFn = createServerFn({ method: "POST" })
 
     return {
       retention_days:
-        (orgRes.data as { audit_log_retention_days?: number } | null)
-          ?.audit_log_retention_days ?? 90,
+        (orgRes.data as { audit_log_retention_days?: number } | null)?.audit_log_retention_days ??
+        90,
       oldest_entry: oldestRes.data?.created_at ?? null,
       total_entries: countRes.count ?? 0,
       is_owner: !!roleRes.data,
@@ -123,8 +123,8 @@ export const purgeAuditLogNowFn = createServerFn({ method: "POST" })
       .eq("id", profile.organization_id)
       .maybeSingle();
 
-    const days = (org as { audit_log_retention_days?: number } | null)
-      ?.audit_log_retention_days ?? 0;
+    const days =
+      (org as { audit_log_retention_days?: number } | null)?.audit_log_retention_days ?? 0;
 
     if (!days || days <= 0) {
       return { success: true, deleted: 0, message: "Retention disabled" };

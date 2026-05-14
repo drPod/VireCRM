@@ -20,14 +20,20 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Genesis — Never Let a Lead Go Cold Again" },
-      { name: "description", content: "We build AI-powered CRM systems that respond instantly, follow up relentlessly, and surface your hottest leads — so your team can focus on closing." },
+      {
+        name: "description",
+        content:
+          "We build AI-powered CRM systems that respond instantly, follow up relentlessly, and surface your hottest leads — so your team can focus on closing.",
+      },
       { property: "og:title", content: "Genesis — Never Let a Lead Go Cold Again" },
-      { property: "og:description", content: "AI-powered CRM systems that respond instantly, follow up relentlessly, and put your hottest leads in front of your sales team." },
+      {
+        property: "og:description",
+        content:
+          "AI-powered CRM systems that respond instantly, follow up relentlessly, and put your hottest leads in front of your sales team.",
+      },
       { property: "og:url", content: "https://genesisx.space/" },
     ],
-    links: [
-      { rel: "canonical", href: "https://genesisx.space/" },
-    ],
+    links: [{ rel: "canonical", href: "https://genesisx.space/" }],
   }),
 });
 
@@ -35,7 +41,9 @@ async function provisionAfterRedirect(navigate: ReturnType<typeof useNavigate>) 
   const slug = sessionStorage.getItem("reseller_pending_slug");
   const company = sessionStorage.getItem("reseller_pending_company");
   if (!slug || !company) return;
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) return;
   try {
     const { data, error } = await supabase.rpc("signup_under_reseller", {

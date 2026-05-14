@@ -9,7 +9,19 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Trash2, Mail, MessageSquare, Clock, Send, Inbox, RefreshCw, Trophy, Calculator } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  Trash2,
+  Mail,
+  MessageSquare,
+  Clock,
+  Send,
+  Inbox,
+  RefreshCw,
+  Trophy,
+  Calculator,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -26,7 +38,14 @@ import { AssigneeAvatars } from "./AssigneeAvatars";
 import { LeadInvoicesPanel } from "./LeadInvoicesPanel";
 import type { Lead } from "./LeadCard";
 
-const STATUS_OPTIONS: Lead["status"][] = ["new", "contacted", "qualified", "negotiation", "won", "lost"];
+const STATUS_OPTIONS: Lead["status"][] = [
+  "new",
+  "contacted",
+  "qualified",
+  "negotiation",
+  "won",
+  "lost",
+];
 
 interface ActivityItem {
   id: string;
@@ -74,9 +93,13 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [emailLogs, setEmailLogs] = useState<EmailLogEntry[]>([]);
   const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails" | "invoices">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "activity" | "emails" | "invoices">(
+    "details",
+  );
   const [activityRefetchKey, setActivityRefetchKey] = useState(0);
-  const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; role: string }>>([]);
+  const [members, setMembers] = useState<
+    Array<{ user_id: string; full_name: string; role: string }>
+  >([]);
   // Multi-assignee state — sourced from the lead_assignees join table.
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [initialAssigneeIds, setInitialAssigneeIds] = useState<string[]>([]);
@@ -109,10 +132,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           .from("profiles")
           .select("user_id, full_name")
           .eq("organization_id", organization.id),
-        supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .eq("organization_id", organization.id),
+        supabase.from("user_roles").select("user_id, role").eq("organization_id", organization.id),
       ]);
       if (cancelled) return;
       const roleByUser = new Map<string, string>();
@@ -181,9 +201,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       next_action: lead.nextAction || "",
       notes: "",
       annual_kwh:
-        typeof lead.annualKwh === "number" && lead.annualKwh >= 0
-          ? String(lead.annualKwh)
-          : "",
+        typeof lead.annualKwh === "number" && lead.annualKwh >= 0 ? String(lead.annualKwh) : "",
       contract_end_date: lead.contractEndDate ?? "",
       current_supplier: lead.currentSupplier ?? "",
       deal_value: "",
@@ -196,13 +214,12 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     Promise.all([
       supabase
         .from("leads")
-        .select("notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency, assigned_to")
+        .select(
+          "notes, annual_kwh, contract_end_date, current_supplier, deal_value_cents, deal_currency, assigned_to",
+        )
         .eq("id", lead.id)
         .single(),
-      supabase
-        .from("lead_assignees")
-        .select("user_id")
-        .eq("lead_id", lead.id),
+      supabase.from("lead_assignees").select("user_id").eq("lead_id", lead.id),
     ]).then(([leadRes, assigneeRes]) => {
       const data = leadRes.data;
       if (data) {
@@ -268,7 +285,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           date: m.created_at,
           status: m.status,
           sentiment: m.sentiment,
-        })
+        }),
       );
 
       repliesRes.data?.forEach((r) =>
@@ -279,7 +296,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           content: r.content,
           date: r.created_at,
           sentiment: r.sentiment,
-        })
+        }),
       );
 
       tasksRes.data?.forEach((t) =>
@@ -290,7 +307,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
           content: t.description || "",
           date: t.created_at,
           status: t.status,
-        })
+        }),
       );
 
       items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -324,9 +341,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       const list: EmailLogEntry[] = Array.isArray(rows)
         ? rows
         : Array.isArray((rows as { result?: unknown })?.result)
-          ? ((rows as { result: EmailLogEntry[] }).result)
+          ? (rows as { result: EmailLogEntry[] }).result
           : Array.isArray((rows as { data?: unknown })?.data)
-            ? ((rows as { data: EmailLogEntry[] }).data)
+            ? (rows as { data: EmailLogEntry[] }).data
             : [];
       setEmailLogs(list);
     } catch (err) {
@@ -508,26 +525,21 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     if (canAssign) {
       updatePayload.assigned_to = assigneeIds[0] ?? null;
     }
-    const { error } = await supabase
-      .from("leads")
-      .update(updatePayload)
-      .eq("id", lead.id);
+    const { error } = await supabase.from("leads").update(updatePayload).eq("id", lead.id);
 
     if (!error && canAssign && organization?.id) {
       // Diff the join table so we add new assignees and remove dropped ones.
       const toAdd = assigneeIds.filter((id) => !initialAssigneeIds.includes(id));
       const toRemove = initialAssigneeIds.filter((id) => !assigneeIds.includes(id));
       if (toAdd.length > 0) {
-        await supabase
-          .from("lead_assignees")
-          .upsert(
-            toAdd.map((user_id) => ({
-              lead_id: lead.id,
-              user_id,
-              organization_id: organization.id,
-            })),
-            { onConflict: "lead_id,user_id", ignoreDuplicates: true }
-          );
+        await supabase.from("lead_assignees").upsert(
+          toAdd.map((user_id) => ({
+            lead_id: lead.id,
+            user_id,
+            organization_id: organization.id,
+          })),
+          { onConflict: "lead_id,user_id", ignoreDuplicates: true },
+        );
       }
       if (toRemove.length > 0) {
         await supabase
@@ -642,8 +654,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   <AssigneeAvatars
                     assignees={assigneeIds.map((id) => ({
                       user_id: id,
-                      full_name:
-                        members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
+                      full_name: members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
                     }))}
                     size="sm"
                     max={4}
@@ -863,7 +874,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-foreground">Score (0–100)</label>
+                <label className="mb-1 block text-xs font-medium text-foreground">
+                  Score (0–100)
+                </label>
                 <input
                   type="number"
                   min={0}
@@ -902,8 +915,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                       <AssigneeAvatars
                         assignees={assigneeIds.map((id) => ({
                           user_id: id,
-                          full_name:
-                            members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
+                          full_name: members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
                         }))}
                         size="sm"
                         max={5}
@@ -922,17 +934,14 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                   <AssigneeAvatars
                     assignees={assigneeIds.map((id) => ({
                       user_id: id,
-                      full_name:
-                        members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
+                      full_name: members.find((m) => m.user_id === id)?.full_name ?? "Unnamed",
                     }))}
                     size="sm"
                     max={5}
                   />
                   <span className="text-xs text-muted-foreground truncate">
                     {assigneeIds
-                      .map(
-                        (id) => members.find((m) => m.user_id === id)?.full_name ?? "Unnamed"
-                      )
+                      .map((id) => members.find((m) => m.user_id === id)?.full_name ?? "Unnamed")
                       .join(", ")}
                   </span>
                 </div>
@@ -1025,7 +1034,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 if (form.status !== "won" || !cents || cents <= 0) {
                   return (
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Recording a deal value when marking a lead as won automatically creates a commission earning if rules are configured.
+                      Recording a deal value when marking a lead as won automatically creates a
+                      commission earning if rules are configured.
                     </p>
                   );
                 }
@@ -1034,7 +1044,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                     <div className="rounded-md border border-warning/30 bg-warning/5 px-2.5 py-2">
                       <p className="text-[11px] text-warning leading-relaxed flex items-start gap-1.5">
                         <Calculator className="h-3 w-3 mt-0.5 shrink-0" />
-                        No active commission rule configured — set one in Payouts → Commission Rules to auto-calculate earnings.
+                        No active commission rule configured — set one in Payouts → Commission Rules
+                        to auto-calculate earnings.
                       </p>
                     </div>
                   );
@@ -1060,10 +1071,13 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                         <Calculator className="h-3 w-3" />
                         Estimated commission
                       </span>
-                      <span className="text-base font-bold text-success">{fmt(commissionCents)}</span>
+                      <span className="text-base font-bold text-success">
+                        {fmt(commissionCents)}
+                      </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      {ruleLabel} · {commissionRule.scope === "rep" ? "your personal rule" : "org default"}
+                      {ruleLabel} ·{" "}
+                      {commissionRule.scope === "rep" ? "your personal rule" : "org default"}
                     </p>
                   </div>
                 );
@@ -1158,7 +1172,9 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
                 size="sm"
                 onClick={handleSave}
                 disabled={saving || !dealValidation.valid}
-                title={dealValidation.valid ? "Save changes" : "Enter a positive deal value to save"}
+                title={
+                  dealValidation.valid ? "Save changes" : "Enter a positive deal value to save"
+                }
               >
                 {saving ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -1283,7 +1299,10 @@ function htmlToPlainText(input: string): string {
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'");
   // Collapse whitespace
-  s = s.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  s = s
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   return s;
 }
 
@@ -1413,9 +1432,7 @@ function EmailLogEntryRow({ log }: { log: EmailLogEntry }) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Inbox className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-xs font-medium text-foreground truncate">
-            {log.template_name}
-          </span>
+          <span className="text-xs font-medium text-foreground truncate">{log.template_name}</span>
         </div>
         <span className="text-[10px] text-muted-foreground whitespace-nowrap">
           {formatRelativeTime(log.created_at)}
@@ -1426,14 +1443,15 @@ function EmailLogEntryRow({ log }: { log: EmailLogEntry }) {
           {log.subject}
         </p>
       )}
-      {log.body_preview && (() => {
-        const cleaned = htmlToPlainText(log.body_preview);
-        return cleaned ? (
-          <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 whitespace-pre-wrap">
-            {cleaned}
-          </p>
-        ) : null;
-      })()}
+      {log.body_preview &&
+        (() => {
+          const cleaned = htmlToPlainText(log.body_preview);
+          return cleaned ? (
+            <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 whitespace-pre-wrap">
+              {cleaned}
+            </p>
+          ) : null;
+        })()}
       <div className="flex items-center gap-1.5 flex-wrap">
         <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 capitalize ${colorClass}`}>
           {status}

@@ -20,21 +20,17 @@ export function createStripeClient(env: StripeEnv): Stripe {
   if (!lovableApiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
   return new Stripe(connectionApiKey, {
-    httpClient: Stripe.createFetchHttpClient(
-      (url: string | URL, init?: RequestInit) => {
-        const gatewayUrl = url
-          .toString()
-          .replace("https://api.stripe.com", GATEWAY_STRIPE_BASE);
-        return fetch(gatewayUrl, {
-          ...init,
-          headers: {
-            ...Object.fromEntries(new Headers(init?.headers).entries()),
-            "X-Connection-Api-Key": connectionApiKey,
-            "Lovable-API-Key": lovableApiKey,
-          },
-        });
-      },
-    ),
+    httpClient: Stripe.createFetchHttpClient((url: string | URL, init?: RequestInit) => {
+      const gatewayUrl = url.toString().replace("https://api.stripe.com", GATEWAY_STRIPE_BASE);
+      return fetch(gatewayUrl, {
+        ...init,
+        headers: {
+          ...Object.fromEntries(new Headers(init?.headers).entries()),
+          "X-Connection-Api-Key": connectionApiKey,
+          "Lovable-API-Key": lovableApiKey,
+        },
+      });
+    }),
   });
 }
 
@@ -93,7 +89,6 @@ export async function verifyWebhook(
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };

@@ -130,9 +130,7 @@ export function EditClientWhiteLabelDialog({
         { headers: { Accept: "application/dns-json" } },
       );
       const dns = (await res.json()) as { Answer?: { data: string }[] };
-      const records = (dns.Answer || []).map((a) =>
-        a.data.replace(/^"|"$/g, ""),
-      );
+      const records = (dns.Answer || []).map((a) => a.data.replace(/^"|"$/g, ""));
       const matched = records.some((r) => r.includes(verificationToken));
       if (!matched) {
         toast.error(
@@ -190,10 +188,7 @@ export function EditClientWhiteLabelDialog({
           <div className="space-y-4">
             {/* Brand Name */}
             <div>
-              <Label
-                htmlFor="ec-brand"
-                className="text-xs flex items-center gap-1.5 mb-1.5"
-              >
+              <Label htmlFor="ec-brand" className="text-xs flex items-center gap-1.5 mb-1.5">
                 <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                 Brand name
               </Label>
@@ -208,10 +203,7 @@ export function EditClientWhiteLabelDialog({
 
             {/* Primary Color */}
             <div>
-              <Label
-                htmlFor="ec-color"
-                className="text-xs flex items-center gap-1.5 mb-1.5"
-              >
+              <Label htmlFor="ec-color" className="text-xs flex items-center gap-1.5 mb-1.5">
                 <Palette className="h-3.5 w-3.5 text-muted-foreground" />
                 Primary color
               </Label>
@@ -240,10 +232,7 @@ export function EditClientWhiteLabelDialog({
 
             {/* Logo URL */}
             <div>
-              <Label
-                htmlFor="ec-logo"
-                className="text-xs flex items-center gap-1.5 mb-1.5"
-              >
+              <Label htmlFor="ec-logo" className="text-xs flex items-center gap-1.5 mb-1.5">
                 <Upload className="h-3.5 w-3.5 text-muted-foreground" />
                 Logo URL
               </Label>
@@ -262,9 +251,7 @@ export function EditClientWhiteLabelDialog({
                     className="h-7 w-7 rounded object-contain"
                     onError={(e) => (e.currentTarget.style.display = "none")}
                   />
-                  <span className="text-[11px] text-muted-foreground">
-                    Logo preview
-                  </span>
+                  <span className="text-[11px] text-muted-foreground">Logo preview</span>
                 </div>
               )}
             </div>
@@ -272,10 +259,7 @@ export function EditClientWhiteLabelDialog({
             {/* Custom Domain */}
             <div className="rounded-lg border border-border bg-card p-3 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <Label
-                  htmlFor="ec-domain"
-                  className="text-xs flex items-center gap-1.5"
-                >
+                <Label htmlFor="ec-domain" className="text-xs flex items-center gap-1.5">
                   <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                   Custom domain
                 </Label>
@@ -295,9 +279,7 @@ export function EditClientWhiteLabelDialog({
               <Input
                 id="ec-domain"
                 value={customDomain}
-                onChange={(e) =>
-                  setCustomDomain(e.target.value.trim().toLowerCase())
-                }
+                onChange={(e) => setCustomDomain(e.target.value.trim().toLowerCase())}
                 placeholder="crm.theirdomain.com"
                 disabled={saving}
               />
@@ -319,10 +301,7 @@ export function EditClientWhiteLabelDialog({
                       2 — Add TXT verification
                     </h4>
                     <p className="text-[10px] text-muted-foreground mb-1.5 leading-relaxed">
-                      TXT record at{" "}
-                      <code className="text-foreground">
-                        _vireon.{savedDomain}
-                      </code>{" "}
+                      TXT record at <code className="text-foreground">_vireon.{savedDomain}</code>{" "}
                       with this value:
                     </p>
                     <div className="flex gap-1.5">
@@ -348,9 +327,7 @@ export function EditClientWhiteLabelDialog({
                     onClick={verifyDomain}
                     disabled={verifying}
                   >
-                    {verifying && (
-                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                    )}
+                    {verifying && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
                     Verify domain
                   </Button>
                 </div>
@@ -366,18 +343,10 @@ export function EditClientWhiteLabelDialog({
         )}
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={saving}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Close
           </Button>
-          <Button
-            variant="command"
-            onClick={handleSave}
-            disabled={saving || loading}
-          >
+          <Button variant="command" onClick={handleSave} disabled={saving || loading}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save settings
           </Button>

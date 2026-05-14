@@ -64,10 +64,9 @@ export function deriveConnectorPrerequisites(
     out.push({
       id: "verify-failed",
       title: "Last verification failed",
-      nextStep:
-        status.verifyError?.trim()
-          ? `Provider said: "${status.verifyError.trim()}". Click Test to retry, or disconnect and reconnect.`
-          : "Click Test to retry. If it keeps failing, disconnect and reconnect.",
+      nextStep: status.verifyError?.trim()
+        ? `Provider said: "${status.verifyError.trim()}". Click Test to retry, or disconnect and reconnect.`
+        : "Click Test to retry. If it keeps failing, disconnect and reconnect.",
       severity: "blocking",
       actionId: "test",
       actionLabel: "Run test now",
@@ -116,8 +115,7 @@ export function deriveConnectorPrerequisites(
         out.push({
           id: `cfg-empty-${f.key}`,
           title: `${f.label} not set`,
-          nextStep:
-            f.helper ?? `Optional — set it from Edit to customize ${meta.name} behavior.`,
+          nextStep: f.helper ?? `Optional — set it from Edit to customize ${meta.name} behavior.`,
           severity: "recommended",
           actionId: "edit-config",
           actionLabel: `Edit ${meta.name} settings`,
@@ -212,8 +210,7 @@ export function deriveByoPrerequisites(args: {
         out.push({
           id: `byo-cfg-missing-${f.key}`,
           title: `${f.label} is required`,
-          nextStep:
-            f.helper ?? `Set "${f.label}" below before this provider can send anything.`,
+          nextStep: f.helper ?? `Set "${f.label}" below before this provider can send anything.`,
           severity: "blocking",
           actionId: "edit-key",
           actionLabel: `Edit ${providerName} settings`,

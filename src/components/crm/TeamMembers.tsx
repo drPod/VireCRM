@@ -366,9 +366,7 @@ export function TeamMembers() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
                         {m.full_name || "Unnamed"}
-                        {isMe && (
-                          <span className="ml-2 text-xs text-muted-foreground">(you)</span>
-                        )}
+                        {isMe && <span className="ml-2 text-xs text-muted-foreground">(you)</span>}
                       </p>
                       <p className="text-xs text-muted-foreground capitalize">
                         {memberRoleLabel(m)}
@@ -528,8 +526,8 @@ export function TeamMembers() {
             <div className="rounded-lg bg-secondary/40 p-3 flex gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-xs text-muted-foreground">
-                The invite link expires in 7 days. The recipient must sign up with the email
-                address you enter here.
+                The invite link expires in 7 days. The recipient must sign up with the email address
+                you enter here.
               </p>
             </div>
           </div>

@@ -161,11 +161,7 @@ function Editor() {
   const updateNodeConfig = useCallback(
     (id: string, config: Record<string, unknown>) => {
       setNodes((nds) =>
-        nds.map((n) =>
-          n.id === id
-            ? { ...n, data: { ...(n.data as object), config } }
-            : n,
-        ),
+        nds.map((n) => (n.id === id ? { ...n, data: { ...(n.data as object), config } } : n)),
       );
     },
     [setNodes],
@@ -306,7 +302,11 @@ function Editor() {
             disabled={testRunning || isNew}
             className="gap-2"
           >
-            {testRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+            {testRunning ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Zap className="h-3.5 w-3.5" />
+            )}
             Test run
           </Button>
           {status === "active" ? (
@@ -339,7 +339,11 @@ function Editor() {
             disabled={saving}
             className="gap-2"
           >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {saving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
             Save
           </Button>
         </div>
@@ -380,17 +384,17 @@ function Editor() {
           {nodes.length === 0 && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="rounded-xl border border-dashed border-border bg-card/80 p-6 text-center backdrop-blur">
-                <p className="text-sm font-medium text-foreground">Drag a trigger from the left to get started</p>
-                <p className="mt-1 text-xs text-muted-foreground">Then add actions and connect them</p>
+                <p className="text-sm font-medium text-foreground">
+                  Drag a trigger from the left to get started
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Then add actions and connect them
+                </p>
               </div>
             </div>
           )}
         </div>
-        <NodeInspector
-          node={selectedNode}
-          onUpdate={updateNodeConfig}
-          onDelete={deleteNode}
-        />
+        <NodeInspector node={selectedNode} onUpdate={updateNodeConfig} onDelete={deleteNode} />
       </div>
 
       {showRuns && !isNew && (

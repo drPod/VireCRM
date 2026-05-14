@@ -74,8 +74,8 @@ export function StripeConnectCard() {
               Get paid by your leads
             </CardTitle>
             <CardDescription className="mt-1">
-              Connect your Stripe account so you can send custom invoices and recurring
-              charges to leads. Funds go directly to your bank.
+              Connect your Stripe account so you can send custom invoices and recurring charges to
+              leads. Funds go directly to your bank.
             </CardDescription>
           </div>
           {isReady && (
@@ -133,7 +133,9 @@ function Stat({ label, ok }: { label: string; ok: boolean }) {
   return (
     <div
       className={`rounded-md border px-2 py-1.5 text-center ${
-        ok ? "border-success/40 bg-success/10 text-success" : "border-border bg-muted text-muted-foreground"
+        ok
+          ? "border-success/40 bg-success/10 text-success"
+          : "border-border bg-muted text-muted-foreground"
       }`}
     >
       <div className="text-[10px] uppercase tracking-wide">{label}</div>

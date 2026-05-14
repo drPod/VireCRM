@@ -4,11 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -46,9 +42,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
   const { user, organization, role } = useAuth();
   const myId = user?.id ?? "";
   const isOrgOwner = role?.role === "owner";
-  const canShare = Boolean(
-    isOrgOwner || (myId && (createdBy === myId || assignedTo === myId))
-  );
+  const canShare = Boolean(isOrgOwner || (myId && (createdBy === myId || assignedTo === myId)));
 
   const [members, setMembers] = useState<Member[]>([]);
   const [shares, setShares] = useState<ShareRow[]>([]);
@@ -61,7 +55,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
   // Map of user_id -> name for quick lookup
   const nameOf = useCallback(
     (uid: string) => members.find((m) => m.user_id === uid)?.full_name ?? "Unknown",
-    [members]
+    [members],
   );
 
   // Load org members + existing shares
@@ -69,10 +63,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
     if (!organization?.id) return;
     setLoading(true);
     const [membersRes, sharesRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .eq("organization_id", organization.id),
+      supabase.from("profiles").select("user_id, full_name").eq("organization_id", organization.id),
       supabase
         .from("lead_shares")
         .select("id, shared_with_user_id, shared_by_user_id, message, created_at")
@@ -84,7 +75,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
       (membersRes.data ?? [])
         .filter((p): p is { user_id: string; full_name: string | null } => Boolean(p.user_id))
         .map((p) => ({ user_id: p.user_id, full_name: p.full_name ?? "Unnamed" }))
-        .sort((a, b) => a.full_name.localeCompare(b.full_name))
+        .sort((a, b) => a.full_name.localeCompare(b.full_name)),
     );
     setShares(sharesRes.data ?? []);
     setLoading(false);
@@ -102,7 +93,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
       m.user_id !== createdBy &&
       m.user_id !== assignedTo &&
       !sharedIds.has(m.user_id) &&
-      m.full_name.toLowerCase().includes(search.toLowerCase())
+      m.full_name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleShare = async (recipientId: string) => {
@@ -168,9 +159,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72 p-3 space-y-2">
-              <div className="text-xs font-medium text-foreground">
-                Share this lead with…
-              </div>
+              <div className="text-xs font-medium text-foreground">Share this lead with…</div>
               <Input
                 placeholder="Search teammates"
                 value={search}
@@ -204,7 +193,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
                       className={cn(
                         "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
                         "hover:bg-accent hover:text-accent-foreground",
-                        pending === m.user_id && "opacity-50"
+                        pending === m.user_id && "opacity-50",
                       )}
                     >
                       <Avatar className="h-6 w-6">
@@ -213,9 +202,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
                         </AvatarFallback>
                       </Avatar>
                       <span className="flex-1 truncate text-xs">{m.full_name}</span>
-                      {pending === m.user_id && (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      )}
+                      {pending === m.user_id && <Loader2 className="h-3 w-3 animate-spin" />}
                     </button>
                   ))
                 )}
@@ -240,17 +227,14 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
           {shares.map((s) => {
             const recipient = nameOf(s.shared_with_user_id);
             const sharer = nameOf(s.shared_by_user_id);
-            const canRemove =
-              canShare || s.shared_with_user_id === myId; // recipient can self-remove
+            const canRemove = canShare || s.shared_with_user_id === myId; // recipient can self-remove
             return (
               <li
                 key={s.id}
                 className="group flex items-start gap-2 rounded-md border border-border/60 bg-card/40 px-2 py-1.5"
               >
                 <Avatar className="mt-0.5 h-7 w-7">
-                  <AvatarFallback className="text-[10px]">
-                    {initials(recipient)}
-                  </AvatarFallback>
+                  <AvatarFallback className="text-[10px]">{initials(recipient)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
@@ -276,11 +260,7 @@ export function ShareLeadPanel({ leadId, createdBy, assignedTo }: ShareLeadPanel
                     type="button"
                     disabled={pending === s.shared_with_user_id}
                     onClick={() => handleUnshare(s.shared_with_user_id)}
-                    title={
-                      s.shared_with_user_id === myId
-                        ? "Remove yourself"
-                        : "Revoke access"
-                    }
+                    title={s.shared_with_user_id === myId ? "Remove yourself" : "Revoke access"}
                     className="rounded p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
                   >
                     {pending === s.shared_with_user_id ? (

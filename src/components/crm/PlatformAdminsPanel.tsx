@@ -5,7 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Loader2, RefreshCw, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -99,24 +106,34 @@ export function PlatformAdminsPanel() {
             Platform Admins
           </CardTitle>
           <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            {loading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
             Refresh
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Anyone listed here has full Super Admin access to this console — financials, contact submissions,
-          invoices, plan assignment, everything. Invite carefully. The invitee must already have an account
-          (they can sign up at the normal login page first).
+          Anyone listed here has full Super Admin access to this console — financials, contact
+          submissions, invoices, plan assignment, everything. Invite carefully. The invitee must
+          already have an account (they can sign up at the normal login page first).
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          ⚠️ Granting admin is equivalent to handing over the keys to the business. You will be asked to retype the
-          email to confirm. Only invite people you've already onboarded as a partner.
+          ⚠️ Granting admin is equivalent to handing over the keys to the business. You will be
+          asked to retype the email to confirm. Only invite people you've already onboarded as a
+          partner.
         </div>
-        <form onSubmit={handleInvite} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-[1fr_1fr_auto]">
+        <form
+          onSubmit={handleInvite}
+          className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-[1fr_1fr_auto]"
+        >
           <div className="space-y-1">
-            <label className="text-[11px] font-semibold uppercase text-muted-foreground">Email</label>
+            <label className="text-[11px] font-semibold uppercase text-muted-foreground">
+              Email
+            </label>
             <Input
               type="email"
               placeholder="partner@company.com"
@@ -137,7 +154,11 @@ export function PlatformAdminsPanel() {
           </div>
           <div className="flex items-end">
             <Button type="submit" disabled={inviting || !inviteEmail.trim()} className="gap-2">
-              {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              {inviting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
               Grant admin
             </Button>
           </div>
@@ -180,7 +201,9 @@ export function PlatformAdminsPanel() {
                     <TableCell className="text-xs text-muted-foreground">
                       {row.granted_by_email ?? "—"}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{row.notes ?? "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {row.notes ?? "—"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"

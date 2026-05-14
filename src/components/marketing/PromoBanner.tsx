@@ -15,7 +15,10 @@ export function PromoBanner() {
         <Sparkles className="h-3.5 w-3.5 shrink-0" />
         <span>
           <span className="font-bold">30% OFF EVERYTHING</span>
-          <span className="hidden sm:inline"> — limited time launch promo. Discount applied automatically at checkout.</span>
+          <span className="hidden sm:inline">
+            {" "}
+            — limited time launch promo. Discount applied automatically at checkout.
+          </span>
         </span>
         <span className="hidden underline-offset-2 hover:underline sm:inline">View plans →</span>
       </Link>
@@ -24,7 +27,7 @@ export function PromoBanner() {
 }
 
 /** Discount rate applied to all displayed prices. 0.30 = 30% off. */
-export const PROMO_DISCOUNT = 0.30;
+export const PROMO_DISCOUNT = 0.3;
 
 /**
  * Apply the promo discount to a price string like "$97" or "$297–$497".

@@ -95,17 +95,15 @@ export const saveIntegrationFn = createServerFn({ method: "POST" })
       throw new Error(verify.reason);
     }
 
-    const { error } = await supabaseAdmin
-      .from("org_integrations")
-      .upsert(
-        {
-          organization_id: data.organizationId,
-          provider: data.provider,
-          api_key: data.apiKey,
-          last_verified_at: new Date().toISOString(),
-        },
-        { onConflict: "organization_id,provider" },
-      );
+    const { error } = await supabaseAdmin.from("org_integrations").upsert(
+      {
+        organization_id: data.organizationId,
+        provider: data.provider,
+        api_key: data.apiKey,
+        last_verified_at: new Date().toISOString(),
+      },
+      { onConflict: "organization_id,provider" },
+    );
 
     if (error) throw new Error(`Failed to save: ${error.message}`);
     return { success: true, maskedKey: maskKey(data.apiKey) };

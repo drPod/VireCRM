@@ -24,7 +24,10 @@ Deno.serve(async (req) => {
   try {
     const auth = req.headers.get("Authorization");
     const token = auth?.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
     const { data: isAdminData, error: adminErr } = await supabase.rpc("is_platform_admin", {
@@ -113,9 +116,10 @@ Deno.serve(async (req) => {
       throw new Error("No payment intent on this invoice — cannot refund.");
     }
 
-    const refundAmount = body.amountCents && body.amountCents > 0
-      ? Math.min(body.amountCents, row.amount_paid_cents)
-      : undefined; // omit -> full refund
+    const refundAmount =
+      body.amountCents && body.amountCents > 0
+        ? Math.min(body.amountCents, row.amount_paid_cents)
+        : undefined; // omit -> full refund
 
     const refund = await stripe.refunds.create({
       payment_intent: paymentIntentId,
@@ -154,9 +158,9 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("admin-invoice-action error:", err);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message || "Failed" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: (err as Error).message || "Failed" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

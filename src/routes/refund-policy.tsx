@@ -9,14 +9,19 @@ export const Route = createFileRoute("/refund-policy")({
   head: () => ({
     meta: [
       { title: "Refund Policy — Genesis" },
-      { name: "description", content: "Genesis's refund policy for subscription plans and purchases, including our 30-day money-back guarantee." },
+      {
+        name: "description",
+        content:
+          "Genesis's refund policy for subscription plans and purchases, including our 30-day money-back guarantee.",
+      },
       { property: "og:title", content: "Refund Policy — Genesis" },
-      { property: "og:description", content: "Genesis's refund policy and 30-day money-back guarantee." },
+      {
+        property: "og:description",
+        content: "Genesis's refund policy and 30-day money-back guarantee.",
+      },
       { property: "og:url", content: "https://genesisx.space/refund-policy" },
     ],
-    links: [
-      { rel: "canonical", href: "https://genesisx.space/refund-policy" },
-    ],
+    links: [{ rel: "canonical", href: "https://genesisx.space/refund-policy" }],
   }),
 });
 
@@ -34,14 +39,17 @@ function RefundPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">Overview</h2>
               <p className="mt-2">
-                We want you to be satisfied with Genesis. If you're not happy with your purchase, we offer a straightforward refund policy as outlined below.
+                We want you to be satisfied with Genesis. If you're not happy with your purchase, we
+                offer a straightforward refund policy as outlined below.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">30-Day Money-Back Guarantee</h2>
               <p className="mt-2">
-                If you are unsatisfied with Genesis for any reason, you may request a full refund within <strong>30 days</strong> of your initial purchase. This applies to the first payment of new subscriptions only.
+                If you are unsatisfied with Genesis for any reason, you may request a full refund
+                within <strong>30 days</strong> of your initial purchase. This applies to the first
+                payment of new subscriptions only.
               </p>
             </section>
 
@@ -51,7 +59,9 @@ function RefundPolicyPage() {
               <ol className="mt-2 list-decimal pl-6 space-y-1">
                 <li>
                   Email us at{" "}
-                  <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>{" "}
+                  <a href={SUPPORT_MAILTO} className="text-primary hover:underline">
+                    {SUPPORT_EMAIL}
+                  </a>{" "}
                   with the subject line "Refund Request".
                 </li>
                 <li>Include your account email address and the reason for your refund.</li>
@@ -61,7 +71,9 @@ function RefundPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">Processing</h2>
               <p className="mt-2">
-                Refunds are processed by our payment processor. Once approved, refunds are typically returned to the original payment method within 5–10 business days, depending on your financial institution.
+                Refunds are processed by our payment processor. Once approved, refunds are typically
+                returned to the original payment method within 5–10 business days, depending on your
+                financial institution.
               </p>
             </section>
 
@@ -69,15 +81,23 @@ function RefundPolicyPage() {
               <h2 className="text-lg font-semibold text-foreground">What Is Not Refundable</h2>
               <ul className="mt-2 list-disc pl-6 space-y-1">
                 <li>Renewal payments beyond the initial 30-day window.</li>
-                <li>Partial billing periods after cancellation (you retain access until the end of your current period).</li>
-                <li>White-label ownership fees (one-time purchases are final after the 30-day window).</li>
+                <li>
+                  Partial billing periods after cancellation (you retain access until the end of
+                  your current period).
+                </li>
+                <li>
+                  White-label ownership fees (one-time purchases are final after the 30-day window).
+                </li>
               </ul>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">Cancellation</h2>
               <p className="mt-2">
-                You can cancel your subscription at any time through the customer portal. Cancellation takes effect at the end of your current billing period — you'll continue to have access until then. No further charges will be made after cancellation.
+                You can cancel your subscription at any time through the customer portal.
+                Cancellation takes effect at the end of your current billing period — you'll
+                continue to have access until then. No further charges will be made after
+                cancellation.
               </p>
             </section>
 
@@ -85,7 +105,10 @@ function RefundPolicyPage() {
               <h2 className="text-lg font-semibold text-foreground">Contact Us</h2>
               <p className="mt-2">
                 If you have questions about our refund policy, please contact us at{" "}
-                <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
+                <a href={SUPPORT_MAILTO} className="text-primary hover:underline">
+                  {SUPPORT_EMAIL}
+                </a>
+                .
               </p>
             </section>
           </div>

@@ -1,7 +1,19 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Phone, Calendar, Zap, Building2, CalendarClock, User, Users, Share2, Send, Trash2 } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  Calendar,
+  Zap,
+  Building2,
+  CalendarClock,
+  User,
+  Users,
+  Share2,
+  Send,
+  Trash2,
+} from "lucide-react";
 import { AssigneeAvatars, type AssigneeLite } from "./AssigneeAvatars";
 import {
   AlertDialog,
@@ -43,7 +55,13 @@ export interface Lead {
   shareCount?: number;
 }
 
-const statusConfig: Record<Lead["status"], { label: string; variant: "default" | "secondary" | "success" | "warning" | "info" | "destructive" }> = {
+const statusConfig: Record<
+  Lead["status"],
+  {
+    label: string;
+    variant: "default" | "secondary" | "success" | "warning" | "info" | "destructive";
+  }
+> = {
   new: { label: "New", variant: "info" },
   contacted: { label: "Contacted", variant: "secondary" },
   qualified: { label: "Qualified", variant: "warning" },
@@ -53,8 +71,7 @@ const statusConfig: Record<Lead["status"], { label: string; variant: "default" |
 };
 
 function ScoreBar({ score }: { score: number }) {
-  const color =
-    score >= 80 ? "bg-success" : score >= 50 ? "bg-warning" : "bg-destructive";
+  const color = score >= 80 ? "bg-success" : score >= 50 ? "bg-warning" : "bg-destructive";
   return (
     <div className="flex items-center gap-2">
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
@@ -118,9 +135,7 @@ export function LeadCard({
         )}
         <div className="flex-1 min-w-0">
           <h4 className="truncate text-sm font-semibold text-foreground">{lead.name}</h4>
-          {lead.company && (
-            <p className="text-xs text-muted-foreground">{lead.company}</p>
-          )}
+          {lead.company && <p className="text-xs text-muted-foreground">{lead.company}</p>}
         </div>
         <Badge variant={status.variant} className="ml-2 shrink-0">
           {status.label}
@@ -169,9 +184,7 @@ export function LeadCard({
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Users className="h-3 w-3" />
                 <AssigneeAvatars assignees={list} size="sm" max={4} />
-                <span className="truncate">
-                  {list.length} assignees
-                </span>
+                <span className="truncate">{list.length} assignees</span>
               </div>
             );
           }
@@ -241,14 +254,14 @@ export function LeadCard({
                       </p>
                       <div className="rounded-md border border-border bg-muted/30 p-3 text-xs space-y-2">
                         <p>
-                          <strong className="text-foreground">Archive</strong> — hides the lead
-                          from lists but <em>keeps</em> all related tasks, messages,
-                          conversations, and appointments for historical reference.
+                          <strong className="text-foreground">Archive</strong> — hides the lead from
+                          lists but <em>keeps</em> all related tasks, messages, conversations, and
+                          appointments for historical reference.
                         </p>
                         <p>
-                          <strong className="text-destructive">Permanently delete</strong> —
-                          removes the lead <em>and</em> every related task, message,
-                          conversation, and appointment. This can&apos;t be undone.
+                          <strong className="text-destructive">Permanently delete</strong> — removes
+                          the lead <em>and</em> every related task, message, conversation, and
+                          appointment. This can&apos;t be undone.
                         </p>
                       </div>
                     </div>

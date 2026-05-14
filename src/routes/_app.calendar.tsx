@@ -325,10 +325,7 @@ function CalendarPage() {
 
             <div className="grid grid-cols-7 gap-1 mb-1">
               {daysOfWeek.map((d) => (
-                <div
-                  key={d}
-                  className="py-2 text-center text-xs font-medium text-muted-foreground"
-                >
+                <div key={d} className="py-2 text-center text-xs font-medium text-muted-foreground">
                   {d}
                 </div>
               ))}
@@ -369,10 +366,7 @@ function CalendarPage() {
                           />
                         ))}
                         {cellOutreach.slice(0, 2).map((o) => (
-                          <div
-                            key={o.id}
-                            className="h-1.5 w-1.5 rounded-full bg-primary"
-                          />
+                          <div key={o.id} className="h-1.5 w-1.5 rounded-full bg-primary" />
                         ))}
                         {totalDots > 5 && (
                           <span className="text-[10px] text-muted-foreground">
@@ -408,8 +402,8 @@ function CalendarPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">{selectedDateLabel}</h3>
                   <p className="text-[11px] text-muted-foreground">
-                    {dayTasks.length} task{dayTasks.length === 1 ? "" : "s"} ·{" "}
-                    {dayOutreach.length} outreach
+                    {dayTasks.length} task{dayTasks.length === 1 ? "" : "s"} · {dayOutreach.length}{" "}
+                    outreach
                   </p>
                 </div>
                 <Button
@@ -444,15 +438,10 @@ function CalendarPage() {
               ) : (
                 <div className="space-y-3">
                   {dayTasks.map((t) => (
-                    <div
-                      key={t.id}
-                      className="rounded-lg border border-border bg-muted/50 p-3"
-                    >
+                    <div key={t.id} className="rounded-lg border border-border bg-muted/50 p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {t.title}
-                          </p>
+                          <p className="truncate text-sm font-medium text-foreground">{t.title}</p>
                           <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             {new Date(t.due_date).toLocaleString(undefined, {
@@ -539,10 +528,10 @@ function CalendarPage() {
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
               <h3 className="text-sm font-semibold text-foreground">Connected to outreach</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Every email sent from a lead drawer or auto-outreach run shows up
-                here automatically. Click any day to add a task or call —{" "}
-                <span className="font-semibold">Complete with AI</span> drafts and
-                sends the follow-up email in one click.
+                Every email sent from a lead drawer or auto-outreach run shows up here
+                automatically. Click any day to add a task or call —{" "}
+                <span className="font-semibold">Complete with AI</span> drafts and sends the
+                follow-up email in one click.
               </p>
             </div>
           </div>

@@ -19,7 +19,10 @@ export const Route = createFileRoute("/payment-status")({
   head: () => ({
     meta: [
       { title: "Payment status — Genesis" },
-      { name: "description", content: "Verify your Stripe checkout and subscription state in real time." },
+      {
+        name: "description",
+        content: "Verify your Stripe checkout and subscription state in real time.",
+      },
     ],
   }),
 });
@@ -53,12 +56,16 @@ type VerifyResponse = {
 
 function formatMoney(cents: number | null, currency: string | null) {
   if (cents == null || !currency) return "—";
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(cents / 100);
 }
 
 function StatusBadge({ ok, warn, label }: { ok?: boolean; warn?: boolean; label: string }) {
   if (ok) return <Badge className="bg-success/15 text-success border-success/30">{label}</Badge>;
-  if (warn) return <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">{label}</Badge>;
+  if (warn)
+    return <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">{label}</Badge>;
   return <Badge variant="destructive">{label}</Badge>;
 }
 
@@ -73,28 +80,28 @@ function PaymentStatusPage() {
   const [error, setError] = useState<string | null>(null);
   const [auto, setAuto] = useState(true);
 
-  const verify = useCallback(
-    async (id: string) => {
-      if (!id) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: res, error: fnError } = await supabase.functions.invoke("verify-checkout-session", {
+  const verify = useCallback(async (id: string) => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: res, error: fnError } = await supabase.functions.invoke(
+        "verify-checkout-session",
+        {
           body: { sessionId: id, environment: getStripeEnvironment() },
-        });
-        if (fnError) throw new Error(fnError.message);
-        if (!res || (res as { error?: string }).error) {
-          throw new Error((res as { error?: string })?.error || "Failed to verify");
-        }
-        setData(res as VerifyResponse);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to verify");
-      } finally {
-        setLoading(false);
+        },
+      );
+      if (fnError) throw new Error(fnError.message);
+      if (!res || (res as { error?: string }).error) {
+        throw new Error((res as { error?: string })?.error || "Failed to verify");
       }
-    },
-    [],
-  );
+      setData(res as VerifyResponse);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to verify");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Auto-load when session_id arrives via URL
   useEffect(() => {
@@ -111,7 +118,8 @@ function PaymentStatusPage() {
     if (!auto || !data?.session?.id) return;
     const stripeSettled =
       data.session.status === "complete" &&
-      (data.session.payment_status === "paid" || data.session.payment_status === "no_payment_required") &&
+      (data.session.payment_status === "paid" ||
+        data.session.payment_status === "no_payment_required") &&
       (data.subscription ? ["active", "trialing"].includes(data.subscription.status) : true);
     if (stripeSettled && hasAccess) return;
     const t = setTimeout(() => {
@@ -121,19 +129,23 @@ function PaymentStatusPage() {
     return () => clearTimeout(t);
   }, [auto, data, hasAccess, verify, refresh]);
 
-  const sessionOk = data?.session?.status === "complete" && data?.session?.payment_status !== "unpaid";
-  const subOk = data?.subscription ? ["active", "trialing"].includes(data.subscription.status) : null;
+  const sessionOk =
+    data?.session?.status === "complete" && data?.session?.payment_status !== "unpaid";
+  const subOk = data?.subscription
+    ? ["active", "trialing"].includes(data.subscription.status)
+    : null;
 
   return (
     <div className="min-h-screen px-4 py-10 max-w-3xl mx-auto space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground">Payment status</h1>
         <p className="text-sm text-muted-foreground">
-          Real-time check against Stripe for any checkout session. Confirms whether the
-          payment completed and surfaces the live subscription state.
+          Real-time check against Stripe for any checkout session. Confirms whether the payment
+          completed and surfaces the live subscription state.
         </p>
         <div className="text-xs text-muted-foreground">
-          Environment: <span className="font-mono font-medium text-foreground">{getStripeEnvironment()}</span>
+          Environment:{" "}
+          <span className="font-mono font-medium text-foreground">{getStripeEnvironment()}</span>
         </div>
       </div>
 
@@ -152,12 +164,17 @@ function PaymentStatusPage() {
                 onChange={(e) => setInputId(e.target.value.trim())}
                 className="font-mono text-xs"
               />
-              <Button onClick={() => void verify(inputId)} disabled={!inputId || loading} variant="command">
+              <Button
+                onClick={() => void verify(inputId)}
+                disabled={!inputId || loading}
+                variant="command"
+              >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Tip: arriving here from Stripe? The <code className="font-mono">session_id</code> is auto-filled from the URL.
+              Tip: arriving here from Stripe? The <code className="font-mono">session_id</code> is
+              auto-filled from the URL.
             </p>
           </div>
         </CardContent>
@@ -212,15 +229,22 @@ function PaymentStatusPage() {
               </Field>
               <Field label="Payment status">
                 <StatusBadge
-                  ok={data.session.payment_status === "paid" || data.session.payment_status === "no_payment_required"}
+                  ok={
+                    data.session.payment_status === "paid" ||
+                    data.session.payment_status === "no_payment_required"
+                  }
                   warn={data.session.payment_status === "unpaid"}
                   label={data.session.payment_status}
                 />
               </Field>
               <Field label="Mode">{data.session.mode}</Field>
-              <Field label="Amount">{formatMoney(data.session.amount_total, data.session.currency)}</Field>
+              <Field label="Amount">
+                {formatMoney(data.session.amount_total, data.session.currency)}
+              </Field>
               <Field label="Customer email">{data.session.customer_email ?? "—"}</Field>
-              <Field label="Created">{new Date(data.session.created * 1000).toLocaleString()}</Field>
+              <Field label="Created">
+                {new Date(data.session.created * 1000).toLocaleString()}
+              </Field>
             </dl>
 
             <div className="border-t border-border pt-4">
@@ -277,7 +301,8 @@ function PaymentStatusPage() {
                 </dl>
               ) : data.session.mode === "subscription" ? (
                 <p className="text-sm text-muted-foreground">
-                  Stripe hasn't created the subscription yet — usually a few seconds. Auto-refreshing…
+                  Stripe hasn't created the subscription yet — usually a few seconds.
+                  Auto-refreshing…
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">One-time payment — no subscription.</p>

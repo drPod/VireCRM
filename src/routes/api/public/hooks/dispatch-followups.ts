@@ -16,7 +16,8 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-followups")({
         const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!SUPABASE_URL || !SERVICE_KEY) {
           return new Response(JSON.stringify({ error: "Missing service credentials" }), {
-            status: 500, headers: { "Content-Type": "application/json" },
+            status: 500,
+            headers: { "Content-Type": "application/json" },
           });
         }
         const admin = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -31,10 +32,13 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-followups")({
           .limit(2000);
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
-            status: 500, headers: { "Content-Type": "application/json" },
+            status: 500,
+            headers: { "Content-Type": "application/json" },
           });
         }
-        const orgIds = Array.from(new Set((orgRows ?? []).map((r) => r.organization_id))).filter(Boolean);
+        const orgIds = Array.from(new Set((orgRows ?? []).map((r) => r.organization_id))).filter(
+          Boolean,
+        );
 
         // We can't easily call the edge fn as each org's user, so just insert
         // a placeholder row that the in-app "Generate batch" button can pick
@@ -49,12 +53,15 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-followups")({
         // call to the AI gateway and proper per-org credit accounting; that
         // is out of scope for this hook.)
 
-        return new Response(JSON.stringify({
-          ok: true,
-          orgs_with_stale_leads: orgIds.length,
-          note: "Owners will see the badge in AI Follow-up Inbox and can run batch generation.",
-          ran_at: new Date().toISOString(),
-        }), { headers: { "Content-Type": "application/json" } });
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            orgs_with_stale_leads: orgIds.length,
+            note: "Owners will see the badge in AI Follow-up Inbox and can run batch generation.",
+            ran_at: new Date().toISOString(),
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        );
       },
     },
   },

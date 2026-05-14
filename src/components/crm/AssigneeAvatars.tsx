@@ -54,7 +54,7 @@ export function AssigneeAvatars({
           key={a.user_id}
           title={a.full_name}
           className={`${dim} ${colorFor(
-            a.user_id
+            a.user_id,
           )} flex items-center justify-center rounded-full border-2 border-card font-semibold ring-0`}
         >
           {initials(a.full_name)}

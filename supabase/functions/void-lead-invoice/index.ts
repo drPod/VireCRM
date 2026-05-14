@@ -14,7 +14,10 @@ Deno.serve(async (req) => {
   }
   try {
     const auth = req.headers.get("Authorization");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(auth?.replace("Bearer ", ""));
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(auth?.replace("Bearer ", ""));
     if (authError || !user) throw new Error("Unauthorized");
 
     const { invoiceId, environment } = await req.json();
@@ -40,9 +43,13 @@ Deno.serve(async (req) => {
         stripeAccount: row.stripe_account_id,
       });
     } else if (row.stripe_invoice_id) {
-      await stripe.invoices.voidInvoice(row.stripe_invoice_id, {}, {
-        stripeAccount: row.stripe_account_id,
-      });
+      await stripe.invoices.voidInvoice(
+        row.stripe_invoice_id,
+        {},
+        {
+          stripeAccount: row.stripe_account_id,
+        },
+      );
     }
 
     await supabase

@@ -197,12 +197,7 @@ export function LeadInvoicesPanel({
   return (
     <div className="space-y-4 pt-4">
       {!showForm ? (
-        <Button
-          size="sm"
-          variant="command"
-          className="w-full"
-          onClick={() => setShowForm(true)}
-        >
+        <Button size="sm" variant="command" className="w-full" onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4" />
           New invoice for {leadName}
         </Button>
@@ -290,12 +285,7 @@ export function LeadInvoicesPanel({
             )}
           </div>
 
-          <Button
-            variant="command"
-            className="w-full"
-            onClick={submit}
-            disabled={submitting}
-          >
+          <Button variant="command" className="w-full" onClick={submit} disabled={submitting}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isRecurring ? "Start recurring billing" : "Send invoice"}
           </Button>
@@ -309,10 +299,7 @@ export function LeadInvoicesPanel({
       ) : (
         <div className="space-y-2">
           {invoices.map((inv) => (
-            <div
-              key={inv.id}
-              className="rounded-lg border border-border bg-card p-3"
-            >
+            <div key={inv.id} className="rounded-lg border border-border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -332,9 +319,7 @@ export function LeadInvoicesPanel({
                     )}
                   </div>
                   {inv.description && (
-                    <p className="mt-1 truncate text-xs text-muted-foreground">
-                      {inv.description}
-                    </p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{inv.description}</p>
                   )}
                   <p className="mt-1 text-[10px] text-muted-foreground">
                     {inv.number ? `#${inv.number} · ` : ""}

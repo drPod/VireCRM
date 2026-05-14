@@ -32,9 +32,11 @@ export interface LeadSyncLogEntry {
 export async function recordLeadSync(entry: LeadSyncLogEntry): Promise<void> {
   try {
     // Cast: types regenerate async after migration; row shape matches the new table.
-    const { error } = await (supabaseAdmin.from("lead_sync_log") as unknown as {
-      insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
-    }).insert({
+    const { error } = await (
+      supabaseAdmin.from("lead_sync_log") as unknown as {
+        insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+      }
+    ).insert({
       organization_id: entry.organizationId,
       user_id: entry.userId ?? null,
       provider: entry.provider,

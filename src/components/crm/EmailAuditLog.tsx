@@ -126,7 +126,10 @@ export function EmailAuditLog() {
                       <div className="flex flex-col gap-1">
                         {statusBadge(log.status)}
                         {log.error_message && (
-                          <span className="text-xs text-destructive/80 max-w-xs truncate" title={log.error_message}>
+                          <span
+                            className="text-xs text-destructive/80 max-w-xs truncate"
+                            title={log.error_message}
+                          >
                             {log.error_message}
                           </span>
                         )}

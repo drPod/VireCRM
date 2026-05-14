@@ -56,7 +56,7 @@ export function useAutoOutreach() {
       // prevents AI-guessed or manually entered leads from being blasted with
       // automated emails to addresses that may not be real.
       const integrationLeads = leadsWithEmail.filter((l) =>
-        l.source ? INTEGRATION_SOURCES.has(l.source) : false
+        l.source ? INTEGRATION_SOURCES.has(l.source) : false,
       );
 
       if (integrationLeads.length === 0) {
@@ -83,15 +83,12 @@ export function useAutoOutreach() {
         });
 
         if (result.sent > 0) {
-          toast.success(
-            `Auto-outreach: ${result.sent} email${result.sent > 1 ? "s" : ""} sent!`,
-            {
-              description:
-                result.skipped > 0
-                  ? `${result.skipped} skipped — ${result.errors[0] ?? "see message log"}`
-                  : "AI-personalized emails were dispatched to integration-verified leads.",
-            }
-          );
+          toast.success(`Auto-outreach: ${result.sent} email${result.sent > 1 ? "s" : ""} sent!`, {
+            description:
+              result.skipped > 0
+                ? `${result.skipped} skipped — ${result.errors[0] ?? "see message log"}`
+                : "AI-personalized emails were dispatched to integration-verified leads.",
+          });
         } else if (result.skipped > 0) {
           // Nothing went out at all — surface the first concrete reason.
           toast.error("Auto-outreach: no emails sent", {
@@ -109,7 +106,7 @@ export function useAutoOutreach() {
         pendingRef.current = false;
       }
     },
-    [organization?.id, outreach]
+    [organization?.id, outreach],
   );
 
   return { triggerOutreach };

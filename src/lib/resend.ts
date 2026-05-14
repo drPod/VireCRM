@@ -40,14 +40,15 @@ export async function verifyResendConnection(): Promise<
 > {
   try {
     const headers = getGatewayHeaders();
-    const res = await fetch(
-      "https://connector-gateway.lovable.dev/api/v1/verify_credentials",
-      { method: "POST", headers },
-    );
+    const res = await fetch("https://connector-gateway.lovable.dev/api/v1/verify_credentials", {
+      method: "POST",
+      headers,
+    });
     if (res.status === 401 || res.status === 403) {
       return {
         ok: false,
-        reason: "Resend connection rejected by the gateway. Try disconnecting and reconnecting Resend.",
+        reason:
+          "Resend connection rejected by the gateway. Try disconnecting and reconnecting Resend.",
       };
     }
     if (!res.ok) {
@@ -88,9 +89,7 @@ export interface ResendSendOpts {
   replyTo?: string;
 }
 
-export async function sendResendEmail(
-  opts: ResendSendOpts,
-): Promise<{ messageId: string | null }> {
+export async function sendResendEmail(opts: ResendSendOpts): Promise<{ messageId: string | null }> {
   const headers = getGatewayHeaders();
   const res = await fetch(`${GATEWAY_URL}/emails`, {
     method: "POST",
@@ -106,9 +105,7 @@ export async function sendResendEmail(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(
-      `Resend send failed [${res.status}]: ${text.slice(0, 300)}`,
-    );
+    throw new Error(`Resend send failed [${res.status}]: ${text.slice(0, 300)}`);
   }
 
   const data = (await res.json().catch(() => ({}))) as { id?: string };

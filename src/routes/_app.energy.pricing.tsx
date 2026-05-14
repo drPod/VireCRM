@@ -4,7 +4,8 @@ import { EnergyTablePage, type EnergyTableConfig } from "@/components/energy/Ene
 const config: EnergyTableConfig = {
   table: "pricing_requests",
   title: "Pricing Requests",
-  description: "Multi-supplier pricing requests. Compare quotes side-by-side before sending a proposal.",
+  description:
+    "Multi-supplier pricing requests. Compare quotes side-by-side before sending a proposal.",
   statusOptions: ["pending", "received", "proposal_sent", "won", "lost"],
   columns: [
     { key: "utility", label: "Utility" },

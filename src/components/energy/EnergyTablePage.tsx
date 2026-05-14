@@ -89,7 +89,9 @@ function StatusPill({ value }: { value: unknown }) {
   const v = String(value ?? "—").toLowerCase();
   const cls = STATUS_COLOR[v] ?? "bg-muted text-muted-foreground";
   return (
-    <span className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cls}`}>
+    <span
+      className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cls}`}
+    >
       {v}
     </span>
   );
@@ -111,7 +113,11 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
     // have a status column (e.g. energy_suppliers). Status filtering is
     // opt-in via config.statusOptions, so this is runtime-safe.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let q: any = supabase.from(config.table).select("*").order("created_at", { ascending: false }).limit(200);
+    let q: any = supabase
+      .from(config.table)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
     if (filter !== "all" && config.statusOptions) {
       q = q.eq("status", filter);
     }
@@ -145,9 +151,7 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
     const payload: Record<string, unknown> = {
       organization_id: profile.organization_id,
       ...config.defaults,
-      ...Object.fromEntries(
-        Object.entries(form).filter(([, v]) => v !== "" && v !== undefined),
-      ),
+      ...Object.fromEntries(Object.entries(form).filter(([, v]) => v !== "" && v !== undefined)),
     };
     // Coerce numbers/dates if the field declared the type
     for (const f of config.createFields) {
@@ -265,7 +269,9 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
         ) : visibleRows.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm text-muted-foreground">No {config.title.toLowerCase()} yet.</p>
-            <p className="text-xs text-muted-foreground mt-1">Click "New" to create your first record.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Click "New" to create your first record.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -287,13 +293,15 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
                       const val = row[c.key];
                       return (
                         <td key={c.key} className="px-4 py-2.5 text-foreground/90">
-                          {c.render
-                            ? c.render(row)
-                            : c.status
-                              ? <StatusPill value={val} />
-                              : val == null || val === ""
-                                ? <span className="text-muted-foreground">—</span>
-                                : String(val)}
+                          {c.render ? (
+                            c.render(row)
+                          ) : c.status ? (
+                            <StatusPill value={val} />
+                          ) : val == null || val === "" ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            String(val)
+                          )}
                         </td>
                       );
                     })}

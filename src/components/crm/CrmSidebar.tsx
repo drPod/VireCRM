@@ -144,14 +144,11 @@ export function CrmSidebar() {
           { to: "/insurance/policies", icon: FileSignature, label: "Policies" },
         ]
       : []),
-    ...(template.key === "gym"
-      ? [{ to: "/gym", icon: Dumbbell, label: "Member Health" }]
-      : []),
+    ...(template.key === "gym" ? [{ to: "/gym", icon: Dumbbell, label: "Member Health" }] : []),
   ];
 
   // Suppress unused-warning — kept on the auth context for future opt-in modules.
   void enabledModules;
-
 
   const sections: NavSection[] = [
     {
@@ -211,24 +208,21 @@ export function CrmSidebar() {
       items: [
         { to: "/academy", icon: GraduationCap, label: "Academy" },
         { to: "/billing", icon: CreditCard, label: "Billing" },
-        ...(isReseller && isOwner
-          ? [{ to: "/clients", icon: Building2, label: "Clients" }]
-          : []),
-        ...(isPlatformAdmin
-          ? [{ to: "/admin", icon: Crown, label: "Platform Admin" }]
-          : []),
+        ...(isReseller && isOwner ? [{ to: "/clients", icon: Building2, label: "Clients" }] : []),
+        ...(isPlatformAdmin ? [{ to: "/admin", icon: Crown, label: "Platform Admin" }] : []),
       ],
     },
   ];
 
   const isManual = subscription?.environment === "manual";
   const planName = planLabel(subscription?.price_id, isManual);
-  const initials = (profile?.full_name || user?.email || "?")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("") || "?";
+  const initials =
+    (profile?.full_name || user?.email || "?")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase() ?? "")
+      .join("") || "?";
 
   const renderNavLink = (item: NavItem) => {
     const isActive = location.pathname === item.to;
@@ -275,7 +269,11 @@ export function CrmSidebar() {
           className="flex min-w-0 items-center gap-3"
         >
           {logoUrl ? (
-            <img src={logoUrl} alt={brandName} className="h-8 w-8 shrink-0 rounded-lg object-contain" />
+            <img
+              src={logoUrl}
+              alt={brandName}
+              className="h-8 w-8 shrink-0 rounded-lg object-contain"
+            />
           ) : (
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-base font-extrabold text-primary-foreground shadow-[0_0_18px_-4px_var(--color-primary)] transition-shadow duration-300 hover:shadow-[0_0_28px_-4px_var(--color-primary)]">
               {brandName.charAt(0).toUpperCase()}

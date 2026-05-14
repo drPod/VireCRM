@@ -54,8 +54,8 @@ export function TermsCheckbox({
         >
           No-Refund Policy
         </Link>
-        . I understand the Service is provided &ldquo;as-is&rdquo; and that all
-        payments are final and non-refundable.
+        . I understand the Service is provided &ldquo;as-is&rdquo; and that all payments are final
+        and non-refundable.
       </label>
     </div>
   );

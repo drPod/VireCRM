@@ -9,7 +9,17 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Download, Search, RefreshCw, Mail, Phone, Building2, FlaskConical, Wand2 } from "lucide-react";
+import {
+  Loader2,
+  Download,
+  Search,
+  RefreshCw,
+  Mail,
+  Phone,
+  Building2,
+  FlaskConical,
+  Wand2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -23,13 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
+  BulkApplyTemplateDialog,
+  type BulkRecipient,
+} from "@/components/crm/BulkApplyTemplateDialog";
 
 interface Submission {
   id: string;
@@ -91,7 +99,7 @@ function ContactSubmissionsPage() {
     let q = supabase
       .from("contact_submissions")
       .select(
-        "id,name,email,company,phone,budget,message,status,sentiment,topic,priority_suggestion,intent_summary,test_mode,created_at,replied_at,classification_error,lead_id"
+        "id,name,email,company,phone,budget,message,status,sentiment,topic,priority_suggestion,intent_summary,test_mode,created_at,replied_at,classification_error,lead_id",
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -180,7 +188,7 @@ function ContactSubmissionsPage() {
       return s;
     };
     const rows = filtered.map((s) =>
-      headers.map((h) => escape((s as unknown as Record<string, unknown>)[h])).join(",")
+      headers.map((h) => escape((s as unknown as Record<string, unknown>)[h])).join(","),
     );
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -240,10 +248,25 @@ function ContactSubmissionsPage() {
               />
             </div>
           </div>
-          <FilterSelect label="Status" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-          <FilterSelect label="Sentiment" value={sentiment} onChange={setSentiment} options={SENTIMENT_OPTIONS} />
+          <FilterSelect
+            label="Status"
+            value={status}
+            onChange={setStatus}
+            options={STATUS_OPTIONS}
+          />
+          <FilterSelect
+            label="Sentiment"
+            value={sentiment}
+            onChange={setSentiment}
+            options={SENTIMENT_OPTIONS}
+          />
           <FilterSelect label="Topic" value={topic} onChange={setTopic} options={TOPIC_OPTIONS} />
-          <FilterSelect label="Priority" value={priority} onChange={setPriority} options={PRIORITY_OPTIONS} />
+          <FilterSelect
+            label="Priority"
+            value={priority}
+            onChange={setPriority}
+            options={PRIORITY_OPTIONS}
+          />
         </div>
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <input
@@ -320,9 +343,15 @@ function ContactSubmissionsPage() {
                       )}
                     </td>
                     <td className="px-3 py-2">{s.topic ?? <Pending />}</td>
-                    <td className="px-3 py-2"><SentimentBadge value={s.sentiment} /></td>
-                    <td className="px-3 py-2"><PriorityBadge value={s.priority_suggestion} /></td>
-                    <td className="px-3 py-2"><StatusBadge value={s.status} /></td>
+                    <td className="px-3 py-2">
+                      <SentimentBadge value={s.sentiment} />
+                    </td>
+                    <td className="px-3 py-2">
+                      <PriorityBadge value={s.priority_suggestion} />
+                    </td>
+                    <td className="px-3 py-2">
+                      <StatusBadge value={s.status} />
+                    </td>
                     <td className="max-w-md px-3 py-2 text-muted-foreground">
                       <div className="line-clamp-2">{s.intent_summary ?? s.message}</div>
                     </td>
@@ -364,10 +393,14 @@ function FilterSelect({
     <div>
       <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
         <SelectContent>
           {options.map((o) => (
-            <SelectItem key={o} value={o}>{o === "all" ? "All" : o}</SelectItem>
+            <SelectItem key={o} value={o}>
+              {o === "all" ? "All" : o}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -387,7 +420,11 @@ function SentimentBadge({ value }: { value: string | null }) {
     negative: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     urgent: "bg-red-500/15 text-red-400 border-red-500/30",
   };
-  return <Badge variant="outline" className={map[value] ?? ""}>{value}</Badge>;
+  return (
+    <Badge variant="outline" className={map[value] ?? ""}>
+      {value}
+    </Badge>
+  );
 }
 
 function PriorityBadge({ value }: { value: string | null }) {
@@ -398,7 +435,11 @@ function PriorityBadge({ value }: { value: string | null }) {
     high: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     critical: "bg-red-500/15 text-red-400 border-red-500/30",
   };
-  return <Badge variant="outline" className={map[value] ?? ""}>{value}</Badge>;
+  return (
+    <Badge variant="outline" className={map[value] ?? ""}>
+      {value}
+    </Badge>
+  );
 }
 
 function StatusBadge({ value }: { value: string }) {
@@ -425,9 +466,22 @@ function SubmissionDialog({ item, onClose }: { item: Submission | null; onClose:
             </DialogHeader>
             <div className="space-y-3 text-sm">
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
-                <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{item.email}</span>
-                {item.phone && <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{item.phone}</span>}
-                {item.company && <span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" />{item.company}</span>}
+                <span className="flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5" />
+                  {item.email}
+                </span>
+                {item.phone && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5" />
+                    {item.phone}
+                  </span>
+                )}
+                {item.company && (
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" />
+                    {item.company}
+                  </span>
+                )}
                 {item.budget && <span>Budget: {item.budget}</span>}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -436,12 +490,16 @@ function SubmissionDialog({ item, onClose }: { item: Submission | null; onClose:
               </div>
               {item.intent_summary && (
                 <div className="rounded-md border border-border bg-muted/20 p-3">
-                  <div className="mb-1 text-xs font-medium uppercase text-muted-foreground">AI summary</div>
+                  <div className="mb-1 text-xs font-medium uppercase text-muted-foreground">
+                    AI summary
+                  </div>
                   <div className="text-foreground">{item.intent_summary}</div>
                 </div>
               )}
               <div>
-                <div className="mb-1 text-xs font-medium uppercase text-muted-foreground">Message</div>
+                <div className="mb-1 text-xs font-medium uppercase text-muted-foreground">
+                  Message
+                </div>
                 <div className="whitespace-pre-wrap rounded-md border border-border bg-background p-3 text-foreground">
                   {item.message}
                 </div>

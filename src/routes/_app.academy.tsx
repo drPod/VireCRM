@@ -14,7 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Course {
   id: string;
@@ -51,7 +58,9 @@ function AcademyIndex() {
     setLoading(false);
   };
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+  }, []);
 
   const create = async () => {
     if (!profile?.organization_id || !form.title.trim()) {
@@ -88,14 +97,20 @@ function AcademyIndex() {
       } as never)
       .eq("id", c.id);
     if (error) toast.error(error.message);
-    else { toast.success(next === "published" ? "Published" : "Unpublished"); void load(); }
+    else {
+      toast.success(next === "published" ? "Published" : "Unpublished");
+      void load();
+    }
   };
 
   const remove = async (c: Course) => {
     if (!confirm(`Delete "${c.title}"? This deletes its lessons too.`)) return;
     const { error } = await supabase.from("courses").delete().eq("id", c.id);
     if (error) toast.error(error.message);
-    else { setCourses((p) => p.filter((x) => x.id !== c.id)); toast.success("Deleted"); }
+    else {
+      setCourses((p) => p.filter((x) => x.id !== c.id));
+      toast.success("Deleted");
+    }
   };
 
   return (
@@ -113,23 +128,40 @@ function AcademyIndex() {
         {canManage && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1.5" /> New course</Button>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-1.5" /> New course
+              </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Create course</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Create course</DialogTitle>
+              </DialogHeader>
               <div className="space-y-3 py-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="title">Title</Label>
-                  <Input id="title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} />
+                  <Input
+                    id="title"
+                    value={form.title}
+                    onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="desc">Description</Label>
-                  <Textarea id="desc" rows={4} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
+                  <Textarea
+                    id="desc"
+                    rows={4}
+                    value={form.description}
+                    onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                  />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
-                <Button onClick={create} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}Create</Button>
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+                  Cancel
+                </Button>
+                <Button onClick={create} disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}Create
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -137,11 +169,17 @@ function AcademyIndex() {
       </header>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
       ) : courses.length === 0 ? (
         <Card className="py-16 text-center">
           <p className="text-sm text-muted-foreground">No courses yet.</p>
-          {canManage && <p className="text-xs text-muted-foreground mt-1">Click "New course" to start your library.</p>}
+          {canManage && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Click "New course" to start your library.
+            </p>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -150,24 +188,40 @@ function AcademyIndex() {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base">{c.title}</CardTitle>
-                  <Badge variant={c.status === "published" ? "default" : "outline"} className="text-[10px] uppercase">
+                  <Badge
+                    variant={c.status === "published" ? "default" : "outline"}
+                    className="text-[10px] uppercase"
+                  >
                     {c.status}
                   </Badge>
                 </div>
-                {c.industry && <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{c.industry}</p>}
+                {c.industry && (
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {c.industry}
+                  </p>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
-                {c.description && <p className="text-sm text-muted-foreground line-clamp-3">{c.description}</p>}
+                {c.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-3">{c.description}</p>
+                )}
                 <div className="flex flex-wrap gap-1.5">
                   <Link to="/academy/$courseId" params={{ courseId: c.id }}>
-                    <Button size="sm" variant="outline">Open</Button>
+                    <Button size="sm" variant="outline">
+                      Open
+                    </Button>
                   </Link>
                   {canManage && (
                     <>
                       <Button size="sm" variant="ghost" onClick={() => void togglePublish(c)}>
                         {c.status === "published" ? "Unpublish" : "Publish"}
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => void remove(c)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => void remove(c)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </>

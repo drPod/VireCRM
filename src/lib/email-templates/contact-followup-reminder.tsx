@@ -8,22 +8,22 @@ import {
   Preview,
   Section,
   Text,
-} from '@react-email/components'
-import type { TemplateEntry } from './registry'
-import { SUPPORT_EMAIL } from '@/config/support'
+} from "@react-email/components";
+import type { TemplateEntry } from "./registry";
+import { SUPPORT_EMAIL } from "@/config/support";
 
-const SITE_NAME = 'Genesis'
-const OWNER_INBOX = SUPPORT_EMAIL
+const SITE_NAME = "Genesis";
+const OWNER_INBOX = SUPPORT_EMAIL;
 
 interface ContactFollowupReminderProps {
-  name?: string
-  email?: string
-  company?: string | null
-  phone?: string | null
-  budget?: string | null
-  message?: string
-  receivedAt?: string
-  hoursElapsed?: number
+  name?: string;
+  email?: string;
+  company?: string | null;
+  phone?: string | null;
+  budget?: string | null;
+  message?: string;
+  receivedAt?: string;
+  hoursElapsed?: number;
 }
 
 /**
@@ -42,26 +42,26 @@ const ContactFollowupReminderEmail = ({
   hoursElapsed,
 }: ContactFollowupReminderProps) => {
   const elapsedLabel =
-    typeof hoursElapsed === 'number' && hoursElapsed > 0
-      ? `${hoursElapsed} hours`
-      : '24+ hours'
+    typeof hoursElapsed === "number" && hoursElapsed > 0 ? `${hoursElapsed} hours` : "24+ hours";
 
   return (
     <Html lang="en" dir="ltr">
       <Head />
-      <Preview>Reminder: {name || 'A visitor'} is still waiting for a reply ({elapsedLabel}).</Preview>
+      <Preview>
+        Reminder: {name || "A visitor"} is still waiting for a reply ({elapsedLabel}).
+      </Preview>
       <Body style={main}>
         <Container style={container}>
           <Heading style={h1}>⏰ Follow-up reminder</Heading>
           <Text style={text}>
-            A {SITE_NAME} contact form submission has been sitting unreplied for{' '}
+            A {SITE_NAME} contact form submission has been sitting unreplied for{" "}
             <strong>{elapsedLabel}</strong>. Please follow up or mark it as handled in the CRM.
           </Text>
 
           <Section style={card}>
             <Text style={label}>From</Text>
             <Text style={value}>
-              {name || 'Unknown'} &lt;{email || 'unknown'}&gt;
+              {name || "Unknown"} &lt;{email || "unknown"}&gt;
             </Text>
             {company ? (
               <>
@@ -92,83 +92,83 @@ const ContactFollowupReminderEmail = ({
           <Hr style={hr} />
 
           <Text style={label}>Message</Text>
-          <Text style={messageStyle}>{message || '(no message)'}</Text>
+          <Text style={messageStyle}>{message || "(no message)"}</Text>
 
           <Hr style={hr} />
 
           <Text style={footer}>
-            Reply directly to this email to respond to the visitor. This reminder was
-            generated automatically by {SITE_NAME} CRM and sent to {OWNER_INBOX}.
+            Reply directly to this email to respond to the visitor. This reminder was generated
+            automatically by {SITE_NAME} CRM and sent to {OWNER_INBOX}.
           </Text>
         </Container>
       </Body>
     </Html>
-  )
-}
+  );
+};
 
 export const template = {
   component: ContactFollowupReminderEmail,
   to: OWNER_INBOX,
   subject: (data: Record<string, any>) =>
-    `⏰ Still waiting for reply: ${data?.name || data?.email || 'contact inquiry'}`,
-  displayName: 'Contact follow-up reminder (owner)',
+    `⏰ Still waiting for reply: ${data?.name || data?.email || "contact inquiry"}`,
+  displayName: "Contact follow-up reminder (owner)",
   previewData: {
-    name: 'Jane Smith',
-    email: 'jane@acme.com',
-    company: 'Acme Corp',
-    phone: '+1 555 0100',
-    budget: '14k-25k',
-    message: 'Following up on the CRM build we discussed.',
+    name: "Jane Smith",
+    email: "jane@acme.com",
+    company: "Acme Corp",
+    phone: "+1 555 0100",
+    budget: "14k-25k",
+    message: "Following up on the CRM build we discussed.",
     receivedAt: new Date(Date.now() - 25 * 3600 * 1000).toISOString(),
     hoursElapsed: 25,
   },
-} satisfies TemplateEntry
+} satisfies TemplateEntry;
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const main = { backgroundColor: "#ffffff", fontFamily: "Arial, sans-serif" };
+const container = { padding: "32px 28px", maxWidth: "560px", margin: "0 auto" };
 const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#0f172a',
-  margin: '0 0 20px',
-}
+  fontSize: "22px",
+  fontWeight: "bold" as const,
+  color: "#0f172a",
+  margin: "0 0 20px",
+};
 const text = {
-  fontSize: '15px',
-  color: '#334155',
-  lineHeight: '1.6',
-  margin: '0 0 16px',
-}
+  fontSize: "15px",
+  color: "#334155",
+  lineHeight: "1.6",
+  margin: "0 0 16px",
+};
 const card = {
-  backgroundColor: '#f8fafc',
-  border: '1px solid #e2e8f0',
-  padding: '16px 18px',
-  margin: '20px 0',
-  borderRadius: '6px',
-}
+  backgroundColor: "#f8fafc",
+  border: "1px solid #e2e8f0",
+  padding: "16px 18px",
+  margin: "20px 0",
+  borderRadius: "6px",
+};
 const label = {
-  fontSize: '11px',
-  fontWeight: 'bold' as const,
-  color: '#64748b',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  margin: '8px 0 2px',
-}
+  fontSize: "11px",
+  fontWeight: "bold" as const,
+  color: "#64748b",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.05em",
+  margin: "8px 0 2px",
+};
 const value = {
-  fontSize: '14px',
-  color: '#0f172a',
-  margin: '0 0 6px',
-}
+  fontSize: "14px",
+  color: "#0f172a",
+  margin: "0 0 6px",
+};
 const messageStyle = {
-  fontSize: '14px',
-  color: '#334155',
-  lineHeight: '1.55',
-  margin: '0 0 8px',
-  whiteSpace: 'pre-wrap' as const,
-}
-const hr = { borderColor: '#e2e8f0', margin: '20px 0' }
+  fontSize: "14px",
+  color: "#334155",
+  lineHeight: "1.55",
+  margin: "0 0 8px",
+  whiteSpace: "pre-wrap" as const,
+};
+const hr = { borderColor: "#e2e8f0", margin: "20px 0" };
 const footer = {
-  fontSize: '12px',
-  color: '#94a3b8',
-  margin: '20px 0 0',
-  lineHeight: '1.5',
-}
+  fontSize: "12px",
+  color: "#94a3b8",
+  margin: "20px 0 0",
+  lineHeight: "1.5",
+};

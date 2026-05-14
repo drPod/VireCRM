@@ -168,14 +168,10 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   }
 }
 
-async function maybeGrantCreditPack(
-  session: any,
-  env: StripeEnv,
-  userId: string | null,
-) {
+async function maybeGrantCreditPack(session: any, env: StripeEnv, userId: string | null) {
   try {
     const orgId = session.metadata?.organizationId || null;
-    let priceKey: string | null = session.metadata?.priceId || null;
+    const priceKey: string | null = session.metadata?.priceId || null;
 
     // Fallback: re-fetch line items if priceId wasn't stamped on metadata.
     if (!priceKey) {
@@ -203,10 +199,9 @@ async function maybeGrantCreditPack(
     try {
       const stripe = createStripeClient(env);
       if (session.payment_intent) {
-        const pi = await stripe.paymentIntents.retrieve(
-          session.payment_intent as string,
-          { expand: ["latest_charge"] },
-        );
+        const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string, {
+          expand: ["latest_charge"],
+        });
         const charge = (pi as any).latest_charge as any;
         if (charge && typeof charge === "object") {
           receiptUrl = charge.receipt_url ?? null;
@@ -248,7 +243,6 @@ async function maybeGrantCreditPack(
   }
 }
 
-
 /**
  * Expected promo discount applied to every checkout: 30% off via the
  * `launch30` Stripe coupon. We tolerate ±1 cent for rounding.
@@ -281,9 +275,7 @@ async function verifySessionDiscount(session: any, env: StripeEnv) {
       ? `Missing or wrong coupon (got ${couponId ?? "none"}, expected ${EXPECTED_COUPON_ID})`
       : `Total ${total}¢ does not match expected ${expectedTotal}¢ (subtotal ${subtotal}¢, drift ${drift}¢)`;
 
-    console.error(
-      `[discount-audit] session=${session.id} env=${env} ${reason}`,
-    );
+    console.error(`[discount-audit] session=${session.id} env=${env} ${reason}`);
 
     await supabase.from("error_logs").insert({
       message: `Discount mismatch on checkout.session.completed: ${reason}`,
@@ -338,9 +330,7 @@ async function verifyInvoiceDiscount(invoice: any, env: StripeEnv) {
       ? `Missing or wrong coupon on invoice (got ${couponId ?? "none"}, expected ${EXPECTED_COUPON_ID})`
       : `Invoice total ${total}¢ does not match expected ${expectedTotal}¢ (subtotal ${subtotal}¢, drift ${drift}¢)`;
 
-    console.error(
-      `[discount-audit] invoice=${invoice.id} env=${env} ${reason}`,
-    );
+    console.error(`[discount-audit] invoice=${invoice.id} env=${env} ${reason}`);
 
     await supabase.from("error_logs").insert({
       message: `Discount mismatch on invoice.payment_succeeded: ${reason}`,
@@ -376,14 +366,10 @@ async function upsertSubscription(subscription: any, env: StripeEnv) {
 
   const item = subscription.items?.data?.[0];
   const priceId =
-    item?.price?.metadata?.lovable_external_id ||
-    item?.price?.lookup_key ||
-    item?.price?.id;
+    item?.price?.metadata?.lovable_external_id || item?.price?.lookup_key || item?.price?.id;
   const productId =
     item?.price?.product?.metadata?.lovable_external_id ||
-    (typeof item?.price?.product === "string"
-      ? item.price.product
-      : item?.price?.product?.id);
+    (typeof item?.price?.product === "string" ? item.price.product : item?.price?.product?.id);
 
   const periodStart = subscription.current_period_start;
   const periodEnd = subscription.current_period_end;
@@ -396,12 +382,8 @@ async function upsertSubscription(subscription: any, env: StripeEnv) {
       product_id: productId,
       price_id: priceId,
       status: subscription.status,
-      current_period_start: periodStart
-        ? new Date(periodStart * 1000).toISOString()
-        : null,
-      current_period_end: periodEnd
-        ? new Date(periodEnd * 1000).toISOString()
-        : null,
+      current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancel_at_period_end: subscription.cancel_at_period_end || false,
       environment: env,
       attributed_reseller_id: subscription.metadata?.attributedResellerId || null,
@@ -414,10 +396,7 @@ async function upsertSubscription(subscription: any, env: StripeEnv) {
   // Sync the org's credit allowance to match this subscription's tier.
   // Custom CRM / Full Ownership lookup keys map to unlimited; standard
   // tiers map to their monthly credit quota. No-op on cancel/past_due.
-  if (
-    priceId &&
-    (subscription.status === "active" || subscription.status === "trialing")
-  ) {
+  if (priceId && (subscription.status === "active" || subscription.status === "trialing")) {
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -457,11 +436,7 @@ async function markPastDue(invoice: any, env: StripeEnv) {
     .eq("environment", env);
 }
 
-async function recordTransaction(
-  invoice: any,
-  env: StripeEnv,
-  status: string,
-) {
+async function recordTransaction(invoice: any, env: StripeEnv, status: string) {
   const subId = invoice.subscription;
   let userId: string | null = null;
   let resellerId: string | null = null;
@@ -580,11 +555,12 @@ async function syncConnectInvoice(
     currency: (invoice.currency || "usd").toLowerCase(),
     status,
     environment: env,
-    line_items: invoice.lines?.data?.map((l: any) => ({
-      description: l.description,
-      amount_cents: l.amount,
-      quantity: l.quantity,
-    })) || [],
+    line_items:
+      invoice.lines?.data?.map((l: any) => ({
+        description: l.description,
+        amount_cents: l.amount,
+        quantity: l.quantity,
+      })) || [],
   });
 }
 
@@ -642,10 +618,7 @@ async function syncPlatformInvoice(invoice: any, env: StripeEnv, eventType: stri
   // Idempotent: re-running the RPC just re-asserts the same plan.
   const isPaid = eventType === "invoice.payment_succeeded" || invoice.status === "paid";
   const grantPlan = typeof meta.grant_plan === "string" ? meta.grant_plan.trim() : "";
-  const customerEmail =
-    invoice.customer_email ||
-    invoice.customer_address?.email ||
-    null;
+  const customerEmail = invoice.customer_email || invoice.customer_address?.email || null;
   if (isPaid && grantPlan && customerEmail) {
     const { data: grantResult, error: grantErr } = await supabase.rpc(
       "webhook_grant_plan_by_email",

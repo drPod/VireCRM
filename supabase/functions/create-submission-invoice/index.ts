@@ -37,7 +37,10 @@ Deno.serve(async (req) => {
   try {
     const auth = req.headers.get("Authorization");
     const token = auth?.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
     // Platform-admin gate
@@ -175,9 +178,7 @@ Deno.serve(async (req) => {
       currency,
       status: finalInvoice.status || "draft",
       line_items: body.lineItems,
-      due_date: finalInvoice.due_date
-        ? new Date(finalInvoice.due_date * 1000).toISOString()
-        : null,
+      due_date: finalInvoice.due_date ? new Date(finalInvoice.due_date * 1000).toISOString() : null,
       sent_at: body.send !== false ? new Date().toISOString() : null,
       environment: env,
       created_by: user.id,
@@ -196,9 +197,9 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("create-submission-invoice error:", err);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message || "Failed" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: (err as Error).message || "Failed" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

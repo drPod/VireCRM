@@ -12,7 +12,10 @@ export const Route = createFileRoute("/confirm-email")({
   head: () => ({
     meta: [
       { title: "Check Your Email — Genesis" },
-      { name: "description", content: "Confirm your email address to activate your Genesis account" },
+      {
+        name: "description",
+        content: "Confirm your email address to activate your Genesis account",
+      },
     ],
   }),
 });
@@ -54,11 +57,15 @@ function ConfirmEmailPage() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Check your email</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            We sent a confirmation link to your inbox. Click it to activate your account and start your free trial.
+            We sent a confirmation link to your inbox. Click it to activate your account and start
+            your free trial.
           </p>
 
           <form onSubmit={handleResend} className="mt-8 space-y-3 text-left">
-            <label htmlFor="resend-email" className="block text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="resend-email"
+              className="block text-xs font-medium text-muted-foreground"
+            >
               Didn't get it? Resend the link:
             </label>
             <input

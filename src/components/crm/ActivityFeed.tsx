@@ -78,7 +78,11 @@ export function ActivityFeed() {
           continue;
         }
         const label =
-          m.type === "ai_generated" ? "AI sent message" : m.type === "sms" ? "SMS sent" : "Email sent";
+          m.type === "ai_generated"
+            ? "AI sent message"
+            : m.type === "sms"
+              ? "SMS sent"
+              : "Email sent";
         const detail = m.subject || (m.content ? m.content.slice(0, 60) : "");
         all.push({
           id: `m-${m.id}`,
@@ -145,7 +149,9 @@ export function ActivityFeed() {
             const color = COLORS[activity.type];
             return (
               <div key={activity.id} className="flex items-start gap-3 p-4">
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${color}`}>
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${color}`}
+                >
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">

@@ -1,6 +1,15 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Send, Loader2, User2, Zap, CheckCircle2, AlertTriangle, Play } from "lucide-react";
+import {
+  Sparkles,
+  Send,
+  Loader2,
+  User2,
+  Zap,
+  CheckCircle2,
+  AlertTriangle,
+  Play,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
@@ -15,7 +24,11 @@ export const Route = createFileRoute("/_app/command-chat")({
   head: () => ({
     meta: [
       { title: "Command Chat — Genesis" },
-      { name: "description", content: "Chat with your AI workforce: run outreach, follow-ups, and pipeline actions in plain English." },
+      {
+        name: "description",
+        content:
+          "Chat with your AI workforce: run outreach, follow-ups, and pipeline actions in plain English.",
+      },
     ],
   }),
 });
@@ -43,7 +56,16 @@ const TIMEOUT_MS = 45_000;
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error(`${label} timed out`)), ms);
-    p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        res(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        rej(e);
+      },
+    );
   });
 }
 
@@ -153,7 +175,12 @@ function CommandChat() {
                 msg={m}
                 busy={busy}
                 onExecute={() => handleExecute(m.id, m.command)}
-                onCancel={() => updateMsg(m.id, { status: "done", result: { summary: "Cancelled.", results: [] } })}
+                onCancel={() =>
+                  updateMsg(m.id, {
+                    status: "done",
+                    result: { summary: "Cancelled.", results: [] },
+                  })
+                }
                 onRetry={() => handleSend(m.command)}
               />
             ),
@@ -192,12 +219,7 @@ function CommandChat() {
               className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               disabled={busy}
             />
-            <Button
-              type="submit"
-              size="sm"
-              variant="command"
-              disabled={!input.trim() || busy}
-            >
+            <Button type="submit" size="sm" variant="command" disabled={!input.trim() || busy}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </form>
@@ -265,7 +287,9 @@ function AssistantBubble({
               <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-300">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <ul className="space-y-0.5">
-                  {msg.plan.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  {msg.plan.warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
                 </ul>
               </div>
             )}

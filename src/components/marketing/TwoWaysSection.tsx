@@ -45,11 +45,10 @@ export function TwoWaysSection() {
               </span>
             </div>
 
-            <h3 className="text-2xl font-bold text-foreground">
-              Own Your AI Sales Infrastructure
-            </h3>
+            <h3 className="text-2xl font-bold text-foreground">Own Your AI Sales Infrastructure</h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              A fully custom-built CRM and automation system designed specifically for your business.
+              A fully custom-built CRM and automation system designed specifically for your
+              business.
             </p>
 
             <ul className="mt-6 space-y-3">
@@ -81,11 +80,10 @@ export function TwoWaysSection() {
               </span>
             </div>
 
-            <h3 className="text-2xl font-bold text-foreground">
-              Plug Into Our Proven System
-            </h3>
+            <h3 className="text-2xl font-bold text-foreground">Plug Into Our Proven System</h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              Get access to a ready-to-use CRM and automation system designed to start working immediately.
+              Get access to a ready-to-use CRM and automation system designed to start working
+              immediately.
             </p>
 
             <ul className="mt-6 space-y-3">

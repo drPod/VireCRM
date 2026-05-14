@@ -52,13 +52,19 @@ export function HeroSection() {
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Custom CRM &amp; AI Sales Systems
             <br />
-            <span className="text-gradient-primary [-webkit-text-fill-color:transparent] drop-shadow-[0_2px_12px_oklch(0.65_0.2_250/0.35)]">Built for Your Business</span>
+            <span className="text-gradient-primary [-webkit-text-fill-color:transparent] drop-shadow-[0_2px_12px_oklch(0.65_0.2_250/0.35)]">
+              Built for Your Business
+            </span>
             <br />
-            <span className="text-2xl font-medium text-muted-foreground sm:text-3xl lg:text-4xl">— Not One-Size-Fits-All</span>
+            <span className="text-2xl font-medium text-muted-foreground sm:text-3xl lg:text-4xl">
+              — Not One-Size-Fits-All
+            </span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            More than a CRM — this is your AI-powered sales system. We design and build custom systems that manage your pipeline, follow up with every lead, and keep your sales process moving — without the complexity of traditional CRMs.
+            More than a CRM — this is your AI-powered sales system. We design and build custom
+            systems that manage your pipeline, follow up with every lead, and keep your sales
+            process moving — without the complexity of traditional CRMs.
           </p>
 
           <p className="mx-auto mt-4 max-w-xl text-sm font-medium text-foreground/80">
@@ -84,20 +90,32 @@ export function HeroSection() {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Set up in days, not months</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Set up in days, not months
+            </span>
             <span className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> No technical skills required</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-success" /> No technical skills required
+            </span>
             <span className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Automated follow-up built in</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Automated follow-up built in
+            </span>
             <span className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Pipeline runs 24/7</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Pipeline runs 24/7
+            </span>
             <span className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-success" /> Built around how you sell</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Built around how you sell
+            </span>
           </div>
 
           <div className="mx-auto mt-10 max-w-xl rounded-xl border border-primary/20 bg-primary/5 px-6 py-5">
             <p className="text-sm text-muted-foreground">Most businesses rent their systems.</p>
-            <p className="mt-1 text-base font-semibold text-foreground">Leaders build assets — and control their growth.</p>
+            <p className="mt-1 text-base font-semibold text-foreground">
+              Leaders build assets — and control their growth.
+            </p>
           </div>
         </div>
 

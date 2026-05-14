@@ -51,8 +51,6 @@ import {
   shouldBlockKeyboardEvent,
 } from "@/lib/preview/read-only-shield";
 
-
-
 export const Route = createFileRoute("/preview")({
   component: CrmPreviewPage,
   head: () => ({
@@ -427,7 +425,12 @@ function CrmPreviewPage() {
                 <span>Search…</span>
                 <kbd className="rounded border border-border bg-background px-1.5 text-xs">⌘K</kbd>
               </div>
-              <Button variant="ghost" size="icon" className="relative" aria-label="Notifications (read-only)">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                aria-label="Notifications (read-only)"
+              >
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
               </Button>
@@ -440,9 +443,14 @@ function CrmPreviewPage() {
 
           {/* Content */}
           <div className="space-y-6 p-4 sm:p-6">
-            <PreviewViewBanner viewId={active} label={navItems.find((n) => n.id === active)?.label || "Dashboard"} />
+            <PreviewViewBanner
+              viewId={active}
+              label={navItems.find((n) => n.id === active)?.label || "Dashboard"}
+            />
             {active === "dashboard" && <DashboardView />}
-            {active !== "dashboard" && <PlaceholderView label={navItems.find((n) => n.id === active)?.label || ""} />}
+            {active !== "dashboard" && (
+              <PlaceholderView label={navItems.find((n) => n.id === active)?.label || ""} />
+            )}
           </div>
         </main>
       </div>
@@ -607,20 +615,25 @@ function DashboardView() {
 
 function PlaceholderView({ label }: { label: string }) {
   return (
-    <Card data-tour="placeholder" className="flex flex-col items-center justify-center gap-4 p-12 text-center scroll-mt-24">
+    <Card
+      data-tour="placeholder"
+      className="flex flex-col items-center justify-center gap-4 p-12 text-center scroll-mt-24"
+    >
       <div className="rounded-full bg-primary/10 p-4 text-primary">
         <Lock className="h-6 w-6" />
       </div>
       <div>
         <h3 className="text-lg font-semibold text-foreground">{label} is part of the full CRM</h3>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">
-          The interactive preview shows the Dashboard. Sign up for a free trial to unlock {label.toLowerCase()},
-          AI automations, and the rest of Genesis.
+          The interactive preview shows the Dashboard. Sign up for a free trial to unlock{" "}
+          {label.toLowerCase()}, AI automations, and the rest of Genesis.
         </p>
       </div>
       <div className="flex gap-2">
         <Link to="/pricing" data-preview-allow="true">
-          <Button variant="outline" data-preview-allow="true">See pricing</Button>
+          <Button variant="outline" data-preview-allow="true">
+            See pricing
+          </Button>
         </Link>
         <Link to="/signup" data-preview-allow="true">
           <Button variant="command" className="gap-2" data-preview-allow="true">
@@ -697,7 +710,8 @@ const VIEW_BANNER_COPY: Record<string, ViewBannerCopy> = {
   },
   billing: {
     simulated: "The plan and invoice history are demo content.",
-    disabled: "Subscribing, upgrading, and managing payment methods happen on the live signup flow.",
+    disabled:
+      "Subscribing, upgrading, and managing payment methods happen on the live signup flow.",
   },
 };
 
@@ -877,10 +891,7 @@ function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTourProps
       : Math.max(spot.top - TOOLTIP_GAP - 220, 16);
     tooltipLeft = Math.max(
       16,
-      Math.min(
-        spot.left + spot.width / 2 - TOOLTIP_WIDTH / 2,
-        viewport.w - TOOLTIP_WIDTH - 16,
-      ),
+      Math.min(spot.left + spot.width / 2 - TOOLTIP_WIDTH / 2, viewport.w - TOOLTIP_WIDTH - 16),
     );
   } else {
     tooltipTop = Math.max(viewport.h / 2 - 120, 16);
@@ -989,12 +1000,7 @@ function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTourProps
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            data-preview-allow="true"
-            onClick={onClose}
-          >
+          <Button variant="ghost" size="sm" data-preview-allow="true" onClick={onClose}>
             Skip
           </Button>
           <div className="flex gap-2">
@@ -1036,4 +1042,3 @@ function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTourProps
     </div>
   );
 }
-

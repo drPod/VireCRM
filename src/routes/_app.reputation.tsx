@@ -13,15 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Star,
-  MessageCircle,
-  Mail,
-  Send,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
+import { Star, MessageCircle, Mail, Send, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { sendTransactionalEmail } from "@/lib/email/send";
@@ -194,12 +186,10 @@ function ReputationPage() {
             ) : leads.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
                 <Star className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                <p className="mt-3 text-sm font-medium text-foreground">
-                  No won deals yet
-                </p>
+                <p className="mt-3 text-sm font-medium text-foreground">No won deals yet</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Mark a lead as <span className="font-semibold">Won</span> in
-                  Leads to start collecting reviews from happy customers.
+                  Mark a lead as <span className="font-semibold">Won</span> in Leads to start
+                  collecting reviews from happy customers.
                 </p>
               </div>
             ) : (
@@ -216,9 +206,7 @@ function ReputationPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-foreground truncate">{lead.name}</p>
                           {lead.company && (
-                            <span className="text-xs text-muted-foreground">
-                              · {lead.company}
-                            </span>
+                            <span className="text-xs text-muted-foreground">· {lead.company}</span>
                           )}
                           {sentAt && (
                             <Badge variant="outline" className="gap-1 text-[10px]">
@@ -261,8 +249,8 @@ function ReputationPage() {
                 <li className="flex items-start gap-2">
                   <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                   <span>
-                    Sends a branded email from{" "}
-                    <span className="font-semibold">{brandName}</span> with your review link.
+                    Sends a branded email from <span className="font-semibold">{brandName}</span>{" "}
+                    with your review link.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
@@ -275,8 +263,8 @@ function ReputationPage() {
             <div className="rounded-xl border border-border bg-card p-5">
               <h3 className="text-sm font-semibold text-foreground">Tip</h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Paste your Google, Trustpilot, or Facebook review URL in the
-                send dialog so customers can leave a rating in one click.
+                Paste your Google, Trustpilot, or Facebook review URL in the send dialog so
+                customers can leave a rating in one click.
               </p>
             </div>
           </div>
@@ -290,8 +278,8 @@ function ReputationPage() {
               <DialogTitle>Request a review</DialogTitle>
               <DialogDescription>
                 Send a branded email asking{" "}
-                <span className="font-medium text-foreground">{selected?.name}</span> to share
-                their experience. They'll receive it from{" "}
+                <span className="font-medium text-foreground">{selected?.name}</span> to share their
+                experience. They'll receive it from{" "}
                 <span className="font-medium text-foreground">{brandName}</span>.
               </DialogDescription>
             </DialogHeader>
@@ -310,8 +298,8 @@ function ReputationPage() {
                   placeholder="https://g.page/r/.../review"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Paste your Google, Trustpilot, or other review URL. Leave blank to send a
-                  general request.
+                  Paste your Google, Trustpilot, or other review URL. Leave blank to send a general
+                  request.
                 </p>
               </div>
               <div className="space-y-2">

@@ -9,13 +9,7 @@
  * existing applyWhiteLabelColor() helper.
  */
 
-export type IndustryKey =
-  | "general"
-  | "energy"
-  | "gym"
-  | "solar"
-  | "real_estate"
-  | "insurance";
+export type IndustryKey = "general" | "energy" | "gym" | "solar" | "real_estate" | "insurance";
 
 export interface IndustryTemplate {
   key: IndustryKey;

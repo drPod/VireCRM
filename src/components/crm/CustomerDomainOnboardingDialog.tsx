@@ -9,16 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  BookOpen,
-  Copy,
-  Check,
-  ExternalLink,
-  Globe,
-  ShieldCheck,
-  Star,
-  Plug,
-} from "lucide-react";
+import { BookOpen, Copy, Check, ExternalLink, Globe, ShieldCheck, Star, Plug } from "lucide-react";
 import { toast } from "sonner";
 
 const LOVABLE_A_RECORD = "185.158.133.1";
@@ -27,9 +18,7 @@ interface Props {
   triggerLabel?: string;
 }
 
-export function CustomerDomainOnboardingDialog({
-  triggerLabel = "Onboarding Guide",
-}: Props) {
+export function CustomerDomainOnboardingDialog({ triggerLabel = "Onboarding Guide" }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -56,8 +45,8 @@ export function CustomerDomainOnboardingDialog({
             Connect Your Own Domain
           </DialogTitle>
           <DialogDescription>
-            Walk through these steps to put your CRM on your own domain
-            (e.g. <code className="text-foreground">crm.yourcompany.com</code>).
+            Walk through these steps to put your CRM on your own domain (e.g.{" "}
+            <code className="text-foreground">crm.yourcompany.com</code>).
           </DialogDescription>
         </DialogHeader>
 
@@ -101,7 +90,8 @@ export function CustomerDomainOnboardingDialog({
                 onCopy={() => copy("_lovable", "txt")}
               />
               <p className="text-[11px] text-muted-foreground">
-                The exact TXT token is generated when you add the hostname — copy it from the Custom Domains panel.
+                The exact TXT token is generated when you add the hostname — copy it from the Custom
+                Domains panel.
               </p>
             </div>
           </Step>
@@ -113,9 +103,15 @@ export function CustomerDomainOnboardingDialog({
             body="DNS usually propagates in minutes but can take up to 72 hours. The panel auto-retries and the SSL & Route Health card confirms your domain is live and serving the CRM."
           >
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <Badge variant="outline" className="text-[10px]">Verifying</Badge>
-              <Badge variant="outline" className="text-[10px]">Setting up SSL</Badge>
-              <Badge variant="secondary" className="text-[10px]">Active</Badge>
+              <Badge variant="outline" className="text-[10px]">
+                Verifying
+              </Badge>
+              <Badge variant="outline" className="text-[10px]">
+                Setting up SSL
+              </Badge>
+              <Badge variant="secondary" className="text-[10px]">
+                Active
+              </Badge>
             </div>
           </Step>
 
@@ -157,7 +153,8 @@ export function CustomerDomainOnboardingDialog({
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Stuck? Contact your account owner with the hostname and a screenshot of your DNS settings.
+              Stuck? Contact your account owner with the hostname and a screenshot of your DNS
+              settings.
             </p>
           </div>
         </div>
@@ -219,12 +216,8 @@ function RecordRow({
       <Badge variant="outline" className="text-[10px] shrink-0">
         {type}
       </Badge>
-      <code className="text-[11px] font-mono text-muted-foreground shrink-0">
-        {name}
-      </code>
-      <code className="flex-1 truncate text-[11px] font-mono text-foreground">
-        {value}
-      </code>
+      <code className="text-[11px] font-mono text-muted-foreground shrink-0">{name}</code>
+      <code className="flex-1 truncate text-[11px] font-mono text-foreground">{value}</code>
       <Button
         type="button"
         variant="ghost"
@@ -232,11 +225,7 @@ function RecordRow({
         className="h-6 px-2 text-[10px] gap-1"
         onClick={onCopy}
       >
-        {copied ? (
-          <Check className="h-3 w-3" />
-        ) : (
-          <Copy className="h-3 w-3" />
-        )}
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
       </Button>
     </div>
   );

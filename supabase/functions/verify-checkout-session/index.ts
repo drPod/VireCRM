@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  type StripeEnv,
-  createStripeClient,
-  corsHeaders,
-} from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, corsHeaders } from "../_shared/stripe.ts";
 
 /**
  * Verify a Stripe Checkout Session and return the resolved plan + subscription
@@ -36,7 +32,10 @@ serve(async (req) => {
     const item = sub?.items?.data?.[0];
     const stripePrice = item?.price ?? session.line_items?.data?.[0]?.price;
     const planLookupKey =
-      stripePrice?.metadata?.lovable_external_id || stripePrice?.lookup_key || stripePrice?.id || null;
+      stripePrice?.metadata?.lovable_external_id ||
+      stripePrice?.lookup_key ||
+      stripePrice?.id ||
+      null;
 
     const periodStart = item?.current_period_start ?? sub?.current_period_start ?? null;
     const periodEnd = item?.current_period_end ?? sub?.current_period_end ?? null;
@@ -51,8 +50,7 @@ serve(async (req) => {
           mode: session.mode,
           amount_total: session.amount_total,
           currency: session.currency,
-          customer_email:
-            session.customer_email || session.customer_details?.email || null,
+          customer_email: session.customer_email || session.customer_details?.email || null,
           created: session.created,
         },
         subscription: sub
@@ -60,12 +58,8 @@ serve(async (req) => {
               id: sub.id,
               status: sub.status,
               cancel_at_period_end: sub.cancel_at_period_end ?? false,
-              current_period_start: periodStart
-                ? new Date(periodStart * 1000).toISOString()
-                : null,
-              current_period_end: periodEnd
-                ? new Date(periodEnd * 1000).toISOString()
-                : null,
+              current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+              current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
             }
           : null,
         plan: stripePrice
@@ -80,12 +74,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

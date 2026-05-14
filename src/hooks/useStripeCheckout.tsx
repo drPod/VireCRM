@@ -20,8 +20,8 @@ function CheckoutBody({ options }: { options: StripeEmbeddedCheckoutProps }) {
     return (
       <div className="space-y-4 py-2">
         <p className="text-sm text-muted-foreground">
-          Before continuing to payment, please review and accept our Terms.
-          Payments are <span className="font-semibold text-foreground">final and non-refundable</span>.
+          Before continuing to payment, please review and accept our Terms. Payments are{" "}
+          <span className="font-semibold text-foreground">final and non-refundable</span>.
         </p>
         <TermsCheckbox checked={accepted} onCheckedChange={setAccepted} />
         <Button
@@ -40,9 +40,7 @@ function CheckoutBody({ options }: { options: StripeEmbeddedCheckoutProps }) {
 }
 
 export function useStripeCheckout() {
-  const [options, setOptions] = useState<StripeEmbeddedCheckoutProps | null>(
-    null,
-  );
+  const [options, setOptions] = useState<StripeEmbeddedCheckoutProps | null>(null);
 
   const openCheckout = useCallback((opts: StripeEmbeddedCheckoutProps) => {
     setOptions(opts);
@@ -64,7 +62,16 @@ export function useStripeCheckout() {
             Review the GenesisX Terms &amp; Conditions before payment.
           </DialogDescription>
         </DialogHeader>
-        {options && <CheckoutBody key={options.mode === "price" ? options.priceId : `${options.resellerSlug}/${options.planSlug}`} options={options} />}
+        {options && (
+          <CheckoutBody
+            key={
+              options.mode === "price"
+                ? options.priceId
+                : `${options.resellerSlug}/${options.planSlug}`
+            }
+            options={options}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

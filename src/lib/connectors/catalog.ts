@@ -13,21 +13,17 @@
  *   3. Wire it into LeadDetailDrawer or wherever it should appear.
  */
 
-export type ConnectorCategory =
-  | "email_calendar"
-  | "communication"
-  | "crm_data"
-  | "productivity";
+export type ConnectorCategory = "email_calendar" | "communication" | "crm_data" | "productivity";
 
 export type ConnectorCapability =
-  | "send_message"   // outbound chat / channel
-  | "send_email"     // outbound email
-  | "send_sms"       // outbound SMS
+  | "send_message" // outbound chat / channel
+  | "send_email" // outbound email
+  | "send_sms" // outbound SMS
   | "schedule_event" // create calendar event
-  | "sync_contacts"  // pull contacts in
-  | "sync_messages"  // pull messages in
-  | "create_doc"     // create a doc/file
-  | "create_task";   // create a task/issue
+  | "sync_contacts" // pull contacts in
+  | "sync_messages" // pull messages in
+  | "create_doc" // create a doc/file
+  | "create_task"; // create a task/issue
 
 export interface ConnectorConfigField {
   /** Key written to org_connectors.config jsonb. */
@@ -138,7 +134,8 @@ export const CONNECTORS: ConnectorMeta[] = [
     connectorId: "slack",
     envVar: "SLACK_API_KEY",
     name: "Slack",
-    description: "Notify a channel when leads are won, lost, or assigned. Send messages from a lead.",
+    description:
+      "Notify a channel when leads are won, lost, or assigned. Send messages from a lead.",
     category: "communication",
     capabilities: ["send_message"],
     docsUrl: "https://api.slack.com",

@@ -17,7 +17,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
+import {
+  BulkApplyTemplateDialog,
+  type BulkRecipient,
+} from "@/components/crm/BulkApplyTemplateDialog";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { sendFollowupSuggestionsFn } from "@/functions/send-followup-suggestions.functions";
 
@@ -34,7 +37,12 @@ interface Suggestion {
   model: string | null;
 }
 
-interface LeadLite { id: string; name: string; email: string | null; company: string | null }
+interface LeadLite {
+  id: string;
+  name: string;
+  email: string | null;
+  company: string | null;
+}
 
 export const Route = createFileRoute("/_app/followup-inbox")({
   component: FollowupInbox,
@@ -58,7 +66,10 @@ function FollowupInbox() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [edited, setEdited] = useState<{ subject: string; message: string }>({ subject: "", message: "" });
+  const [edited, setEdited] = useState<{ subject: string; message: string }>({
+    subject: "",
+    message: "",
+  });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
 
@@ -165,9 +176,16 @@ function FollowupInbox() {
   };
 
   const updateStatus = async (id: string, status: Suggestion["status"]) => {
-    const patch: Record<string, unknown> = { status, reviewed_by: user?.id, reviewed_at: new Date().toISOString() };
+    const patch: Record<string, unknown> = {
+      status,
+      reviewed_by: user?.id,
+      reviewed_at: new Date().toISOString(),
+    };
     if (status === "sent") patch.sent_at = new Date().toISOString();
-    const { error } = await supabase.from("lead_followup_suggestions").update(patch as never).eq("id", id);
+    const { error } = await supabase
+      .from("lead_followup_suggestions")
+      .update(patch as never)
+      .eq("id", id);
     if (error) {
       toast.error(`Update failed: ${error.message}`);
       return;
@@ -192,7 +210,11 @@ function FollowupInbox() {
       toast.error(`Save failed: ${error.message}`);
       return;
     }
-    setItems((prev) => prev.map((s) => (s.id === id ? { ...s, subject: edited.subject, message: edited.message } : s)));
+    setItems((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, subject: edited.subject, message: edited.message } : s,
+      ),
+    );
     setEditingId(null);
     toast.success("Saved");
   };
@@ -215,7 +237,11 @@ function FollowupInbox() {
             Refresh
           </Button>
           <Button size="sm" onClick={generateBatch} disabled={running}>
-            {running ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
+            {running ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-1.5" />
+            )}
             Generate batch
           </Button>
         </div>
@@ -278,8 +304,12 @@ function FollowupInbox() {
         </div>
       ) : items.length === 0 ? (
         <Card className="py-16 text-center">
-          <p className="text-sm text-muted-foreground">No {tab === "all" ? "" : tab} suggestions.</p>
-          <p className="text-xs text-muted-foreground mt-1">Click "Generate batch" to draft suggestions for stale leads.</p>
+          <p className="text-sm text-muted-foreground">
+            No {tab === "all" ? "" : tab} suggestions.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Click "Generate batch" to draft suggestions for stale leads.
+          </p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -299,14 +329,19 @@ function FollowupInbox() {
                     <div>
                       <div className="text-sm font-semibold text-foreground">
                         {lead?.name ?? "Unknown lead"}
-                        {lead?.company && <span className="text-muted-foreground"> · {lead.company}</span>}
+                        {lead?.company && (
+                          <span className="text-muted-foreground"> · {lead.company}</span>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {lead?.email ?? "no email"} · {new Date(s.created_at).toLocaleString()} · {s.source} · {s.model}
+                        {lead?.email ?? "no email"} · {new Date(s.created_at).toLocaleString()} ·{" "}
+                        {s.source} · {s.model}
                       </div>
                     </div>
                   </div>
-                  <Badge variant="outline" className="capitalize">{s.status}</Badge>
+                  <Badge variant="outline" className="capitalize">
+                    {s.status}
+                  </Badge>
                 </div>
 
                 {isEditing ? (
@@ -324,8 +359,12 @@ function FollowupInbox() {
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {s.subject && <div className="text-sm font-medium text-foreground">{s.subject}</div>}
-                    <div className="text-sm text-foreground/90 whitespace-pre-wrap">{s.message}</div>
+                    {s.subject && (
+                      <div className="text-sm font-medium text-foreground">{s.subject}</div>
+                    )}
+                    <div className="text-sm text-foreground/90 whitespace-pre-wrap">
+                      {s.message}
+                    </div>
                     {s.reasoning && (
                       <div className="text-xs text-muted-foreground italic border-l-2 border-border pl-2 mt-2">
                         {s.reasoning}
@@ -350,7 +389,11 @@ function FollowupInbox() {
                         <Edit3 className="h-3.5 w-3.5 mr-1" /> Edit
                       </Button>
                       {s.status !== "approved" && s.status !== "sent" && (
-                        <Button size="sm" variant="outline" onClick={() => void updateStatus(s.id, "approved")}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void updateStatus(s.id, "approved")}
+                        >
                           <Check className="h-3.5 w-3.5 mr-1" /> Approve
                         </Button>
                       )}
@@ -360,7 +403,11 @@ function FollowupInbox() {
                         </Button>
                       )}
                       {s.status !== "dismissed" && (
-                        <Button size="sm" variant="ghost" onClick={() => void updateStatus(s.id, "dismissed")}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void updateStatus(s.id, "dismissed")}
+                        >
                           <X className="h-3.5 w-3.5 mr-1" /> Dismiss
                         </Button>
                       )}

@@ -138,7 +138,7 @@ const PROVIDERS: ProviderConfig[] = [
       'Click "Get API key" above — it opens Snov.io in a new tab.',
       "Sign in to your Snov account.",
       'On the API page you\'ll see two values: "User ID" and "Secret". Copy them both.',
-      "Paste them in the two boxes below and click \"Connect\". We'll handle the rest.",
+      'Paste them in the two boxes below and click "Connect". We\'ll handle the rest.',
     ],
     twoFieldCredentials: {
       fieldOneLabel: "User ID (also called Client ID)",
@@ -161,7 +161,7 @@ const PROVIDERS: ProviderConfig[] = [
       'Click "Get API key" above — it opens SendGrid in a new tab.',
       "Sign in to your SendGrid account (the free plan includes 100 emails/day).",
       'Go to Settings → API Keys → "Create API Key". Choose "Restricted Access" and tick at least the "Mail Send" permission.',
-      'Verify a sender domain or single sender (Settings → Sender Authentication) — SendGrid will refuse mail from unverified addresses.',
+      "Verify a sender domain or single sender (Settings → Sender Authentication) — SendGrid will refuse mail from unverified addresses.",
       'Copy the key (it starts with "SG.") and paste it below. Then add a "Send-from address" so we know which verified address to send from.',
     ],
     settingsFields: [
@@ -339,133 +339,134 @@ export function IntegrationsSettings() {
       <TabsContent value="manage" className="space-y-6">
         {/* Monthly lead credits */}
         <Card className="p-6">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" />
-            <h3 className="text-base font-semibold text-foreground">Monthly Lead Credits</h3>
-            {apolloConfigured ? (
-              <Badge variant="secondary" className="gap-1">
-                <KeyRound className="h-3 w-3 text-success" />
-                Your Apollo key — unlimited
-              </Badge>
-            ) : isUnlimited ? (
-              <Badge variant="secondary" className="gap-1">
-                <InfinityIcon className="h-3 w-3" />
-                Unlimited
-              </Badge>
-            ) : null}
-          </div>
-          {!apolloConfigured && !isUnlimited && usage && (
-            <Link to="/pricing" className="text-xs text-primary hover:underline shrink-0">
-              Upgrade plan
-            </Link>
-          )}
-        </div>
-
-        {!usage ? (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : apolloConfigured ? (
-          <p className="text-sm text-muted-foreground">
-            You're using your own Apollo API key, so platform credits don't apply when searching
-            with Apollo. Hunter and Snov searches are always billed directly by their vendors.
-          </p>
-        ) : isUnlimited ? (
-          <p className="text-sm text-muted-foreground">
-            Your plan includes unlimited lead credits this month.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <div className="text-2xl font-semibold text-foreground tabular-nums">
-                  {usage.used}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Used</div>
-              </div>
-              <div>
-                <div className="text-2xl font-semibold text-foreground tabular-nums">
-                  {usage.remaining}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Remaining</div>
-              </div>
-              <div>
-                <div className="text-2xl font-semibold text-muted-foreground tabular-nums">
-                  {usage.quota}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Monthly quota</div>
-              </div>
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              <h3 className="text-base font-semibold text-foreground">Monthly Lead Credits</h3>
+              {apolloConfigured ? (
+                <Badge variant="secondary" className="gap-1">
+                  <KeyRound className="h-3 w-3 text-success" />
+                  Your Apollo key — unlimited
+                </Badge>
+              ) : isUnlimited ? (
+                <Badge variant="secondary" className="gap-1">
+                  <InfinityIcon className="h-3 w-3" />
+                  Unlimited
+                </Badge>
+              ) : null}
             </div>
-            <Progress value={quotaPct} className="h-2" />
-            {outOfCredits ? (
-              <p className="text-xs text-destructive">
-                You've used all your credits this month. They reset on the 1st — or upgrade your plan, or add your own Apollo key below for unlimited.
-              </p>
-            ) : lowCredits ? (
-              <p className="text-xs text-warning">
-                Only {usage.remaining} credits left this month. Resets on the 1st.
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Credits reset on the 1st of every month.
-              </p>
+            {!apolloConfigured && !isUnlimited && usage && (
+              <Link to="/pricing" className="text-xs text-primary hover:underline shrink-0">
+                Upgrade plan
+              </Link>
             )}
           </div>
-        )}
-      </Card>
 
-      {/* Sender identity (Reply-To) — applies on every plan */}
-      <BusinessEmailCard sendgridConnected={statuses.sendgrid.configured} />
-
-      {/* SPF / DKIM / DMARC verification for the sender domain */}
-      <EmailDeliverabilityPanel organizationId={organization?.id} />
-
-      {/* Resend — workspace-level connector + per-org from address */}
-      <ResendSettingsCard />
-
-      {/* One-click connector integrations (Slack, Gmail, HubSpot, ...) */}
-      <ConnectorIntegrations />
-
-      <Separator />
-
-      <div>
-        <h3 className="text-base font-semibold text-foreground">Lead-source API keys</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Use your own account with these lead-finding providers. You'll be billed directly by
-          them, and these searches don't count against your monthly quota above. Don't worry —
-          each one has step-by-step instructions to walk you through it.
-        </p>
-      </div>
-
-      {/* One card per BYO provider */}
-      {PROVIDERS.map((cfg) => (
-        <ProviderCard
-          key={cfg.id}
-          config={cfg}
-          status={statuses[cfg.id]}
-          loading={loading}
-          onSave={(key) => handleSave(cfg.id, key)}
-          onRemove={() => handleRemove(cfg.id)}
-          onTest={() => handleTest(cfg.id)}
-          onSaveConfig={(c) => handleSaveConfig(cfg.id, c)}
-        />
-      ))}
-
-      <Card className="p-4 border-warning/30 bg-warning/5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">Compliance reminder</p>
-            <p>
-              You and your clients are responsible for following each provider's Terms of Service
-              and any local data-protection laws (GDPR, CAN-SPAM, CASL). Apollo, Hunter, and Snov
-              all provide opted-out lists — respect them. Avoid bulk-importing emails into
-              channels you haven't gotten consent for in restricted regions.
+          {!usage ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : apolloConfigured ? (
+            <p className="text-sm text-muted-foreground">
+              You're using your own Apollo API key, so platform credits don't apply when searching
+              with Apollo. Hunter and Snov searches are always billed directly by their vendors.
             </p>
-          </div>
+          ) : isUnlimited ? (
+            <p className="text-sm text-muted-foreground">
+              Your plan includes unlimited lead credits this month.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-2xl font-semibold text-foreground tabular-nums">
+                    {usage.used}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Used</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold text-foreground tabular-nums">
+                    {usage.remaining}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Remaining</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold text-muted-foreground tabular-nums">
+                    {usage.quota}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Monthly quota</div>
+                </div>
+              </div>
+              <Progress value={quotaPct} className="h-2" />
+              {outOfCredits ? (
+                <p className="text-xs text-destructive">
+                  You've used all your credits this month. They reset on the 1st — or upgrade your
+                  plan, or add your own Apollo key below for unlimited.
+                </p>
+              ) : lowCredits ? (
+                <p className="text-xs text-warning">
+                  Only {usage.remaining} credits left this month. Resets on the 1st.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Credits reset on the 1st of every month.
+                </p>
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* Sender identity (Reply-To) — applies on every plan */}
+        <BusinessEmailCard sendgridConnected={statuses.sendgrid.configured} />
+
+        {/* SPF / DKIM / DMARC verification for the sender domain */}
+        <EmailDeliverabilityPanel organizationId={organization?.id} />
+
+        {/* Resend — workspace-level connector + per-org from address */}
+        <ResendSettingsCard />
+
+        {/* One-click connector integrations (Slack, Gmail, HubSpot, ...) */}
+        <ConnectorIntegrations />
+
+        <Separator />
+
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Lead-source API keys</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Use your own account with these lead-finding providers. You'll be billed directly by
+            them, and these searches don't count against your monthly quota above. Don't worry —
+            each one has step-by-step instructions to walk you through it.
+          </p>
         </div>
-      </Card>
+
+        {/* One card per BYO provider */}
+        {PROVIDERS.map((cfg) => (
+          <ProviderCard
+            key={cfg.id}
+            config={cfg}
+            status={statuses[cfg.id]}
+            loading={loading}
+            onSave={(key) => handleSave(cfg.id, key)}
+            onRemove={() => handleRemove(cfg.id)}
+            onTest={() => handleTest(cfg.id)}
+            onSaveConfig={(c) => handleSaveConfig(cfg.id, c)}
+          />
+        ))}
+
+        <Card className="p-4 border-warning/30 bg-warning/5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">Compliance reminder</p>
+              <p>
+                You and your clients are responsible for following each provider's Terms of Service
+                and any local data-protection laws (GDPR, CAN-SPAM, CASL). Apollo, Hunter, and Snov
+                all provide opted-out lists — respect them. Avoid bulk-importing emails into
+                channels you haven't gotten consent for in restricted regions.
+              </p>
+            </div>
+          </div>
+        </Card>
       </TabsContent>
 
       <TabsContent value="activity">
@@ -487,7 +488,15 @@ interface ProviderCardProps {
   onSaveConfig: (config: Record<string, string | number | boolean | null>) => Promise<void>;
 }
 
-function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSaveConfig }: ProviderCardProps) {
+function ProviderCard({
+  config,
+  status,
+  loading,
+  onSave,
+  onRemove,
+  onTest,
+  onSaveConfig,
+}: ProviderCardProps) {
   const isTwoField = !!config.twoFieldCredentials;
   const [apiKey, setApiKey] = useState("");
   const [fieldOne, setFieldOne] = useState("");
@@ -516,7 +525,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
   useEffect(() => {
     if (!status.lastVerifiedAt) return;
     setTestResult((prev) => {
-      if (prev && new Date(prev.verifiedAt).getTime() >= new Date(status.lastVerifiedAt!).getTime()) {
+      if (
+        prev &&
+        new Date(prev.verifiedAt).getTime() >= new Date(status.lastVerifiedAt!).getTime()
+      ) {
         return prev;
       }
       return { ok: true, verifiedAt: status.lastVerifiedAt! };
@@ -569,7 +581,6 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
     ? `Verified ${formatRelative(status.lastVerifiedAt)}`
     : null;
 
-
   // What the user actually submits — single field or joined two fields.
   const submitValue = (): string => {
     if (isTwoField) {
@@ -594,9 +605,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
     try {
       await onSave(submitValue());
       toast.success(`${config.name} ${editing ? "updated" : "connected"}`, {
-        description: editing
-          ? "Your new key is verified and saved."
-          : config.connectedDescription,
+        description: editing ? "Your new key is verified and saved." : config.connectedDescription,
       });
       resetInputs();
       setEditing(false);
@@ -758,12 +767,7 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
           </div>
         )}
         <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="command"
-            size="sm"
-            onClick={handleSave}
-            disabled={saving || !canSubmit}
-          >
+          <Button variant="command" size="sm" onClick={handleSave} disabled={saving || !canSubmit}>
             {saving ? (
               <>
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -831,81 +835,82 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
         </a>
       </div>
 
-      {!loading && (() => {
-        const prereqs = deriveByoPrerequisites({
-          providerId: config.id,
-          providerName: config.name,
-          docsUrl: config.docsUrl,
-          status,
-          settingsFields: settingsFields.map((f) => ({
-            key: f.key,
-            label: f.label,
-            helper: f.helper,
-          })),
-          lastTest: testResult ? { ok: testResult.ok, reason: testResult.reason ?? undefined } : null,
-          // Live overlay so the panel reflects what the user is typing in
-          // the settings panel below (no save needed to clear "missing"
-          // or "invalid" entries).
-          configOverride: settingsFields.length > 0 ? settingsDraft : null,
-        });
-        if (prereqs.length === 0) return null;
-        const focusKeyInput = () => {
-          // Reveal setup steps + scroll into view, then focus the first input.
-          setShowStepsForFirstSetup(true);
-          requestAnimationFrame(() => {
-            cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            const target = isTwoField ? fieldOneInputRef.current : apiKeyInputRef.current;
-            target?.focus();
+      {!loading &&
+        (() => {
+          const prereqs = deriveByoPrerequisites({
+            providerId: config.id,
+            providerName: config.name,
+            docsUrl: config.docsUrl,
+            status,
+            settingsFields: settingsFields.map((f) => ({
+              key: f.key,
+              label: f.label,
+              helper: f.helper,
+            })),
+            lastTest: testResult
+              ? { ok: testResult.ok, reason: testResult.reason ?? undefined }
+              : null,
+            // Live overlay so the panel reflects what the user is typing in
+            // the settings panel below (no save needed to clear "missing"
+            // or "invalid" entries).
+            configOverride: settingsFields.length > 0 ? settingsDraft : null,
           });
-        };
-        return (
-          <div className="mb-4">
-            <PrerequisitesPanel
-              prerequisites={prereqs}
-              providerLabel={config.name}
-              verification={{
-                // Freshest test result beats the saved lastVerifiedAt.
-                lastVerifiedAt:
-                  testResult?.verifiedAt ?? status.lastVerifiedAt ?? null,
-                outcome: testResult
-                  ? testResult.ok
-                    ? "ok"
-                    : "failed"
-                  : status.lastVerifiedAt
-                    ? "ok"
-                    : "unknown",
-                failureReason:
-                  testResult && !testResult.ok ? (testResult.reason ?? null) : null,
-              }}
-              onAction={async (p) => {
-                switch (p.actionId) {
-                  case "focus-key-input":
-                    focusKeyInput();
-                    break;
-                  case "edit-key":
-                    setEditing(true);
-                    requestAnimationFrame(() => {
-                      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                      const target = isTwoField
-                        ? fieldOneInputRef.current
-                        : apiKeyInputRef.current;
-                      target?.focus();
-                    });
-                    break;
-                  case "test":
-                    await handleTest();
-                    break;
-                  case "open-docs":
-                    window.open(config.docsUrl, "_blank", "noopener,noreferrer");
-                    break;
-                  default:
-                    break;
-                }
-              }}
-            />
-          </div>
-        );
-      })()}
+          if (prereqs.length === 0) return null;
+          const focusKeyInput = () => {
+            // Reveal setup steps + scroll into view, then focus the first input.
+            setShowStepsForFirstSetup(true);
+            requestAnimationFrame(() => {
+              cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+              const target = isTwoField ? fieldOneInputRef.current : apiKeyInputRef.current;
+              target?.focus();
+            });
+          };
+          return (
+            <div className="mb-4">
+              <PrerequisitesPanel
+                prerequisites={prereqs}
+                providerLabel={config.name}
+                verification={{
+                  // Freshest test result beats the saved lastVerifiedAt.
+                  lastVerifiedAt: testResult?.verifiedAt ?? status.lastVerifiedAt ?? null,
+                  outcome: testResult
+                    ? testResult.ok
+                      ? "ok"
+                      : "failed"
+                    : status.lastVerifiedAt
+                      ? "ok"
+                      : "unknown",
+                  failureReason: testResult && !testResult.ok ? (testResult.reason ?? null) : null,
+                }}
+                onAction={async (p) => {
+                  switch (p.actionId) {
+                    case "focus-key-input":
+                      focusKeyInput();
+                      break;
+                    case "edit-key":
+                      setEditing(true);
+                      requestAnimationFrame(() => {
+                        cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        const target = isTwoField
+                          ? fieldOneInputRef.current
+                          : apiKeyInputRef.current;
+                        target?.focus();
+                      });
+                      break;
+                    case "test":
+                      await handleTest();
+                      break;
+                    case "open-docs":
+                      window.open(config.docsUrl, "_blank", "noopener,noreferrer");
+                      break;
+                    default:
+                      break;
+                  }
+                }}
+              />
+            </div>
+          );
+        })()}
 
       {loading ? (
         <div className="flex items-center justify-center py-6">
@@ -960,14 +965,10 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                   ) : (
                     <Trash2 className="h-3.5 w-3.5" />
                   )}
-                Disconnect
+                  Disconnect
                 </Button>
               </div>
-              <TestResultPanel
-                result={testResult}
-                testing={testing}
-                providerLabel={config.name}
-              />
+              <TestResultPanel result={testResult} testing={testing} providerLabel={config.name} />
               {settingsFields.length > 0 && (
                 <div className="space-y-2 rounded-md border border-border bg-secondary/30 p-3">
                   {settingsFields.map((f) => {
@@ -1025,11 +1026,11 @@ function ProviderCard({ config, status, loading, onSave, onRemove, onTest, onSav
                       size="sm"
                       onClick={handleSaveSettings}
                       disabled={savingSettings || !settingsValid}
-                      title={!settingsValid ? "Fix the highlighted fields before saving." : undefined}
+                      title={
+                        !settingsValid ? "Fix the highlighted fields before saving." : undefined
+                      }
                     >
-                      {savingSettings ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : null}
+                      {savingSettings ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                       Save settings
                     </Button>
                   )}

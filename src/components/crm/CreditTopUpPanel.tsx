@@ -1,5 +1,17 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Coins, Sparkles, Zap, Loader2, Check, CreditCard, AlertTriangle, Download, Bell, BellOff, Send } from "lucide-react";
+import {
+  Coins,
+  Sparkles,
+  Zap,
+  Loader2,
+  Check,
+  CreditCard,
+  AlertTriangle,
+  Download,
+  Bell,
+  BellOff,
+  Send,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { Switch } from "@/components/ui/switch";
@@ -27,7 +39,13 @@ type CreditPack = {
 export const CREDIT_PACKS: CreditPack[] = [
   { key: "credit_pack_small_onetime", label: "Starter", credits: 100, priceCents: 1500 },
   { key: "credit_pack_medium_onetime", label: "Growth", credits: 500, priceCents: 6000 },
-  { key: "credit_pack_large_onetime", label: "Pro", credits: 2000, priceCents: 20000, highlight: true },
+  {
+    key: "credit_pack_large_onetime",
+    label: "Pro",
+    credits: 2000,
+    priceCents: 20000,
+    highlight: true,
+  },
   { key: "credit_pack_bulk_onetime", label: "Bulk", credits: 10000, priceCents: 80000 },
 ];
 
@@ -98,7 +116,10 @@ export function CreditTopUpPanel({
   const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
   const [pendingThreshold, setPendingThreshold] = useState<number>(20);
   const [pendingPack, setPendingPack] = useState<string>(DEFAULT_AUTO_PACK);
-  const [lowBalance, setLowBalance] = useState<LowBalanceSettings>({ enabled: true, threshold: 50 });
+  const [lowBalance, setLowBalance] = useState<LowBalanceSettings>({
+    enabled: true,
+    threshold: 50,
+  });
   const [thresholdInput, setThresholdInput] = useState<string>("50");
   const [savingLow, setSavingLow] = useState(false);
   const [testingLow, setTestingLow] = useState(false);
@@ -109,7 +130,9 @@ export function CreditTopUpPanel({
     setLoading(true);
     const { data: packs } = await supabase
       .from("credit_packs")
-      .select("id, pack_key, credits_remaining, credits_total, expires_at, receipt_url, hosted_invoice_url")
+      .select(
+        "id, pack_key, credits_remaining, credits_total, expires_at, receipt_url, hosted_invoice_url",
+      )
       .eq("organization_id", organizationId)
       .gt("credits_remaining", 0)
       .gt("expires_at", new Date().toISOString())
@@ -123,7 +146,9 @@ export function CreditTopUpPanel({
 
     const { data: settings } = await supabase
       .from("org_credit_settings")
-      .select("auto_recharge_enabled, auto_recharge_pack_key, auto_recharge_threshold_pct, stripe_payment_method_id, low_balance_notify_enabled, low_balance_threshold")
+      .select(
+        "auto_recharge_enabled, auto_recharge_pack_key, auto_recharge_threshold_pct, stripe_payment_method_id, low_balance_notify_enabled, low_balance_threshold",
+      )
       .eq("organization_id", organizationId)
       .maybeSingle();
 
@@ -220,7 +245,8 @@ export function CreditTopUpPanel({
         }
       } else if (packChanged) {
         toast.success(`Auto-recharge pack set to ${packLabel(next.pack_key)}`, {
-          description: "This pack will be charged the next time your balance falls below the threshold.",
+          description:
+            "This pack will be charged the next time your balance falls below the threshold.",
         });
       } else if (thresholdChanged) {
         toast.success(`Threshold updated to ${next.threshold_pct}%`, {
@@ -251,13 +277,17 @@ export function CreditTopUpPanel({
     }
   };
 
-  const callNotifyEndpoint = async (force = false): Promise<{
+  const callNotifyEndpoint = async (
+    force = false,
+  ): Promise<{
     success: boolean;
     notified?: boolean;
     reason?: string;
     queued?: number;
   } | null> => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session?.access_token) return null;
     try {
       const res = await fetch(`/api/notify-low-balance${force ? "?force=1" : ""}`, {
@@ -342,9 +372,7 @@ export function CreditTopUpPanel({
               type="button"
               onClick={() => handleBuy(pack.key)}
               className={`group relative flex flex-col items-start rounded-lg border p-3 text-left transition hover:border-primary hover:bg-primary/5 ${
-                pack.highlight
-                  ? "border-primary/60 bg-primary/5"
-                  : "border-border bg-background"
+                pack.highlight ? "border-primary/60 bg-primary/5" : "border-border bg-background"
               }`}
             >
               {pack.highlight && (
@@ -377,9 +405,7 @@ export function CreditTopUpPanel({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-foreground">Auto-recharge</p>
-                {savingAuto && (
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                )}
+                {savingAuto && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                 {auto.enabled && (
                   <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
                     ON
@@ -390,10 +416,14 @@ export function CreditTopUpPanel({
                 {auto.enabled ? (
                   <>
                     Auto-buys the {packLabel(auto.pack_key)} pack when balance drops below{" "}
-                    <span className="font-semibold text-foreground">{auto.threshold_pct}%</span> of monthly quota.
+                    <span className="font-semibold text-foreground">{auto.threshold_pct}%</span> of
+                    monthly quota.
                   </>
                 ) : (
-                  <>Automatically buy a pack when your balance gets low — never run out mid-campaign.</>
+                  <>
+                    Automatically buy a pack when your balance gets low — never run out
+                    mid-campaign.
+                  </>
                 )}
               </p>
             </div>
@@ -417,9 +447,7 @@ export function CreditTopUpPanel({
             <div className="mt-3 space-y-3 border-t border-border/60 pt-3">
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Trigger threshold
-                  </p>
+                  <p className="text-xs font-medium text-muted-foreground">Trigger threshold</p>
                   <span className="text-xs font-semibold text-foreground tabular-nums">
                     {auto.threshold_pct}%
                   </span>
@@ -440,9 +468,7 @@ export function CreditTopUpPanel({
               </div>
 
               <div>
-                <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                  Auto-buy pack
-                </p>
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground">Auto-buy pack</p>
                 <div className="flex flex-wrap gap-1.5">
                   {CREDIT_PACKS.map((pack) => {
                     const active = auto.pack_key === pack.key;
@@ -567,7 +593,9 @@ export function CreditTopUpPanel({
                 {balance && (
                   <p className="mt-2 text-[11px] text-muted-foreground">
                     Current pack balance:{" "}
-                    <span className={`font-semibold ${balance.total < lowBalance.threshold ? "text-amber-400" : "text-foreground"}`}>
+                    <span
+                      className={`font-semibold ${balance.total < lowBalance.threshold ? "text-amber-400" : "text-foreground"}`}
+                    >
                       {balance.total.toLocaleString()}
                     </span>{" "}
                     credits
@@ -602,9 +630,10 @@ export function CreditTopUpPanel({
                 <div className="space-y-3 text-sm">
                   <p>
                     When your balance drops below{" "}
-                    <span className="font-semibold text-foreground">{pendingThreshold}%</span> of your monthly quota,
-                    we&apos;ll automatically charge your saved card for the{" "}
-                    <span className="font-semibold text-foreground">{packLabel(pendingPack)}</span> pack.
+                    <span className="font-semibold text-foreground">{pendingThreshold}%</span> of
+                    your monthly quota, we&apos;ll automatically charge your saved card for the{" "}
+                    <span className="font-semibold text-foreground">{packLabel(pendingPack)}</span>{" "}
+                    pack.
                   </p>
 
                   <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
@@ -659,7 +688,8 @@ export function CreditTopUpPanel({
                       ) : (
                         <span className="text-amber-400 flex items-center gap-1.5">
                           <AlertTriangle className="h-3 w-3" />
-                          No saved card yet — auto-recharge activates after your next manual purchase.
+                          No saved card yet — auto-recharge activates after your next manual
+                          purchase.
                         </span>
                       )}
                     </div>
@@ -685,11 +715,7 @@ export function CreditTopUpPanel({
                   setConfirmOpen(false);
                 }}
               >
-                {savingAuto ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Enable auto-recharge"
-                )}
+                {savingAuto ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enable auto-recharge"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -703,17 +729,21 @@ export function CreditTopUpPanel({
               <AlertDialogDescription asChild>
                 <div className="space-y-3 text-sm">
                   <p>
-                    Your saved card will no longer be charged automatically when your balance drops below{" "}
-                    <span className="font-semibold text-foreground">{auto.threshold_pct}%</span> of your monthly quota.
+                    Your saved card will no longer be charged automatically when your balance drops
+                    below{" "}
+                    <span className="font-semibold text-foreground">{auto.threshold_pct}%</span> of
+                    your monthly quota.
                   </p>
                   <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 flex gap-2">
                     <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                     <span>
-                      If your balance runs out mid-campaign, outreach and AI actions may pause until you manually buy more credits.
+                      If your balance runs out mid-campaign, outreach and AI actions may pause until
+                      you manually buy more credits.
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    You can re-enable auto-recharge anytime — your threshold and pack preferences will be remembered.
+                    You can re-enable auto-recharge anytime — your threshold and pack preferences
+                    will be remembered.
                   </p>
                 </div>
               </AlertDialogDescription>
@@ -728,11 +758,7 @@ export function CreditTopUpPanel({
                   setConfirmDisableOpen(false);
                 }}
               >
-                {savingAuto ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Turn off"
-                )}
+                {savingAuto ? <Loader2 className="h-4 w-4 animate-spin" /> : "Turn off"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -749,8 +775,8 @@ export function CreditTopUpPanel({
                   className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
                 >
                   <span className="truncate">
-                    {p.credits_remaining.toLocaleString()} / {p.credits_total.toLocaleString()}{" "}
-                    · expires {new Date(p.expires_at).toLocaleDateString()}
+                    {p.credits_remaining.toLocaleString()} / {p.credits_total.toLocaleString()} ·
+                    expires {new Date(p.expires_at).toLocaleDateString()}
                   </span>
                   {url && (
                     <a

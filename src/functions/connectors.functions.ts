@@ -54,11 +54,18 @@ export const listConnectorsFn = createServerFn({ method: "POST" })
       .select("provider, enabled, config, created_at")
       .eq("organization_id", data.organizationId);
 
-    const byId = new Map<string, { enabled: boolean; config: Record<string, string | number | boolean | null>; created_at: string }>();
+    const byId = new Map<
+      string,
+      {
+        enabled: boolean;
+        config: Record<string, string | number | boolean | null>;
+        created_at: string;
+      }
+    >();
     for (const r of rows ?? []) {
       byId.set(r.provider, {
         enabled: r.enabled,
-        config: ((r.config as Record<string, string | number | boolean | null>) ?? {}),
+        config: (r.config as Record<string, string | number | boolean | null>) ?? {},
         created_at: r.created_at,
       });
     }
@@ -73,7 +80,7 @@ export const listConnectorsFn = createServerFn({ method: "POST" })
         if (row?.enabled && credentialPresent) {
           const v = await verifyConnectorCredentials(c.envVar);
           verified = v.ok;
-          verifyError = v.ok ? null : v.error ?? null;
+          verifyError = v.ok ? null : (v.error ?? null);
         }
 
         return {
@@ -176,12 +183,12 @@ export const refreshConnectorStatusFn = createServerFn({ method: "POST" })
     let verified: boolean | null = null;
     let verifyError: string | null = null;
     let config: Record<string, string | number | boolean | null> =
-      ((row?.config as Record<string, string | number | boolean | null>) ?? {});
+      (row?.config as Record<string, string | number | boolean | null>) ?? {};
 
     if (row?.enabled && credentialPresent) {
       const v = await verifyConnectorCredentials(meta.envVar);
       verified = v.ok;
-      verifyError = v.ok ? null : v.error ?? null;
+      verifyError = v.ok ? null : (v.error ?? null);
 
       // For Google connectors, opportunistically discover and cache the
       // connected account email. Only fetch when we don't already have it,
@@ -254,18 +261,16 @@ export const enableConnectorFn = createServerFn({ method: "POST" })
       .maybeSingle();
     const isReEnable = !!existing && existing.enabled === false;
 
-    const { error } = await supabaseAdmin
-      .from("org_connectors")
-      .upsert(
-        {
-          organization_id: data.organizationId,
-          provider: data.provider,
-          enabled: true,
-          enabled_by: context.userId,
-          config: (data.config ?? {}) as never,
-        },
-        { onConflict: "organization_id,provider" },
-      );
+    const { error } = await supabaseAdmin.from("org_connectors").upsert(
+      {
+        organization_id: data.organizationId,
+        provider: data.provider,
+        enabled: true,
+        enabled_by: context.userId,
+        config: (data.config ?? {}) as never,
+      },
+      { onConflict: "organization_id,provider" },
+    );
     if (error) throw new Error(`Failed to enable: ${error.message}`);
 
     const credentialPresent = !!process.env[meta.envVar];
@@ -331,13 +336,13 @@ export const disableConnectorFn = createServerFn({ method: "POST" })
       summary: revoke.ok
         ? `Disconnected ${meta.name}; gateway credentials revoked.`
         : `Disconnected ${meta.name} locally; gateway revoke failed.`,
-      errorMessage: revoke.ok ? null : revoke.error ?? null,
+      errorMessage: revoke.ok ? null : (revoke.error ?? null),
     });
 
     return {
       ok: true,
       revoked: revoke.ok,
-      revokeError: revoke.ok ? null : revoke.error ?? null,
+      revokeError: revoke.ok ? null : (revoke.error ?? null),
     };
   });
 
@@ -469,7 +474,7 @@ export const listEnabledConnectorsFn = createServerFn({ method: "POST" })
         .filter((r) => !!process.env[getConnector(r.provider)?.envVar ?? ""])
         .map((r) => ({
           provider: r.provider,
-          config: ((r.config as Record<string, string | number | boolean | null>) ?? {}),
+          config: (r.config as Record<string, string | number | boolean | null>) ?? {},
         })),
     };
   });
@@ -513,7 +518,9 @@ export const listConnectorActivityFn = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await supabaseAdmin
       .from("connector_activity_log")
-      .select("id, provider, direction, action, status, summary, error_message, created_at, user_id")
+      .select(
+        "id, provider, direction, action, status, summary, error_message, created_at, user_id",
+      )
       .eq("organization_id", data.organizationId)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -543,7 +550,7 @@ export const listConnectorActivityFn = createServerFn({ method: "POST" })
       summary: r.summary,
       errorMessage: r.error_message,
       createdAt: r.created_at,
-      actorName: r.user_id ? nameByUserId.get(r.user_id) ?? null : null,
+      actorName: r.user_id ? (nameByUserId.get(r.user_id) ?? null) : null,
     }));
 
     return { entries };

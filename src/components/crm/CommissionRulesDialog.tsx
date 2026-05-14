@@ -50,14 +50,8 @@ export function CommissionRulesDialog({ open, onOpenChange, organizationId, onSa
     if (!open || !organizationId) return;
     setLoading(true);
     Promise.all([
-      supabase
-        .from("commission_rules")
-        .select("*")
-        .eq("organization_id", organizationId),
-      supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .eq("organization_id", organizationId),
+      supabase.from("commission_rules").select("*").eq("organization_id", organizationId),
+      supabase.from("profiles").select("user_id, full_name").eq("organization_id", organizationId),
     ]).then(([rulesRes, profilesRes]) => {
       const all = (rulesRes.data || []) as RuleRow[];
       const def = all.find((r) => r.user_id === null);
@@ -102,7 +96,7 @@ export function CommissionRulesDialog({ open, onOpenChange, organizationId, onSa
         organization_id: organizationId,
         user_id: null,
       },
-      { onConflict: "organization_id,user_id" }
+      { onConflict: "organization_id,user_id" },
     );
     if (defErr) {
       toast.error(defErr.message);
@@ -118,7 +112,7 @@ export function CommissionRulesDialog({ open, onOpenChange, organizationId, onSa
           ...row,
           organization_id: organizationId,
         },
-        { onConflict: "organization_id,user_id" }
+        { onConflict: "organization_id,user_id" },
       );
       if (error) {
         toast.error(error.message);
@@ -139,7 +133,8 @@ export function CommissionRulesDialog({ open, onOpenChange, organizationId, onSa
         <DialogHeader>
           <DialogTitle>Commission Rules</DialogTitle>
           <DialogDescription>
-            Set how reps earn commission when they close a deal. Per-rep rules override the org default.
+            Set how reps earn commission when they close a deal. Per-rep rules override the org
+            default.
           </DialogDescription>
         </DialogHeader>
 
@@ -157,19 +152,29 @@ export function CommissionRulesDialog({ open, onOpenChange, organizationId, onSa
                   Applied to every rep unless they have an override below.
                 </p>
               </div>
-              <RuleEditor row={defaultRule} onChange={(p) => setDefaultRule({ ...defaultRule, ...p })} />
+              <RuleEditor
+                row={defaultRule}
+                onChange={(p) => setDefaultRule({ ...defaultRule, ...p })}
+              />
             </div>
 
             {/* Per-rep overrides */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-foreground">Per-rep overrides</h3>
-                <Button size="sm" variant="outline" onClick={addOverride} disabled={members.length === 0}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={addOverride}
+                  disabled={members.length === 0}
+                >
                   <Plus className="mr-1 h-3 w-3" /> Add
                 </Button>
               </div>
               {overrides.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No overrides — every rep uses the default rule.</p>
+                <p className="text-xs text-muted-foreground italic">
+                  No overrides — every rep uses the default rule.
+                </p>
               ) : (
                 overrides.map((row, idx) => (
                   <div key={idx} className="rounded-lg border border-border p-3 space-y-3">
@@ -197,7 +202,9 @@ export function CommissionRulesDialog({ open, onOpenChange, organizationId, onSa
             </div>
 
             <div className="flex justify-end gap-2 border-t border-border pt-4">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
               <Button variant="command" onClick={save} disabled={saving}>
                 {saving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
                 Save rules
@@ -210,7 +217,13 @@ export function CommissionRulesDialog({ open, onOpenChange, organizationId, onSa
   );
 }
 
-function RuleEditor({ row, onChange }: { row: RuleRow; onChange: (patch: Partial<RuleRow>) => void }) {
+function RuleEditor({
+  row,
+  onChange,
+}: {
+  row: RuleRow;
+  onChange: (patch: Partial<RuleRow>) => void;
+}) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div>
@@ -226,7 +239,9 @@ function RuleEditor({ row, onChange }: { row: RuleRow; onChange: (patch: Partial
       </div>
       {row.rule_type === "percent" ? (
         <div>
-          <label className="mb-1 block text-xs font-medium text-foreground">Percent (e.g. 10)</label>
+          <label className="mb-1 block text-xs font-medium text-foreground">
+            Percent (e.g. 10)
+          </label>
           <input
             type="number"
             min={0}
@@ -234,12 +249,16 @@ function RuleEditor({ row, onChange }: { row: RuleRow; onChange: (patch: Partial
             step={0.5}
             className="h-9 w-full rounded-lg border border-input bg-input px-3 text-sm"
             value={Math.round(row.percent * 1000) / 10}
-            onChange={(e) => onChange({ percent: Math.max(0, Math.min(1, Number(e.target.value) / 100)) })}
+            onChange={(e) =>
+              onChange({ percent: Math.max(0, Math.min(1, Number(e.target.value) / 100)) })
+            }
           />
         </div>
       ) : (
         <div>
-          <label className="mb-1 block text-xs font-medium text-foreground">Flat amount (USD)</label>
+          <label className="mb-1 block text-xs font-medium text-foreground">
+            Flat amount (USD)
+          </label>
           <input
             type="number"
             min={0}

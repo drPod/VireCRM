@@ -1,10 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  type StripeEnv,
-  createStripeClient,
-  corsHeaders,
-} from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, corsHeaders } from "../_shared/stripe.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -20,29 +16,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   try {
-    const {
-      resellerSlug,
-      planSlug,
-      customerEmail,
-      userId,
-      returnUrl,
-      environment,
-    } = await req.json();
+    const { resellerSlug, planSlug, customerEmail, userId, returnUrl, environment } =
+      await req.json();
 
     if (!resellerSlug || !planSlug) {
-      return new Response(
-        JSON.stringify({ error: "resellerSlug and planSlug required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      return new Response(JSON.stringify({ error: "resellerSlug and planSlug required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const { data: planData, error: planErr } = await supabase.rpc(
-      "get_reseller_plan_public",
-      { p_reseller_slug: resellerSlug, p_plan_slug: planSlug },
-    );
+    const { data: planData, error: planErr } = await supabase.rpc("get_reseller_plan_public", {
+      p_reseller_slug: resellerSlug,
+      p_plan_slug: planSlug,
+    });
     if (planErr || !planData) {
       return new Response(JSON.stringify({ error: "Plan not found" }), {
         status: 404,
@@ -111,10 +98,9 @@ serve(async (req) => {
       },
     });
 
-    return new Response(
-      JSON.stringify({ clientSecret: session.client_secret }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,

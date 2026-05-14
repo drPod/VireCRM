@@ -8,7 +8,10 @@ import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
 import { OutreachPreviewDialog } from "@/components/crm/OutreachPreviewDialog";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
 import { AssigneeMultiSelect, type AssigneeOption } from "@/components/crm/AssigneeMultiSelect";
-import { BulkApplyTemplateDialog, type BulkRecipient } from "@/components/crm/BulkApplyTemplateDialog";
+import {
+  BulkApplyTemplateDialog,
+  type BulkRecipient,
+} from "@/components/crm/BulkApplyTemplateDialog";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -54,7 +57,15 @@ export const Route = createFileRoute("/_app/leads")({
   }),
 });
 
-const statusFilters = ["all", "new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
+const statusFilters = [
+  "all",
+  "new",
+  "contacted",
+  "qualified",
+  "negotiation",
+  "won",
+  "lost",
+] as const;
 
 function LeadsPage() {
   const { organization, role, user } = useAuth();
@@ -110,10 +121,18 @@ function LeadsPage() {
   useEffect(() => {
     if (action === "add") {
       setAddOpen(true);
-      navigate({ to: "/leads", search: (prev: LeadsSearch) => ({ ...prev, action: undefined }), replace: true });
+      navigate({
+        to: "/leads",
+        search: (prev: LeadsSearch) => ({ ...prev, action: undefined }),
+        replace: true,
+      });
     } else if (action === "import") {
       setImportOpen(true);
-      navigate({ to: "/leads", search: (prev: LeadsSearch) => ({ ...prev, action: undefined }), replace: true });
+      navigate({
+        to: "/leads",
+        search: (prev: LeadsSearch) => ({ ...prev, action: undefined }),
+        replace: true,
+      });
     } else if (action === "auto-find") {
       setAiPrefill({ desc: ai_desc, industry: ai_industry });
       setAutoFindOpen(true);
@@ -146,7 +165,7 @@ function LeadsPage() {
         data
           .filter((p): p is { user_id: string; full_name: string | null } => Boolean(p.user_id))
           .map((p) => ({ user_id: p.user_id, full_name: p.full_name ?? "Unnamed" }))
-          .sort((a, b) => a.full_name.localeCompare(b.full_name))
+          .sort((a, b) => a.full_name.localeCompare(b.full_name)),
       );
     })();
     return () => {
@@ -195,10 +214,13 @@ function LeadsPage() {
 
       if (search.trim()) {
         // Sanitize search input: strip PostgREST metacharacters and limit length
-        const sanitized = search.trim().slice(0, 200).replace(/[,.()"'\\]/g, "");
+        const sanitized = search
+          .trim()
+          .slice(0, 200)
+          .replace(/[,.()"'\\]/g, "");
         if (sanitized) {
           query = query.or(
-            `name.ilike.%${sanitized}%,email.ilike.%${sanitized}%,company.ilike.%${sanitized}%`
+            `name.ilike.%${sanitized}%,email.ilike.%${sanitized}%,company.ilike.%${sanitized}%`,
           );
         }
       }
@@ -222,14 +244,8 @@ function LeadsPage() {
       const shareCountByLead = new Map<string, number>();
       if (leadIds.length > 0) {
         const [assigneeRes, sharesRes] = await Promise.all([
-          supabase
-            .from("lead_assignees")
-            .select("lead_id, user_id")
-            .in("lead_id", leadIds),
-          supabase
-            .from("lead_shares")
-            .select("lead_id")
-            .in("lead_id", leadIds),
+          supabase.from("lead_assignees").select("lead_id, user_id").in("lead_id", leadIds),
+          supabase.from("lead_shares").select("lead_id").in("lead_id", leadIds),
         ]);
         assigneeRes.data?.forEach((r) => {
           const list = assigneesByLead.get(r.lead_id) ?? [];
@@ -271,13 +287,13 @@ function LeadsPage() {
               currentSupplier: l.current_supplier ?? null,
               assignedTo: l.assigned_to ?? null,
               assigneeName: l.assigned_to
-                ? nameByUserId.get(l.assigned_to) ?? null
-                : list[0]?.full_name ?? null,
+                ? (nameByUserId.get(l.assigned_to) ?? null)
+                : (list[0]?.full_name ?? null),
               assignees: list,
               createdBy: (l as { created_by?: string | null }).created_by ?? null,
               shareCount: shareCountByLead.get(l.id) ?? 0,
             };
-          })
+          }),
         );
         setTotalCount(count ?? data.length);
       }
@@ -312,7 +328,7 @@ function LeadsPage() {
 
   const toggleLeadSelected = useCallback((id: string, next: boolean) => {
     setSelectedLeadIds((prev) =>
-      next ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id)
+      next ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id),
     );
   }, []);
 
@@ -409,8 +425,8 @@ function LeadsPage() {
         //    per lead because each gets a different user_id.
         await Promise.all(
           pairs.map(({ leadId, userId }) =>
-            supabase.from("leads").update({ assigned_to: userId }).eq("id", leadId)
-          )
+            supabase.from("leads").update({ assigned_to: userId }).eq("id", leadId),
+          ),
         );
 
         // 3) Insert one join-table row per lead.
@@ -429,7 +445,7 @@ function LeadsPage() {
             selectedLeadIds.length === 1 ? "" : "s"
           } across ${bulkAssignTargets.length} employee${
             bulkAssignTargets.length === 1 ? "" : "s"
-          } (round-robin)`
+          } (round-robin)`,
         );
       } else {
         // "share" mode — original behavior.
@@ -459,9 +475,7 @@ function LeadsPage() {
         toast.success(
           `Shared ${selectedLeadIds.length} lead${
             selectedLeadIds.length === 1 ? "" : "s"
-          } with ${bulkAssignTargets.length} employee${
-            bulkAssignTargets.length === 1 ? "" : "s"
-          }`
+          } with ${bulkAssignTargets.length} employee${bulkAssignTargets.length === 1 ? "" : "s"}`,
         );
       }
       handleClearSelection();
@@ -499,11 +513,7 @@ function LeadsPage() {
             open={importOpen}
             onOpenChange={setImportOpen}
           />
-          <AddLeadDialog
-            onLeadAdded={handleLeadAdded}
-            open={addOpen}
-            onOpenChange={setAddOpen}
-          />
+          <AddLeadDialog onLeadAdded={handleLeadAdded} open={addOpen} onOpenChange={setAddOpen} />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
@@ -553,9 +563,7 @@ function LeadsPage() {
           >
             {allVisibleSelected ? "Deselect all" : "Select all visible"}
           </Button>
-          <span className="text-xs text-muted-foreground">
-            {selectedLeadIds.length} selected
-          </span>
+          <span className="text-xs text-muted-foreground">{selectedLeadIds.length} selected</span>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Distribution mode toggle — controls how multi-employee assigns
@@ -605,9 +613,7 @@ function LeadsPage() {
               size="sm"
               onClick={handleBulkAssignClick}
               disabled={
-                bulkAssigning ||
-                selectedLeadIds.length === 0 ||
-                bulkAssignTargets.length === 0
+                bulkAssigning || selectedLeadIds.length === 0 || bulkAssignTargets.length === 0
               }
               className="gap-1.5"
               title={
@@ -698,10 +704,9 @@ function LeadsPage() {
                   p_mode: mode,
                 });
                 if (error) {
-                  toast.error(
-                    mode === "hard" ? "Couldn't delete lead" : "Couldn't archive lead",
-                    { description: error.message },
-                  );
+                  toast.error(mode === "hard" ? "Couldn't delete lead" : "Couldn't archive lead", {
+                    description: error.message,
+                  });
                   return;
                 }
                 if (mode === "hard") {
@@ -713,7 +718,9 @@ function LeadsPage() {
                         .join(", ")
                     : "";
                   toast.success(`Deleted ${l.name}`, {
-                    description: counts ? `Also removed ${counts}.` : "No related records to remove.",
+                    description: counts
+                      ? `Also removed ${counts}.`
+                      : "No related records to remove.",
                   });
                 } else {
                   toast.success(`Archived ${l.name}`, {
@@ -779,12 +786,12 @@ function LeadsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Distribute leads round-robin?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will <strong>replace existing assignees</strong> on{" "}
-              {selectedLeadIds.length} selected lead
-              {selectedLeadIds.length === 1 ? "" : "s"} and distribute them
-              one-by-one across {bulkAssignTargets.length} employee
-              {bulkAssignTargets.length === 1 ? "" : "s"}. Each lead will end
-              up with exactly one assignee. This cannot be undone.
+              This will <strong>replace existing assignees</strong> on {selectedLeadIds.length}{" "}
+              selected lead
+              {selectedLeadIds.length === 1 ? "" : "s"} and distribute them one-by-one across{" "}
+              {bulkAssignTargets.length} employee
+              {bulkAssignTargets.length === 1 ? "" : "s"}. Each lead will end up with exactly one
+              assignee. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -803,7 +810,10 @@ function LeadsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={bulkDeleteOpen} onOpenChange={(o) => !bulkDeleting && setBulkDeleteOpen(o)}>
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={(o) => !bulkDeleting && setBulkDeleteOpen(o)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>

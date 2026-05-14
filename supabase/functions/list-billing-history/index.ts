@@ -1,10 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  type StripeEnv,
-  createStripeClient,
-  corsHeaders,
-} from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, corsHeaders } from "../_shared/stripe.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -61,10 +57,9 @@ serve(async (req) => {
     ) as string[];
 
     if (customerIds.length === 0) {
-      return new Response(
-        JSON.stringify({ items: [] satisfies BillingHistoryItem[] }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ items: [] satisfies BillingHistoryItem[] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Fetch up to 50 invoices + 50 charges per customer in parallel.
@@ -95,8 +90,7 @@ serve(async (req) => {
           created: inv.created,
           description:
             inv.lines?.data?.[0]?.description ??
-            (inv.lines?.data?.[0] as { plan?: { nickname?: string } | null })
-              ?.plan?.nickname ??
+            (inv.lines?.data?.[0] as { plan?: { nickname?: string } | null })?.plan?.nickname ??
             null,
           hosted_url: inv.hosted_invoice_url ?? null,
           pdf_url: inv.invoice_pdf ?? null,

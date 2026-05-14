@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -15,7 +22,12 @@ interface ReportIssueDialogProps {
   componentStack?: string | null;
 }
 
-export function ReportIssueDialog({ open, onOpenChange, error, componentStack }: ReportIssueDialogProps) {
+export function ReportIssueDialog({
+  open,
+  onOpenChange,
+  error,
+  componentStack,
+}: ReportIssueDialogProps) {
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -94,7 +106,9 @@ export function ReportIssueDialog({ open, onOpenChange, error, componentStack }:
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button onClick={() => handleClose(false)} className="w-full">Close</Button>
+              <Button onClick={() => handleClose(false)} className="w-full">
+                Close
+              </Button>
             </DialogFooter>
           </>
         ) : (
@@ -102,7 +116,8 @@ export function ReportIssueDialog({ open, onOpenChange, error, componentStack }:
             <DialogHeader>
               <DialogTitle>Report this issue</DialogTitle>
               <DialogDescription>
-                Tell us what you were doing when this happened. Technical details are attached automatically.
+                Tell us what you were doing when this happened. Technical details are attached
+                automatically.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
@@ -122,12 +137,12 @@ export function ReportIssueDialog({ open, onOpenChange, error, componentStack }:
               {error?.message && (
                 <div className="rounded-md bg-muted p-3">
                   <p className="text-xs font-medium text-muted-foreground">Error attached</p>
-                  <p className="mt-1 break-all font-mono text-xs text-destructive">{error.message}</p>
+                  <p className="mt-1 break-all font-mono text-xs text-destructive">
+                    {error.message}
+                  </p>
                 </div>
               )}
-              {errorMsg && (
-                <p className="text-sm text-destructive">{errorMsg}</p>
-              )}
+              {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => handleClose(false)} disabled={submitting}>

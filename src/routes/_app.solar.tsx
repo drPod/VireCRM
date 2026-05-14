@@ -61,7 +61,6 @@ export function IndustryHub({ industry }: IndustryHubProps) {
     };
   }, [industry, organization?.id, template.pipelineStages]);
 
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       <header className="flex items-start justify-between gap-3 flex-wrap">
@@ -72,7 +71,11 @@ export function IndustryHub({ industry }: IndustryHubProps) {
           </div>
           <p className="text-sm text-muted-foreground">{template.tagline}</p>
         </div>
-        <Link to="/leads"><Button size="sm" variant="outline">Open {template.terminology.leadPlural}</Button></Link>
+        <Link to="/leads">
+          <Button size="sm" variant="outline">
+            Open {template.terminology.leadPlural}
+          </Button>
+        </Link>
       </header>
 
       <Card>
@@ -88,12 +91,16 @@ export function IndustryHub({ industry }: IndustryHubProps) {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {template.pipelineStages.map((stage) => (
                 <div key={stage} className="rounded-lg border border-border bg-card p-3">
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">{stage}</div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {stage}
+                  </div>
                   <div className="text-xl font-bold text-foreground mt-1">{counts[stage] ?? 0}</div>
                 </div>
               ))}
@@ -102,13 +109,16 @@ export function IndustryHub({ industry }: IndustryHubProps) {
         </CardContent>
       </Card>
 
-
       <Card>
-        <CardHeader><CardTitle className="text-base">Default modules</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Default modules</CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-1.5">
             {template.defaultModules.map((m) => (
-              <Badge key={m} variant="outline" className="text-[10px]">{m}</Badge>
+              <Badge key={m} variant="outline" className="text-[10px]">
+                {m}
+              </Badge>
             ))}
           </div>
         </CardContent>

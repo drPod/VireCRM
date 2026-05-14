@@ -10,7 +10,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Upload, FileSpreadsheet, Loader2, AlertCircle, CheckCircle2, Download, Sparkles } from "lucide-react";
+import {
+  Upload,
+  FileSpreadsheet,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  Sparkles,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
@@ -116,7 +124,11 @@ const normalizeHeader = (key: string) => key.trim().toLowerCase().replace(/['"]/
 function parseCSV(text: string): ParseOutcome {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) {
-    return { leads: [], issues: [], fatal: "File looks empty — need a header row plus at least one data row." };
+    return {
+      leads: [],
+      issues: [],
+      fatal: "File looks empty — need a header row plus at least one data row.",
+    };
   }
 
   const headers = parseCSVLine(lines[0]).map((h) => h.trim().replace(/^['"]|['"]$/g, ""));
@@ -422,11 +434,15 @@ function buildLeadsFromIndices(m: IndexMap): ParseOutcome {
       name,
       email,
       phone: m.phoneIdx >= 0 ? (row[m.phoneIdx] ?? "").toString().trim() || undefined : undefined,
-      company: m.companyIdx >= 0 ? (row[m.companyIdx] ?? "").toString().trim() || undefined : undefined,
+      company:
+        m.companyIdx >= 0 ? (row[m.companyIdx] ?? "").toString().trim() || undefined : undefined,
       status: statusRaw && VALID_STATUSES.includes(statusRaw) ? statusRaw : "new",
       score: !isNaN(scoreRaw) ? Math.min(100, Math.max(0, scoreRaw)) : 50,
       notes: m.notesIdx >= 0 ? (row[m.notesIdx] ?? "").toString().trim() || undefined : undefined,
-      source: m.sourceIdx >= 0 ? (row[m.sourceIdx] ?? "").toString().trim() || undefined : m.defaultSource,
+      source:
+        m.sourceIdx >= 0
+          ? (row[m.sourceIdx] ?? "").toString().trim() || undefined
+          : m.defaultSource,
       annual_kwh: annualKwh,
       contract_end_date: contractEnd,
       current_supplier: supplier,
@@ -517,7 +533,9 @@ export function ImportLeadsDialog({
   const [parsed, setParsed] = useState<ParsedLead[]>([]);
   const [issues, setIssues] = useState<ParseIssue[]>([]);
   const [loading, setLoading] = useState(false);
-  const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(
+    null,
+  );
   const [parseError, setParseError] = useState<string | null>(null);
   const [aiMapping, setAiMapping] = useState<boolean>(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
@@ -533,95 +551,98 @@ export function ImportLeadsDialog({
     setAiNote(null);
   }, []);
 
-  const handleFile = useCallback(async (f: File) => {
-    setParseError(null);
-    setIssues([]);
-    setImportResult(null);
-    setAiNote(null);
-    setFile(f);
+  const handleFile = useCallback(
+    async (f: File) => {
+      setParseError(null);
+      setIssues([]);
+      setImportResult(null);
+      setAiNote(null);
+      setFile(f);
 
-    try {
-      const isExcel = /\.xlsx?$/i.test(f.name);
-      const isCsv = /\.(csv|txt)$/i.test(f.name);
+      try {
+        const isExcel = /\.xlsx?$/i.test(f.name);
+        const isCsv = /\.(csv|txt)$/i.test(f.name);
 
-      if (!isExcel && !isCsv) {
-        setParseError("Unsupported file format. Please upload a .csv, .txt, or .xlsx file.");
-        setParsed([]);
-        return;
-      }
-
-      let outcome: ParseOutcome;
-      if (isExcel) {
-        const buffer = await f.arrayBuffer();
-        outcome = parseXLSX(buffer);
-      } else {
-        const text = await f.text();
-        outcome = parseCSV(text);
-      }
-
-      // Heuristic header detection failed → try AI column mapping before giving up.
-      if (outcome.fatal && outcome.raw) {
-        setAiMapping(true);
-        try {
-          const mapping = await mapColumns({
-            data: {
-              headers: outcome.raw.headers.map((h) => String(h ?? "")),
-              sampleRows: outcome.raw.rows.slice(0, 5).map((r) => r.map((c) => String(c ?? ""))),
-            },
-          });
-          const aiOutcome = buildLeadsFromAiMapping(outcome.raw, mapping);
-          if (aiOutcome.fatal) {
-            setParseError(aiOutcome.fatal);
-            setParsed([]);
-            return;
-          }
-          if (aiOutcome.leads.length === 0) {
-            setParseError(`AI couldn't extract any leads from this file. ${mapping.explanation}`);
-            setParsed([]);
-            setIssues(aiOutcome.issues);
-            return;
-          }
-          setAiNote(`AI organized columns automatically — ${mapping.explanation}`);
-          setParsed(aiOutcome.leads);
-          setIssues(aiOutcome.issues);
-          return;
-        } catch (aiErr) {
-          // AI failed too — fall back to original error.
-          const aiMsg = aiErr instanceof Error ? aiErr.message : "AI mapping failed";
-          setParseError(`${outcome.fatal} (AI fallback also failed: ${aiMsg})`);
+        if (!isExcel && !isCsv) {
+          setParseError("Unsupported file format. Please upload a .csv, .txt, or .xlsx file.");
           setParsed([]);
           return;
-        } finally {
-          setAiMapping(false);
         }
-      }
 
-      if (outcome.fatal) {
-        setParseError(outcome.fatal);
-        setParsed([]);
-        return;
-      }
+        let outcome: ParseOutcome;
+        if (isExcel) {
+          const buffer = await f.arrayBuffer();
+          outcome = parseXLSX(buffer);
+        } else {
+          const text = await f.text();
+          outcome = parseCSV(text);
+        }
 
-      if (outcome.leads.length === 0) {
-        const detail =
-          outcome.issues.length > 0
-            ? ` (${outcome.issues.length} row${outcome.issues.length > 1 ? "s" : ""} skipped — ${outcome.issues[0].message})`
-            : "";
-        setParseError(`0 valid rows detected${detail}.`);
-        setParsed([]);
+        // Heuristic header detection failed → try AI column mapping before giving up.
+        if (outcome.fatal && outcome.raw) {
+          setAiMapping(true);
+          try {
+            const mapping = await mapColumns({
+              data: {
+                headers: outcome.raw.headers.map((h) => String(h ?? "")),
+                sampleRows: outcome.raw.rows.slice(0, 5).map((r) => r.map((c) => String(c ?? ""))),
+              },
+            });
+            const aiOutcome = buildLeadsFromAiMapping(outcome.raw, mapping);
+            if (aiOutcome.fatal) {
+              setParseError(aiOutcome.fatal);
+              setParsed([]);
+              return;
+            }
+            if (aiOutcome.leads.length === 0) {
+              setParseError(`AI couldn't extract any leads from this file. ${mapping.explanation}`);
+              setParsed([]);
+              setIssues(aiOutcome.issues);
+              return;
+            }
+            setAiNote(`AI organized columns automatically — ${mapping.explanation}`);
+            setParsed(aiOutcome.leads);
+            setIssues(aiOutcome.issues);
+            return;
+          } catch (aiErr) {
+            // AI failed too — fall back to original error.
+            const aiMsg = aiErr instanceof Error ? aiErr.message : "AI mapping failed";
+            setParseError(`${outcome.fatal} (AI fallback also failed: ${aiMsg})`);
+            setParsed([]);
+            return;
+          } finally {
+            setAiMapping(false);
+          }
+        }
+
+        if (outcome.fatal) {
+          setParseError(outcome.fatal);
+          setParsed([]);
+          return;
+        }
+
+        if (outcome.leads.length === 0) {
+          const detail =
+            outcome.issues.length > 0
+              ? ` (${outcome.issues.length} row${outcome.issues.length > 1 ? "s" : ""} skipped — ${outcome.issues[0].message})`
+              : "";
+          setParseError(`0 valid rows detected${detail}.`);
+          setParsed([]);
+          setIssues(outcome.issues);
+          return;
+        }
+
+        setParsed(outcome.leads);
         setIssues(outcome.issues);
-        return;
+      } catch (err) {
+        setParseError(
+          `Failed to read the file: ${err instanceof Error ? err.message : "unknown error"}`,
+        );
+        setParsed([]);
       }
-
-      setParsed(outcome.leads);
-      setIssues(outcome.issues);
-    } catch (err) {
-      setParseError(
-        `Failed to read the file: ${err instanceof Error ? err.message : "unknown error"}`
-      );
-      setParsed([]);
-    }
-  }, [mapColumns]);
+    },
+    [mapColumns],
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -629,7 +650,7 @@ export function ImportLeadsDialog({
       const f = e.dataTransfer.files[0];
       if (f) handleFile(f);
     },
-    [handleFile]
+    [handleFile],
   );
 
   const handleImport = async () => {
@@ -639,7 +660,12 @@ export function ImportLeadsDialog({
     const BATCH_SIZE = 50;
     let success = 0;
     let failed = 0;
-    const allInserted: Array<{ id: string; name: string; email: string | null; company: string | null }> = [];
+    const allInserted: Array<{
+      id: string;
+      name: string;
+      email: string | null;
+      company: string | null;
+    }> = [];
 
     for (let i = 0; i < parsed.length; i += BATCH_SIZE) {
       const batch = parsed.slice(i, i + BATCH_SIZE).map((l) => ({
@@ -654,7 +680,10 @@ export function ImportLeadsDialog({
         source: l.source || "csv_import",
       }));
 
-      const { error, data } = await supabase.from("leads").insert(batch).select("id, name, email, company");
+      const { error, data } = await supabase
+        .from("leads")
+        .insert(batch)
+        .select("id, name, email, company");
       if (error) {
         failed += batch.length;
       } else {
@@ -681,7 +710,8 @@ export function ImportLeadsDialog({
   };
 
   const downloadTemplate = () => {
-    const csv = "Name,Email,Phone,Company,Status,Score,Notes,Source\nJane Smith,jane@acme.com,+1 555-0123,Acme Corp,new,75,Met at conference,referral\n";
+    const csv =
+      "Name,Email,Phone,Company,Status,Score,Notes,Source\nJane Smith,jane@acme.com,+1 555-0123,Acme Corp,new,75,Met at conference,referral\n";
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -724,7 +754,14 @@ export function ImportLeadsDialog({
                 <span className="text-destructive"> · {importResult.failed} failed</span>
               )}
             </p>
-            <Button variant="outline" size="sm" onClick={() => { reset(); setOpen(false); }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                reset();
+                setOpen(false);
+              }}
+            >
               Done
             </Button>
           </div>
@@ -789,7 +826,9 @@ export function ImportLeadsDialog({
                   {issues.length > 0 && (
                     <ul className="list-disc pl-4 text-xs opacity-80">
                       {issues.slice(0, 5).map((iss, i) => (
-                        <li key={i}>Row {iss.row}: {iss.message}</li>
+                        <li key={i}>
+                          Row {iss.row}: {iss.message}
+                        </li>
                       ))}
                       {issues.length > 5 && <li>…and {issues.length - 5} more</li>}
                     </ul>
@@ -802,14 +841,18 @@ export function ImportLeadsDialog({
               <div className="flex items-start gap-2 rounded-md bg-warning/10 p-3 text-xs text-warning">
                 <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                 <div>
-                  <span className="font-medium">{issues.length} row{issues.length > 1 ? "s" : ""} skipped</span>
+                  <span className="font-medium">
+                    {issues.length} row{issues.length > 1 ? "s" : ""} skipped
+                  </span>
                   {" — "}
-                  {issues.slice(0, 3).map((i) => `row ${i.row} (${i.message})`).join(", ")}
+                  {issues
+                    .slice(0, 3)
+                    .map((i) => `row ${i.row} (${i.message})`)
+                    .join(", ")}
                   {issues.length > 3 && `, +${issues.length - 3} more`}
                 </div>
               </div>
             )}
-
 
             {parsed.length > 0 && (
               <>
@@ -829,8 +872,12 @@ export function ImportLeadsDialog({
                           <tr key={i} className="border-b border-border/50 last:border-0">
                             <td className="px-3 py-1.5 text-foreground">{l.name}</td>
                             <td className="px-3 py-1.5 text-muted-foreground">{l.email || "—"}</td>
-                            <td className="px-3 py-1.5 text-muted-foreground">{l.company || "—"}</td>
-                            <td className="px-3 py-1.5 capitalize text-muted-foreground">{l.status}</td>
+                            <td className="px-3 py-1.5 text-muted-foreground">
+                              {l.company || "—"}
+                            </td>
+                            <td className="px-3 py-1.5 capitalize text-muted-foreground">
+                              {l.status}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

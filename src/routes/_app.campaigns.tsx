@@ -19,7 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Zap, Plus, Users, Send, BarChart3, Loader2, LineChart, Play, Pause, Trash2 } from "lucide-react";
+import {
+  Zap,
+  Plus,
+  Users,
+  Send,
+  BarChart3,
+  Loader2,
+  LineChart,
+  Play,
+  Pause,
+  Trash2,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +51,8 @@ type CampaignsSearch = { new?: boolean };
 export const Route = createFileRoute("/_app/campaigns")({
   component: CampaignsPage,
   validateSearch: (search: Record<string, unknown>): CampaignsSearch => {
-    const isNew = search.new === true || search.new === "1" || search.new === 1 || search.new === "true";
+    const isNew =
+      search.new === true || search.new === "1" || search.new === 1 || search.new === "true";
     return isNew ? { new: true } : {};
   },
   head: () => ({
@@ -180,7 +192,13 @@ function CampaignsPage() {
       toast.error(error.message || "Update failed");
       return;
     }
-    toast.success(next === "active" ? "Campaign resumed" : next === "paused" ? "Campaign paused" : "Campaign updated");
+    toast.success(
+      next === "active"
+        ? "Campaign resumed"
+        : next === "paused"
+          ? "Campaign paused"
+          : "Campaign updated",
+    );
     await loadCampaigns(organization.id);
   };
 
@@ -235,12 +253,7 @@ function CampaignsPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Create your first outreach campaign to start engaging leads automatically.
           </p>
-          <Button
-            variant="command"
-            size="sm"
-            className="mt-4"
-            onClick={() => setDialogOpen(true)}
-          >
+          <Button variant="command" size="sm" className="mt-4" onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             New Campaign
           </Button>
@@ -299,9 +312,7 @@ function CampaignsPage() {
                     </Button>
                   </div>
                 </div>
-                {c.objective && (
-                  <p className="mt-1 text-xs text-muted-foreground">{c.objective}</p>
-                )}
+                {c.objective && <p className="mt-1 text-xs text-muted-foreground">{c.objective}</p>}
                 <div className="mt-4 grid grid-cols-4 gap-4">
                   {[
                     { icon: Users, val: c.leads_count, label: "Leads" },
@@ -364,10 +375,7 @@ function CampaignsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="campaign-status">Status</Label>
-                <Select
-                  value={status}
-                  onValueChange={(v) => isCampaignStatus(v) && setStatus(v)}
-                >
+                <Select value={status} onValueChange={(v) => isCampaignStatus(v) && setStatus(v)}>
                   <SelectTrigger id="campaign-status">
                     <SelectValue />
                   </SelectTrigger>

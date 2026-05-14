@@ -2,11 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Loader2, StickyNote, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,9 +80,7 @@ export function ClientNotesCell({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-3">
         <div className="mb-2">
-          <div className="text-xs font-semibold text-foreground">
-            Deal note · {clientName}
-          </div>
+          <div className="text-xs font-semibold text-foreground">Deal note · {clientName}</div>
           <div className="text-[11px] text-muted-foreground">
             Private to your team. Record terms, payment, ownership, etc.
           </div>

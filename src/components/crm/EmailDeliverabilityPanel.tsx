@@ -86,9 +86,7 @@ function StatusBadge({ status }: { status: DeliverabilityStatus }) {
 export function EmailDeliverabilityPanel({ organizationId }: Props) {
   const run = useAuthedServerFn(checkEmailDeliverability);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<CheckEmailDeliverabilityResponse | null>(
-    null,
-  );
+  const [result, setResult] = useState<CheckEmailDeliverabilityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Avoid re-toasting the same critical state on every refetch.
   const lastAlertedAt = useRef<string | null>(null);
@@ -107,8 +105,7 @@ export function EmailDeliverabilityPanel({ organizationId }: Props) {
           .map((r) => CHECK_LABELS[r.check])
           .join(", ");
         toast.error(`Email deliverability misconfigured: ${failing}`, {
-          description:
-            "Recipients may flag your outreach as spam. Fix the failing records below.",
+          description: "Recipients may flag your outreach as spam. Fix the failing records below.",
           duration: 8000,
         });
       }
@@ -146,14 +143,13 @@ export function EmailDeliverabilityPanel({ organizationId }: Props) {
   })();
 
   const OverallIcon = overallIcon;
-  const overallTone =
-    result?.records.some((r) => r.status === "fail")
-      ? "text-destructive"
-      : result?.records.some((r) => r.status === "warn")
+  const overallTone = result?.records.some((r) => r.status === "fail")
+    ? "text-destructive"
+    : result?.records.some((r) => r.status === "warn")
       ? "text-warning"
       : result && result.records.length > 0
-      ? "text-success"
-      : "text-muted-foreground";
+        ? "text-success"
+        : "text-muted-foreground";
 
   return (
     <Card className="p-6 space-y-5">
@@ -163,13 +159,11 @@ export function EmailDeliverabilityPanel({ organizationId }: Props) {
           <div>
             <h3 className="font-semibold text-foreground">Email Deliverability</h3>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Automatic SPF, DKIM, and DMARC verification for the domain your
-              outreach sends from.
+              Automatic SPF, DKIM, and DMARC verification for the domain your outreach sends from.
             </p>
             {result?.domain && (
               <p className="text-xs text-muted-foreground mt-2">
-                Checking{" "}
-                <span className="font-mono text-foreground">{result.domain}</span>
+                Checking <span className="font-mono text-foreground">{result.domain}</span>
                 {result.source === "support_email" ? (
                   <> — derived from your business email.</>
                 ) : result.source === "custom_domain" ? (
@@ -210,8 +204,8 @@ export function EmailDeliverabilityPanel({ organizationId }: Props) {
         <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground flex items-start gap-2">
           <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <span>
-            No business email or verified custom domain is set yet. Add a
-            business email above and we'll inspect its DNS automatically.
+            No business email or verified custom domain is set yet. Add a business email above and
+            we'll inspect its DNS automatically.
           </span>
         </div>
       )}
@@ -238,19 +232,14 @@ export function EmailDeliverabilityPanel({ organizationId }: Props) {
               </div>
 
               <div>
-                <p className="text-sm font-medium text-foreground">
-                  {record.summary}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {record.detail}
-                </p>
+                <p className="text-sm font-medium text-foreground">{record.summary}</p>
+                <p className="text-sm text-muted-foreground mt-1">{record.detail}</p>
               </div>
 
               {record.rawRecords.length > 0 && (
                 <div className="rounded-md bg-muted/40 border border-border p-3">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                    Found at{" "}
-                    <span className="font-mono">{record.queried}</span>
+                    Found at <span className="font-mono">{record.queried}</span>
                   </p>
                   {record.rawRecords.map((raw, idx) => (
                     <code
@@ -287,9 +276,7 @@ export function EmailDeliverabilityPanel({ organizationId }: Props) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
-                        copyRecord(record.suggestedRecord!.value)
-                      }
+                      onClick={() => copyRecord(record.suggestedRecord!.value)}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -306,9 +293,8 @@ export function EmailDeliverabilityPanel({ organizationId }: Props) {
           ))}
 
           <p className="text-[11px] text-muted-foreground">
-            Last checked{" "}
-            {new Date(result.checkedAt).toLocaleString()} · DNS lookups via
-            Cloudflare 1.1.1.1
+            Last checked {new Date(result.checkedAt).toLocaleString()} · DNS lookups via Cloudflare
+            1.1.1.1
           </p>
         </div>
       )}

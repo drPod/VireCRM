@@ -66,9 +66,7 @@ Deno.serve(async (req) => {
     for (let page = 1; page <= 20; page++) {
       const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
       if (error) return json({ error: error.message }, 500);
-      const found = data.users.find(
-        (u) => (u.email ?? "").toLowerCase() === target,
-      );
+      const found = data.users.find((u) => (u.email ?? "").toLowerCase() === target);
       if (found) {
         targetUserId = found.id;
         break;
@@ -95,9 +93,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("revoke-manual-subscription error:", err);
-    return json(
-      { error: err instanceof Error ? err.message : "Unexpected error" },
-      500,
-    );
+    return json({ error: err instanceof Error ? err.message : "Unexpected error" }, 500);
   }
 });

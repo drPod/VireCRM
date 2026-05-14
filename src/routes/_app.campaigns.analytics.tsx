@@ -13,16 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  ArrowLeft,
-  BarChart3,
-  Eye,
-  Loader2,
-  MessageSquare,
-  Send,
-  Users,
-  Zap,
-} from "lucide-react";
+import { ArrowLeft, BarChart3, Eye, Loader2, MessageSquare, Send, Users, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,10 +64,7 @@ const STATUS_COLORS: Record<CampaignStatus, string> = {
   draft: "oklch(0.65 0.18 250)",
 };
 
-const statusVariants: Record<
-  CampaignStatus,
-  "success" | "warning" | "secondary" | "info"
-> = {
+const statusVariants: Record<CampaignStatus, "success" | "warning" | "secondary" | "info"> = {
   active: "success",
   paused: "warning",
   completed: "secondary",
@@ -106,9 +94,7 @@ function CampaignsAnalyticsPage() {
       const [campaignsRes, openMsgRes] = await Promise.all([
         supabase
           .from("campaigns")
-          .select(
-            "id, name, status, leads_count, sent_count, replies_count",
-          )
+          .select("id, name, status, leads_count, sent_count, replies_count")
           .eq("organization_id", organization.id)
           .order("sent_count", { ascending: false })
           .limit(100),
@@ -125,10 +111,7 @@ function CampaignsAnalyticsPage() {
       const campaigns = campaignsRes.data ?? [];
       // We don't currently link messages -> campaigns, so derive a per-campaign
       // open estimate by scaling the org-wide open rate against each campaign's sent_count.
-      const totalSent = campaigns.reduce(
-        (acc, c) => acc + (c.sent_count ?? 0),
-        0,
-      );
+      const totalSent = campaigns.reduce((acc, c) => acc + (c.sent_count ?? 0), 0);
       const totalOpens = openMsgRes.count ?? 0;
       const openRate = totalSent > 0 ? Math.min(totalOpens / totalSent, 1) : 0;
 
@@ -169,14 +152,12 @@ function CampaignsAnalyticsPage() {
 
   const chartData = useMemo(
     () =>
-      rows
-        .slice(0, 10)
-        .map((r) => ({
-          name: r.name.length > 18 ? r.name.slice(0, 16) + "…" : r.name,
-          Sent: r.sent_count,
-          Opens: r.opens_count,
-          Replies: r.replies_count,
-        })),
+      rows.slice(0, 10).map((r) => ({
+        name: r.name.length > 18 ? r.name.slice(0, 16) + "…" : r.name,
+        Sent: r.sent_count,
+        Opens: r.opens_count,
+        Replies: r.replies_count,
+      })),
     [rows],
   );
 
@@ -200,9 +181,7 @@ function CampaignsAnalyticsPage() {
             <ArrowLeft className="h-3 w-3" />
             Back to campaigns
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-foreground">
-            Campaigns Analytics
-          </h1>
+          <h1 className="mt-1 text-2xl font-bold text-foreground">Campaigns Analytics</h1>
           <p className="text-sm text-muted-foreground">
             Performance breakdown across all outreach campaigns
           </p>
@@ -222,9 +201,7 @@ function CampaignsAnalyticsPage() {
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground" />
-          <h3 className="mt-3 text-sm font-semibold text-foreground">
-            No campaign data yet
-          </h3>
+          <h3 className="mt-3 text-sm font-semibold text-foreground">No campaign data yet</h3>
           <p className="mt-1 text-xs text-muted-foreground">
             Create a campaign and start sending to see analytics here.
           </p>
@@ -272,17 +249,12 @@ function CampaignsAnalyticsPage() {
                 <h3 className="text-sm font-semibold text-foreground">
                   Top campaigns — Sent vs Opens vs Replies
                 </h3>
-                <span className="text-[10px] text-muted-foreground">
-                  Top 10 by send volume
-                </span>
+                <span className="text-[10px] text-muted-foreground">Top 10 by send volume</span>
               </div>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="oklch(0.4 0.02 260 / 0.2)"
-                    />
+                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.4 0.02 260 / 0.2)" />
                     <XAxis
                       dataKey="name"
                       stroke="oklch(0.65 0.02 260)"
@@ -292,11 +264,7 @@ function CampaignsAnalyticsPage() {
                       textAnchor="end"
                       height={60}
                     />
-                    <YAxis
-                      stroke="oklch(0.65 0.02 260)"
-                      fontSize={11}
-                      allowDecimals={false}
-                    />
+                    <YAxis stroke="oklch(0.65 0.02 260)" fontSize={11} allowDecimals={false} />
                     <Tooltip
                       contentStyle={{
                         background: "var(--popover)",
@@ -307,30 +275,16 @@ function CampaignsAnalyticsPage() {
                       cursor={{ fill: "oklch(0.65 0.2 250 / 0.08)" }}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar
-                      dataKey="Sent"
-                      fill="oklch(0.65 0.18 250)"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="Opens"
-                      fill="oklch(0.7 0.16 200)"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="Replies"
-                      fill="oklch(0.7 0.18 145)"
-                      radius={[4, 4, 0, 0]}
-                    />
+                    <Bar dataKey="Sent" fill="oklch(0.65 0.18 250)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Opens" fill="oklch(0.7 0.16 200)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Replies" fill="oklch(0.7 0.18 145)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-card p-5">
-              <h3 className="mb-4 text-sm font-semibold text-foreground">
-                Campaigns by status
-              </h3>
+              <h3 className="mb-4 text-sm font-semibold text-foreground">Campaigns by status</h3>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -343,10 +297,7 @@ function CampaignsAnalyticsPage() {
                       paddingAngle={2}
                     >
                       {statusBreakdown.map((entry) => (
-                        <Cell
-                          key={entry.status}
-                          fill={STATUS_COLORS[entry.status]}
-                        />
+                        <Cell key={entry.status} fill={STATUS_COLORS[entry.status]} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -373,9 +324,7 @@ function CampaignsAnalyticsPage() {
           {/* Table */}
           <div className="rounded-xl border border-border bg-card">
             <div className="border-b border-border p-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Per-campaign breakdown
-              </h3>
+              <h3 className="text-sm font-semibold text-foreground">Per-campaign breakdown</h3>
             </div>
             <div className="overflow-x-auto">
               <Table>
@@ -395,10 +344,7 @@ function CampaignsAnalyticsPage() {
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.name}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={statusVariants[r.status]}
-                          className="capitalize"
-                        >
+                        <Badge variant={statusVariants[r.status]} className="capitalize">
                           {r.status}
                         </Badge>
                       </TableCell>
@@ -425,9 +371,9 @@ function CampaignsAnalyticsPage() {
           </div>
 
           <p className="text-[11px] text-muted-foreground">
-            Note: Open counts are estimated from org-wide message engagement
-            because per-campaign opens aren&apos;t individually tracked yet.
-            Replies and sent counts come straight from the campaign record.
+            Note: Open counts are estimated from org-wide message engagement because per-campaign
+            opens aren&apos;t individually tracked yet. Replies and sent counts come straight from
+            the campaign record.
           </p>
         </>
       )}
@@ -452,9 +398,7 @@ function KpiCard({
         <Icon className="h-3.5 w-3.5" />
         <span className="text-xs">{label}</span>
       </div>
-      <p className="mt-2 text-2xl font-bold text-foreground tabular-nums">
-        {value}
-      </p>
+      <p className="mt-2 text-2xl font-bold text-foreground tabular-nums">{value}</p>
       <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p>
     </div>
   );

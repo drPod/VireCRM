@@ -29,15 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  FileText,
-  Loader2,
-  Pencil,
-  Plus,
-  Sparkles,
-  Star,
-  Trash2,
-} from "lucide-react";
+import { FileText, Loader2, Pencil, Plus, Sparkles, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -125,7 +117,10 @@ export function OutreachTemplatesManager() {
   };
 
   const handleInsertToken = (token: string) => {
-    setDraft((d) => ({ ...d, body: `${d.body}${d.body && !d.body.endsWith(" ") ? " " : ""}${token}` }));
+    setDraft((d) => ({
+      ...d,
+      body: `${d.body}${d.body && !d.body.endsWith(" ") ? " " : ""}${token}`,
+    }));
   };
 
   const handleSave = async () => {
@@ -183,7 +178,8 @@ export function OutreachTemplatesManager() {
             Outreach templates
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Reusable email skeletons your AI uses as the base for personalized outreach to each lead.
+            Reusable email skeletons your AI uses as the base for personalized outreach to each
+            lead.
           </p>
         </div>
         {canEdit && (
@@ -204,8 +200,8 @@ export function OutreachTemplatesManager() {
           <Sparkles className="h-6 w-6 text-muted-foreground mx-auto" />
           <p className="text-sm font-medium text-foreground">No templates yet</p>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Create your first template — write the email how you'd send it manually,
-            and the AI will personalize it for each lead before sending.
+            Create your first template — write the email how you'd send it manually, and the AI will
+            personalize it for each lead before sending.
           </p>
           {canEdit && (
             <Button variant="outline" size="sm" onClick={openCreate} className="mt-2">
@@ -217,16 +213,11 @@ export function OutreachTemplatesManager() {
       ) : (
         <div className="space-y-2">
           {templates.map((tpl) => (
-            <div
-              key={tpl.id}
-              className="rounded-lg border border-border bg-card p-3 space-y-1.5"
-            >
+            <div key={tpl.id} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {tpl.name}
-                    </span>
+                    <span className="text-sm font-medium text-foreground truncate">{tpl.name}</span>
                     {tpl.is_default && (
                       <Badge variant="info" className="text-[10px]">
                         <Star className="h-2.5 w-2.5 mr-0.5" />
@@ -276,7 +267,8 @@ export function OutreachTemplatesManager() {
             <DialogTitle>{draft.id ? "Edit template" : "New outreach template"}</DialogTitle>
             <DialogDescription>
               Use placeholders like <code className="text-foreground">{"{{first_name}}"}</code> and{" "}
-              <code className="text-foreground">{"{{company}}"}</code> — the AI fills them with each lead's data and personalizes the rest.
+              <code className="text-foreground">{"{{company}}"}</code> — the AI fills them with each
+              lead's data and personalizes the rest.
             </DialogDescription>
           </DialogHeader>
 
@@ -330,7 +322,9 @@ export function OutreachTemplatesManager() {
               <textarea
                 className={textareaClass}
                 rows={10}
-                placeholder={"Hey {{first_name}},\n\nI saw {{company}} is doing great work in your space — wanted to reach out because…"}
+                placeholder={
+                  "Hey {{first_name}},\n\nI saw {{company}} is doing great work in your space — wanted to reach out because…"
+                }
                 value={draft.body}
                 onChange={(e) => setDraft({ ...draft, body: e.target.value })}
                 disabled={saving}
@@ -351,7 +345,8 @@ export function OutreachTemplatesManager() {
                 ))}
               </div>
               <p className="mt-1.5 text-[10px] text-muted-foreground">
-                {draft.body.length} characters · The AI keeps your structure and tone, only personalizing per lead.
+                {draft.body.length} characters · The AI keeps your structure and tone, only
+                personalizing per lead.
               </p>
             </div>
 
@@ -388,12 +383,16 @@ export function OutreachTemplatesManager() {
       </Dialog>
 
       {/* Delete confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && !deleting && setDeleteTarget(null)}>
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => !v && !deleting && setDeleteTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this template?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{deleteTarget?.name}" will be removed permanently. Outreach in flight using it isn't affected.
+              "{deleteTarget?.name}" will be removed permanently. Outreach in flight using it isn't
+              affected.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

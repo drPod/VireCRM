@@ -282,10 +282,7 @@ function SequencesPage() {
     }
   };
 
-  const enrolledLeadIds = useMemo(
-    () => new Set(enrollments.map((e) => e.lead_id)),
-    [enrollments],
-  );
+  const enrolledLeadIds = useMemo(() => new Set(enrollments.map((e) => e.lead_id)), [enrollments]);
 
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-4 p-4">
@@ -346,8 +343,8 @@ function SequencesPage() {
             <Send className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
             <h3 className="text-lg font-semibold">Pick or create a sequence</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Sequences send a series of timed emails to enrolled leads and stop
-              automatically when they reply or book a meeting.
+              Sequences send a series of timed emails to enrolled leads and stop automatically when
+              they reply or book a meeting.
             </p>
           </Card>
         ) : (
@@ -370,13 +367,18 @@ function SequencesPage() {
                     {selected.stop_on_meeting_booked && <span>✓ Stop on meeting</span>}
                     <span>
                       <Clock className="inline h-3 w-3 mr-0.5" />
-                      Send {selected.send_window_start_hour}:00–{selected.send_window_end_hour}:00 UTC
+                      Send {selected.send_window_start_hour}:00–{selected.send_window_end_hour}:00
+                      UTC
                       {selected.send_on_weekends ? "" : " (weekdays)"}
                     </span>
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button size="sm" variant="outline" onClick={() => toggleSequenceStatus(selected)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleSequenceStatus(selected)}
+                  >
                     {selected.status === "active" ? (
                       <>
                         <Pause className="h-3.5 w-3.5" /> Pause
@@ -387,11 +389,7 @@ function SequencesPage() {
                       </>
                     )}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteSequence(selected)}
-                  >
+                  <Button size="sm" variant="ghost" onClick={() => handleDeleteSequence(selected)}>
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
                   </Button>
                 </div>
@@ -453,11 +451,7 @@ function SequencesPage() {
                           >
                             Edit
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteStep(s.id)}
-                          >
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteStep(s.id)}>
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </div>
@@ -516,7 +510,9 @@ function SequencesPage() {
                           }
                           className="text-[10px]"
                         >
-                          {e.status === "completed" && <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />}
+                          {e.status === "completed" && (
+                            <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                          )}
                           {e.status === "stopped" && <StopCircle className="h-2.5 w-2.5 mr-0.5" />}
                           {e.status}
                         </Badge>
@@ -546,13 +542,18 @@ function SequencesPage() {
                 <h2 className="text-sm font-semibold">Recent sends</h2>
                 <div className="space-y-1">
                   {log.slice(0, 20).map((l) => (
-                    <div key={l.id} className="text-xs flex items-center justify-between border-b border-border/50 pb-1">
+                    <div
+                      key={l.id}
+                      className="text-xs flex items-center justify-between border-b border-border/50 pb-1"
+                    >
                       <span className="truncate">
                         <Badge variant="outline" className="mr-2 text-[10px]">
                           Step {l.step_index + 1}
                         </Badge>
                         {l.lead?.email || l.enrollment_id.slice(0, 8)} —{" "}
-                        <span className="text-muted-foreground">{l.subject || l.error_message}</span>
+                        <span className="text-muted-foreground">
+                          {l.subject || l.error_message}
+                        </span>
                       </span>
                       <span
                         className={`text-[10px] uppercase ${
@@ -586,7 +587,11 @@ function SequencesPage() {
           <div className="space-y-3">
             <div>
               <Label>Name</Label>
-              <Input value={newSeqName} onChange={(e) => setNewSeqName(e.target.value)} placeholder="Q1 outreach push" />
+              <Input
+                value={newSeqName}
+                onChange={(e) => setNewSeqName(e.target.value)}
+                placeholder="Q1 outreach push"
+              />
             </div>
             <div>
               <Label>Description (optional)</Label>
@@ -753,9 +758,7 @@ function SequencesPage() {
                       checked={checked}
                       onChange={(e) =>
                         setSelectedLeadIds((prev) =>
-                          e.target.checked
-                            ? [...prev, l.id]
-                            : prev.filter((x) => x !== l.id),
+                          e.target.checked ? [...prev, l.id] : prev.filter((x) => x !== l.id),
                         )
                       }
                     />
@@ -763,7 +766,11 @@ function SequencesPage() {
                       <p className="truncate font-medium">{l.name}</p>
                       <p className="truncate text-xs text-muted-foreground">{l.email}</p>
                     </div>
-                    {isEnrolled && <Badge variant="secondary" className="text-[10px]">Enrolled</Badge>}
+                    {isEnrolled && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Enrolled
+                      </Badge>
+                    )}
                   </label>
                 );
               })

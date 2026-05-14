@@ -17,7 +17,8 @@ export function HowItWorksSection() {
             Built for Businesses That Want Leverage, Not More Work
           </h2>
           <p className="mt-4 text-muted-foreground">
-            If you're still manually following up with leads…<br />
+            If you're still manually following up with leads…
+            <br />
             <span className="font-medium text-foreground">
               you're doing work your system should already be handling.
             </span>

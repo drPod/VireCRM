@@ -53,11 +53,7 @@ export interface OutreachTemplate {
   updated_at: string;
 }
 
-async function ensureMember(
-  supabase: any,
-  userId: string,
-  organizationId: string,
-) {
+async function ensureMember(supabase: any, userId: string, organizationId: string) {
   const { data: profile } = await supabase
     .from("profiles")
     .select("organization_id")
@@ -77,7 +73,9 @@ export const listOutreachTemplatesFn = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await supabase
       .from("outreach_templates")
-      .select("id, organization_id, name, description, subject, body, is_default, created_at, updated_at")
+      .select(
+        "id, organization_id, name, description, subject, body, is_default, created_at, updated_at",
+      )
       .eq("organization_id", data.organizationId)
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: false });
@@ -119,7 +117,9 @@ export const upsertOutreachTemplateFn = createServerFn({ method: "POST" })
         .update(payload)
         .eq("id", data.id)
         .eq("organization_id", data.organizationId)
-        .select("id, organization_id, name, description, subject, body, is_default, created_at, updated_at")
+        .select(
+          "id, organization_id, name, description, subject, body, is_default, created_at, updated_at",
+        )
         .single();
       if (error || !row) throw new Error(error?.message || "Failed to update template");
       return row as OutreachTemplate;
@@ -128,7 +128,9 @@ export const upsertOutreachTemplateFn = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("outreach_templates")
       .insert({ ...payload, created_by: userId })
-      .select("id, organization_id, name, description, subject, body, is_default, created_at, updated_at")
+      .select(
+        "id, organization_id, name, description, subject, body, is_default, created_at, updated_at",
+      )
       .single();
     if (error || !row) throw new Error(error?.message || "Failed to create template");
     return row as OutreachTemplate;

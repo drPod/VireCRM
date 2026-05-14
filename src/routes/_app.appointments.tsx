@@ -352,10 +352,7 @@ function AppointmentsPage() {
                       {selected.is_active ? "Active" : "Disabled"}
                     </Badge>
                     {selected.has_access_password && (
-                      <Badge
-                        variant="outline"
-                        className="gap-1 border-warning text-warning"
-                      >
+                      <Badge variant="outline" className="gap-1 border-warning text-warning">
                         <Lock className="h-3 w-3" /> Password
                       </Badge>
                     )}
@@ -472,9 +469,7 @@ function AppointmentsPage() {
                   <Label>Name</Label>
                   <Input
                     value={editorState.name || ""}
-                    onChange={(e) =>
-                      setEditorState({ ...editorState, name: e.target.value })
-                    }
+                    onChange={(e) => setEditorState({ ...editorState, name: e.target.value })}
                     placeholder="30-minute intro call"
                   />
                 </div>
@@ -531,18 +526,14 @@ function AppointmentsPage() {
                   <Input
                     type="color"
                     value={editorState.color || "#a855f7"}
-                    onChange={(e) =>
-                      setEditorState({ ...editorState, color: e.target.value })
-                    }
+                    onChange={(e) => setEditorState({ ...editorState, color: e.target.value })}
                   />
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={editorState.is_active ?? true}
-                  onCheckedChange={(v) =>
-                    setEditorState({ ...editorState, is_active: v })
-                  }
+                  onCheckedChange={(v) => setEditorState({ ...editorState, is_active: v })}
                 />
                 <Label>Active (link accepts bookings)</Label>
               </div>
@@ -555,8 +546,7 @@ function AppointmentsPage() {
                       <Lock className="h-3.5 w-3.5" /> Access password (optional)
                     </Label>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      When set, visitors must enter this password before they can see slots or
-                      book.{" "}
+                      When set, visitors must enter this password before they can see slots or book.{" "}
                       {editorState.id && editorState.has_access_password
                         ? "A password is currently set."
                         : "No password is currently set."}
@@ -715,7 +705,8 @@ function BookingRow({
       <div className="min-w-0 flex-1">
         <p className="font-medium truncate">{appt.title}</p>
         <p className="text-[11px] text-muted-foreground truncate">
-          {start.toLocaleString()} — {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          {start.toLocaleString()} —{" "}
+          {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           {appt.lead?.email && ` · ${appt.lead.email}`}
         </p>
       </div>

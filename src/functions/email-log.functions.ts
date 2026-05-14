@@ -70,7 +70,9 @@ export const listRecentEmailLogsFn = createServerFn({ method: "GET" })
     // but pull subject/preview from any row in the same message_id group).
     const { data, error } = await admin
       .from("email_send_log")
-      .select("id, message_id, template_name, recipient_email, status, error_message, created_at, metadata")
+      .select(
+        "id, message_id, template_name, recipient_email, status, error_message, created_at, metadata",
+      )
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -163,7 +165,9 @@ export const listLeadEmailLogsFn = createServerFn({ method: "GET" })
 
       const { data: rows, error } = await admin
         .from("email_send_log")
-        .select("id, message_id, template_name, recipient_email, status, error_message, created_at, metadata")
+        .select(
+          "id, message_id, template_name, recipient_email, status, error_message, created_at, metadata",
+        )
         .ilike("recipient_email", data.email)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -194,13 +198,17 @@ export const listLeadEmailLogsFn = createServerFn({ method: "GET" })
           order.push(key);
         } else {
           if (!existing.subject && meta.subject) existing.subject = meta.subject;
-          if (!existing.body_preview && meta.body_preview) existing.body_preview = meta.body_preview;
+          if (!existing.body_preview && meta.body_preview)
+            existing.body_preview = meta.body_preview;
         }
       }
 
       return order.slice(0, 50).map((k) => byKey.get(k)!);
     } catch (err) {
-      console.error("[listLeadEmailLogsFn] unexpected error:", err instanceof Error ? err.message : err);
+      console.error(
+        "[listLeadEmailLogsFn] unexpected error:",
+        err instanceof Error ? err.message : err,
+      );
       return [];
     }
   });

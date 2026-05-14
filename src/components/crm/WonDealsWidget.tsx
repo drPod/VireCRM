@@ -135,8 +135,7 @@ export function WonDealsWidget({ organizationId }: { organizationId: string | nu
           </p>
           {data.weekWonThis > 0 && (
             <p className="mt-0.5 text-[11px] text-success flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              +{data.weekWonThis} this week
+              <TrendingUp className="h-3 w-3" />+{data.weekWonThis} this week
             </p>
           )}
         </div>

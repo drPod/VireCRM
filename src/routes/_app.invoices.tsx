@@ -178,7 +178,8 @@ function InvoicesPage() {
     let voided = 0;
     for (const inv of leadInvoices) {
       if (inv.status === "paid") collected += inv.amount_paid_cents || inv.amount_due_cents;
-      else if (inv.status === "open" || inv.status === "past_due") outstanding += inv.amount_due_cents;
+      else if (inv.status === "open" || inv.status === "past_due")
+        outstanding += inv.amount_due_cents;
       if (inv.is_recurring && (inv.status === "active" || inv.status === "open")) recurring += 1;
       if (inv.status === "void" || inv.status === "canceled") voided += 1;
     }
@@ -253,7 +254,9 @@ function InvoicesPage() {
             {accountReady === false ? (
               <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
                 <CreditCard className="mx-auto h-10 w-10 text-muted-foreground" />
-                <h3 className="mt-3 font-semibold text-foreground">Connect Stripe to send invoices</h3>
+                <h3 className="mt-3 font-semibold text-foreground">
+                  Connect Stripe to send invoices
+                </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Link your own Stripe account so payments from leads land directly in your bank.
                 </p>
@@ -405,7 +408,10 @@ function InvoicesPage() {
                                   </p>
                                 ) : null}
                               </div>
-                              <Badge variant={cfg.variant} className="min-w-[110px] justify-center text-xs">
+                              <Badge
+                                variant={cfg.variant}
+                                className="min-w-[110px] justify-center text-xs"
+                              >
                                 {cfg.label}
                               </Badge>
                               <div className="flex flex-col items-end gap-1 min-w-[80px]">
@@ -457,7 +463,8 @@ function InvoicesPage() {
               <div className="border-b border-border px-5 py-3">
                 <h2 className="font-semibold text-foreground">My subscription payments</h2>
                 <p className="text-xs text-muted-foreground">
-                  Charges for your own Genesis plan. To send invoices to leads, use the Lead invoices tab.
+                  Charges for your own Genesis plan. To send invoices to leads, use the Lead
+                  invoices tab.
                 </p>
               </div>
               {loadingTxns ? (

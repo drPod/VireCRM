@@ -34,7 +34,8 @@ export const crmTiers: PricingTier[] = [
     name: "Starter — Get Organized Fast",
     price: "$97",
     period: "/month",
-    description: "Everything you need to get your sales system off the ground and stay organized from day one.",
+    description:
+      "Everything you need to get your sales system off the ground and stay organized from day one.",
     stripePriceId: "crm_starter_monthly",
     features: [
       { text: "Contact management", included: true },
@@ -55,7 +56,8 @@ export const crmTiers: PricingTier[] = [
     name: "Growth — Automate & Scale",
     price: "$197",
     period: "/month",
-    description: "Turn your CRM into a consistent revenue engine with automated outreach and pipeline optimization.",
+    description:
+      "Turn your CRM into a consistent revenue engine with automated outreach and pipeline optimization.",
     badge: "Most Popular",
     highlighted: true,
     stripePriceId: "crm_growth_monthly",
@@ -78,7 +80,8 @@ export const crmTiers: PricingTier[] = [
     name: "Pro — Full Sales System",
     price: "$297",
     period: "/month",
-    description: "Built for scaling teams that need serious automation, deep visibility, and enterprise-grade workflows.",
+    description:
+      "Built for scaling teams that need serious automation, deep visibility, and enterprise-grade workflows.",
     badge: "High Value",
     stripePriceId: "crm_pro_monthly",
     features: [
@@ -100,7 +103,8 @@ export const crmTiers: PricingTier[] = [
     name: "Custom CRM",
     price: "Custom",
     period: "quote",
-    description: "A fully bespoke CRM — tailored workflows, advanced automations, unique dashboards, and integrations built around your business.",
+    description:
+      "A fully bespoke CRM — tailored workflows, advanced automations, unique dashboards, and integrations built around your business.",
     badge: "Premium",
     isOwnership: true,
     excludeFromPromo: true,
@@ -126,7 +130,8 @@ export const whiteLabelTiers: PricingTier[] = [
     name: "Lease — Starter",
     price: "$249",
     period: "/month",
-    description: "White-label Genesis CRM leased to your business. Full branding, your domain, your clients.",
+    description:
+      "White-label Genesis CRM leased to your business. Full branding, your domain, your clients.",
     stripePriceId: "lease_starter_monthly",
     features: [
       { text: "White-label branding", included: true },
@@ -170,7 +175,8 @@ export const whiteLabelTiers: PricingTier[] = [
     name: "Full Ownership",
     price: "$7,000",
     period: "one-time",
-    description: "Own the entire Genesis CRM platform outright. Your code, your servers, your business — forever.",
+    description:
+      "Own the entire Genesis CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
     excludeFromPromo: true,
@@ -192,7 +198,8 @@ export const whiteLabelTiers: PricingTier[] = [
     name: "Custom Enterprise",
     price: "$14,000+",
     period: "one-time",
-    description: "Starting at $14,000 one-time — full ownership plus custom features built for your specific business needs and workflows.",
+    description:
+      "Starting at $14,000 one-time — full ownership plus custom features built for your specific business needs and workflows.",
     badge: "Tailored",
     isOwnership: true,
     excludeFromPromo: true,
@@ -248,7 +255,10 @@ function TierCard({
     >
       {tier.badge && (
         <div className="absolute -top-3 left-6">
-          <Badge variant={tier.highlighted ? "default" : tier.isOwnership ? "warning" : "info"} className="gap-1">
+          <Badge
+            variant={tier.highlighted ? "default" : tier.isOwnership ? "warning" : "info"}
+            className="gap-1"
+          >
             {tier.highlighted && <Sparkles className="h-3 w-3" />}
             {tier.isOwnership && <Crown className="h-3 w-3" />}
             {tier.badge}
@@ -268,10 +278,16 @@ function TierCard({
                   <span className="text-xs text-muted-foreground">{tier.period}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground line-through">{displayedPrice}</span>
-                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">30% OFF</Badge>
+                  <span className="text-xs text-muted-foreground line-through">
+                    {displayedPrice}
+                  </span>
+                  <Badge variant="warning" className="text-[10px] px-1.5 py-0">
+                    30% OFF
+                  </Badge>
                   {overridden && (
-                    <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
+                    <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                      Synced from Stripe
+                    </Badge>
                   )}
                 </div>
               </>
@@ -285,7 +301,9 @@ function TierCard({
               </div>
               {overridden && (
                 <div className="mt-1">
-                  <Badge variant="info" className="text-[10px] px-1.5 py-0">Synced from Stripe</Badge>
+                  <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                    Synced from Stripe
+                  </Badge>
                 </div>
               )}
             </>
@@ -389,7 +407,9 @@ export function PricingCards() {
       {/* Divider */}
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-border" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">or</span>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          or
+        </span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
@@ -421,36 +441,46 @@ export function PricingCards() {
             <div>
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 Auto Find Leads — Bring Your Own API Key
-                <Badge variant="warning" className="text-[10px]">Required</Badge>
+                <Badge variant="warning" className="text-[10px]">
+                  Required
+                </Badge>
               </h3>
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                Lead discovery (Apollo, Hunter, Snov, and other providers) is <strong>not included</strong> in any
-                plan. These are third-party data services with their own pricing — you must sign up directly with
-                each provider and connect your own API key inside the CRM's Integrations settings.
+                Lead discovery (Apollo, Hunter, Snov, and other providers) is{" "}
+                <strong>not included</strong> in any plan. These are third-party data services with
+                their own pricing — you must sign up directly with each provider and connect your
+                own API key inside the CRM's Integrations settings.
               </p>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-3">
               <div className="rounded-lg border border-border/60 bg-card/50 p-3">
                 <p className="text-xs font-medium text-foreground">Apollo.io</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">Free tier available · Paid plans from ~$49/mo</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Free tier available · Paid plans from ~$49/mo
+                </p>
               </div>
               <div className="rounded-lg border border-border/60 bg-card/50 p-3">
                 <p className="text-xs font-medium text-foreground">Hunter.io</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">Free tier available · Paid plans from ~$34/mo</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Free tier available · Paid plans from ~$34/mo
+                </p>
               </div>
               <div className="rounded-lg border border-border/60 bg-card/50 p-3">
                 <p className="text-xs font-medium text-foreground">Snov.io</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">Free tier available · Paid plans from ~$39/mo</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Free tier available · Paid plans from ~$39/mo
+                </p>
               </div>
             </div>
 
             <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3">
               <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Pricing shown is indicative and set by each provider — check their site for current rates. We never
-                charge or mark up usage; your API key is billed directly by the provider. The CRM only orchestrates
-                the searches and imports the results into your pipeline.
+                Pricing shown is indicative and set by each provider — check their site for current
+                rates. We never charge or mark up usage; your API key is billed directly by the
+                provider. The CRM only orchestrates the searches and imports the results into your
+                pipeline.
               </p>
             </div>
           </div>

@@ -196,21 +196,9 @@ function AnalyticsPage() {
           change={newLeadsChange?.label}
           changeType={newLeadsChange?.positive ? "positive" : "negative"}
         />
-        <MetricCard
-          icon={TrendingUp}
-          label="Win Rate"
-          value={`${winRate}%`}
-        />
-        <MetricCard
-          icon={Clock}
-          label="Reply Rate"
-          value={`${replyRate}%`}
-        />
-        <MetricCard
-          icon={BarChart3}
-          label="Total Leads"
-          value={String(data.totalLeads)}
-        />
+        <MetricCard icon={TrendingUp} label="Win Rate" value={`${winRate}%`} />
+        <MetricCard icon={Clock} label="Reply Rate" value={`${replyRate}%`} />
+        <MetricCard icon={BarChart3} label="Total Leads" value={String(data.totalLeads)} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5">
@@ -221,12 +209,42 @@ function AnalyticsPage() {
             </p>
           ) : (
             <div className="space-y-3">
-              <StatRow label="New" value={data.pipeline.new} total={totalPipeline} color="bg-info" />
-              <StatRow label="Contacted" value={data.pipeline.contacted} total={totalPipeline} color="bg-primary" />
-              <StatRow label="Qualified" value={data.pipeline.qualified} total={totalPipeline} color="bg-warning" />
-              <StatRow label="Negotiation" value={data.pipeline.negotiation} total={totalPipeline} color="bg-chart-5" />
-              <StatRow label="Won" value={data.pipeline.won} total={totalPipeline} color="bg-success" />
-              <StatRow label="Lost" value={data.pipeline.lost} total={totalPipeline} color="bg-destructive" />
+              <StatRow
+                label="New"
+                value={data.pipeline.new}
+                total={totalPipeline}
+                color="bg-info"
+              />
+              <StatRow
+                label="Contacted"
+                value={data.pipeline.contacted}
+                total={totalPipeline}
+                color="bg-primary"
+              />
+              <StatRow
+                label="Qualified"
+                value={data.pipeline.qualified}
+                total={totalPipeline}
+                color="bg-warning"
+              />
+              <StatRow
+                label="Negotiation"
+                value={data.pipeline.negotiation}
+                total={totalPipeline}
+                color="bg-chart-5"
+              />
+              <StatRow
+                label="Won"
+                value={data.pipeline.won}
+                total={totalPipeline}
+                color="bg-success"
+              />
+              <StatRow
+                label="Lost"
+                value={data.pipeline.lost}
+                total={totalPipeline}
+                color="bg-destructive"
+              />
             </div>
           )}
         </div>

@@ -17,20 +17,20 @@ export const Route = createFileRoute("/hooks/calculate-payouts")({
         const token = authHeader?.replace("Bearer ", "");
 
         if (!token) {
-          return new Response(
-            JSON.stringify({ error: "Missing authorization header" }),
-            { status: 401, headers: { "Content-Type": "application/json" } }
-          );
+          return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
         if (!supabaseUrl || !serviceKey) {
-          return new Response(
-            JSON.stringify({ error: "Server misconfigured" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-          );
+          return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         // Allow overriding the period from the cron body for backfills/manual runs
@@ -59,10 +59,10 @@ export const Route = createFileRoute("/hooks/calculate-payouts")({
 
         if (error) {
           console.error("Payout calc failed:", error);
-          return new Response(
-            JSON.stringify({ success: false, error: error.message }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-          );
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         console.log("Payouts calculated:", data);

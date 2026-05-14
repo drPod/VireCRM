@@ -143,8 +143,7 @@ export function useSubscription(userId: string | null | undefined): Subscription
   }, [userId, load]);
 
   const sub = subscription;
-  const periodOk =
-    !sub?.current_period_end || new Date(sub.current_period_end) > new Date();
+  const periodOk = !sub?.current_period_end || new Date(sub.current_period_end) > new Date();
   const isManual = sub?.environment === "manual" && sub.status === "active";
   // Access if: this user has their own active sub, OR an owner of their org does
   // (covers invited team members who shouldn't be charged separately).

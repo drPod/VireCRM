@@ -28,9 +28,7 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
   if (!node) {
     return (
       <div className="flex h-full w-72 flex-col items-center justify-center border-l border-border bg-card p-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Select a node to configure it
-        </p>
+        <p className="text-sm text-muted-foreground">Select a node to configure it</p>
         <p className="mt-2 text-xs text-muted-foreground/70">
           Drag nodes from the left panel to start building your workflow
         </p>
@@ -43,8 +41,7 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
   if (!meta) return null;
   const config = data.config || {};
 
-  const set = (key: string, value: unknown) =>
-    onUpdate(node.id, { ...config, [key]: value });
+  const set = (key: string, value: unknown) => onUpdate(node.id, { ...config, [key]: value });
 
   return (
     <div className="flex h-full w-72 flex-col overflow-y-auto border-l border-border bg-card">
@@ -64,11 +61,15 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
                 value={(config.fromStatus as string) || "any"}
                 onValueChange={(v) => set("fromStatus", v)}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">Any status</SelectItem>
                   {LEAD_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -78,10 +79,14 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
                 value={(config.toStatus as string) || "qualified"}
                 onValueChange={(v) => set("toStatus", v)}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {LEAD_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -95,7 +100,9 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
               value={(config.channel as string) || "any"}
               onValueChange={(v) => set("channel", v)}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="any">Any channel</SelectItem>
                 <SelectItem value="email">Email</SelectItem>
@@ -151,7 +158,9 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
                 value={(config.unit as string) || "days"}
                 onValueChange={(v) => set("unit", v)}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="minutes">Minutes</SelectItem>
                   <SelectItem value="hours">Hours</SelectItem>
@@ -170,10 +179,14 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
                 value={(config.field as string) || "score"}
                 onValueChange={(v) => set("field", v)}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {LEAD_FIELDS.map((f) => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                    <SelectItem key={f} value={f}>
+                      {f}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -183,10 +196,14 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
                 value={(config.operator as string) || ">"}
                 onValueChange={(v) => set("operator", v)}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {OPERATORS.map((op) => (
-                    <SelectItem key={op} value={op}>{op}</SelectItem>
+                    <SelectItem key={op} value={op}>
+                      {op}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

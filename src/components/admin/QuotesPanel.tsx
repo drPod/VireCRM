@@ -117,12 +117,30 @@ const emptyLineItem = (): LineItem => ({
 });
 
 const DEFAULT_DIFFERENTIATORS: Differentiator[] = [
-  { title: "Built-in AI sales team", body: "Lead scoring, reply classification, follow-up writing, and meeting booking are first-class agents — not bolt-ons." },
-  { title: "One platform replaces 6+ tools", body: "CRM, outreach, scheduling, pipeline, billing, and reporting in one place. No Zapier glue." },
-  { title: "True white-label, not a reseller skin", body: "Your domain, your branding, your login, your customers. Genesis is invisible." },
-  { title: "Capped, transparent pricing", body: "Flat monthly tiers — no per-seat creep, no usage surprises." },
-  { title: "Industry-tuned templates", body: "Pre-built pipelines, automations, and email templates for solar, insurance, real estate, gym, and more." },
-  { title: "Real human + AI support", body: "Founders in the loop. Slack-grade response time, not a help-desk maze." },
+  {
+    title: "Built-in AI sales team",
+    body: "Lead scoring, reply classification, follow-up writing, and meeting booking are first-class agents — not bolt-ons.",
+  },
+  {
+    title: "One platform replaces 6+ tools",
+    body: "CRM, outreach, scheduling, pipeline, billing, and reporting in one place. No Zapier glue.",
+  },
+  {
+    title: "True white-label, not a reseller skin",
+    body: "Your domain, your branding, your login, your customers. Genesis is invisible.",
+  },
+  {
+    title: "Capped, transparent pricing",
+    body: "Flat monthly tiers — no per-seat creep, no usage surprises.",
+  },
+  {
+    title: "Industry-tuned templates",
+    body: "Pre-built pipelines, automations, and email templates for solar, insurance, real estate, gym, and more.",
+  },
+  {
+    title: "Real human + AI support",
+    body: "Founders in the loop. Slack-grade response time, not a help-desk maze.",
+  },
 ];
 
 export function QuotesPanel() {
@@ -153,13 +171,9 @@ export function QuotesPanel() {
     load();
     const channel = supabase
       .channel("admin_quotes_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "admin_quotes" },
-        () => {
-          load();
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "admin_quotes" }, () => {
+        load();
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -292,7 +306,10 @@ export function QuotesPanel() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+                >
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
@@ -324,7 +341,8 @@ export function QuotesPanel() {
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="py-12 text-center text-sm text-muted-foreground">
-                  No quotes yet. Click <span className="font-medium text-foreground">New quote</span> to create one.
+                  No quotes yet. Click{" "}
+                  <span className="font-medium text-foreground">New quote</span> to create one.
                 </div>
               ) : (
                 <Table>
@@ -343,7 +361,11 @@ export function QuotesPanel() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((q) => (
-                      <TableRow key={q.id} className="cursor-pointer" onClick={() => setHistoryQuote(q)}>
+                      <TableRow
+                        key={q.id}
+                        className="cursor-pointer"
+                        onClick={() => setHistoryQuote(q)}
+                      >
                         <TableCell className="font-mono text-xs">{q.quote_number}</TableCell>
                         <TableCell>
                           <div className="text-sm">{q.recipient_name}</div>
@@ -598,7 +620,11 @@ function QuoteBuilderDialog({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Recipient name *</Label>
-              <Input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} maxLength={200} />
+              <Input
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                maxLength={200}
+              />
             </div>
             <div className="space-y-2">
               <Label>Recipient email *</Label>
@@ -611,11 +637,19 @@ function QuoteBuilderDialog({
             </div>
             <div className="space-y-2">
               <Label>Company</Label>
-              <Input value={recipientCompany} onChange={(e) => setRecipientCompany(e.target.value)} maxLength={200} />
+              <Input
+                value={recipientCompany}
+                onChange={(e) => setRecipientCompany(e.target.value)}
+                maxLength={200}
+              />
             </div>
             <div className="space-y-2">
               <Label>Valid until</Label>
-              <Input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+              <Input
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+              />
             </div>
           </div>
 
@@ -656,7 +690,11 @@ function QuoteBuilderDialog({
                     min={1}
                     placeholder="Qty"
                     value={it.quantity}
-                    onChange={(e) => updateItem(idx, { quantity: Math.max(1, parseInt(e.target.value || "1", 10)) })}
+                    onChange={(e) =>
+                      updateItem(idx, {
+                        quantity: Math.max(1, parseInt(e.target.value || "1", 10)),
+                      })
+                    }
                   />
                   <Input
                     className="col-span-3"
@@ -667,7 +705,10 @@ function QuoteBuilderDialog({
                     value={(it.unit_price_cents / 100).toString()}
                     onChange={(e) =>
                       updateItem(idx, {
-                        unit_price_cents: Math.max(0, Math.round(parseFloat(e.target.value || "0") * 100)),
+                        unit_price_cents: Math.max(
+                          0,
+                          Math.round(parseFloat(e.target.value || "0") * 100),
+                        ),
                       })
                     }
                   />
@@ -712,11 +753,16 @@ function QuoteBuilderDialog({
               <div>
                 <Label>What separates Genesis from other CRMs</Label>
                 <p className="text-xs text-muted-foreground">
-                  Bullets shown on the proposal PDF. Edit, add, or remove to tailor for this recipient.
+                  Bullets shown on the proposal PDF. Edit, add, or remove to tailor for this
+                  recipient.
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setDifferentiators(DEFAULT_DIFFERENTIATORS)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setDifferentiators(DEFAULT_DIFFERENTIATORS)}
+                >
                   Reset to defaults
                 </Button>
                 <Button
@@ -730,14 +776,19 @@ function QuoteBuilderDialog({
             </div>
             <div className="space-y-3">
               {differentiators.map((d, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-start rounded-md border border-border/50 bg-muted/20 p-3">
+                <div
+                  key={idx}
+                  className="grid grid-cols-12 gap-2 items-start rounded-md border border-border/50 bg-muted/20 p-3"
+                >
                   <div className="col-span-11 space-y-2">
                     <Input
                       placeholder="Title (e.g. Built-in AI sales team)"
                       value={d.title}
                       maxLength={120}
                       onChange={(e) =>
-                        setDifferentiators((p) => p.map((x, i) => (i === idx ? { ...x, title: e.target.value } : x)))
+                        setDifferentiators((p) =>
+                          p.map((x, i) => (i === idx ? { ...x, title: e.target.value } : x)),
+                        )
                       }
                     />
                     <Textarea
@@ -746,7 +797,9 @@ function QuoteBuilderDialog({
                       value={d.body}
                       maxLength={400}
                       onChange={(e) =>
-                        setDifferentiators((p) => p.map((x, i) => (i === idx ? { ...x, body: e.target.value } : x)))
+                        setDifferentiators((p) =>
+                          p.map((x, i) => (i === idx ? { ...x, body: e.target.value } : x)),
+                        )
                       }
                     />
                   </div>
@@ -931,7 +984,9 @@ function QuoteHistoryDialog({
                       <Clock className="h-3 w-3" />
                       {format(new Date(e.created_at), "MMM d, yyyy 'at' h:mm a")}
                       <span>•</span>
-                      <span>{formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}</span>
+                      <span>
+                        {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+                      </span>
                     </div>
                     {e.note && <div className="mt-1 text-xs">{e.note}</div>}
                   </li>

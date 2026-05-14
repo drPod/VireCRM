@@ -38,12 +38,7 @@ export function CommandBar({ onCommand, isProcessing = false }: CommandBarProps)
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
           disabled={isProcessing}
         />
-        <Button
-          type="submit"
-          size="sm"
-          variant="command"
-          disabled={!input.trim() || isProcessing}
-        >
+        <Button type="submit" size="sm" variant="command" disabled={!input.trim() || isProcessing}>
           {isProcessing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

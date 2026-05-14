@@ -68,10 +68,7 @@ export function PasswordStrengthMeter({
     }
     if (!result) return;
     const score = result.score as 0 | 1 | 2 | 3 | 4;
-    const feedback =
-      result.feedback.warning ||
-      result.feedback.suggestions[0] ||
-      LABELS[score];
+    const feedback = result.feedback.warning || result.feedback.suggestions[0] || LABELS[score];
     onChange({ score, feedback });
   }, [result, password, onChange]);
 
@@ -99,11 +96,7 @@ export function PasswordStrengthMeter({
       <div className="flex items-center justify-between text-xs">
         <span
           className={
-            score >= 3
-              ? "text-emerald-500"
-              : score === 2
-              ? "text-amber-500"
-              : "text-destructive"
+            score >= 3 ? "text-emerald-500" : score === 2 ? "text-amber-500" : "text-destructive"
           }
         >
           {label}

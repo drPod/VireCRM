@@ -10,8 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -127,9 +126,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) return json({ error: error.message }, 500);
-      console.log(
-        `[manage-org-features] ${callerEmail} granted ${featureKey} to org ${orgId}`,
-      );
+      console.log(`[manage-org-features] ${callerEmail} granted ${featureKey} to org ${orgId}`);
       return json({ success: true, feature: data });
     }
 
@@ -145,9 +142,7 @@ Deno.serve(async (req) => {
         .eq("organization_id", orgId)
         .eq("feature_key", featureKey);
       if (error) return json({ error: error.message }, 500);
-      console.log(
-        `[manage-org-features] ${callerEmail} revoked ${featureKey} from org ${orgId}`,
-      );
+      console.log(`[manage-org-features] ${callerEmail} revoked ${featureKey} from org ${orgId}`);
       return json({ success: true });
     }
 

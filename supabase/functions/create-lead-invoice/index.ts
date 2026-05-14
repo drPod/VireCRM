@@ -36,7 +36,10 @@ Deno.serve(async (req) => {
   try {
     const auth = req.headers.get("Authorization");
     const token = auth?.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
     const body: Body = await req.json();
@@ -71,7 +74,9 @@ Deno.serve(async (req) => {
       throw new Error("Connect your Stripe account first");
     }
     if (!account.charges_enabled) {
-      throw new Error("Your Stripe account is not yet ready to accept charges. Finish onboarding first.");
+      throw new Error(
+        "Your Stripe account is not yet ready to accept charges. Finish onboarding first.",
+      );
     }
 
     const { data: lead } = await supabase
@@ -93,11 +98,12 @@ Deno.serve(async (req) => {
       { email: lead.email, limit: 1 },
       { stripeAccount },
     );
-    const customer = existingCustomers.data[0]
-      ?? await stripe.customers.create(
+    const customer =
+      existingCustomers.data[0] ??
+      (await stripe.customers.create(
         { email: lead.email, name: lead.name, metadata: { lead_id: lead.id } },
         { stripeAccount },
-      );
+      ));
 
     let invoiceRow: Record<string, unknown> = {
       organization_id: profile.organization_id,
@@ -108,7 +114,7 @@ Deno.serve(async (req) => {
       description: body.description || null,
       line_items: body.lineItems,
       is_recurring: !!body.isRecurring,
-      interval: body.isRecurring ? (body.interval || "month") : null,
+      interval: body.isRecurring ? body.interval || "month" : null,
       environment: env,
       created_by: user.id,
     };
@@ -117,10 +123,7 @@ Deno.serve(async (req) => {
       // RECURRING: create products+prices, then a subscription that bills automatically
       const items = [];
       for (const li of body.lineItems) {
-        const product = await stripe.products.create(
-          { name: li.description },
-          { stripeAccount },
-        );
+        const product = await stripe.products.create({ name: li.description }, { stripeAccount });
         const price = await stripe.prices.create(
           {
             unit_amount: li.amount_cents,
@@ -193,7 +196,9 @@ Deno.serve(async (req) => {
         amount_due_cents: finalInvoice.amount_due,
         amount_paid_cents: finalInvoice.amount_paid,
         status: finalInvoice.status || "draft",
-        due_date: finalInvoice.due_date ? new Date(finalInvoice.due_date * 1000).toISOString() : null,
+        due_date: finalInvoice.due_date
+          ? new Date(finalInvoice.due_date * 1000).toISOString()
+          : null,
         sent_at: body.send !== false ? new Date().toISOString() : null,
       };
     }
@@ -211,9 +216,9 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("create-lead-invoice error:", err);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message || "Failed" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: (err as Error).message || "Failed" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

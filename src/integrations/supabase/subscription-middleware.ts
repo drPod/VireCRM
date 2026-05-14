@@ -34,20 +34,16 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
         .eq("user_id", userId)
         .in("status", ACTIVE_STATUSES as unknown as string[])
         .order("created_at", { ascending: false }),
-      supabaseAdmin
-        .from("profiles")
-        .select("organization_id")
-        .eq("user_id", userId)
-        .maybeSingle(),
+      supabaseAdmin.from("profiles").select("organization_id").eq("user_id", userId).maybeSingle(),
     ]);
 
     if (ownSubResult.error || profileResult.error) {
       // Fail closed — if we can't verify entitlement, deny access. This is
       // safer than letting through on transient DB hiccups.
-      throw new Response(
-        JSON.stringify({ error: "Subscription check failed" }),
-        { status: 503, headers: { "Content-Type": "application/json" } }
-      );
+      throw new Response(JSON.stringify({ error: "Subscription check failed" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const now = Date.now();
@@ -67,10 +63,10 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
         .eq("role", "owner");
 
       if (rolesError) {
-        throw new Response(
-          JSON.stringify({ error: "Subscription check failed" }),
-          { status: 503, headers: { "Content-Type": "application/json" } }
-        );
+        throw new Response(JSON.stringify({ error: "Subscription check failed" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
       }
 
       const ownerIds = (ownerRoles ?? []).map((r) => r.user_id).filter(Boolean);
@@ -82,10 +78,10 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
           .in("status", ACTIVE_STATUSES as unknown as string[]);
 
         if (ownerSubsError) {
-          throw new Response(
-            JSON.stringify({ error: "Subscription check failed" }),
-            { status: 503, headers: { "Content-Type": "application/json" } }
-          );
+          throw new Response(JSON.stringify({ error: "Subscription check failed" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         hasActive = (ownerSubs ?? []).some(isRowActive);
@@ -97,10 +93,9 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
         JSON.stringify({
           error: "Subscription required",
           code: "SUBSCRIPTION_REQUIRED",
-          message:
-            "An active subscription is required to use this feature. Please visit /billing.",
+          message: "An active subscription is required to use this feature. Please visit /billing.",
         }),
-        { status: 402, headers: { "Content-Type": "application/json" } }
+        { status: 402, headers: { "Content-Type": "application/json" } },
       );
     }
 

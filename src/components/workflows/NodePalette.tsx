@@ -89,9 +89,7 @@ function PaletteSection({
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-medium text-foreground">{meta.label}</div>
-                <div className="truncate text-[10px] text-muted-foreground">
-                  {meta.description}
-                </div>
+                <div className="truncate text-[10px] text-muted-foreground">{meta.description}</div>
               </div>
             </div>
           );
