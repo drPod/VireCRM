@@ -327,6 +327,11 @@ function LeadsPage() {
     };
   }, [organization?.id]);
 
+  // Cross-component signal: soft deletes flip RLS visibility on UPDATE, so
+  // realtime subscribers don't always receive the change. Listen for the
+  // local `leads:changed` event and refetch.
+  useEffect(() => onLeadsChanged(() => setRefreshKey((k) => k + 1)), []);
+
   // Drop any selected ids that are no longer in the visible list (e.g. after
   // filtering or refresh).
   useEffect(() => {
