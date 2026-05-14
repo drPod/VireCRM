@@ -62,9 +62,21 @@ interface LeadDetailDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdated: () => void;
+  /**
+   * Optional optimistic patch hook. Called BEFORE the network write completes
+   * so the parent list/pipeline can reflect edits instantly. Realtime + the
+   * follow-up `onUpdated()` reconcile the server truth shortly after.
+   */
+  onOptimisticPatch?: (id: string, patch: Partial<Lead>) => void;
 }
 
-export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDetailDrawerProps) {
+export function LeadDetailDrawer({
+  lead,
+  open,
+  onOpenChange,
+  onUpdated,
+  onOptimisticPatch,
+}: LeadDetailDrawerProps) {
   const { organization, role } = useAuth();
   const canAssign = role?.role === "owner" || role?.role === "manager";
   const [form, setForm] = useState({
