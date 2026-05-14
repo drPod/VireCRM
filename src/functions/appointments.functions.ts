@@ -536,6 +536,8 @@ export const bookPublicAppointmentFn = createServerFn({ method: "POST" })
         .from("leads")
         .insert({
           organization_id: cal.organization_id,
+          created_by: cal.owner_user_id,
+          assigned_to: cal.owner_user_id,
           name: data.name,
           email: data.email,
           phone: data.phone || null,
