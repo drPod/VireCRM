@@ -538,6 +538,23 @@ export function LeadDetailDrawer({
     if (canAssign) {
       updatePayload.assigned_to = assigneeIds[0] ?? null;
     }
+
+    // Optimistically patch the parent list/pipeline before the round-trip.
+    // If the write fails, the next refetch (or realtime) will reconcile.
+    onOptimisticPatch?.(lead.id, {
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim() || undefined,
+      company: form.company.trim() || undefined,
+      status: form.status as Lead["status"],
+      score: form.score,
+      nextAction: form.next_action.trim() || undefined,
+      annualKwh: annualKwh,
+      contractEndDate: form.contract_end_date || null,
+      currentSupplier: form.current_supplier.trim() || null,
+      ...(canAssign ? { assignedTo: assigneeIds[0] ?? null } : {}),
+    });
+
     const { error } = await supabase.from("leads").update(updatePayload).eq("id", lead.id);
 
     if (!error && canAssign && organization?.id) {
