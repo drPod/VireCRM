@@ -388,6 +388,7 @@ function LeadsPage() {
       setLeads((prev) => prev.filter((l) => !selectedLeadIds.includes(l.id)));
       setTotalCount((c) => Math.max(0, c - success));
       handleClearSelection();
+      notifyLeadsChanged();
     }
     if (failures.length > 0) {
       toast.error(`${failures.length} lead${failures.length === 1 ? "" : "s"} failed`, {
