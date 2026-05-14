@@ -1,119 +1,62 @@
+## DNS Checklist
 
+A single-page UI that takes a domain, queries DNS over HTTPS in the browser, and shows a clear pass/fail checklist for the records we require — plus a safety panel that warns if the org's email DNS (MX/SPF/DKIM/DMARC) looks broken or missing.
 
-## Goal
+### Route
 
-Make the **Connect** buttons on Gmail and Google Calendar in Settings → Integrations actually launch a real Google OAuth sign-in popup, instead of just flipping an "enabled" flag and waiting for someone to magically link credentials.
+`src/routes/_app.settings.dns-check.tsx` — accessible from Platform Admin and from the White-Label dialog (new "Run DNS check" link).
 
-## Why this is needed
+### UI sections
 
-Today the Connect button on Gmail / Google Calendar:
-1. Calls `enableConnectorFn` → writes `enabled = true` to `org_connectors`.
-2. Checks if `GMAIL_API_KEY` / `GOOGLE_CALENDAR_API_KEY` already exists in the runtime env.
-3. If not (the normal case for end-users), shows **"Awaiting auth"** with no way forward.
+**1. Domain input bar**
+- Text input + "Check" button
+- Optional dropdown: pre-populates from `organizations.custom_domain` for orgs the platform admin manages
+- Shows the org's `domain_verification_token` when an org is selected
 
-There is no actual OAuth pop-up. The Lovable Connector Gateway holds Google tokens, but nothing in the app asks the user to sign in with Google.
+**2. Required records (must all pass to verify)**
 
-## What you'll see after this change
+| Check | Expected | Status |
+|---|---|---|
+| A `@` | `185.158.133.1` | ✅ / ❌ shows actual value |
+| A `www` | `185.158.133.1` | ✅ / ❌ |
+| TXT `_vireon.<domain>` | matches `vireon-verify-…` token | ✅ / ❌ |
+| AAAA `@` | should be **absent** (we don't serve IPv6) | ⚠️ if present |
 
-```text
-Settings → Integrations → Gmail card
-   [ Connect Gmail ]      ← click
-       │
-       ▼
-   Google sign-in popup opens (accounts.google.com)
-   • Pick the Google account you want to send from
-   • Approve "Send email on your behalf" + "See your email address"
-       │
-       ▼
-   Popup closes, card flips to:
-       Connected ✓   you@gmail.com
-       [ Send test email ]  [ Test ]  [ Edit ]  [ Disconnect ]
-```
+Each row: label, expected value, actual value(s) found, status pill, copy-to-clipboard for the expected value.
 
-Same flow for **Google Calendar** (scopes: read/write events on calendars you own).
+**3. Email safety panel (don't break this)**
 
-If the user is **not the workspace owner**, the card still shows "Ask your owner to connect this" — owner-only restriction is unchanged.
+Read-only; warns if any look broken so the operator knows IONOS email may be impacted:
 
-## How it works (technical)
+- MX records present (warn if zero)
+- SPF TXT at `@` present (warn if missing or doesn't include any `include:` mechanism)
+- DKIM CNAMEs at `s1-ionos._domainkey` / `s2-ionos._domainkey` resolve (informational — IONOS-specific; we just check if at least one DKIM-style record exists at the common selectors)
+- DMARC at `_dmarc.<domain>` present
+- Each row says "untouched ✅" / "missing ⚠️" with the actual record values for transparency
 
-### 1. Wire the existing `Connect` button to the managed OAuth flow
+**4. Verdict banner**
+- All required pass + email panel clean → green "Safe to verify" with a button that calls the existing `mark_domain_verified` RPC
+- Required missing → amber "Not ready — fix the items above"
+- Email panel has warnings → red "Email DNS may be broken — review before continuing"
 
-Lovable already provides a managed OAuth broker at `/~oauth/initiate` for the connectors in our catalog. Replace the current `handleEnable` for Google providers in `src/components/crm/ConnectorIntegrations.tsx`:
+### Technical details
 
-- For `gmail` and `google_calendar`, opening `Connect` does:
-  1. POST to a new server fn `startConnectorOAuthFn({ provider })` which returns an authorization URL built against `https://oauth.lovable.app/initiate?connector_id=gmail&org_id=…&return_to=…`.
-  2. Open that URL in a centered popup window (`window.open(url, "lovable-oauth", "width=520,height=720")`).
-  3. Poll `listConnectorsFn` every 2s for up to 90s. When the gateway reports `credentialPresent && verified`, close the popup and flip the card to **Connected**.
-- Other connectors (Slack, HubSpot, etc.) keep the existing flow.
+- DNS lookups use `https://cloudflare-dns.com/dns-query?name=…&type=…` with `Accept: application/dns-json` (same pattern as `EditClientWhiteLabelDialog.verifyDomain`)
+- All checks run client-side in parallel via `Promise.all`
+- A small helper `src/lib/dns-check.ts` exports `lookupDns(name, type)` and `runDomainChecklist(domain, token)` returning a typed result the page renders
+- Page gated by `usePlatformAdmin` (same gate as other admin tools)
+- Add a "Run DNS check" link in `EditClientWhiteLabelDialog` next to the Verify button that opens this route with `?domain=…&token=…` query params pre-filled
+- No backend changes; no migration needed
 
-### 2. New server function — `startConnectorOAuthFn`
+### Files
 
-In `src/functions/connectors.functions.ts`. Owner-only. Inputs: `organizationId`, `provider`. Returns:
+- `src/lib/dns-check.ts` — lookup helper + checklist runner (pure, testable)
+- `src/routes/_app.settings.dns-check.tsx` — the page
+- `src/components/crm/EditClientWhiteLabelDialog.tsx` — add the deep link
+- Sidebar entry under Settings → DNS check (platform admin only)
 
-```ts
-{ authorizeUrl: string }
-```
+### Out of scope
 
-Builds the URL using:
-- `LOVABLE_API_KEY` (already in secrets) for broker auth header preflight,
-- `connectorId` from the catalog,
-- `state` = signed JWT containing `{ orgId, provider, nonce, exp }` so the callback can be validated,
-- `redirect_uri` = `${publicAppUrl}/integrations/oauth/callback`.
-
-### 3. New callback route — `/integrations/oauth/callback`
-
-`src/routes/integrations.oauth.callback.tsx` — minimal page that:
-- Reads `?status=success|error&provider=…` from the broker redirect,
-- Posts a `window.opener.postMessage({ type: "lovable-oauth", provider, ok })` then `window.close()`,
-- If opened directly (no opener), shows a friendly "You can close this tab" screen.
-
-The parent (Settings page) listens for that `postMessage` to short-circuit polling.
-
-### 4. New server function — `recordOAuthCallbackFn` (exchange + persist)
-
-POST endpoint hit by the broker (or by the callback route after the broker redirects back). Validates the `state` JWT, asks the gateway `/api/v1/connections` for the freshly created connection, and:
-- Upserts `org_connectors { provider, enabled: true, config: { connectedAccount: <email> } }`.
-- Stores the connected account email in `config.connectedEmail` so the card can display "Connected as you@gmail.com".
-- Pre-fills `config.fromAddress` (Gmail) or `config.timeZone` (Calendar) with sane defaults.
-
-### 5. Status enrichment
-
-Update `ConnectorStatus` returned by `listConnectorsFn` to include:
-
-```ts
-connectedEmail?: string | null
-```
-
-So the UI can show "Connected as <email>" under each Google card. Pulled from `org_connectors.config.connectedEmail`.
-
-### 6. Disconnect
-
-`disableConnectorFn` already exists. Extend it for Google providers to also call the gateway's `DELETE /api/v1/connections/{id}` so revoking in our app actually revokes the token in Google. If the gateway call fails (e.g. token already expired), still flip `enabled = false` locally and toast a soft warning.
-
-### 7. UX polish on the cards (Gmail / Calendar only)
-
-- Replace the generic "Connect" button with **"Connect Gmail"** / **"Connect Google Calendar"** with the Google "G" mark on the left.
-- After connection, show **Connected as you@gmail.com** under the title.
-- A subtitle line: *"We'll only ask for permission to send email and read the address you're sending as. You can revoke access in your Google account at any time → myaccount.google.com/permissions"*.
-- A small **"Send test email"** button on the Gmail card that fires `sendGmailFn` to the connected address itself, so users can verify in one click without opening a lead.
-
-## OAuth scopes requested
-
-| Provider | Scopes |
-|---|---|
-| Gmail | `gmail.send`, `userinfo.email` |
-| Google Calendar | `calendar.events`, `userinfo.email` |
-
-These are the minimum needed for the existing `sendGmailFn` and `scheduleGoogleCalendarEventFn` handlers.
-
-## DB changes
-
-None required. `org_connectors.config` (jsonb) already stores arbitrary keys — `connectedEmail` slots in alongside `fromAddress`, `timeZone`, etc.
-
-## Out of scope
-
-- Per-user (vs per-org) Gmail accounts — still one shared connection per org.
-- Google Workspace domain-wide delegation.
-- Refresh-token rotation handling (gateway does this).
-- Inbound Gmail / Calendar sync.
-
+- No server-side DNS resolver (browser-side DoH is sufficient and matches existing behavior)
+- No automatic remediation — this is read-only diagnostics
+- No persistence of check results
