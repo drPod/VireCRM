@@ -92,7 +92,7 @@ export function AddLeadDialog({
         .from("leads")
         .insert({
           organization_id: organization.id,
-          created_by: user?.id ?? null,
+          created_by: user?.id,
           name: form.name.trim(),
           email: form.email.trim() || null,
           phone: form.phone.trim() || null,
