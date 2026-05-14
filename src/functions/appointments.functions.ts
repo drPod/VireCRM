@@ -2,21 +2,65 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { createHash } from "crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { z } from "zod";
 
-async function hashPassword(plain: string): Promise<string> {
-  return createHash("sha256").update(plain.trim()).digest("hex");
+const SCRYPT_KEY_LEN = 64;
+const SCRYPT_PREFIX = "scrypt:";
+
+/** Hash a calendar password with scrypt + per-hash random salt. */
+function hashPasswordScrypt(plain: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const derived = scryptSync(plain.trim(), salt, SCRYPT_KEY_LEN).toString("hex");
+  return `${SCRYPT_PREFIX}${salt}:${derived}`;
 }
 
-function timingSafeStringEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return mismatch === 0;
+/** Async wrapper kept for backwards compatibility with existing call sites. */
+async function hashPassword(plain: string): Promise<string> {
+  return hashPasswordScrypt(plain);
 }
+
+/**
+ * Verify a plain password against a stored hash. Supports two formats:
+ *   - "scrypt:<saltHex>:<hashHex>"   (current, salted scrypt)
+ *   - 64-char hex string             (legacy, unsalted SHA-256 — upgraded on first match)
+ *
+ * Returns { ok, upgradedHash? }. When the legacy format matches, `upgradedHash`
+ * contains a fresh scrypt hash the caller should persist back to the row.
+ */
+function verifyPassword(
+  plain: string,
+  stored: string,
+): { ok: boolean; upgradedHash?: string } {
+  const trimmed = plain.trim();
+
+  if (stored.startsWith(SCRYPT_PREFIX)) {
+    const [, salt, hashHex] = stored.split(":");
+    if (!salt || !hashHex) return { ok: false };
+    let derived: Buffer;
+    try {
+      derived = scryptSync(trimmed, salt, SCRYPT_KEY_LEN);
+    } catch {
+      return { ok: false };
+    }
+    const expected = Buffer.from(hashHex, "hex");
+    if (derived.length !== expected.length) return { ok: false };
+    return { ok: timingSafeEqual(derived, expected) };
+  }
+
+  // Legacy unsalted SHA-256 — accept once, then signal an upgrade to scrypt.
+  const legacy = createHash("sha256").update(trimmed).digest();
+  let candidate: Buffer;
+  try {
+    candidate = Buffer.from(stored, "hex");
+  } catch {
+    return { ok: false };
+  }
+  if (candidate.length !== legacy.length) return { ok: false };
+  if (!timingSafeEqual(candidate, legacy)) return { ok: false };
+  return { ok: true, upgradedHash: hashPasswordScrypt(trimmed) };
+}
+
 
 /**
  * Appointment booking server functions.
@@ -353,8 +397,15 @@ async function loadPublicCalendarOrThrow(
   const hash = (cal as { access_password_hash: string | null }).access_password_hash;
   if (hash) {
     if (!password) throw new Error("Password required");
-    const candidate = await hashPassword(password);
-    if (!timingSafeStringEqual(candidate, hash)) throw new Error("Incorrect password");
+    const result = verifyPassword(password, hash);
+    if (!result.ok) throw new Error("Incorrect password");
+    // Transparently upgrade legacy SHA-256 hashes to scrypt on first successful verify.
+    if (result.upgradedHash) {
+      await supabase
+        .from("calendars")
+        .update({ access_password_hash: result.upgradedHash } as never)
+        .eq("id", cal.id);
+    }
   }
   return cal;
 }
