@@ -584,6 +584,8 @@ export function LeadDetailDrawer({
     setSaving(false);
     if (error) {
       toast.error("Failed to update lead");
+      // Roll back the optimistic patch by forcing a refetch from the server.
+      onUpdated();
     } else {
       const transitionedToWon = form.status === "won" && lead.status !== "won";
       if (transitionedToWon) {
@@ -591,6 +593,7 @@ export function LeadDetailDrawer({
       }
       toast.success(form.status === "won" ? "Lead marked as won 🎉" : "Lead updated");
       onUpdated();
+      notifyLeadsChanged();
       onOpenChange(false);
     }
   };
