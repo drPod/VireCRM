@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { notifyLeadsChanged } from "@/lib/leads-events";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   Sheet,
@@ -62,9 +63,21 @@ interface LeadDetailDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdated: () => void;
+  /**
+   * Optional optimistic patch hook. Called BEFORE the network write completes
+   * so the parent list/pipeline can reflect edits instantly. Realtime + the
+   * follow-up `onUpdated()` reconcile the server truth shortly after.
+   */
+  onOptimisticPatch?: (id: string, patch: Partial<Lead>) => void;
 }
 
-export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDetailDrawerProps) {
+export function LeadDetailDrawer({
+  lead,
+  open,
+  onOpenChange,
+  onUpdated,
+  onOptimisticPatch,
+}: LeadDetailDrawerProps) {
   const { organization, role } = useAuth();
   const canAssign = role?.role === "owner" || role?.role === "manager";
   const [form, setForm] = useState({
@@ -525,6 +538,23 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     if (canAssign) {
       updatePayload.assigned_to = assigneeIds[0] ?? null;
     }
+
+    // Optimistically patch the parent list/pipeline before the round-trip.
+    // If the write fails, the next refetch (or realtime) will reconcile.
+    onOptimisticPatch?.(lead.id, {
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim() || undefined,
+      company: form.company.trim() || undefined,
+      status: form.status as Lead["status"],
+      score: form.score,
+      nextAction: form.next_action.trim() || undefined,
+      annualKwh: annualKwh,
+      contractEndDate: form.contract_end_date || null,
+      currentSupplier: form.current_supplier.trim() || null,
+      ...(canAssign ? { assignedTo: assigneeIds[0] ?? null } : {}),
+    });
+
     const { error } = await supabase.from("leads").update(updatePayload).eq("id", lead.id);
 
     if (!error && canAssign && organization?.id) {
@@ -554,6 +584,8 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     setSaving(false);
     if (error) {
       toast.error("Failed to update lead");
+      // Roll back the optimistic patch by forcing a refetch from the server.
+      onUpdated();
     } else {
       const transitionedToWon = form.status === "won" && lead.status !== "won";
       if (transitionedToWon) {
@@ -561,6 +593,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       }
       toast.success(form.status === "won" ? "Lead marked as won 🎉" : "Lead updated");
       onUpdated();
+      notifyLeadsChanged();
       onOpenChange(false);
     }
   };
@@ -573,6 +606,10 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       return;
     }
     setMarkingWon(true);
+    // Optimistic patch first.
+    onOptimisticPatch?.(lead.id, {
+      status: "won",
+    });
     const { error } = await supabase
       .from("leads")
       .update({
@@ -584,6 +621,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
     setMarkingWon(false);
     if (error) {
       toast.error("Failed to mark lead as won");
+      onUpdated();
     } else {
       if (lead.status !== "won") {
         await recordWonActivity(dealParsed.cents, form.deal_currency || "USD");
@@ -592,6 +630,7 @@ export function LeadDetailDrawer({ lead, open, onOpenChange, onUpdated }: LeadDe
       setForm((prev) => ({ ...prev, status: "won" }));
       setActivityRefetchKey((k) => k + 1);
       onUpdated();
+      notifyLeadsChanged();
     }
   };
 
