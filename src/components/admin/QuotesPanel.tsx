@@ -57,7 +57,7 @@ import {
 } from "lucide-react";
 import { Sparkles, Download } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { regenerateQuotePdf } from "@/lib/quote-pdf.functions";
+import { regenerateQuotePdf, getQuotePdfSignedUrl } from "@/lib/quote-pdf.functions";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -262,6 +262,7 @@ export function QuotesPanel() {
   };
 
   const regeneratePdfFn = useServerFn(regenerateQuotePdf);
+  const getSignedPdfUrlFn = useServerFn(getQuotePdfSignedUrl);
   const regeneratePdf = async (q: Quote) => {
     const t = toast.loading("Generating proposal PDF…");
     try {
@@ -273,6 +274,17 @@ export function QuotesPanel() {
     } catch (e) {
       toast.dismiss(t);
       toast.error(e instanceof Error ? e.message : "Failed to regenerate PDF");
+    }
+  };
+  const openPdf = async (q: Quote) => {
+    const t = toast.loading("Preparing PDF…");
+    try {
+      const res = await getSignedPdfUrlFn({ data: { quoteId: q.id } });
+      toast.dismiss(t);
+      window.open(res.signedUrl, "_blank");
+    } catch (e) {
+      toast.dismiss(t);
+      toast.error(e instanceof Error ? e.message : "Failed to open PDF");
     }
   };
   return (
@@ -410,7 +422,7 @@ export function QuotesPanel() {
                                 <Sparkles className="mr-2 h-4 w-4" /> Regenerate proposal PDF
                               </DropdownMenuItem>
                               {q.pdf_url && (
-                                <DropdownMenuItem onClick={() => window.open(q.pdf_url!, "_blank")}>
+                                <DropdownMenuItem onClick={() => openPdf(q)}>
                                   <Download className="mr-2 h-4 w-4" /> Open latest PDF
                                 </DropdownMenuItem>
                               )}
