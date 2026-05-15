@@ -46,7 +46,7 @@ async function assertOwnerOrPlatformAdmin(
   if (!profile?.organization_id) throw new Error("No organization on profile");
 
   const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", {
-    _user_id: userId,
+    p_user_id: userId,
   });
   if (isAdmin) return { organizationId: profile.organization_id };
 
@@ -139,7 +139,7 @@ export const revokeTestAccount = createServerFn({ method: "POST" })
       // Platform admins can revoke across orgs; non-admins are blocked above
       // (assertOwnerOrPlatformAdmin only returns the caller's org).
       const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", {
-        _user_id: callerId,
+        p_user_id: callerId,
       });
       if (!isAdmin) throw new Error("Test account belongs to another org");
     }
