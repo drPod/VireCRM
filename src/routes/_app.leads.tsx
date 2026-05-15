@@ -877,18 +877,20 @@ function LeadsPage() {
                 setSelectedLeadIds((prev) => prev.filter((id) => id !== l.id));
                 setTotalCount((c) => Math.max(0, c - 1));
 
-                const { data, error } = await supabase.rpc("delete_lead", {
-                  p_lead_id: l.id,
-                  p_mode: mode,
-                });
+                const { data, error, attempts } = await deleteLeadWithRetry(l.id, mode);
                 if (error) {
                   setLeads(previousLeads);
                   setTotalCount((c) => c + 1);
-                  toast.error(mode === "hard" ? "Couldn't delete lead" : "Couldn't archive lead", {
-                    description: error.message,
-                  });
+                  toast.error(
+                    mode === "hard" ? "Couldn't delete lead" : "Couldn't archive lead",
+                    {
+                      description: `${l.name} — ${error.message} (after ${attempts} attempt${attempts === 1 ? "" : "s"})`,
+                      duration: 10000,
+                    },
+                  );
                   return;
                 }
+                const retryNote = attempts > 1 ? ` (succeeded on attempt ${attempts})` : "";
                 if (mode === "hard") {
                   const removed = (data as { removed?: Record<string, number> } | null)?.removed;
                   const counts = removed
@@ -897,13 +899,13 @@ function LeadsPage() {
                         .map(([k, n]) => `${n} ${k.replace(/_/g, " ")}`)
                         .join(", ")
                     : "";
-                  toast.success(`Deleted ${l.name}`, {
+                  toast.success(`Deleted ${l.name}${retryNote}`, {
                     description: counts
                       ? `Also removed ${counts}.`
                       : "No related records to remove.",
                   });
                 } else {
-                  toast.success(`Archived ${l.name}`, {
+                  toast.success(`Archived ${l.name}${retryNote}`, {
                     description: "Tasks, messages, and conversations were preserved.",
                   });
                 }
