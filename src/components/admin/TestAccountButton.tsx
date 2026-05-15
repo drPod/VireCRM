@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,7 +35,16 @@ function readStored(): Stored | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Stored) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Stored;
+    // Self-heal: an earlier bug shipped empty email/password (server fn
+    // call wasn't auth'd, so the wrapped result envelope had blank fields).
+    // Treat that as "no account" so the UI lets the user re-Generate.
+    if (!parsed?.email || !parsed?.password || !parsed?.userId) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -49,8 +58,8 @@ export function TestAccountButton() {
   const [auditing, setAuditing] = useState(false);
   const [auditResults, setAuditResults] = useState<AuditCheck[] | null>(null);
 
-  const createFn = useServerFn(createTestAccount);
-  const revokeFn = useServerFn(revokeTestAccount);
+  const createFn = useAuthedServerFn(createTestAccount);
+  const revokeFn = useAuthedServerFn(revokeTestAccount);
 
   useEffect(() => {
     if (open) setAccount(readStored());
