@@ -7,6 +7,7 @@ import { ImportApolloListDialog } from "@/components/crm/ImportApolloListDialog"
 import { LeadDetailDrawer } from "@/components/crm/LeadDetailDrawer";
 import { OutreachPreviewDialog } from "@/components/crm/OutreachPreviewDialog";
 import { ExportLeadsButton } from "@/components/crm/ExportLeadsButton";
+import { LeadsSmokeTest } from "@/components/crm/LeadsSmokeTest";
 import { AssigneeMultiSelect, type AssigneeOption } from "@/components/crm/AssigneeMultiSelect";
 import {
   BulkApplyTemplateDialog,
@@ -593,6 +594,7 @@ function LeadsPage() {
           <p className="text-sm text-muted-foreground">{totalCount} total leads in pipeline</p>
         </div>
         <div className="flex gap-2">
+          <LeadsSmokeTest />
           <ExportLeadsButton leads={leads} />
           <ImportApolloListDialog onLeadsImported={handleLeadAdded} />
           <AutoFindLeadsDialog
