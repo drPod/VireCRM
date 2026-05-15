@@ -10,13 +10,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { KeyRound, Copy, Loader2, Trash2, CheckCircle2 } from "lucide-react";
+import {
+  KeyRound,
+  Copy,
+  Loader2,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Play,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   createTestAccount,
   revokeTestAccount,
 } from "@/lib/test-account.functions";
 import { handleAuthError } from "@/lib/server-fn-auth";
+import { runAuditAs, type AuditCheck } from "@/lib/audit-runner";
 
 type Stored = { userId: string; email: string; password: string };
 
@@ -37,6 +46,8 @@ export function TestAccountButton() {
   const [creating, setCreating] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [account, setAccount] = useState<Stored | null>(null);
+  const [auditing, setAuditing] = useState(false);
+  const [auditResults, setAuditResults] = useState<AuditCheck[] | null>(null);
 
   const createFn = useServerFn(createTestAccount);
   const revokeFn = useServerFn(revokeTestAccount);
@@ -74,6 +85,23 @@ export function TestAccountButton() {
       toast.error(e instanceof Error ? e.message : "Failed to revoke account");
     } finally {
       setRevoking(false);
+    }
+  };
+
+  const onRunAudit = async () => {
+    if (!account) return;
+    setAuditing(true);
+    setAuditResults(null);
+    try {
+      const results = await runAuditAs(account.email, account.password);
+      setAuditResults(results);
+      const failed = results.filter((r) => r.status === "fail").length;
+      if (failed === 0) toast.success(`Audit passed (${results.length} checks)`);
+      else toast.error(`Audit: ${failed} of ${results.length} check(s) failed`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Audit crashed");
+    } finally {
+      setAuditing(false);
     }
   };
 
@@ -153,6 +181,77 @@ export function TestAccountButton() {
           <div className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
             No active test account. Click <strong>Generate</strong> to create
             one.
+          </div>
+        )}
+
+        {account && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-medium text-foreground">
+                Audit results
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={onRunAudit}
+                disabled={auditing}
+                className="gap-1.5"
+              >
+                {auditing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Running
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4" />
+                    Run audit
+                  </>
+                )}
+              </Button>
+            </div>
+            {auditResults && (
+              <div className="max-h-[40vh] space-y-1 overflow-y-auto rounded-md border border-border bg-card/40 p-2">
+                {auditResults.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-start gap-2 px-1.5 py-1 text-xs"
+                  >
+                    <div className="mt-0.5">
+                      {c.status === "pass" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 text-destructive" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground">
+                        {c.label}
+                      </div>
+                      {c.detail && (
+                        <div
+                          className={`mt-0.5 break-words ${
+                            c.status === "fail"
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {c.detail}
+                        </div>
+                      )}
+                    </div>
+                    <div className="tabular-nums text-muted-foreground">
+                      {c.ms}ms
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Audit signs in as the test account in an isolated client. Your
+              own session in this tab is preserved — no logout, no redirect.
+            </p>
           </div>
         )}
 
