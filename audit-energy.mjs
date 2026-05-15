@@ -14,6 +14,9 @@ if (cuErr) { console.error("createUser", cuErr); process.exit(1); }
 const { error: siErr } = await sb.auth.signInWithPassword({ email, password });
 if (siErr) { console.error("signin", siErr); process.exit(1); }
 console.log("Authed as", created.user.id);
+const { data: prof } = await sb.from("profiles").select("organization_id").eq("user_id", created.user.id).single();
+const orgId = prof.organization_id;
+console.log("org_id", orgId);
 
 const probes = [
   ["loa_requests", { status: "requested", customer_legal_name: "Audit Co", utility: "Oncor", service_address: "1 Test St", esi_id: "ESI1", notes: "audit" }],
