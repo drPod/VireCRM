@@ -121,15 +121,12 @@ function AppLayout() {
 
     let cancelled = false;
     void (async () => {
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await supabase.auth.getSession();
       if (cancelled) return;
       if (!data.session) {
         // Preserve the path (and query) the user was trying to reach so /login
         // can send them back after they sign in. Defaults to /dashboard.
-        const returnTo = safeReturnTo(
-          `${location.pathname}${location.search ?? ""}` || "/dashboard",
-        );
+        const returnTo = safeReturnTo(`${location.pathname}${location.searchStr || ""}` || "/dashboard");
         navigate({
           to: "/login",
           search: { redirect: returnTo } as never,
@@ -139,7 +136,7 @@ function AppLayout() {
     return () => {
       cancelled = true;
     };
-  }, [hydrated, loading, user, navigate, location.pathname, location.search]);
+  }, [hydrated, loading, user, navigate, location.pathname, location.searchStr]);
 
   // Hard entitlement gate: redirect to /billing when no active sub.
   // CRITICAL: only run AFTER user is known. If we redirect while user is still
