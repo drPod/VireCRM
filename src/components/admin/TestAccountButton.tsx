@@ -46,6 +46,8 @@ export function TestAccountButton() {
   const [creating, setCreating] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [account, setAccount] = useState<Stored | null>(null);
+  const [auditing, setAuditing] = useState(false);
+  const [auditResults, setAuditResults] = useState<AuditCheck[] | null>(null);
 
   const createFn = useServerFn(createTestAccount);
   const revokeFn = useServerFn(revokeTestAccount);
