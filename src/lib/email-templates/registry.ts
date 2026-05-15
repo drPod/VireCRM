@@ -19,6 +19,7 @@ import { template as contactAcknowledgment } from "./contact-acknowledgment";
 import { template as contactFollowupReminder } from "./contact-followup-reminder";
 import { template as teamInvite } from "./team-invite";
 import { template as creditLowBalance } from "./credit-low-balance";
+import { template as quoteProposal } from "./quote-proposal";
 
 /**
  * Template registry — maps template names to their React Email components.
@@ -35,4 +36,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   "contact-followup-reminder": contactFollowupReminder,
   "team-invite": teamInvite,
   "credit-low-balance": creditLowBalance,
+  "quote-proposal": quoteProposal,
 };

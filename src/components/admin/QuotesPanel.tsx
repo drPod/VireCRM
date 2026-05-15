@@ -58,6 +58,7 @@ import {
 import { Sparkles, Download } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { regenerateQuotePdf, getQuotePdfSignedUrl } from "@/lib/quote-pdf.functions";
+import { sendAdminQuoteEmail } from "@/lib/admin-quote-email.functions";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -263,6 +264,42 @@ export function QuotesPanel() {
 
   const regeneratePdfFn = useServerFn(regenerateQuotePdf);
   const getSignedPdfUrlFn = useServerFn(getQuotePdfSignedUrl);
+  const sendQuoteEmailFn = useServerFn(sendAdminQuoteEmail);
+
+  const sendQuoteEmail = async (q: Quote) => {
+    if (!q.recipient_email) {
+      toast.error("Add a recipient email before sending");
+      return;
+    }
+    const t = toast.loading(`Emailing proposal to ${q.recipient_email}…`);
+    try {
+      // Auto-generate PDF if missing so the link in the email is valid.
+      if (!q.pdf_url) {
+        toast.message("Generating proposal PDF…", { id: t });
+        await regeneratePdfFn({ data: { quoteId: q.id } });
+      }
+      const res = await sendQuoteEmailFn({ data: { quoteId: q.id } });
+      toast.dismiss(t);
+      if (!res.success) {
+        toast.error(
+          res.reason === "email_suppressed"
+            ? "Recipient is on the suppression list — email not sent."
+            : `Email blocked: ${res.reason ?? "unknown"}`,
+        );
+        return;
+      }
+      toast.success(
+        res.alreadySent
+          ? `Resent proposal to ${q.recipient_email}`
+          : `Proposal queued to ${q.recipient_email}`,
+      );
+      load();
+    } catch (e) {
+      toast.dismiss(t);
+      toast.error(e instanceof Error ? e.message : "Failed to send proposal email");
+    }
+  };
+
   const regeneratePdf = async (q: Quote) => {
     const t = toast.loading("Generating proposal PDF…");
     try {
@@ -441,9 +478,17 @@ export function QuotesPanel() {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
+                              {q.status !== "paid" && q.status !== "cancelled" && (
+                                <DropdownMenuItem onClick={() => sendQuoteEmail(q)}>
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  {q.status === "sent"
+                                    ? "Resend proposal email"
+                                    : "Send proposal email"}
+                                </DropdownMenuItem>
+                              )}
                               {q.status === "draft" && (
                                 <DropdownMenuItem onClick={() => updateStatus(q.id, "sent")}>
-                                  <Send className="mr-2 h-4 w-4" /> Mark as sent
+                                  <Send className="mr-2 h-4 w-4" /> Mark as sent (no email)
                                 </DropdownMenuItem>
                               )}
                               {q.status === "sent" && (
