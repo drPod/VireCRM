@@ -36,4 +36,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   "contact-followup-reminder": contactFollowupReminder,
   "team-invite": teamInvite,
   "credit-low-balance": creditLowBalance,
+  "quote-proposal": quoteProposal,
 };
