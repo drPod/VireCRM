@@ -79,16 +79,19 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
     const lineItems = (quote.line_items ?? []) as unknown as LineItem[];
     const totalFormatted = formatMoney(quote.total_cents, quote.currency);
 
-    // 5. Call the transactional send route. We forward the user's bearer
-    // token so it passes the auth check on /lovable/email/transactional/send.
-    // The route handles suppression + enqueue.
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const accessToken = session?.access_token;
+    // 5. Call the transactional send route. We re-use the caller's bearer
+    // token (already validated by requireSupabaseAuth) so the send route
+    // accepts the request and runs its suppression + enqueue logic.
+    const incoming = getRequest();
+    const accessToken = incoming?.headers
+      .get("authorization")
+      ?.replace(/^Bearer\s+/i, "")
+      .trim();
     if (!accessToken) throw new Error("Missing user session token");
 
+    const requestOrigin = incoming ? new URL(incoming.url).origin : null;
     const origin =
+      requestOrigin ||
       process.env.SITE_URL ||
       process.env.PUBLISHED_URL ||
       "https://genesisxsx.lovable.app";
