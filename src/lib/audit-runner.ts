@@ -114,10 +114,17 @@ export async function runAuditAs(
 
   for (const probe of PROBES) {
     await time(probe.id, probe.label, async () => {
-      const { error, count } = await client
-        .from(probe.table)
-        .select("*", { count: "exact", head: true });
-      if (error) throw error;
+      // Cast to any: PROBES intentionally enumerates many tables, which
+      // overwhelms the generated row-typing union otherwise.
+      const { error, count } = await (client.from as unknown as (
+        t: string,
+      ) => {
+        select: (
+          c: string,
+          o: { count: "exact"; head: true },
+        ) => Promise<{ error: { message: string } | null; count: number | null }>;
+      })(probe.table).select("*", { count: "exact", head: true });
+      if (error) throw new Error(error.message);
       return `${count ?? 0} row(s) visible via RLS`;
     });
   }

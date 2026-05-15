@@ -10,13 +10,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { KeyRound, Copy, Loader2, Trash2, CheckCircle2 } from "lucide-react";
+import {
+  KeyRound,
+  Copy,
+  Loader2,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Play,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   createTestAccount,
   revokeTestAccount,
 } from "@/lib/test-account.functions";
 import { handleAuthError } from "@/lib/server-fn-auth";
+import { runAuditAs, type AuditCheck } from "@/lib/audit-runner";
 
 type Stored = { userId: string; email: string; password: string };
 
