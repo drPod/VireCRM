@@ -49,8 +49,8 @@ export function TestAccountButton() {
   const [auditing, setAuditing] = useState(false);
   const [auditResults, setAuditResults] = useState<AuditCheck[] | null>(null);
 
-  const createFn = useServerFn(createTestAccount);
-  const revokeFn = useServerFn(revokeTestAccount);
+  const createFn = useAuthedServerFn(createTestAccount);
+  const revokeFn = useAuthedServerFn(revokeTestAccount);
 
   useEffect(() => {
     if (open) setAccount(readStored());
