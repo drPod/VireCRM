@@ -215,24 +215,26 @@ export function LeadCard({
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">Lead Score</span>
-        <div className="flex items-center gap-2">
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-xs text-muted-foreground shrink-0">Score</span>
           <ScoreBar score={lead.score} />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
           {canSendEmail && (
             <Button
               type="button"
               size="sm"
               variant="secondary"
-              className="h-7 px-2 text-xs gap-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation();
                 onSendEmail?.(lead);
               }}
               aria-label={`Send email to ${lead.name}`}
+              title="Send email"
             >
-              <Send className="h-3 w-3" />
-              Send email
+              <Send className="h-3.5 w-3.5" />
             </Button>
           )}
           {showDelete && (
@@ -242,11 +244,12 @@ export function LeadCard({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-9 w-9 sm:h-7 sm:w-7 p-0 border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  className="h-7 w-7 p-0 border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                   onClick={(e) => e.stopPropagation()}
                   aria-label={`Delete ${lead.name}`}
+                  title="Delete lead"
                 >
-                  <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent onClick={(e) => e.stopPropagation()}>
