@@ -88,6 +88,23 @@ export function TestAccountButton() {
     }
   };
 
+  const onRunAudit = async () => {
+    if (!account) return;
+    setAuditing(true);
+    setAuditResults(null);
+    try {
+      const results = await runAuditAs(account.email, account.password);
+      setAuditResults(results);
+      const failed = results.filter((r) => r.status === "fail").length;
+      if (failed === 0) toast.success(`Audit passed (${results.length} checks)`);
+      else toast.error(`Audit: ${failed} of ${results.length} check(s) failed`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Audit crashed");
+    } finally {
+      setAuditing(false);
+    }
+  };
+
   const copy = (label: string, value: string) => {
     navigator.clipboard.writeText(value).then(
       () => toast.success(`${label} copied`),
