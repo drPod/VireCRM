@@ -857,11 +857,19 @@ function LeadsPage() {
               }
               canDelete={isOwner || lead.createdBy === user?.id}
               onDelete={async (l, mode) => {
+                // Optimistic remove — the row disappears instantly. Restore on error.
+                const previousLeads = leads;
+                setLeads((prev) => prev.filter((x) => x.id !== l.id));
+                setSelectedLeadIds((prev) => prev.filter((id) => id !== l.id));
+                setTotalCount((c) => Math.max(0, c - 1));
+
                 const { data, error } = await supabase.rpc("delete_lead", {
                   p_lead_id: l.id,
                   p_mode: mode,
                 });
                 if (error) {
+                  setLeads(previousLeads);
+                  setTotalCount((c) => c + 1);
                   toast.error(mode === "hard" ? "Couldn't delete lead" : "Couldn't archive lead", {
                     description: error.message,
                   });
@@ -885,9 +893,6 @@ function LeadsPage() {
                     description: "Tasks, messages, and conversations were preserved.",
                   });
                 }
-                setLeads((prev) => prev.filter((x) => x.id !== l.id));
-                setSelectedLeadIds((prev) => prev.filter((id) => id !== l.id));
-                setTotalCount((c) => Math.max(0, c - 1));
                 notifyLeadsChanged();
               }}
               onClick={() => {
