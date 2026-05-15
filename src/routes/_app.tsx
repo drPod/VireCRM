@@ -121,7 +121,6 @@ function AppLayout() {
 
     let cancelled = false;
     void (async () => {
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await supabase.auth.getSession();
       if (cancelled) return;
       if (!data.session) {
