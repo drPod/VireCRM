@@ -10,7 +10,7 @@
  *   - Adding a new column = edit the `columns` array in the route file
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Loader2, Plus, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, Plus, Trash2, RefreshCw, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -27,6 +27,51 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { fromPostgrest, type EnergyFailure } from "@/lib/energy-error";
+
+function FailureBanner({ failure, onDismiss }: { failure: EnergyFailure; onDismiss?: () => void }) {
+  return (
+    <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-destructive font-semibold uppercase tracking-wide">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          {failure.operation} failed on {failure.table}
+        </div>
+        {onDismiss && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="text-destructive/70 hover:text-destructive"
+            aria-label="Dismiss error"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 font-mono text-[11px] text-destructive">
+        <span className="opacity-70">code</span>
+        <span>{failure.code}</span>
+        <span className="opacity-70">message</span>
+        <span className="break-words">{failure.message}</span>
+        {failure.details && (
+          <>
+            <span className="opacity-70">details</span>
+            <span className="break-words">{failure.details}</span>
+          </>
+        )}
+        {failure.hint && (
+          <>
+            <span className="opacity-70">hint</span>
+            <span className="break-words">{failure.hint}</span>
+          </>
+        )}
+      </div>
+      <div className="rounded bg-destructive/10 border border-destructive/20 p-2 text-destructive/90 leading-relaxed">
+        {failure.policyHint}
+      </div>
+    </div>
+  );
+}
 
 export type EnergyTableName =
   | "loa_requests"
@@ -105,13 +150,12 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [createFailure, setCreateFailure] = useState<EnergyFailure | null>(null);
+  const [pageFailure, setPageFailure] = useState<EnergyFailure | null>(null);
 
   const load = async () => {
     setLoading(true);
-    // Cast to `any` builder — supabase-js infers the union of all six table
-    // shapes, which makes `.eq("status", …)` invalid for tables that don't
-    // have a status column (e.g. energy_suppliers). Status filtering is
-    // opt-in via config.statusOptions, so this is runtime-safe.
+    setPageFailure(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let q: any = supabase
       .from(config.table)
@@ -123,6 +167,8 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
     }
     const { data, error } = await q;
     if (error) {
+      const failure = fromPostgrest(error, config.table, "select");
+      setPageFailure(failure);
       toast.error(`Failed to load ${config.title}: ${error.message}`);
     } else {
       setRows((data as Record<string, unknown>[]) ?? []);
@@ -136,11 +182,11 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
   }, [config.table, filter]);
 
   const handleCreate = async () => {
+    setCreateFailure(null);
     if (!profile?.organization_id) {
       toast.error("Missing organization context");
       return;
     }
-    // Required fields check
     for (const f of config.createFields) {
       if (f.required && !form[f.key]?.trim()) {
         toast.error(`${f.label} is required`);
@@ -153,7 +199,6 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
       ...config.defaults,
       ...Object.fromEntries(Object.entries(form).filter(([, v]) => v !== "" && v !== undefined)),
     };
-    // Coerce numbers/dates if the field declared the type
     for (const f of config.createFields) {
       const raw = form[f.key];
       if (raw === undefined || raw === "") continue;
@@ -162,6 +207,8 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
     const { error } = await supabase.from(config.table).insert(payload as never);
     setSaving(false);
     if (error) {
+      const failure = fromPostgrest(error, config.table, "insert");
+      setCreateFailure(failure);
       toast.error(`Could not create: ${error.message}`);
       return;
     }
@@ -175,6 +222,8 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
     if (!confirm("Delete this record? This cannot be undone.")) return;
     const { error } = await supabase.from(config.table).delete().eq("id", id);
     if (error) {
+      const failure = fromPostgrest(error, config.table, "delete");
+      setPageFailure(failure);
       toast.error(`Delete failed: ${error.message}`);
       return;
     }
@@ -196,7 +245,13 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
             <RefreshCw className="h-4 w-4 mr-1.5" />
             Refresh
           </Button>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog
+            open={open}
+            onOpenChange={(o) => {
+              setOpen(o);
+              if (!o) setCreateFailure(null);
+            }}
+          >
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-1.5" />
@@ -208,6 +263,12 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
                 <DialogTitle>Create {config.title.replace(/s$/, "")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-2">
+                {createFailure && (
+                  <FailureBanner
+                    failure={createFailure}
+                    onDismiss={() => setCreateFailure(null)}
+                  />
+                )}
                 {config.createFields.map((f) => (
                   <div key={f.key} className="space-y-1.5">
                     <Label htmlFor={f.key}>
@@ -237,6 +298,10 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
           </Dialog>
         </div>
       </header>
+
+      {pageFailure && (
+        <FailureBanner failure={pageFailure} onDismiss={() => setPageFailure(null)} />
+      )}
 
       {config.statusOptions && (
         <div className="flex flex-wrap gap-1.5">
