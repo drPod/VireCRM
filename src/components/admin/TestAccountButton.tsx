@@ -249,6 +249,53 @@ export function TestAccountButton() {
                           {c.detail}
                         </div>
                       )}
+                      {c.status === "fail" && c.failure && (
+                        <div className="mt-1.5 space-y-1 rounded border border-destructive/30 bg-destructive/5 p-2 font-mono text-[10.5px] leading-relaxed text-destructive/90">
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                            {c.failure.code && (
+                              <span>
+                                <span className="opacity-60">code:</span>{" "}
+                                {c.failure.code}
+                              </span>
+                            )}
+                            {c.failure.status !== undefined && (
+                              <span>
+                                <span className="opacity-60">http:</span>{" "}
+                                {c.failure.status}
+                              </span>
+                            )}
+                            {c.failure.table && (
+                              <span>
+                                <span className="opacity-60">table:</span>{" "}
+                                {c.failure.table}
+                              </span>
+                            )}
+                            {c.failure.operation && (
+                              <span>
+                                <span className="opacity-60">op:</span>{" "}
+                                {c.failure.operation}
+                              </span>
+                            )}
+                          </div>
+                          {c.failure.details && (
+                            <div>
+                              <span className="opacity-60">details:</span>{" "}
+                              {c.failure.details}
+                            </div>
+                          )}
+                          {c.failure.hint && (
+                            <div>
+                              <span className="opacity-60">hint:</span>{" "}
+                              {c.failure.hint}
+                            </div>
+                          )}
+                          {c.failure.policyHint && (
+                            <div className="mt-1 rounded bg-destructive/10 px-1.5 py-1 font-sans text-[11px] text-destructive">
+                              {c.failure.policyHint}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="tabular-nums text-muted-foreground">
                       {c.ms}ms
