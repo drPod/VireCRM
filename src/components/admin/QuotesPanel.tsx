@@ -478,9 +478,17 @@ export function QuotesPanel() {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
+                              {q.status !== "paid" && q.status !== "cancelled" && (
+                                <DropdownMenuItem onClick={() => sendQuoteEmail(q)}>
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  {q.status === "sent"
+                                    ? "Resend proposal email"
+                                    : "Send proposal email"}
+                                </DropdownMenuItem>
+                              )}
                               {q.status === "draft" && (
                                 <DropdownMenuItem onClick={() => updateStatus(q.id, "sent")}>
-                                  <Send className="mr-2 h-4 w-4" /> Mark as sent
+                                  <Send className="mr-2 h-4 w-4" /> Mark as sent (no email)
                                 </DropdownMenuItem>
                               )}
                               {q.status === "sent" && (
