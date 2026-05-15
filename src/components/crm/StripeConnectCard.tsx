@@ -51,11 +51,31 @@ export function StripeConnectCard() {
       },
     });
     setOpening(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || "Failed to open Stripe");
+    const payload = data as
+      | { url?: string; error?: string; code?: string; actionUrl?: string }
+      | null;
+    if (error || payload?.error) {
+      // Special case: the platform Stripe account hasn't enabled Connect yet.
+      // Give the owner a one-click path to fix it instead of a dead-end toast.
+      if (payload?.code === "stripe_connect_not_enabled" && payload.actionUrl) {
+        toast.error("Enable Stripe Connect first", {
+          description: payload.error,
+          duration: 12000,
+          action: {
+            label: "Open Stripe Connect",
+            onClick: () => window.open(payload.actionUrl!, "_blank", "noopener"),
+          },
+        });
+        return;
+      }
+      toast.error(payload?.error || error?.message || "Failed to open Stripe");
       return;
     }
-    window.open(data.url, "_blank", "noopener");
+    if (!payload?.url) {
+      toast.error("Stripe didn't return an onboarding link. Please try again.");
+      return;
+    }
+    window.open(payload.url, "_blank", "noopener");
     toast.message("Stripe onboarding opened in a new tab");
   };
 
