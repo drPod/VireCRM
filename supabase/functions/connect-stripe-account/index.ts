@@ -108,7 +108,29 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("connect-stripe-account error:", err);
-    return new Response(JSON.stringify({ error: (err as Error).message || "Failed" }), {
+    const raw = (err as { raw?: { message?: string } })?.raw?.message;
+    const message = raw || (err as Error).message || "Failed";
+
+    // Stripe Connect must be enabled on the platform account before we can
+    // create connected accounts. Detect this exact case and return an
+    // actionable hint instead of the raw Stripe blob.
+    const needsConnectSignup = /signed up for Connect/i.test(message);
+    if (needsConnectSignup) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Stripe Connect isn't enabled on your platform account yet. Open https://dashboard.stripe.com/connect, click 'Get started', complete the platform profile, then try again.",
+          code: "stripe_connect_not_enabled",
+          actionUrl: "https://dashboard.stripe.com/connect",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
