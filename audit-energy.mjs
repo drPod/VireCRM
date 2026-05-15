@@ -29,9 +29,9 @@ const probes = [
 ];
 
 const results = [];
-for (const [table, payload] of probes) {
+for (const [table, p] of probes) {
   const t0 = Date.now();
-  const { data, error } = await sb.from(table).insert(payload).select().single();
+  const payload = { ...p, organization_id: orgId }; const { data, error } = await sb.from(table).insert(payload).select().single();
   const ms = Date.now() - t0;
   if (error) {
     results.push({ table, ok: false, ms, code: error.code, message: error.message, details: error.details, hint: error.hint });
