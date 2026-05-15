@@ -3,14 +3,17 @@ import { createClient } from "@supabase/supabase-js";
 const URL = "https://mtcthkzvpfctjanehgdr.supabase.co";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10Y3Roa3p2cGZjdGphbmVoZ2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjA3NjUsImV4cCI6MjA5MTgzNjc2NX0.qk0BV7loi2eGNWtgLomMw8XtZB4gucMY45D-xFipQWw";
 
+const ADMIN = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const admin = createClient(URL, ADMIN, { auth: { persistSession: false } });
 const sb = createClient(URL, KEY, { auth: { persistSession: false } });
 
 const email = `audit+${Date.now()}@example.com`;
 const password = "AuditTest!2345";
-const { error: suErr } = await sb.auth.signUp({ email, password });
-if (suErr) { console.error("signup", suErr); process.exit(1); }
+const { data: created, error: cuErr } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+if (cuErr) { console.error("createUser", cuErr); process.exit(1); }
 const { error: siErr } = await sb.auth.signInWithPassword({ email, password });
 if (siErr) { console.error("signin", siErr); process.exit(1); }
+console.log("Authed as", created.user.id);
 
 const probes = [
   ["loa_requests", { status: "requested", customer_legal_name: "Audit Co", utility: "Oncor", service_address: "1 Test St", esi_id: "ESI1", notes: "audit" }],
