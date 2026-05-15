@@ -10,7 +10,7 @@
  *   - Adding a new column = edit the `columns` array in the route file
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Loader2, Plus, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, Plus, Trash2, RefreshCw, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -27,6 +27,51 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { fromPostgrest, type EnergyFailure } from "@/lib/energy-error";
+
+function FailureBanner({ failure, onDismiss }: { failure: EnergyFailure; onDismiss?: () => void }) {
+  return (
+    <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-destructive font-semibold uppercase tracking-wide">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          {failure.operation} failed on {failure.table}
+        </div>
+        {onDismiss && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="text-destructive/70 hover:text-destructive"
+            aria-label="Dismiss error"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 font-mono text-[11px] text-destructive">
+        <span className="opacity-70">code</span>
+        <span>{failure.code}</span>
+        <span className="opacity-70">message</span>
+        <span className="break-words">{failure.message}</span>
+        {failure.details && (
+          <>
+            <span className="opacity-70">details</span>
+            <span className="break-words">{failure.details}</span>
+          </>
+        )}
+        {failure.hint && (
+          <>
+            <span className="opacity-70">hint</span>
+            <span className="break-words">{failure.hint}</span>
+          </>
+        )}
+      </div>
+      <div className="rounded bg-destructive/10 border border-destructive/20 p-2 text-destructive/90 leading-relaxed">
+        {failure.policyHint}
+      </div>
+    </div>
+  );
+}
 
 export type EnergyTableName =
   | "loa_requests"
