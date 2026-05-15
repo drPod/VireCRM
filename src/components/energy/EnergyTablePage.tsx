@@ -150,13 +150,12 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [createFailure, setCreateFailure] = useState<EnergyFailure | null>(null);
+  const [pageFailure, setPageFailure] = useState<EnergyFailure | null>(null);
 
   const load = async () => {
     setLoading(true);
-    // Cast to `any` builder — supabase-js infers the union of all six table
-    // shapes, which makes `.eq("status", …)` invalid for tables that don't
-    // have a status column (e.g. energy_suppliers). Status filtering is
-    // opt-in via config.statusOptions, so this is runtime-safe.
+    setPageFailure(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let q: any = supabase
       .from(config.table)
@@ -168,6 +167,8 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
     }
     const { data, error } = await q;
     if (error) {
+      const failure = fromPostgrest(error, config.table, "select");
+      setPageFailure(failure);
       toast.error(`Failed to load ${config.title}: ${error.message}`);
     } else {
       setRows((data as Record<string, unknown>[]) ?? []);
@@ -181,11 +182,11 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
   }, [config.table, filter]);
 
   const handleCreate = async () => {
+    setCreateFailure(null);
     if (!profile?.organization_id) {
       toast.error("Missing organization context");
       return;
     }
-    // Required fields check
     for (const f of config.createFields) {
       if (f.required && !form[f.key]?.trim()) {
         toast.error(`${f.label} is required`);
@@ -198,7 +199,6 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
       ...config.defaults,
       ...Object.fromEntries(Object.entries(form).filter(([, v]) => v !== "" && v !== undefined)),
     };
-    // Coerce numbers/dates if the field declared the type
     for (const f of config.createFields) {
       const raw = form[f.key];
       if (raw === undefined || raw === "") continue;
@@ -207,6 +207,8 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
     const { error } = await supabase.from(config.table).insert(payload as never);
     setSaving(false);
     if (error) {
+      const failure = fromPostgrest(error, config.table, "insert");
+      setCreateFailure(failure);
       toast.error(`Could not create: ${error.message}`);
       return;
     }
@@ -220,6 +222,8 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
     if (!confirm("Delete this record? This cannot be undone.")) return;
     const { error } = await supabase.from(config.table).delete().eq("id", id);
     if (error) {
+      const failure = fromPostgrest(error, config.table, "delete");
+      setPageFailure(failure);
       toast.error(`Delete failed: ${error.message}`);
       return;
     }
@@ -241,7 +245,13 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
             <RefreshCw className="h-4 w-4 mr-1.5" />
             Refresh
           </Button>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog
+            open={open}
+            onOpenChange={(o) => {
+              setOpen(o);
+              if (!o) setCreateFailure(null);
+            }}
+          >
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-1.5" />
@@ -253,6 +263,12 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
                 <DialogTitle>Create {config.title.replace(/s$/, "")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-2">
+                {createFailure && (
+                  <FailureBanner
+                    failure={createFailure}
+                    onDismiss={() => setCreateFailure(null)}
+                  />
+                )}
                 {config.createFields.map((f) => (
                   <div key={f.key} className="space-y-1.5">
                     <Label htmlFor={f.key}>
@@ -282,6 +298,10 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
           </Dialog>
         </div>
       </header>
+
+      {pageFailure && (
+        <FailureBanner failure={pageFailure} onDismiss={() => setPageFailure(null)} />
+      )}
 
       {config.statusOptions && (
         <div className="flex flex-wrap gap-1.5">
