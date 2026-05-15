@@ -184,6 +184,77 @@ export function TestAccountButton() {
           </div>
         )}
 
+        {account && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-medium text-foreground">
+                Audit results
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={onRunAudit}
+                disabled={auditing}
+                className="gap-1.5"
+              >
+                {auditing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Running
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4" />
+                    Run audit
+                  </>
+                )}
+              </Button>
+            </div>
+            {auditResults && (
+              <div className="max-h-[40vh] space-y-1 overflow-y-auto rounded-md border border-border bg-card/40 p-2">
+                {auditResults.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-start gap-2 px-1.5 py-1 text-xs"
+                  >
+                    <div className="mt-0.5">
+                      {c.status === "pass" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 text-destructive" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground">
+                        {c.label}
+                      </div>
+                      {c.detail && (
+                        <div
+                          className={`mt-0.5 break-words ${
+                            c.status === "fail"
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {c.detail}
+                        </div>
+                      )}
+                    </div>
+                    <div className="tabular-nums text-muted-foreground">
+                      {c.ms}ms
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Audit signs in as the test account in an isolated client. Your
+              own session in this tab is preserved — no logout, no redirect.
+            </p>
+          </div>
+        )}
+
         <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between">
           {account ? (
             <Button
