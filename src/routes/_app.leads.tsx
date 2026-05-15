@@ -442,22 +442,40 @@ function LeadsPage() {
   const runBulkDelete = async (mode: "soft" | "hard") => {
     if (selectedLeadIds.length === 0) return;
     setBulkDeleting(true);
-    let success = 0;
-    const failures: string[] = [];
-    for (const id of selectedLeadIds) {
-      const { error } = await supabase.rpc("delete_lead", { p_lead_id: id, p_mode: mode });
-      if (error) failures.push(error.message);
-      else success += 1;
-    }
-    setBulkDeleting(false);
+    const ids = [...selectedLeadIds];
+
+    // Optimistic UI: remove rows immediately so the list feels instant.
+    // We re-add any that fail below.
+    const previousLeads = leads;
+    const previousCount = totalCount;
+    setLeads((prev) => prev.filter((l) => !ids.includes(l.id)));
+    setTotalCount((c) => Math.max(0, c - ids.length));
     setBulkDeleteOpen(false);
+    handleClearSelection();
+
+    // Fire all deletes in parallel instead of awaiting one at a time —
+    // a 50-lead bulk delete drops from ~50× round-trips to ~1× round-trip.
+    const results = await Promise.all(
+      ids.map((id) =>
+        supabase
+          .rpc("delete_lead", { p_lead_id: id, p_mode: mode })
+          .then(({ error }) => ({ id, error })),
+      ),
+    );
+    const failures = results.filter((r) => r.error).map((r) => r.error!.message);
+    const success = results.length - failures.length;
+    setBulkDeleting(false);
+
     if (success > 0) {
       const verb = mode === "hard" ? "Deleted" : "Archived";
       toast.success(`${verb} ${success} lead${success === 1 ? "" : "s"}`);
-      setLeads((prev) => prev.filter((l) => !selectedLeadIds.includes(l.id)));
-      setTotalCount((c) => Math.max(0, c - success));
-      handleClearSelection();
       notifyLeadsChanged();
+    }
+    if (failures.length > 0) {
+      // Roll back the rows that didn't actually delete.
+      const failedIds = new Set(results.filter((r) => r.error).map((r) => r.id));
+      setLeads(previousLeads.filter((l) => !ids.includes(l.id) || failedIds.has(l.id)));
+      setTotalCount(previousCount - success);
     }
     if (failures.length > 0) {
       toast.error(`${failures.length} lead${failures.length === 1 ? "" : "s"} failed`, {
