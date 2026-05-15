@@ -38,7 +38,7 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof inputSchema>) => inputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { userId, supabase } = context;
+    const { userId } = context;
 
     // 1. Platform-admin gate
     const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", { p_user_id: userId });
