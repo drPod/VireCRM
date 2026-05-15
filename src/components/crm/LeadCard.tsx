@@ -117,10 +117,10 @@ export function LeadCard({
         selected ? "border-primary bg-primary/5" : "border-border bg-card"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-2">
         {selectable && (
           <div
-            className="pt-0.5"
+            className="pt-0.5 shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               onSelectedChange?.(!selected);
@@ -134,12 +134,18 @@ export function LeadCard({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h4 className="truncate text-sm font-semibold text-foreground">{lead.name}</h4>
-          {lead.company && <p className="text-xs text-muted-foreground">{lead.company}</p>}
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="truncate text-sm font-semibold text-foreground min-w-0 flex-1">
+              {lead.name}
+            </h4>
+            <Badge variant={status.variant} className="shrink-0">
+              {status.label}
+            </Badge>
+          </div>
+          {lead.company && (
+            <p className="truncate text-xs text-muted-foreground mt-0.5">{lead.company}</p>
+          )}
         </div>
-        <Badge variant={status.variant} className="ml-2 shrink-0">
-          {status.label}
-        </Badge>
       </div>
 
       <div className="mt-3 space-y-1.5">
