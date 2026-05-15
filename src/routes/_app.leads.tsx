@@ -38,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { notifyLeadsChanged, onLeadsChanged } from "@/lib/leads-events";
+import { deleteLeadWithRetry } from "@/lib/delete-lead-retry";
 import { toast } from "sonner";
 
 type LeadsAction = "add" | "import" | "auto-find";
@@ -453,34 +454,47 @@ function LeadsPage() {
     setBulkDeleteOpen(false);
     handleClearSelection();
 
-    // Fire all deletes in parallel instead of awaiting one at a time —
-    // a 50-lead bulk delete drops from ~50× round-trips to ~1× round-trip.
+    // Fire all deletes in parallel. Each one auto-retries with exponential
+    // backoff (300ms, 900ms) on transient failures — fatal errors like
+    // permission-denied / not-found short-circuit immediately.
+    const nameById = new Map(previousLeads.map((l) => [l.id, l.name]));
     const results = await Promise.all(
-      ids.map((id) =>
-        supabase
-          .rpc("delete_lead", { p_lead_id: id, p_mode: mode })
-          .then(({ error }) => ({ id, error })),
-      ),
+      ids.map((id) => deleteLeadWithRetry(id, mode)),
     );
-    const failures = results.filter((r) => r.error).map((r) => r.error!.message);
-    const success = results.length - failures.length;
+    const failed = results.filter((r) => r.error);
+    const success = results.length - failed.length;
+    const retried = results.filter((r) => !r.error && r.attempts > 1).length;
     setBulkDeleting(false);
 
     if (success > 0) {
       const verb = mode === "hard" ? "Deleted" : "Archived";
-      toast.success(`${verb} ${success} lead${success === 1 ? "" : "s"}`);
+      toast.success(`${verb} ${success} lead${success === 1 ? "" : "s"}`, {
+        description:
+          retried > 0
+            ? `${retried} succeeded after a retry.`
+            : undefined,
+      });
       notifyLeadsChanged();
     }
-    if (failures.length > 0) {
+    if (failed.length > 0) {
       // Roll back the rows that didn't actually delete.
-      const failedIds = new Set(results.filter((r) => r.error).map((r) => r.id));
+      const failedIds = new Set(failed.map((r) => r.id));
       setLeads(previousLeads.filter((l) => !ids.includes(l.id) || failedIds.has(l.id)));
       setTotalCount(previousCount - success);
-    }
-    if (failures.length > 0) {
-      toast.error(`${failures.length} lead${failures.length === 1 ? "" : "s"} failed`, {
-        description: failures[0],
-      });
+
+      const failedNames = failed
+        .map((r) => nameById.get(r.id) ?? r.id)
+        .slice(0, 5);
+      const more = failed.length - failedNames.length;
+      const list = failedNames.join(", ") + (more > 0 ? ` +${more} more` : "");
+      const firstMsg = failed[0].error?.message ?? "Unknown error";
+      toast.error(
+        `${failed.length} lead${failed.length === 1 ? "" : "s"} failed after retries`,
+        {
+          description: `${list} — ${firstMsg}`,
+          duration: 10000,
+        },
+      );
     }
   };
 
@@ -863,18 +877,20 @@ function LeadsPage() {
                 setSelectedLeadIds((prev) => prev.filter((id) => id !== l.id));
                 setTotalCount((c) => Math.max(0, c - 1));
 
-                const { data, error } = await supabase.rpc("delete_lead", {
-                  p_lead_id: l.id,
-                  p_mode: mode,
-                });
+                const { data, error, attempts } = await deleteLeadWithRetry(l.id, mode);
                 if (error) {
                   setLeads(previousLeads);
                   setTotalCount((c) => c + 1);
-                  toast.error(mode === "hard" ? "Couldn't delete lead" : "Couldn't archive lead", {
-                    description: error.message,
-                  });
+                  toast.error(
+                    mode === "hard" ? "Couldn't delete lead" : "Couldn't archive lead",
+                    {
+                      description: `${l.name} — ${error.message} (after ${attempts} attempt${attempts === 1 ? "" : "s"})`,
+                      duration: 10000,
+                    },
+                  );
                   return;
                 }
+                const retryNote = attempts > 1 ? ` (succeeded on attempt ${attempts})` : "";
                 if (mode === "hard") {
                   const removed = (data as { removed?: Record<string, number> } | null)?.removed;
                   const counts = removed
@@ -883,13 +899,13 @@ function LeadsPage() {
                         .map(([k, n]) => `${n} ${k.replace(/_/g, " ")}`)
                         .join(", ")
                     : "";
-                  toast.success(`Deleted ${l.name}`, {
+                  toast.success(`Deleted ${l.name}${retryNote}`, {
                     description: counts
                       ? `Also removed ${counts}.`
                       : "No related records to remove.",
                   });
                 } else {
-                  toast.success(`Archived ${l.name}`, {
+                  toast.success(`Archived ${l.name}${retryNote}`, {
                     description: "Tasks, messages, and conversations were preserved.",
                   });
                 }
