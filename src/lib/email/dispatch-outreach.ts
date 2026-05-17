@@ -23,7 +23,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 // Must match the constants baked into the transactional send route.
 const SITE_NAME = "Genesis";
 const SENDER_DOMAIN = "notify.vireonx.space";
-const FROM_DOMAIN = "vireonx.space";
+const FROM_DOMAIN = "notify.vireonx.space";
 
 function generateToken(): string {
   const bytes = new Uint8Array(32);

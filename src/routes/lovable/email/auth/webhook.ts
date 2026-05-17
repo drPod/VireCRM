@@ -34,7 +34,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 const SITE_NAME = "Genesis";
 const SENDER_DOMAIN = "notify.vireonx.space";
 const ROOT_DOMAIN = "vireonx.space";
-const FROM_DOMAIN = "vireonx.space";
+const FROM_DOMAIN = "notify.vireonx.space";
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return "***";

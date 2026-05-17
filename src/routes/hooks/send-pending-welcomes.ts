@@ -7,7 +7,7 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 // Match the constants used by the transactional send route.
 const SITE_NAME = "Genesis";
 const SENDER_DOMAIN = "notify.vireonx.space";
-const FROM_DOMAIN = "vireonx.space";
+const FROM_DOMAIN = "notify.vireonx.space";
 
 const TEMPLATE_NAME = "client-welcome";
 const MAX_ATTEMPTS = 5;

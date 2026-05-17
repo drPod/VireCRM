@@ -16,7 +16,7 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
 const SENDER_DOMAIN = "notify.vireonx.space";
-const FROM_DOMAIN = "vireonx.space";
+const FROM_DOMAIN = "notify.vireonx.space";
 const FROM_DISPLAY_NAME = "Genesis Billing";
 
 const BodySchema = z.object({
