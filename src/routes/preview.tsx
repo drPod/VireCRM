@@ -44,6 +44,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import {
   isAllowed,
@@ -434,10 +440,25 @@ function CrmPreviewPage() {
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
               </Button>
-              <Button variant="command" size="sm" className="gap-1.5" aria-disabled="true">
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">New Lead</span>
-              </Button>
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="command"
+                      size="sm"
+                      className="gap-1.5 cursor-not-allowed opacity-70"
+                      aria-disabled="true"
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">New Lead</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Sign up to create leads in your own workspace.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 

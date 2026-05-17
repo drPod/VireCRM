@@ -312,10 +312,19 @@ function SignupPage() {
               size="lg"
               className="w-full"
               disabled={loading || googleLoading || !acceptedTerms}
+              aria-describedby={!acceptedTerms ? "signup-terms-hint" : undefined}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create account
             </Button>
+            {!acceptedTerms && (
+              <p
+                id="signup-terms-hint"
+                className="text-center text-xs text-muted-foreground"
+              >
+                Accept the Terms &amp; No-Refund policy above to continue.
+              </p>
+            )}
           </form>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
