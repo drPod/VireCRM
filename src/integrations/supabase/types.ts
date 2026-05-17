@@ -4771,42 +4771,54 @@ export type Database = {
       }
       workflow_runs: {
         Row: {
+          attempts: number
           created_at: string
           error: string | null
           finished_at: string | null
           id: string
           lead_id: string | null
+          next_attempt_at: string | null
           organization_id: string
           paused_until: string | null
+          resume_node_id: string | null
           started_at: string | null
           status: string
           triggered_by: string
+          visited_node_ids: string[]
           workflow_id: string
         }
         Insert: {
+          attempts?: number
           created_at?: string
           error?: string | null
           finished_at?: string | null
           id?: string
           lead_id?: string | null
+          next_attempt_at?: string | null
           organization_id: string
           paused_until?: string | null
+          resume_node_id?: string | null
           started_at?: string | null
           status?: string
           triggered_by?: string
+          visited_node_ids?: string[]
           workflow_id: string
         }
         Update: {
+          attempts?: number
           created_at?: string
           error?: string | null
           finished_at?: string | null
           id?: string
           lead_id?: string | null
+          next_attempt_at?: string | null
           organization_id?: string
           paused_until?: string | null
+          resume_node_id?: string | null
           started_at?: string | null
           status?: string
           triggered_by?: string
+          visited_node_ids?: string[]
           workflow_id?: string
         }
         Relationships: [

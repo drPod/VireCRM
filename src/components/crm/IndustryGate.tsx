@@ -1,15 +1,11 @@
 /**
  * IndustryGate — presentational gate for vertical CRM routes.
  *
- * The sidebar already hides vertical sections when the org's
- * `industry_template` doesn't match. But routes themselves render full
- * (Energy / Solar / Real Estate / Insurance / Gym) regardless, so deep
- * links and stale bookmarks leak vertical-specific UI to workspaces on
- * a different template.
- *
- * Wrap each vertical route component with `<IndustryGate industry="energy">…`
- * to short-circuit the render and show a graceful empty state instead of
- * a hard redirect. Loaders and head meta are untouched on purpose.
+ * The sidebar shows ALL vertical sections (so customers can discover the
+ * verticals exist), but only the active template's section is styled active.
+ * Clicking a muted vertical routes into its pages — and this gate catches
+ * the mismatch, showing an empty state that links the owner straight to the
+ * `/settings` industry picker. Loaders and head meta are untouched on purpose.
  */
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -29,7 +25,7 @@ interface IndustryGateProps {
 }
 
 export function IndustryGate({ industry, children }: IndustryGateProps) {
-  const { organization, loading } = useAuth();
+  const { organization, role, loading } = useAuth();
 
   // While the auth context is hydrating we can't know the org's industry
   // yet. Render nothing rather than flashing the empty state — the parent
@@ -41,6 +37,7 @@ export function IndustryGate({ industry, children }: IndustryGateProps) {
 
   const gateTemplate = INDUSTRY_TEMPLATES[industry];
   const activeTemplate = getTemplate(orgIndustry);
+  const isOwner = role?.role === "owner";
 
   return (
     <div className="container mx-auto p-6">
@@ -59,8 +56,10 @@ export function IndustryGate({ industry, children }: IndustryGateProps) {
           <p className="text-sm text-muted-foreground">
             This workspace is set to <strong>{activeTemplate.name}</strong>{" "}
             industry. {gateTemplate.name}-specific modules only appear for
-            workspaces using the {gateTemplate.name} template. Ask your
-            platform admin to switch the industry.
+            workspaces using the {gateTemplate.name} template.
+            {isOwner
+              ? " Switch the industry from Settings → Industry."
+              : " Ask your organization owner to switch the industry from Settings → Industry."}
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <Link to="/dashboard">
@@ -69,10 +68,12 @@ export function IndustryGate({ industry, children }: IndustryGateProps) {
               </Button>
             </Link>
             <Link
-              to="/admin"
+              to="/settings"
+              search={{ tab: "industry" }}
+              hash="industry"
               className="text-sm text-primary underline-offset-4 hover:underline"
             >
-              Contact platform admin
+              {isOwner ? "Open industry settings" : "View industry settings"}
             </Link>
           </div>
         </CardContent>

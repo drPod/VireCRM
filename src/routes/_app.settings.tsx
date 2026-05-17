@@ -12,15 +12,27 @@ import { N8nWebhookSettings } from "@/components/crm/N8nWebhookSettings";
 import { OutreachTemplatesManager } from "@/components/crm/OutreachTemplatesManager";
 import { StripeConnectCard } from "@/components/crm/StripeConnectCard";
 import { IndustryTemplatePanel } from "@/components/onboarding/IndustryTemplatePanel";
+import { IndustryTemplatePicker } from "@/components/onboarding/IndustryTemplatePicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard } from "lucide-react";
+import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard, Sparkles } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 
 // Tab keys mirror the TabsTrigger `value` attrs below. Kept in sync manually
 // so the URL ?tab= param can deep-link straight to a section (e.g. Publish in
-// Settings → ?tab=branding from the branding preview page).
-const TAB_KEYS = ["team", "roles", "branding", "emails", "outreach", "payments", "integrations", "admin"] as const;
+// Settings → ?tab=branding from the branding preview page, or the
+// IndustryGate empty state → ?tab=industry).
+const TAB_KEYS = [
+  "team",
+  "roles",
+  "branding",
+  "industry",
+  "emails",
+  "outreach",
+  "payments",
+  "integrations",
+  "admin",
+] as const;
 
 const settingsSearchSchema = z.object({
   tab: z.enum(TAB_KEYS).optional(),
@@ -77,6 +89,10 @@ function SettingsPage() {
             <Palette className="h-4 w-4" />
             White-Label
           </TabsTrigger>
+          <TabsTrigger value="industry" className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Industry
+          </TabsTrigger>
           <TabsTrigger value="emails" className="gap-2">
             <Mail className="h-4 w-4" />
             Emails
@@ -111,6 +127,10 @@ function SettingsPage() {
         <TabsContent value="branding" className="space-y-6">
           {isPlatformAdmin && <IndustryTemplatePanel />}
           <WhiteLabelSettings />
+        </TabsContent>
+
+        <TabsContent value="industry" className="space-y-6">
+          <IndustryTemplatePicker />
         </TabsContent>
 
         <TabsContent value="emails" className="space-y-6">
