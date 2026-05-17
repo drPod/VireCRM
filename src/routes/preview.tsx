@@ -978,7 +978,7 @@ function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTourProps
       {spot && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute rounded-xl ring-2 ring-primary/80 shadow-[0_0_0_4px_rgba(168,85,247,0.18),0_0_36px_rgba(168,85,247,0.45)] transition-all duration-300"
+          className="pointer-events-none absolute rounded-xl ring-2 ring-primary/80 shadow-[0_0_0_4px_rgba(168,85,247,0.18),0_0_36px_rgba(168,85,247,0.45)] transition-[top,left,width,height] duration-300"
           style={{
             top: spot.top,
             left: spot.left,
@@ -1024,7 +1024,7 @@ function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTourProps
           {steps.map((_, i) => (
             <span
               key={i}
-              className={`h-1.5 rounded-full transition-all ${
+              className={`h-1.5 rounded-full transition-[width,background-color] ${
                 i === currentStep ? "w-6 bg-primary" : "w-1.5 bg-muted"
               }`}
             />

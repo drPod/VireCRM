@@ -49,7 +49,9 @@ export function SocialProofSection() {
         <div className="mt-16 grid gap-6 md:grid-cols-3">
           {testimonials.map((t) => (
             <div key={t.name} className="rounded-xl border border-border bg-card p-6">
-              <p className="text-sm leading-relaxed text-muted-foreground">"{t.quote}"</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                &ldquo;{t.quote}&rdquo;
+              </p>
               <div className="mt-4 border-t border-border pt-4">
                 <p className="text-sm font-semibold text-foreground">{t.name}</p>
                 <p className="text-xs text-muted-foreground">{t.title}</p>

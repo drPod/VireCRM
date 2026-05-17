@@ -1082,3 +1082,29 @@ Only two pg_cron jobs exist in the linked project: `drain-workflow-queue` (added
 
 Each needs its own pg_cron migration on the same `vault.decrypted_secrets.cron_secret` pattern. Email queue is probably the most pressing — without a scheduled drain, any post-contact-form ack to the visitor sits in `transactional_emails` until something else triggers a drain.
 
+
+---
+
+## Frontend audit follow-ups 2026-05-17 evening
+
+Picked up from prior frontend audit checklist. Caveman log of what shipped + what's outstanding.
+
+### Shipped this pass
+
+| Commit | What |
+|---|---|
+| `2dbc9d2` | A11y + DX sweep: 15 `<Link><Button>` → `<Button asChild><Link>` across CRM/auth surfaces; shared `RouteError` component, dedupe 5 inline error fns, reshape router `defaultErrorComponent` so sidebar persists on child-route errors; key={i} → stable keys on admin line-items, billing/clients features, dashboard plan warnings + task results, command-chat results, analytics weekly trend, qa-checklist steps, advisor audit log, lead score signals, ICP pain/buying signals, won-deals weeks; `th scope="col"` on clients + clients.payouts tables; prod `console.log` gated behind `import.meta.env.DEV` in email/payout worker handlers. |
+| `871a49b` | `ConfirmProvider` + `useConfirm` hook (promise-based confirm + prompt) backed by shadcn `AlertDialog`; mounted in `__root.tsx`. Migrated 12 destructive-action sites off `window.confirm`/`window.prompt`: 7 admin (org plan assign/remove, invoice void/refund/resend, submission plan ops) + 5 in `ResendSettingsCard` / `PlatformAdminPanel` / `OrgFeaturesPanel` / `PlatformAdminsPanel`. |
+| `e41e5f2` | A11y: every input in `AddLeadDialog` gets matching `<label htmlFor>`, stable `id`, `name`, `autoComplete`, `inputMode`, `aria-required` on Name; custom-fields list now keyed by stable UUID so add/remove doesn't reuse indices; sr-only labels on custom-field inputs. PipelineView: every card exposes a focus-reachable "Move to" `DropdownMenu` listing all 6 stages — keyboard parity with drag-drop. Mutation extracted into `moveLeadToStage()` shared between drag + menu paths so optimistic update + revert stays in one place. |
+| `cccdaa8` | Loading skeletons replace centered spinners: `LoadingShell` in `_app.tsx` now renders sidebar rail + content placeholder (no width shift at hydration); `_app.leads.tsx` 6-card grid skeleton; `_app.analytics.tsx` header + metric grid + panel skeletons matching loaded layout. All carry `role=status` + `aria-live=polite` + `aria-busy`. |
+| _pending_ | Marketing polish: `transition-all` → property-scoped on MarketingHeader logo (`box-shadow,transform`), MarketingFooter logo (same), preview tour spotlight (`top,left,width,height`), tour progress dots (`width,background-color`). Curly quotes on `SocialProofSection` testimonial wrappers. |
+
+### Still outstanding (next session)
+
+- **OG social card asset.** `src/routes/__root.tsx:73-77` `og:image` + `twitter:image` both point at `/genesis-logo.png` (square logo). Twitter `summary_large_image` + Facebook OG expect a 1200×630 landscape composition. Need an actual social card created (logo + tagline + brand gradient) and committed at e.g. `public/og-card.png`, then both meta values updated. Pure design task — not just a code swap.
+- **CF Workers custom-domain infra** (blocker, not frontend). `wrangler.jsonc` still has no `routes` and `src/lib/dns-check.ts:6` still hardcodes `REQUIRED_A_VALUE = "185.158.133.1"` (dead Lovable IP). Customer DNS onboarding broken end-to-end. Needs CF for SaaS fallback origin OR routes provisioning + DNS-check rewrite (A → CNAME lookup). Platform decision must precede the UI string swap.
+- **Appointments availability windows** (`_app.appointments.tsx:611-647`) — `key={i}` deliberately kept. Window objects have no stable id; using compound `${day}-${i}` works for in-place edits but on remove-middle the React state for subsequent rows is "reused" with new values. Proper fix is to add a stable id to the `Availability` data shape (migration + type change), out-of-scope this pass.
+- **AddLeadDialog** moved its custom-fields list to UUID keys this pass, so that line of the audit's `key={i}` list is closed.
+- **Other `key={i}` sites left alone on purpose** — all skeleton/placeholder grids (`ActivityFeed`, `PasswordStrengthMeter`, `EmailTemplatePreviewPanel`) and email templates (server-rendered, no React diffing). Audit was overzealous.
+- **`/lovable/email/*` route rename to `/api/email/*`** — cosmetic, ~2 routes + 3 callers + `routeTree.gen.ts`. Deliberately deferred.
+
