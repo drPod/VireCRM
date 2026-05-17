@@ -23,9 +23,14 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getTemplate } from "@/lib/industry-templates";
+import { IndustryGate } from "@/components/crm/IndustryGate";
 
 export const Route = createFileRoute("/_app/energy")({
-  component: EnergyHub,
+  component: () => (
+    <IndustryGate industry="energy">
+      <EnergyHub />
+    </IndustryGate>
+  ),
   head: () => ({
     meta: [{ title: "Energy CRM — Genesis" }],
   }),

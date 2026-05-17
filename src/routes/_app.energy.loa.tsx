@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { EnergyTablePage, type EnergyTableConfig } from "@/components/energy/EnergyTablePage";
+import { IndustryGate } from "@/components/crm/IndustryGate";
 
 const config: EnergyTableConfig = {
   table: "loa_requests",
@@ -35,7 +36,11 @@ const config: EnergyTableConfig = {
 };
 
 export const Route = createFileRoute("/_app/energy/loa")({
-  component: () => <EnergyTablePage config={config} />,
+  component: () => (
+    <IndustryGate industry="energy">
+      <EnergyTablePage config={config} />
+    </IndustryGate>
+  ),
   head: () => ({
     meta: [{ title: "Energy LOA Requests — Genesis" }],
   }),

@@ -10,9 +10,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { IndustryGate } from "@/components/crm/IndustryGate";
 
 export const Route = createFileRoute("/_app/gym")({
-  component: GymDashboard,
+  component: () => (
+    <IndustryGate industry="gym">
+      <GymDashboard />
+    </IndustryGate>
+  ),
 });
 
 interface Health {

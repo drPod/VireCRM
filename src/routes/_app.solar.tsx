@@ -13,6 +13,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { getTemplate, type IndustryKey } from "@/lib/industry-templates";
 import { bucketLeadsByStage } from "@/lib/pipeline-counts";
 import { Button } from "@/components/ui/button";
+import { IndustryGate } from "@/components/crm/IndustryGate";
 
 export interface IndustryHubProps {
   industry: IndustryKey;
@@ -128,5 +129,9 @@ export function IndustryHub({ industry }: IndustryHubProps) {
 }
 
 export const Route = createFileRoute("/_app/solar")({
-  component: () => <IndustryHub industry="solar" />,
+  component: () => (
+    <IndustryGate industry="solar">
+      <IndustryHub industry="solar" />
+    </IndustryGate>
+  ),
 });

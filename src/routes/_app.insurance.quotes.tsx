@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { EnergyTablePage, type EnergyTableConfig } from "@/components/energy/EnergyTablePage";
+import { IndustryGate } from "@/components/crm/IndustryGate";
 
 const config: EnergyTableConfig = {
   table: "insurance_quotes",
@@ -23,5 +24,9 @@ const config: EnergyTableConfig = {
 };
 
 export const Route = createFileRoute("/_app/insurance/quotes")({
-  component: () => <EnergyTablePage config={config} />,
+  component: () => (
+    <IndustryGate industry="insurance">
+      <EnergyTablePage config={config} />
+    </IndustryGate>
+  ),
 });
