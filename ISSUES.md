@@ -6,6 +6,39 @@ Last scan: 2026-05-17. Source: agent-browser tour of `/` marketing + source-tree
 
 ---
 
+## Fixes shipped 2026-05-17 (orchestrator session)
+
+All deployed to prod (Supabase project `coynbufhejaeuifpvmvw` + Vercel `genesisxsx.vercel.app`). Migrations applied via `supabase db push`; edge fns deployed via `supabase functions deploy`.
+
+| Commit | What |
+|---|---|
+| `9f629f8` | Captcha required on `/api/public/contact` (was `.optional()` → bypassable by omission). Tier-sim buttons on dashboard gated behind `import.meta.env.DEV`. Migration `20260517133315_lock_down_security_definer_funcs.sql` REVOKEs EXECUTE on 60+ SECURITY DEFINER fns from anon/public (135 → ~41 WARN advisors). |
+| `9da5486` | 17 edge fns migrated `corsHeaders` → `buildCorsHeaders(req)`; `vercel.app` + `.vercel.app` added to `ALLOWED_ORIGIN_SUFFIXES`. Verified live: OPTIONS returns 200 for `genesisxsx.vercel.app` + `localhost:8080`. |
+| `a2b7aa8` | 13 routes given proper `head` meta titles (`/unsubscribe`, `/sequences`, `/followup-inbox`, `/academy*`, `/energy*`); 404 page sets title; `/campaigns/analytics` deleted (was duplicate); `/settings` accepts `?tab=` search param + `/settings/branding-preview` "Publish" routes to White-Label tab; `/billing` Lifetime renewal row reads "Never"; `scripts/restart-dev.sh` + CLAUDE.md note for stale-env Vite gotcha. |
+| `449b7bc` | Mobile drawer in `MarketingHeader` rewritten on top of Radix `Sheet` — portal, scrim, body scroll lock, `role=dialog`, focus trap. Drawer CTAs split into outline + filled-primary for hierarchy. |
+| `ddbec7d` | `/checkout/return` no longer flips to success after 30s timeout when `hasAccess` still false — new failure card w/ "Retry activation check" + "Contact support" + visible session_id. Plan label on dashboard `CreditUsageWidget` derives from `useSubscription()` (same source as sidebar + `/billing`); lifetime users see "No usage limits" instead of Starter fallback. |
+| `7bfa168` | 17 vertical routes (energy + 7 sub, solar + 1 sub, real-estate + 2 sub, insurance + 2 sub, gym) wrapped in shared `<IndustryGate industry="…">`. Mismatched workspaces see empty state w/ "Go to dashboard" + "Contact platform admin" CTAs instead of full vertical UI. |
+| `dc4df81` | Security pass 2 — 4 cron hooks (`calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`) switched from "any non-empty bearer" to `x-cron-secret` + `process.env.CRON_SECRET` (matching 3 already-correct siblings). `bookPublicAppointmentFn` now requires math captcha + honeypot, per-IP rate limit (8/10min, 30/24h) via new `public_booking_attempts` table, 60s dedup window. `create-checkout` + `create-reseller-checkout` edge fns auth-gate via `supabase.auth.getUser`; body `userId`/`organizationId` must match caller. Verified live: unauth POST to `create-checkout` returns 401. |
+| `48f5e2c` | Migration adds `contact_submissions.lead_id uuid REFERENCES leads(id)` + partial index. App selected the column but it didn't exist → REST returned 42703, UI lied "no submissions". Regenerated `src/integrations/supabase/types.ts`. |
+
+### Manual follow-ups (user)
+
+- Set `CRON_SECRET` in Vercel prod env. Update any external scheduler / pg_cron job calling the 4 fixed hooks to pass `x-cron-secret: $CRON_SECRET` (otherwise they'll 401 silently).
+- Decide `LOVABLE_API_KEY` direction: re-add key (`supabase secrets set LOVABLE_API_KEY=…` + Vercel env) OR migrate 11 callsites (`src/lib/ai-gateway.ts`, `src/lib/contact/classify-submission.ts`, `src/lib/connectors/gateway.ts`, `src/lib/resend.ts`, `src/routes/lovable/email/**`, `src/functions/connectors.functions.ts`, `src/functions/auto-outreach.functions.ts`) to direct Anthropic/OpenAI.
+- Toggle on `auth_leaked_password_protection` in Supabase Auth → Password protection (not migration-able).
+- Stale 3 test users in `auth.users` (`audit-1779023439@…`, `qa+audit-1779023449@…`, `qa+audit-1779023457@…`) — SQL ready at line ~452, kept per "don't auto-delete" note.
+
+### Out of scope (need product call)
+
+- Workflow execution engine — half-built, banner is honest but flagship feature
+- `/clients` reseller mgmt — single CTA, full UI not wired
+- `/gym` member-health ingest UI — no way to add records
+- `/preview` fake CRM — kill or wire to real demo data
+- `/features` content — duplicate of landing
+- 30% off promo expiry / coupon wiring in Stripe
+
+---
+
 ## Public-facing (marketing) issues
 
 ### Routing
