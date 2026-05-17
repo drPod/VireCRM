@@ -245,7 +245,7 @@ function TierCard({
 
   return (
     <div
-      className={`relative rounded-2xl border p-6 transition-all ${
+      className={`relative rounded-2xl border p-6 transition-[border-color,background-color] ${
         tier.highlighted
           ? "border-primary/40 bg-primary/5 shadow-xl shadow-primary/10"
           : tier.isOwnership

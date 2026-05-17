@@ -158,7 +158,7 @@ export function FeaturesSection() {
             ].map((f) => (
               <div
                 key={f.title}
-                className="group rounded-xl border border-border bg-card p-6 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+                className="group rounded-xl border border-border bg-card p-6 transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
                   <f.icon className="h-5 w-5 text-primary" />
