@@ -98,18 +98,16 @@ function WorkflowsListPage() {
   };
 
   const toggleStatus = async (wf: Workflow) => {
-    // The execution engine isn't live yet — toggling status only changes the
-    // builder label so the user can mark which drafts are "ready". Be explicit
-    // about that so nobody assumes their workflow is firing on lead events.
+    // Active workflows fire on real lead events (lead_created / status_changed /
+    // message_received). Paused workflows enqueue no new runs but in-flight
+    // runs continue to completion.
     const next = wf.status === "active" ? "paused" : "active";
     const { error } = await supabase.from("workflows").update({ status: next }).eq("id", wf.id);
     if (error) {
       toast.error("Update failed: " + error.message);
       return;
     }
-    toast.success(
-      next === "active" ? "Marked ready — execution engine launches soon" : "Marked paused",
-    );
+    toast.success(next === "active" ? "Activated — triggers are live" : "Paused");
     void loadWorkflows();
   };
 
@@ -137,7 +135,12 @@ function WorkflowsListPage() {
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Workflows</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground">Workflows</h1>
+              <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                Beta
+              </Badge>
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">
               Design multi-step automations across email, tags, waits, and conditional branches
             </p>
@@ -154,13 +157,14 @@ function WorkflowsListPage() {
           </Button>
         </div>
 
-        {/* Honest banner — no execution engine yet */}
+        {/* Beta — execution engine live, AI agent nodes still stubbed */}
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">Builder preview.</span> Design and save
-            your workflows now. Triggers will start firing on real lead events when the execution
-            engine ships — your saved drafts will switch on automatically.
+            <span className="font-semibold text-foreground">Beta.</span> Triggers fire on real lead
+            events. Email, tag, wait, branch, and webhook actions execute end-to-end. AI agent nodes
+            (score lead, classify reply, personalize, book) are skipped while the AI gateway is
+            being migrated and will go live without changes to your saved workflows.
           </div>
         </div>
 

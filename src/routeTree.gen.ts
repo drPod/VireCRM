@@ -93,6 +93,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksRunWorkflowsRouteImport } from './routes/api/public/hooks/run-workflows'
 import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/public/hooks/purge-audit-log'
 import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
 import { Route as ApiPublicHooksDispatchFollowupsRouteImport } from './routes/api/public/hooks/dispatch-followups'
@@ -524,6 +525,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksRunWorkflowsRoute =
+  ApiPublicHooksRunWorkflowsRouteImport.update({
+    id: '/api/public/hooks/run-workflows',
+    path: '/api/public/hooks/run-workflows',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksPurgeAuditLogRoute =
   ApiPublicHooksPurgeAuditLogRouteImport.update({
     id: '/api/public/hooks/purge-audit-log',
@@ -638,6 +645,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
+  '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -728,6 +736,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
+  '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -820,6 +829,7 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
+  '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -912,6 +922,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
+    | '/api/public/hooks/run-workflows'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1002,6 +1013,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
+    | '/api/public/hooks/run-workflows'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1093,6 +1105,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
+    | '/api/public/hooks/run-workflows'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1135,6 +1148,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchFollowupsRoute: typeof ApiPublicHooksDispatchFollowupsRoute
   ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
+  ApiPublicHooksRunWorkflowsRoute: typeof ApiPublicHooksRunWorkflowsRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1733,6 +1747,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/run-workflows': {
+      id: '/api/public/hooks/run-workflows'
+      path: '/api/public/hooks/run-workflows'
+      fullPath: '/api/public/hooks/run-workflows'
+      preLoaderRoute: typeof ApiPublicHooksRunWorkflowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/purge-audit-log': {
       id: '/api/public/hooks/purge-audit-log'
       path: '/api/public/hooks/purge-audit-log'
@@ -1985,6 +2006,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDispatchFollowupsRoute: ApiPublicHooksDispatchFollowupsRoute,
   ApiPublicHooksDispatchSequencesRoute: ApiPublicHooksDispatchSequencesRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,
+  ApiPublicHooksRunWorkflowsRoute: ApiPublicHooksRunWorkflowsRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,

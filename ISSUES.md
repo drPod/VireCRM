@@ -20,6 +20,7 @@ All deployed to prod (Supabase project `coynbufhejaeuifpvmvw` + Vercel `genesisx
 | `7bfa168` | 17 vertical routes (energy + 7 sub, solar + 1 sub, real-estate + 2 sub, insurance + 2 sub, gym) wrapped in shared `<IndustryGate industry="…">`. Mismatched workspaces see empty state w/ "Go to dashboard" + "Contact platform admin" CTAs instead of full vertical UI. |
 | `dc4df81` | Security pass 2 — 4 cron hooks (`calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`) switched from "any non-empty bearer" to `x-cron-secret` + `process.env.CRON_SECRET` (matching 3 already-correct siblings). `bookPublicAppointmentFn` now requires math captcha + honeypot, per-IP rate limit (8/10min, 30/24h) via new `public_booking_attempts` table, 60s dedup window. `create-checkout` + `create-reseller-checkout` edge fns auth-gate via `supabase.auth.getUser`; body `userId`/`organizationId` must match caller. Verified live: unauth POST to `create-checkout` returns 401. |
 | `48f5e2c` | Migration adds `contact_submissions.lead_id uuid REFERENCES leads(id)` + partial index. App selected the column but it didn't exist → REST returned 42703, UI lied "no submissions". Regenerated `src/integrations/supabase/types.ts`. |
+| _pending_ | Workflow engine build-out. See section below. |
 | `0e58713` | Industry picker + sidebar reveal. (1) Migration `20260517150107_allow_owner_industry_change.sql` updates `guard_industry_template_change` trigger to permit org owners (was platform-admin-only) + extends `log_template_change` audit metadata w/ actor_role. Existing `template_assignment_audit_log` covers it — no new table. (2) `OnboardingWizard` no longer skips industry step for non-platform-admin owners; all owners walk through the 3-step flow. (3) New `IndustryTemplatePicker` card in `/settings?tab=industry` — owner-only Select + AlertDialog confirm, theme + modules reseed on switch. (4) `CrmSidebar` shows all 5 vertical sections always under "Verticals"; mismatched ones render muted with lock icon + tooltip, still clickable. (5) `IndustryGate` empty-state CTA points at `/settings?tab=industry` instead of dead `/admin` link, copy adapts for owner vs non-owner. Also: stripped trailing CLI version-update text accidentally appended to `src/integrations/supabase/types.ts` ("is not a module" typecheck error). |
 
 ### Manual follow-ups (user)
@@ -31,7 +32,7 @@ All deployed to prod (Supabase project `coynbufhejaeuifpvmvw` + Vercel `genesisx
 
 ### Out of scope (need product call)
 
-- Workflow execution engine — half-built, banner is honest but flagship feature
+- ~~Workflow execution engine~~ — built out, see Workflow engine build-out section below
 - `/clients` reseller mgmt — single CTA, full UI not wired
 - `/gym` member-health ingest UI — no way to add records
 - `/preview` fake CRM — kill or wire to real demo data
@@ -704,3 +705,75 @@ The token value is never validated against a secret. Three siblings (`classify-c
 - All TanStack server fns under `src/functions/*.ts` that use `requireSupabaseAuth` middleware are properly auth-gated — the `.optional()` fields in those schemas are on auth-required surface, so they're not in scope of this bug class.
 - Supabase edge functions NOT in `config.toml` default to `verify_jwt = true` per Supabase platform behavior — confirmed by reading individual fns (they call `supabase.auth.getUser(token)` and reject on failure).
 - Signup pages (`/signup`, `/r/$resellerSlug/signup`) call `supabase.auth.signUp` directly — abuse protection (captcha, rate limit) is configured at the Supabase Auth project level, not in app code.
+
+---
+
+## Workflow engine build-out (2026-05-17, orchestrator session)
+
+### What landed
+
+**Schema:** Migration `20260517150100_workflow_engine_runtime.sql` adds 4 columns to `workflow_runs`:
+- `resume_node_id TEXT` — where a paused run should pick up
+- `attempts INTEGER DEFAULT 0` — capped at 3 by worker
+- `next_attempt_at TIMESTAMPTZ` — backoff scheduling (60s, 300s, 900s)
+- `visited_node_ids TEXT[]` — cycle guard preserved across resume
+Plus partial index on `(next_attempt_at) WHERE status='queued'`.
+
+**Engine library:** `src/lib/workflows/run.ts` — in-process runtime, callable from any TanStack server route. Walks workflow graph, persists per-step audit, handles pause/resume + retry. Uses `supabaseAdmin` (service-role) since cron has no user identity.
+
+**Cron hook:** `src/routes/api/public/hooks/run-workflows.ts` — POST endpoint, gated by `x-cron-secret` (matches sibling hooks) OR `Authorization: Bearer $CRON_SECRET` (Vercel Cron compatibility). Per tick:
+1. Re-queues `status='paused' AND paused_until <= now()`.
+2. Drains up to 25 queued runs whose `next_attempt_at` is due (or NULL).
+3. Calls `runOne(runId)` per run; per-run error doesn't block batch.
+
+**Triggers (live):** lead_created, status_changed, message_received — all fire via existing DB row triggers (`trg_workflow_lead_*` / `trg_workflow_message_received`) from `20260429171653_*.sql`. No new triggers needed; the DB-trigger side was already done, just lacked a consuming worker.
+
+**Actions (live, wired end-to-end):**
+- `action.send_email` — renders `outreach-email` template, dispatches via `dispatchOutreachEmail()` (Resend pipeline). Suppression + unsubscribe-token bookkeeping handled by `src/lib/email/dispatch-outreach.ts`. Tokens `{{name}}, {{email}}, {{businessName}}` filled.
+- `action.add_tag` — idempotent tag append.
+- `action.update_field` — *new node kind*. Allowlisted columns: `status, score, stage, priority, notes, company, phone, email, name, next_followup_at`. Other columns rejected as error.
+- `action.wait` — pauses the run with `paused_until + resume_node_id` so the next cron tick resumes at the node after the wait (not from the trigger).
+- `action.branch` — if/else on lead field; runner picks edge by sourceHandle ('true'/'false').
+- `action.webhook_post` — *new node kind*. POSTs JSON body wrapped in `{ lead_id, organization_id, data, sent_at }` with 10s AbortSignal.timeout. 4xx = permanent fail, 5xx + network = transient retry.
+
+**Actions (stubbed):** `action.score_lead`, `action.classify_reply`, `action.personalize_message`, `action.book_appointment` — logged as `status='skipped'` because they delegate to AI agent edge fns that depend on `LOVABLE_API_KEY` (unset, per manual-followup note above). Saved workflows pass-through; flipping the gateway back on flips these live with no schema or workflow edits.
+
+**Retry policy:** Each entry into `runOne()` bumps `attempts`. Transient errors (network, 5xx, enqueue_failed) re-queue with backoff. Permanent errors (4xx, render_failed, lead-not-found, cycle) fail-fast. `MAX_ATTEMPTS=3`. Resume mid-flight: cycle guard keeps `visited_node_ids` minus the current node (so retry re-runs *that* node, not its predecessors).
+
+**UI:**
+- `_app.workflows.index.tsx` — replaced "Builder preview" banner with "Beta" copy that documents which actions are live vs stubbed.
+- Title gets a `<Badge>Beta</Badge>` next to it.
+- Activate/pause toast copy updated ("Activated — triggers are live").
+- Node palette gains `action.update_field` and `action.webhook_post` cards (added to `nodeTypes.ts`).
+- `NodeInspector` gains config forms for the two new actions.
+
+### Coverage matrix
+
+| Trigger | Live | Notes |
+|---|---|---|
+| lead.created | yes | DB trigger pre-existing |
+| lead.stage_changed | yes | as status_changed; same DB trigger fires on UPDATE OF status |
+| lead.tag_added | no | DB trigger not added; tags are array column, no clean diff trigger. Out of scope per task ("if schema supports it"). |
+| delayed `N hours after lead.created if stage still X` | partial | Build via `trigger.lead_created → action.wait(N hours) → action.branch(stage = X)`. No first-class "delayed trigger" node yet. |
+
+| Action | Live | Notes |
+|---|---|---|
+| send_email | yes | Resend pipeline, full bookkeeping |
+| send_sms | no | No SMS infra in repo |
+| update_field | yes | new |
+| add_tag / move_stage | yes (add_tag); move via update_field(status) |
+| wait | yes | persistent pause across cron ticks |
+| webhook_post | yes | new |
+| ai.score_lead, classify_reply, personalize, book_appointment | stubbed | gateway offline |
+
+### Manual follow-ups for the user
+
+- **Wire the cron schedule.** Whatever external scheduler is hitting `/api/public/hooks/dispatch-sequences` every minute also needs to hit `POST /api/public/hooks/run-workflows` with header `x-cron-secret: $CRON_SECRET` (or `Authorization: Bearer $CRON_SECRET`) every minute. Without this, no workflows fire — they enqueue runs (DB triggers work) but nothing drains the queue.
+- **Edge fn `run-workflow` divergence.** The existing edge function (`supabase/functions/run-workflow/index.ts`) is what the UI "Test run" button calls, and it still drafts emails rather than sending. Out of scope this pass to avoid breaking the test-run UX; revisit once the AI gateway story stabilizes so both paths can converge on one implementation.
+- **AI gateway.** Per the existing manual-followup note about `LOVABLE_API_KEY`, the 4 AI action kinds will skip until the gateway is back. UI mentions this in the new Beta banner.
+
+### Definition-of-done verification
+
+- Schema delta confirmed in DB via `\d workflow_runs` (4 new columns, default values applied to existing rows).
+- `bun run typecheck` passes clean.
+- End-to-end smoke: needs the cron caller wired (see manual follow-up); the engine itself is unit-testable by POSTing to the hook directly with `curl -H "x-cron-secret: $CRON_SECRET" $APP/api/public/hooks/run-workflows`.

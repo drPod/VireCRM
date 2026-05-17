@@ -143,6 +143,63 @@ export function NodeInspector({ node, onUpdate, onDelete }: NodeInspectorProps) 
           </Field>
         )}
 
+        {data.kind === "action.update_field" && (
+          <>
+            <Field
+              label="Field"
+              hint="Allowed: status, score, stage, priority, notes, company, phone, email, name, next_followup_at"
+            >
+              <Input
+                value={(config.field as string) || ""}
+                onChange={(e) => set("field", e.target.value)}
+                placeholder="status"
+              />
+            </Field>
+            <Field label="Value">
+              <Input
+                value={(config.value as string) || ""}
+                onChange={(e) => set("value", e.target.value)}
+                placeholder="qualified"
+              />
+            </Field>
+          </>
+        )}
+
+        {data.kind === "action.webhook_post" && (
+          <>
+            <Field label="URL">
+              <Input
+                value={(config.url as string) || ""}
+                onChange={(e) => set("url", e.target.value)}
+                placeholder="https://example.com/hook"
+              />
+            </Field>
+            <Field
+              label="Body (JSON)"
+              hint="Sent inside { lead_id, organization_id, data: <body>, sent_at }"
+            >
+              <Textarea
+                value={
+                  typeof config.body === "string"
+                    ? (config.body as string)
+                    : JSON.stringify(config.body ?? {}, null, 2)
+                }
+                onChange={(e) => {
+                  try {
+                    set("body", JSON.parse(e.target.value));
+                  } catch {
+                    // Keep as raw string so user can keep typing; runtime falls
+                    // back to {} when the parsed body is missing.
+                    set("body", e.target.value);
+                  }
+                }}
+                placeholder='{ "event": "lead_qualified" }'
+                rows={4}
+              />
+            </Field>
+          </>
+        )}
+
         {data.kind === "action.wait" && (
           <div className="grid grid-cols-2 gap-2">
             <Field label="Amount">

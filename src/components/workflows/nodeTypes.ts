@@ -11,6 +11,8 @@ import {
   ScanText,
   Wand2,
   CalendarPlus,
+  Pencil,
+  Webhook,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,8 +22,10 @@ export type WorkflowNodeKind =
   | "trigger.message_received"
   | "action.send_email"
   | "action.add_tag"
+  | "action.update_field"
   | "action.wait"
   | "action.branch"
+  | "action.webhook_post"
   | "action.score_lead"
   | "action.classify_reply"
   | "action.personalize_message"
@@ -78,12 +82,28 @@ export const NODE_TYPES: NodeTypeMeta[] = [
     defaultConfig: { tag: "" },
   },
   {
+    kind: "action.update_field",
+    category: "action",
+    label: "Update field",
+    description: "Set a lead field (status, score, stage, ...)",
+    icon: Pencil,
+    defaultConfig: { field: "status", value: "" },
+  },
+  {
     kind: "action.wait",
     category: "action",
     label: "Wait",
     description: "Pause for a duration",
     icon: Clock,
     defaultConfig: { amount: 1, unit: "days" },
+  },
+  {
+    kind: "action.webhook_post",
+    category: "action",
+    label: "Webhook POST",
+    description: "POST JSON to an external URL",
+    icon: Webhook,
+    defaultConfig: { url: "", body: {} },
   },
   {
     kind: "action.branch",
