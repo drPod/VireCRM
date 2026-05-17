@@ -1174,3 +1174,46 @@ Left untouched because the verify session is mid-walk on that dialog and the han
 - **CF status sweeper** — periodic server fn that iterates rows with non-null `cf_hostname_id`, polls CF, writes back `cf_status` + `cf_ssl_status`. New migration adds the two columns + a new pg_cron entry → `/api/public/hooks/cf-hostname-sweeper.ts`. Once shipped, `CfHostnameStatus` can read from DB instead of polling CF on every panel render.
 - **CF backfill script** for orgs with `custom_domain` set but `cf_hostname_id` null. `scripts/cf-backfill.ts` — Bun script, NOT auto-run; each provision is billable on CF, operator invokes manually.
 - **Extract `isNotConfigured` + `describeError` to shared util** (e.g. `src/lib/server-fn-errors.ts`) once the verify session releases `EditClientWhiteLabelDialog.tsx`. Both call sites are now duplicating the same 4-line helpers.
+
+---
+
+## Smoke walk findings 2026-05-17 late evening
+
+Headless smoke run via mint-smoke-user + agent-browser caught two issues, one of them prod-affecting:
+
+### 🔴 RLS hotfix — migration `20260517133315_lock_down_security_definer_funcs.sql` regression (FIXED)
+
+The lock-down migration this morning placed `has_role`, `get_user_org_id`, `user_belongs_to_org`, `has_active_subscription`, `user_has_permission`, `has_feature`, and `user_can_access_lead` in the "Server-only / trigger-only" bucket and revoked `EXECUTE` from `authenticated`. That classification was wrong — every one of these is referenced inside RLS policy bodies (USING / WITH CHECK), 229 refs for `has_role` alone, 175 for `get_user_org_id`. Postgres evaluates policy bodies as the caller, so the revoke broke every RLS-gated client query for signed-in users with `42501 permission denied for function <name>`.
+
+Symptoms post-deploy (caught live by smoke):
+- AuthProvider logs `[warning] AuthProvider: profile fetch failed code: "42501" message: "permission denied for function get_user_org_id"` immediately on auth.
+- `/leads` loader hangs on "Loading leads…" forever — the count query fails RLS evaluation.
+- `/clients` blocks with the wrong gate ("Owners only") because the `has_role`-based gate evaluation fails.
+
+**Fix:** `supabase/migrations/20260518010000_restore_rls_helper_grants.sql` re-grants `EXECUTE` on the seven functions to `authenticated`. The functions remain `SECURITY DEFINER` (which is the auth boundary), so this only restores callability, not internal logic exposure. Applied to prod. Smoke retry confirmed zero 42501 errors. **Real-user impact window: deploy time of 20260517133315 → application of 20260518010000.** Any signed-in user during that window hit the regression on any RLS-gated read/write.
+
+### 🟡 `/dashboard` React minified error #310 (NEW, pre-existing, blocks PipelineView)
+
+Caught by smoke run AFTER the RLS hotfix. Signed-in smoke user navigates `/dashboard` post-onboarding → React #310 ("Rendered fewer hooks than expected. This may be caused by an accidental early return statement.") fires immediately. UI surfaces the route `errorComponent` with "Couldn't load your dashboard". `Try again` doesn't recover. Bundle ref: `index-GDLtw_s4.js:9:115838`.
+
+Reviewed `_app.dashboard.tsx`, `useDashboardMetrics`, `useSubscription`, `useAuthedServerFn`, `PipelineView`, `AdvisorAuditLog`, `CreditUsageWidget`, `CommandBar`, `useAuth`, `useSubscription`, `_app.tsx`. **Every hook in every direct child of Dashboard is called unconditionally** before any early return. Bug isn't in the obvious places.
+
+Suspect: a deeper child (e.g. `MetricCard`, `LeadCard`, `TaskStatusPanel`, `WonDealsWidget`'s internals) or a render-time hook that's conditional on a server-fn response shape that's specific to a brand-new account (smoke org has zero leads / zero messages / zero everything). Or `useSubscription`'s realtime channel + `useAuthedServerFn` interaction under the conditional path where `subscription === null` first render then settled value second.
+
+Repro env: any brand-new account with empty pipeline/credits/subscription state. Real users in steady state may or may not hit this — needs follow-up. Side effect: PipelineView's keyboard-move dropdown (commit `e41e5f2`) is unreachable until /dashboard renders.
+
+**Not fixing tonight** — scope creep; needs systematic debugging with a sourcemap-enabled prod build or local repro on a fresh account. Flagged for next session.
+
+### Smoke step status (after RLS hotfix)
+
+| Step | Outcome |
+|---|---|
+| a. `/appointments` availability editor add/remove middle window | ✅ PASS — stable ids hold focus, no console errors |
+| b. `/leads` AddLeadDialog tab order + a11y | ✅ PASS — every input labeled, autocomplete attrs present, name aria-required |
+| c. `/leads` PipelineView keyboard move | ❌ BLOCKED by #310 above. Lead creation worked; pipeline-rendering surface is on `/dashboard`, which crashes. |
+| d. `/admin` AlertDialog wrapping | ⚠ SKIPPED — smoke user is org owner but not platform admin. Needs `grant_platform_admin_by_email` or direct `platform_admins` row to walk. |
+| e. `EditClientWhiteLabelDialog` CF wire | ⚠ SKIPPED — smoke user's org is not `is_reseller=true`. Needs `UPDATE organizations SET is_reseller = true WHERE id = <smoke org id>` + a child client org via `create_client_account` edge fn to walk. Code wire verified via review/typecheck only (commit `f4a95dd`); 503 graceful-degradation branch not exercised at runtime. |
+
+### Smoke user cleanup
+
+Throwaway account `smoke-mpadus93@genesisx.test` (userId `80f482c6-29fe-4284-b7fd-9b2ebf89f5ce`, owner of org `8438cee1-a49f-4b53-8da7-a59633796e0f`) tagged with `user_metadata.is_smoke_account=true`. Revoked via `bun run scripts/mint-smoke-user.ts --cleanup 80f482c6-29fe-4284-b7fd-9b2ebf89f5ce` after smoke runs complete. Profile + user_roles cascade via FK.
