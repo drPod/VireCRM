@@ -19,12 +19,12 @@ export function CtaSection() {
               keep them warm and ready for your team — 24/7.
             </p>
             <div className="mt-10">
-              <Link to="/contact">
-                <Button variant="command" size="lg" className="gap-2 px-10 text-base">
+              <Button asChild variant="command" size="lg" className="gap-2 px-10 text-base">
+                <Link to="/contact">
                   Apply to Get Your AI CRM System Built
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
               Limited spots · Custom-built for your business · Results guaranteed

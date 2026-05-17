@@ -344,17 +344,17 @@ function CrmPreviewPage() {
               <span className="hidden sm:inline">Take the tour</span>
               <span className="sm:hidden">Tour</span>
             </Button>
-            <Link to="/" data-preview-allow="true">
-              <Button variant="ghost" size="sm" data-preview-allow="true">
+            <Button asChild variant="ghost" size="sm" data-preview-allow="true">
+              <Link to="/" data-preview-allow="true">
                 Exit preview
-              </Button>
-            </Link>
-            <Link to="/signup" data-preview-allow="true">
-              <Button variant="command" size="sm" className="gap-1.5" data-preview-allow="true">
+              </Link>
+            </Button>
+            <Button asChild variant="command" size="sm" className="gap-1.5" data-preview-allow="true">
+              <Link to="/signup" data-preview-allow="true">
                 Start free trial
                 <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -616,17 +616,17 @@ function DashboardView() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link to="/pricing" data-preview-allow="true">
-              <Button variant="outline" size="lg" data-preview-allow="true">
+            <Button asChild variant="outline" size="lg" data-preview-allow="true">
+              <Link to="/pricing" data-preview-allow="true">
                 See pricing
-              </Button>
-            </Link>
-            <Link to="/signup" data-preview-allow="true">
-              <Button variant="command" size="lg" className="gap-2" data-preview-allow="true">
+              </Link>
+            </Button>
+            <Button asChild variant="command" size="lg" className="gap-2" data-preview-allow="true">
+              <Link to="/signup" data-preview-allow="true">
                 Start free trial
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
       </Card>
@@ -651,17 +651,17 @@ function PlaceholderView({ label }: { label: string }) {
         </p>
       </div>
       <div className="flex gap-2">
-        <Link to="/pricing" data-preview-allow="true">
-          <Button variant="outline" data-preview-allow="true">
+        <Button asChild variant="outline" data-preview-allow="true">
+          <Link to="/pricing" data-preview-allow="true">
             See pricing
-          </Button>
-        </Link>
-        <Link to="/signup" data-preview-allow="true">
-          <Button variant="command" className="gap-2" data-preview-allow="true">
+          </Link>
+        </Button>
+        <Button asChild variant="command" className="gap-2" data-preview-allow="true">
+          <Link to="/signup" data-preview-allow="true">
             Start free trial
             <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
     </Card>
   );

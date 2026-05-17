@@ -382,6 +382,7 @@ export function CrmSidebar() {
         )}
 
         <button
+          type="button"
           onClick={toggleTheme}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
         >
@@ -404,7 +405,7 @@ export function CrmSidebar() {
           )}
         </Link>
         <Link
-          to={"/settings" as string}
+          to="/settings"
           data-tour="nav-settings"
           onClick={() => setMobileOpen(false)}
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
@@ -413,9 +414,10 @@ export function CrmSidebar() {
           Settings
         </Link>
         <button
+          type="button"
           onClick={() => {
             setMobileOpen(false);
-            window.dispatchEvent(new Event("genesis:restart-tour"));
+            window.dispatchEvent(new Event("majix:restart-tour"));
           }}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
         >
@@ -423,6 +425,7 @@ export function CrmSidebar() {
           Restart tour
         </button>
         <button
+          type="button"
           onClick={async () => {
             await signOut();
             navigate({ to: "/login" });

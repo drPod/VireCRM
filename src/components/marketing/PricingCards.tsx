@@ -324,12 +324,12 @@ function TierCard({
         // "Contact Us" / ownership tiers route to the in-site contact form
         // so prospects stay on the site and email us instead of being kicked
         // out to the phone dialer.
-        <Link to={tier.ctaLink}>
-          <Button variant={tier.ctaVariant} className="w-full gap-2" size="sm">
+        <Button asChild variant={tier.ctaVariant} className="w-full gap-2" size="sm">
+          <Link to={tier.ctaLink}>
             {tier.cta}
             <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       ) : (
         <Button
           variant={tier.ctaVariant}

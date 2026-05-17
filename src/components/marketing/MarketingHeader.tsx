@@ -50,16 +50,12 @@ export function MarketingHeader() {
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Link to="/login">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button variant="command" size="sm">
-                Start Free Trial
-              </Button>
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/login">Sign In</Link>
+            </Button>
+            <Button asChild variant="command" size="sm">
+              <Link to="/signup">Start Free Trial</Link>
+            </Button>
           </div>
 
           {/* Mobile toggle — Sheet from Radix Dialog handles portal, overlay,
@@ -88,16 +84,16 @@ export function MarketingHeader() {
                   </Link>
                 ))}
                 <div className="mt-2 flex flex-col gap-2">
-                  <Link to="/login" onClick={() => setMobileOpen(false)}>
-                    <Button variant="outline" size="sm" className="w-full">
+                  <Button asChild variant="outline" size="sm" className="w-full">
+                    <Link to="/login" onClick={() => setMobileOpen(false)}>
                       Sign In
-                    </Button>
-                  </Link>
-                  <Link to="/signup" onClick={() => setMobileOpen(false)}>
-                    <Button variant="default" size="sm" className="w-full">
+                    </Link>
+                  </Button>
+                  <Button asChild variant="default" size="sm" className="w-full">
+                    <Link to="/signup" onClick={() => setMobileOpen(false)}>
                       Start Free Trial
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </div>
               </nav>
             </SheetContent>

@@ -61,11 +61,11 @@ export function TwoWaysSection() {
             </ul>
 
             <div className="mt-8">
-              <Link to="/contact">
-                <Button variant="command" className="w-full gap-2">
+              <Button asChild variant="command" className="w-full gap-2">
+                <Link to="/contact">
                   Book a Demo <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </div>
 
@@ -96,11 +96,11 @@ export function TwoWaysSection() {
             </ul>
 
             <div className="mt-8">
-              <Link to="/pricing">
-                <Button variant="outline" className="w-full gap-2">
+              <Button asChild variant="outline" className="w-full gap-2">
+                <Link to="/pricing">
                   See Plans &amp; Pricing <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
