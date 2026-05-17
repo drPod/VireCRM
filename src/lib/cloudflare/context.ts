@@ -53,7 +53,7 @@ export function getCloudflareContext(): CloudflareRequestContext | undefined {
  */
 export async function keepAlive<T>(promise: Promise<T>): Promise<void> {
   const cf = getCloudflareContext();
-  if (cf) {
+  if (cf && typeof cf.ctx?.waitUntil === "function") {
     cf.ctx.waitUntil(promise.then(() => undefined));
     return;
   }
