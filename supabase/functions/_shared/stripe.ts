@@ -12,25 +12,17 @@ export function getConnectionApiKey(env: StripeEnv): string {
   return key;
 }
 
-const GATEWAY_STRIPE_BASE = "https://connector-gateway.lovable.dev/stripe";
-
+/**
+ * Phase 1 migration: previously wrapped Stripe in the Lovable connector
+ * gateway (`connector-gateway.lovable.dev/stripe`) which routed every API
+ * call through Lovable's proxy. With Lovable cut, Stripe talks directly to
+ * `api.stripe.com` using the workspace's own `STRIPE_{SANDBOX,LIVE}_API_KEY`
+ * — same key the gateway was forwarding via `X-Connection-Api-Key`.
+ */
 export function createStripeClient(env: StripeEnv): Stripe {
   const connectionApiKey = getConnectionApiKey(env);
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!lovableApiKey) throw new Error("LOVABLE_API_KEY is not configured");
-
   return new Stripe(connectionApiKey, {
-    httpClient: Stripe.createFetchHttpClient((url: string | URL, init?: RequestInit) => {
-      const gatewayUrl = url.toString().replace("https://api.stripe.com", GATEWAY_STRIPE_BASE);
-      return fetch(gatewayUrl, {
-        ...init,
-        headers: {
-          ...Object.fromEntries(new Headers(init?.headers).entries()),
-          "X-Connection-Api-Key": connectionApiKey,
-          "Lovable-API-Key": lovableApiKey,
-        },
-      });
-    }),
+    httpClient: Stripe.createFetchHttpClient(),
   });
 }
 

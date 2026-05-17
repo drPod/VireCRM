@@ -84,7 +84,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       throw new Error("AI token limit reached. Upgrade your plan for more.");
     }
 
-    if (!process.env.LOVABLE_API_KEY) throw new Error("AI service not configured");
+    if (!process.env.ANTHROPIC_API_KEY) throw new Error("AI service not configured");
 
     const deliveryChannels = await loadOutreachDeliveryChannels(data.organizationId);
     const businessReplyTo =
