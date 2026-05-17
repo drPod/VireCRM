@@ -98,7 +98,6 @@ function LoginPage() {
 
   const brandName = branding?.brand_name || "Genesis";
   const accentColor = branding?.primary_color;
-  const showMarketingHeader = !isCustomDomain;
 
   const validate = () => {
     const next: typeof errors = {};
@@ -196,10 +195,8 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {showMarketingHeader && <MarketingHeader />}
-      <div
-        className={`flex flex-1 items-center justify-center px-4 py-12 ${showMarketingHeader ? "pt-32" : ""}`}
-      >
+      <MarketingHeader />
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
             {branding?.logo_url ? (

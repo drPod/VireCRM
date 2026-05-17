@@ -4,7 +4,6 @@ import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { PricingCards } from "@/components/marketing/PricingCards";
 import { CtaSection } from "@/components/marketing/CtaSection";
-import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 import { Phone, Mail } from "lucide-react";
 
@@ -104,10 +103,9 @@ function PricingPage() {
   if (useCustomDomainGuard()) return null;
   return (
     <div className="min-h-screen">
-      <PaymentTestModeBanner />
       <MarketingHeader />
 
-      <section className="pt-32 pb-20">
+      <section className="pt-12 pb-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h1 className="text-4xl font-bold text-foreground">Plans That Fit Your Business</h1>

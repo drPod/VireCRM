@@ -30,7 +30,7 @@ function RefundPolicyPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <MarketingHeader />
-      <main className="flex-1 pt-32 pb-16">
+      <main className="flex-1 pt-12 pb-16">
         <div className="mx-auto max-w-3xl px-6">
           <h1 className="text-3xl font-bold text-foreground">Refund Policy</h1>
           <p className="mt-2 text-sm text-muted-foreground">Last updated: April 16, 2026</p>

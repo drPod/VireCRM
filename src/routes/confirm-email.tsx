@@ -50,7 +50,7 @@ function ConfirmEmailPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <MarketingHeader />
-      <div className="flex flex-1 items-center justify-center px-4 py-12 pt-32">
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 shadow-[0_0_24px_-8px_var(--color-primary)]">
             <Mail className="h-8 w-8 text-primary" />

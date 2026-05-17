@@ -9,7 +9,7 @@ import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
  */
 export function BusinessEmailBanner() {
   return (
-    <div className="fixed top-0 z-[70] w-full border-b border-white/10 bg-[oklch(0.12_0.02_260)]">
+    <div className="border-b border-white/10 bg-[oklch(0.12_0.02_260)]">
       <a
         href={SUPPORT_MAILTO}
         className="mx-auto flex max-w-6xl items-center justify-center gap-2 px-6 py-1.5 text-center text-[11px] font-medium text-white/70 transition-colors hover:text-white sm:text-xs"
@@ -22,6 +22,3 @@ export function BusinessEmailBanner() {
     </div>
   );
 }
-
-/** Pixel height of the banner — used by other fixed elements to offset their top. */
-export const BUSINESS_EMAIL_BANNER_HEIGHT = 28;

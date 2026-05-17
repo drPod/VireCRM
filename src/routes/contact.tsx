@@ -32,7 +32,7 @@ function ContactPage() {
     <div className="min-h-screen">
       <MarketingHeader />
 
-      <section className="pt-32 pb-20">
+      <section className="pt-12 pb-20">
         <div className="mx-auto max-w-2xl px-6">
           <div className="mb-12 text-center">
             <h1 className="text-4xl font-bold text-foreground">Let's Build Your Custom CRM</h1>
