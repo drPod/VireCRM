@@ -24,6 +24,17 @@ async function handleRunWorkflows(request: Request): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  try {
+    return await runDrainCycle();
+  } catch (err) {
+    // Surface error directly. h3 otherwise masks unhandled throws as a
+    // generic "HTTPError" which makes cron failures impossible to triage.
+    const message = err instanceof Error ? err.message : "drain crashed";
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+async function runDrainCycle(): Promise<Response> {
   const startedAt = Date.now();
   const nowIso = new Date().toISOString();
 

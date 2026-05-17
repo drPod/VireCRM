@@ -777,3 +777,42 @@ Plus partial index on `(next_attempt_at) WHERE status='queued'`.
 - Schema delta confirmed in DB via `\d workflow_runs` (4 new columns, default values applied to existing rows).
 - `bun run typecheck` passes clean.
 - End-to-end smoke: needs the cron caller wired (see manual follow-up); the engine itself is unit-testable by POSTing to the hook directly with `curl -H "x-cron-secret: $CRON_SECRET" $APP/api/public/hooks/run-workflows`.
+
+---
+
+## 2026-05-17 Cloudflare migration
+
+**Symptom.** Every route on https://genesisxsx.vercel.app returned 404 — `/login`, `/sitemap.xml`, `/api/public/contact`, the lot.
+
+**Root cause.** `@lovable.dev/vite-tanstack-config` (loaded by `vite.config.ts`) injects `@cloudflare/vite-plugin` on `vite build`. The build artifact is therefore a Cloudflare Worker bundle (entry `dist/server/server.js` + assets in `dist/client/`). Vercel was being handed those files and had nothing that could execute them — it served the static client assets and 404'd on every dynamic route. The Lovable preset is correct for Cloudflare Workers; the deployment target was wrong.
+
+**Fix.** Switch hosting from Vercel to Cloudflare Workers. The Lovable build is already a Worker bundle, so no Vite or build pipeline changes were needed — just point `wrangler deploy` at it and register a workers.dev subdomain.
+
+### What landed
+
+- `wrangler.jsonc` at repo root — `main = "@tanstack/react-start/server-entry"`, `compatibility_date = "2026-05-17"`, `compatibility_flags = ["nodejs_compat"]`, observability on with `head_sampling_rate: 1`. Non-secret values (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`) committed under `vars`. Real secrets (`SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`) set via `wrangler secret bulk`.
+- Worker URL: `https://genesisxsx.darsh-pod.workers.dev` on account `060435e1bb68c9c846e32b71ee1d4670` (`darsh.pod@gmail.com`).
+- Workers Builds connected to `drPod/genesisxsx` on push-to-main — build command `bun run build`, deploy command `npx wrangler deploy`. Note that runtime secrets set via `wrangler secret put` are independent from the Workers Builds "Variables and secrets" panel; the runtime secrets persist across deploys.
+- Outer `try/catch` in `src/routes/api/public/hooks/run-workflows.ts`. The h3 (`h3-v2`) handler used by TanStack Start masks unhandled throws as `{ status: 500, unhandled: true, message: "HTTPError" }`, which made the initial cold-start failure impossible to triage. The wrapper now surfaces `err.message` directly in the JSON response.
+- `supabase/migrations/20260517160500_schedule_workflow_drain_cron.sql` — pg_cron job `drain-workflow-queue` reading `CRON_SECRET` from `vault.decrypted_secrets` and POSTing the CF Worker URL every minute. Idempotent guard (`unschedule` if exists before `schedule`). Replaces the unscheduled job that previously pointed at the broken Vercel URL.
+- Vercel artifacts cleaned earlier in the day: `vercel.json` removed, broken deploy left as-is (no point touching).
+
+### Verification
+
+- `curl https://genesisxsx.darsh-pod.workers.dev/login` → `HTTP 200`, HTML body (Vite-built React shell).
+- `curl https://genesisxsx.darsh-pod.workers.dev/sitemap.xml` → `HTTP 200`, `application/xml`.
+- `curl -X POST -H "x-cron-secret: ..." https://.../api/public/hooks/run-workflows` → `HTTP 200`, JSON summary `{ok:true, resumed:0, processed:0, ...}`.
+- Three consecutive pg_cron ticks (16:11, 16:12, 16:13 UTC) recorded `status_code = 200` in `net._http_response`. Old 404s from prior Vercel attempts are still visible upstream in the same table.
+
+### Worker bundle stats (info)
+
+- Total upload: ~10.3 MiB across 272 modules; ~2.6 MiB gzipped. Fits the 3 MiB free-tier compressed limit. Top contributors are the route-level chunks `_app.leads`, `signup`, `_app.settings`, `auth-middleware`. If we approach the limit later, the lever is route-splitting / lazy-loading the heaviest leaf routes.
+- Worker startup time at deploy: 18-23 ms.
+
+### Known follow-ups (not done this pass)
+
+- Custom domain. The Worker is reachable only at `*.workers.dev`. Pointing `genesisx.space` (or another domain) at the Worker is a separate step — needs DNS work the user has to authorize.
+- Workers Builds "Variables and secrets" panel is empty. Push-to-main triggers a fresh build that runs `npx wrangler deploy` — that deploy inherits existing runtime secrets, so the first CI deploy *should* be fine. But if a future deploy ever needs to inject build-time secrets, they go in that panel, not via `wrangler secret put`.
+- Stripe webhooks live on Supabase Edge Functions, not the Worker — no external webhook URL needs repointing.
+- Lovable migration (`LOVABLE_API_KEY` etc.) still deferred. Now that hosting is solved, the next session can pick it up.
+

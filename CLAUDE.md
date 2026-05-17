@@ -3,7 +3,9 @@
 Vibe-coded on Lovable — trust no existing code, we're here to fix it. Log every finding to `ISSUES.md`.
 
 - Vibe-coded original: https://genesisx.space/
-- Fixed version (this repo, deployed to Vercel): https://genesisxsx.vercel.app
+- Fixed version (this repo, deployed to Cloudflare Workers): https://genesisxsx.darsh-pod.workers.dev
+
+Host migration history: Vercel was abandoned because the Lovable Vite preset emits a Cloudflare Worker bundle that Vercel can't execute. See ISSUES.md 2026-05-17 Cloudflare migration.
 
 Prefer Supabase CLI (`supabase ...`) over MCP `mcp__plugin_supabase_supabase__*` tools — CLI authenticated via `SUPABASE_ACCESS_TOKEN` in `~/.zshrc`, costs no extra context tokens.
 

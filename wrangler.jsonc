@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "genesisxsx",
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_date": "2026-05-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  // Non-secret public values. Real secrets set via `wrangler secret put`.
+  "vars": {
+    "SUPABASE_URL": "https://coynbufhejaeuifpvmvw.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AfxTcWiGW7j882pfkhPhwg_hKKdSAW2"
+  }
+}
