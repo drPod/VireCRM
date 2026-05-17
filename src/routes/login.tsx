@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Terminal, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -34,17 +33,17 @@ export const Route = createFileRoute("/login")({
   },
   head: () => ({
     meta: [
-      { title: "Sign In — Genesis" },
+      { title: "Sign In — Majix" },
       {
         name: "description",
         content:
-          "Sign in to your Genesis CRM workspace to manage leads, track pipeline, and run AI-powered outreach campaigns.",
+          "Sign in to your Majix CRM workspace to manage leads, track pipeline, and run AI-powered outreach campaigns.",
       },
-      { property: "og:title", content: "Sign In — Genesis" },
+      { property: "og:title", content: "Sign In — Majix" },
       {
         property: "og:description",
         content:
-          "Sign in to your Genesis CRM workspace to manage leads, pipeline, and AI outreach.",
+          "Sign in to your Majix CRM workspace to manage leads, pipeline, and AI outreach.",
       },
       { property: "og:url", content: "https://majix.ai/login" },
     ],
@@ -96,7 +95,7 @@ function LoginPage() {
     void handle();
   }, [returnTo]);
 
-  const brandName = branding?.brand_name || "Genesis";
+  const brandName = branding?.brand_name || "Majix";
   const accentColor = branding?.primary_color;
 
   const validate = () => {
@@ -170,25 +169,21 @@ function LoginPage() {
     // otherwise the page just blanks out and it feels like nothing happened.
     toast.loading("Redirecting to Google…", { id: "google-oauth" });
     try {
-      // CRITICAL: redirect_uri must point inside the app (not the marketing home
-      // page). Honor ?redirect= so deep links survive the OAuth round trip;
-      // default to /dashboard. Without this, OAuth lands on "/" — the public
-      // landing page — and the user thinks login failed.
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}${returnTo}`,
+      // redirectTo must point inside the app. Honor ?redirect= so deep links
+      // survive the OAuth round trip; default to /dashboard. Supabase handles
+      // the browser redirect — control returns here only on error.
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}${returnTo}` },
       });
-      if (result.error) {
+      if (error) {
         toast.dismiss("google-oauth");
-        toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
-        return;
+        toast.error(friendlyAuthError(error, "Google sign-in failed"));
+        setGoogleLoading(false);
       }
-      if (result.redirected) return;
+    } catch (err) {
       toast.dismiss("google-oauth");
-      toast.success("Signed in with Google. Redirecting…");
-      setTimeout(() => {
-        window.location.href = returnTo;
-      }, 400);
-    } finally {
+      toast.error(friendlyAuthError(err, "Google sign-in failed"));
       setGoogleLoading(false);
     }
   };

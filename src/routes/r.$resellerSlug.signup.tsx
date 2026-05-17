@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Terminal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { TermsCheckbox } from "@/components/auth/TermsCheckbox";
 import { toast } from "sonner";
 
@@ -165,23 +164,22 @@ function ResellerSignupPage() {
       return;
     }
     setGoogleLoading(true);
+    sessionStorage.setItem("reseller_pending_company", companyName);
+    if (branding?.id) sessionStorage.setItem("attributed_reseller_id", branding.id);
     try {
-      sessionStorage.setItem("reseller_pending_company", companyName);
-      if (branding?.id) sessionStorage.setItem("attributed_reseller_id", branding.id);
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: redirectTarget,
+      // Supabase handles the browser redirect; control returns here only on
+      // error. Provisioning runs post-redirect via the provision=1 effect at
+      // the top of this page using sessionStorage values.
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: redirectTarget },
       });
-      if (result.error) {
-        toast.error(result.error instanceof Error ? result.error.message : "Google sign-in failed");
-        return;
+      if (error) {
+        toast.error(error.message || "Google sign-in failed");
+        setGoogleLoading(false);
       }
-      if (result.redirected) return;
-      await provisionUnderReseller(resellerSlug, companyName);
-      sessionStorage.removeItem("reseller_pending_company");
-      navigate({ to: "/dashboard" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Setup failed");
-    } finally {
+      toast.error(err instanceof Error ? err.message : "Google sign-in failed");
       setGoogleLoading(false);
     }
   };
@@ -222,8 +220,8 @@ function ResellerSignupPage() {
             />
           ) : (
             <div
-              className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-              style={{ backgroundColor: accentColor || "hsl(var(--primary))" }}
+              className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-[0_0_24px_-6px_var(--color-primary)]"
+              style={accentColor ? { backgroundColor: accentColor } : undefined}
             >
               <Terminal className="h-6 w-6 text-primary-foreground" />
             </div>

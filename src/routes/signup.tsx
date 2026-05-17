@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Terminal, Loader2, Mail } from "lucide-react";
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import {
   PasswordStrengthMeter,
@@ -23,17 +22,17 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
   head: () => ({
     meta: [
-      { title: "Start Free Trial — Genesis" },
+      { title: "Start Free Trial — Majix" },
       {
         name: "description",
         content:
-          "Create your Genesis account and start automating sales in minutes with AI-powered lead scoring, outreach, and follow-ups.",
+          "Create your Majix account and start automating sales in minutes with AI-powered lead scoring, outreach, and follow-ups.",
       },
-      { property: "og:title", content: "Start Your Free Trial — Genesis" },
+      { property: "og:title", content: "Start Your Free Trial — Majix" },
       {
         property: "og:description",
         content:
-          "Create your Genesis account and start automating sales with AI-powered lead scoring and outreach.",
+          "Create your Majix account and start automating sales with AI-powered lead scoring and outreach.",
       },
       { property: "og:url", content: "https://majix.ai/signup" },
     ],
@@ -157,17 +156,19 @@ function SignupPage() {
     }
     setGoogleLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: buildRedirectAfterSignup(),
+      // Supabase handles the browser redirect; control returns here only on
+      // error. Invite-acceptance happens post-redirect via the standard
+      // /accept-invite flow.
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: buildRedirectAfterSignup() },
       });
-      if (result.error) {
-        toast.error(friendlyAuthError(result.error, "Google sign-in failed"));
-        return;
+      if (error) {
+        toast.error(friendlyAuthError(error, "Google sign-in failed"));
+        setGoogleLoading(false);
       }
-      if (result.redirected) return;
-      await tryAcceptInvite(invite);
-      goPostSignup();
-    } finally {
+    } catch (err) {
+      toast.error(friendlyAuthError(err, "Google sign-in failed"));
       setGoogleLoading(false);
     }
   };
