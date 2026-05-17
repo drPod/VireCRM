@@ -102,9 +102,11 @@ Last scan: 2026-05-17. Source: agent-browser tour of `/` marketing + source-tree
 - All 108 migrations applied + stamped in `supabase_migrations.schema_migrations`.
 - 84 public tables, 82 public functions.
 - Pooler region prefix is `aws-1` (not `aws-0`).
-- Advisors: 0 ERROR, 135 WARN — all `SECURITY DEFINER` funcs callable by `anon`/`authenticated`. Critical risk on admin_*, webhook_grant_plan_by_email, grant_credit_pack, mark_*_paid, accept_invitation. Needs revoke + grant cleanup.
+- Advisors hardening pass 1 (migration `20260517133315_lock_down_security_definer_funcs.sql`): 135 → ~41 WARN. Anon-callable funcs: 65 → 6 (intentional: signup/reseller/domain provider). Auth-callable: 70 → ~34 (admin panel + white-label + lead ops — by design, RLS gates data inside). Remaining WARNs = advisor noise on intentional surface.
+- Outstanding advisor: `auth_leaked_password_protection` disabled — enable in dashboard Auth → Password protection (not migration-able).
 - Migration `20260417054233_*` stamped but actual SQL never ran (skipped by prior session — old Lovable cron URL `auto-pilot-sales-ace.lovable.app/hooks/send-pending-welcomes`). `cron.job` empty. Need: edit URL to new host or remove cron.
-- `SUPABASE_SERVICE_ROLE_KEY` not yet in `.env`. Needed for edge fn deploy + admin ops.
+- All 25 edge functions deployed (`supabase functions list` confirms). Most error at call-time without env secrets (STRIPE_SECRET_KEY, LOVABLE_AI_KEY, RESEND_API_KEY, etc) — set via dashboard or `supabase secrets set`.
+- Test user seeded: `darsh.pod@gmail.com` / `TestPass123!`, owner role, `Darsh Test's Organization`, manual subscription active until 2027-05-17.
 
 ## Build-out priorities (TBD — fill as we go)
 
@@ -120,7 +122,94 @@ Last scan: 2026-05-17. Source: agent-browser tour of `/` marketing + source-tree
 
 ---
 
-## Browser-verified audit (2026-05-17, session `genesisxsx-crm-audit`)
+## Auth-gated browser audit — pass 2 (2026-05-17, post env-fix)
+
+Scope: ~33 `_app.*` routes. Bypassed auth via service-role API: created pre-confirmed user `audit-1779023439@genesisxsx-audit.local` (id `07ec78b5-…`), inserted manual sub row (env=manual, status=active, 90-day window), profile + org auto-created by trigger (org `385535bd-…`). Creds at `/tmp/genesisxsx-audit/test-email.txt`. Screenshots `/tmp/genesisxsx-audit/22-63*.png`.
+
+### Pre-audit blocker uncovered
+
+Vite dev server had stale env baked into bundle — old Lovable Supabase URL `mtcthkzvpfctjanehgdr.supabase.co` instead of `coynbufhejaeuifpvmvw.supabase.co`. Login to seeded user failed silently w/ "invalid credentials" because bundle hit abandoned project. Fix: kill all `vite dev` processes + restart so updated `.env` loads. Recommend `scripts/restart-dev.sh` + pre-dev hook printing resolved `VITE_SUPABASE_URL`. Note in CLAUDE.md.
+
+### Onboarding + tour flow
+
+- Sign-in works after env fix.
+- OnboardingWizard fires on first login.
+- **Skips step 0 (industry picker) silently for non-platform-admin owners.** `OnboardingWizard.tsx:60-62` locks template to `general` and starts at brand-color step. Owner can never pick own industry — wizard's own comment says ask platform admin via `/admin`. No `/settings` affordance to request change.
+- Brand color + privacy steps work cleanly.
+- ProductTour auto-opens after dashboard mount. Welcome dialog. Skip dismisses cleanly.
+
+### Routes audited — all 33 render w/ real h1/h2, zero console errors
+
+| Section | Route | Status | Note | PNG |
+|---|---|---|---|---|
+| Core | /dashboard | works | command bar, pipeline cols, credit usage, activity feed | 25, 27 |
+| Core | /leads | works | list UI, filters, bulk actions, 0 leads | 28 |
+| Core | /messages | works | empty state | 29 |
+| Core | /conversations | works | empty state | 30 |
+| Core | /campaigns | works | empty state + analytics button | 31 |
+| Core | /workflows | works | empty state | 32 |
+| Core | /calendar | works | May 2026 month view | 33 |
+| Core | /appointments | works | "Calendars" h2 | 34 |
+| Core | /sequences | works | empty state | 35 |
+| Core | /funnels | works | stats grid + 3 tabs + create CTA | 36 |
+| Core | /email-marketing | works | campaign list empty | 37 |
+| Core | /followup-inbox | works | tabs + Generate-batch CTA | 38 |
+| Core | /command-chat | works | suggestion buttons + textarea | 49 |
+| Core | /advisor | works | strategy form, 100 analyses remaining | 44 |
+| Revenue | /revenue | works | trend + P&L + 12-mo summary | 39 |
+| Revenue | /payouts | works | Pending/Paid tabs + commission CTA | 40 |
+| Revenue | /expenses | works | empty | 41 |
+| Revenue | /invoices | works | "Connect Stripe" gate visible | 42 |
+| Revenue | /analytics | works | pipeline breakdown + reply rate, all zeros | 45 |
+| Revenue | /reputation | works | review-request flow | 43 |
+| Revenue | /academy | works | empty course list + create-course CTA | 53 |
+| Revenue | /billing | **partial** | Lifetime card OK but **"Failed to send a request to the Edge Function"** at history section | 27, 60 |
+| Workspace | /settings | works | Team/Roles/White-Label/Emails/Outreach/Payments/Integrations | 47 |
+| Admin | /admin | works | "Restricted" gate (audit user not platform admin) | 48 |
+| Admin | /clients | works | "Become reseller" CTA — gated until reseller mode on | 54 |
+| Admin | /contact-submissions | **partial** | UI loads, REST query returns 400, lies "No submissions match" | 50, 61 |
+| Admin | /dns-check | works | "Platform admin required" gate | 51 |
+| Admin | /qa-checklist | works | full 6-step QA checklist UI | 52 |
+| Vertical | /energy | works | 7 sub-modules (LOA/Usage/Pricing/Contract/Suppliers/Renewals/Customers) | 55, 62 |
+| Vertical | /gym | works | At-risk members + member goals; reads `member_health` (empty) | 56, 63 |
+| Vertical | /solar | works | 9-stage pipeline + default modules | 57 |
+| Vertical | /real-estate | works | 7-stage pipeline (re-uses solar's IndustryHub) | 58 |
+| Vertical | /insurance | works | 8-stage pipeline (re-uses IndustryHub) | 59 |
+
+### NEW bugs / regressions
+
+1. **[blocker] Edge-function CORS hardcoded to Lovable preview URL.** `supabase/functions/_shared/stripe.ts:124` exports `corsHeaders` w/ `"Access-Control-Allow-Origin": "https://genesisxsx.lovable.app"`. 17 edge functions import bare `corsHeaders`: `list-billing-history`, `customer-portal`, `create-checkout`, `connect-stripe-account`, `admin-invoice-action`, `void-lead-invoice`, `revoke-manual-subscription`, `reset-client-password`, `manage-org-features`, `list-manual-subscriptions`, `grant-manual-subscription`, `get-stripe-price`, `create-submission-invoice`, `create-reseller-checkout`, `create-quote-payment-link`, `create-lead-invoice`, `create-client-account`. All return `Failed to fetch` from `http://localhost:8080` AND from prod `genesisx.space`. Only `verify-checkout-session` uses dynamic `buildCorsHeaders(req)` helper already in same file. **Every Stripe-mediated flow dead** (checkout, customer-portal, sub mgmt, invoice issuance, billing history, manual sub admin, reseller checkout, lead invoices, quote payment links, Stripe Connect). Fix: migrate 17 funcs to `buildCorsHeaders(req)`. Repro: `curl -X OPTIONS https://coynbufhejaeuifpvmvw.supabase.co/functions/v1/list-billing-history -H "Origin: http://localhost:8080" -i`.
+
+2. **[major] `contact_submissions.lead_id` column doesn't exist.** REST returns `{"code":"42703","message":"column contact_submissions.lead_id does not exist"}`. `src/routes/_app.contact-submissions.tsx:100-105` selects `…classification_error,lead_id`. Either drop `lead_id` from select OR migration `ALTER TABLE contact_submissions ADD COLUMN lead_id uuid REFERENCES leads(id)`. Check `_app.admin.tsx` for same pattern.
+
+3. **[major] Silent-failure-lying-as-empty-state UI pattern.** `/contact-submissions` shows "No submissions match the current filters" on 400. `/checkout/return` shows "You're all set!" on Stripe timeout. `/billing` swallows CORS failure as single in-page string. **No global unhandled-rejection toast.** Need shared `Result<T>` error-surface convention OR dev-mode global rejection handler that toasts.
+
+4. **[major] `LOVABLE_API_KEY` not set.** Captured from dev-server log during audit: `classify-submission: failed { msg: 'LOVABLE_API_KEY is not configured' }`. 11 files reference it (`src/lib/ai-gateway.ts`, `src/lib/contact/classify-submission.ts`, `src/lib/connectors/gateway.ts`, `src/lib/resend.ts`, all `src/routes/lovable/email/**`, `src/functions/connectors.functions.ts`, `src/functions/auto-outreach.functions.ts`). AI classification + auto-outreach + transactional email broken until replaced. Decide: keep Lovable AI gateway w/ key, or migrate to direct Anthropic/OpenAI.
+
+5. **[minor] OnboardingWizard skips industry picker for non-platform-admins.** Owner can never escape `general` template w/o admin. No `/settings` affordance to request change. Either expose template picker to owners (w/ audit log) or add "request industry change" UI.
+
+6. **[minor] Verticals hidden from sidebar unless `org.industry` matches** (`CrmSidebar.tsx:118-147`). Combined w/ #5, entire vertical product offering invisible to most owners.
+
+7. **[minor] `/billing` Lifetime plan shows "Renews Aug 15, 2026".** Should say "Never" or hide renewal row for Lifetime/Paid-externally. Cosmetic.
+
+### Build-out gaps
+
+- **/clients** — single CTA "Enable in Settings". Reseller toggle exists but full client mgmt UI not wired. ~1-2 days.
+- **/admin** — gated 100% on platform-admin. Couldn't audit. Add "you would see X if admin" preview for docs.
+- **/gym** — 184 LOC, reads `member_health` direct. No way to add member-health record or visit tracking. Need ingest UI or auto-populate-from-leads migration.
+- **/dashboard credit usage** tier buttons (Starter/Growth/Pro/Ownership) render w/o visible data binding. Verify wiring.
+- **/gym** doesn't use solar's `IndustryHub` like real-estate/insurance do. Extend so gym hub gets same modular pipeline shell.
+
+### Cross-cutting issues
+
+- Stale-env Vite gotcha (above) — needs script + CLAUDE.md note.
+- 17 edge functions broken cross-origin (bug #1) — biggest single finding.
+- Silent fetch failures everywhere (bug #3).
+- Verticals invisible to most owners (bugs #5 + #6).
+
+---
+
+## Browser-verified audit — pass 1 (2026-05-17, pre env-fix)
 
 Scope: unauth-reachable surface. `_app.*` routes NOT reached — see "Auth gate reality" below. Screenshots `/tmp/genesisxsx-audit/01-21*.png`. Throwaway creds in `test-email.txt`.
 
@@ -419,3 +508,165 @@ Did NOT flag: RLS-disabled tables (none — all 84 public tables have RLS ON), m
 - All 84 `public.*` tables have `rls_enabled=true`. Good baseline.
 - Existing data lives in 4 orgs (1 owner's, 3 mine from this audit), 4 user_roles, 3 subscriptions. Bulk of tables empty (clean install).
 - Did NOT exhaustively audit policy correctness per table — only that RLS is on. Per-table policy audit is its own pass (recommend: SQL dump of `pg_policies` filtered to `public`, then walk through each table's policy set for tenant isolation correctness).
+
+---
+
+## Security pass 2 audit (2026-05-17)
+
+Read-only sweep over every public-reachable POST in the codebase, modelled on the `/api/public/contact` bug class (server validation that no-ops when client omits a field). Reference fix: `src/routes/api/public/contact.ts` lines 50-70 (captcha now required, honeypot required, IP rate-limit + dedup window).
+
+### Findings
+
+#### 1. `bookPublicAppointmentFn` — zero abuse protection (CRITICAL)
+- File: `src/functions/appointments.functions.ts` lines 540-620
+- Route: any visitor of `/book/$slug` (also callable directly via TanStack server-fn endpoint)
+- Schema (line 540-548):
+  ```ts
+  const publicBookSchema = z.object({
+    calendarId: z.string().uuid(),
+    starts_at: z.string(),
+    name: z.string().min(1).max(120),
+    email: z.string().email().max(200),
+    phone: z.string().max(40).optional(),
+    notes: z.string().max(2000).optional(),
+    password: z.string().max(200).optional(),  // <-- ONLY enforced if calendar.access_password_hash IS NOT NULL
+  });
+  ```
+- **No captcha. No honeypot. No rate limit. No origin check.** `password` is `.optional()` — same class of bug as the original contact bug, BUT: `loadPublicCalendarOrThrow` *does* re-check `if (hash) { if (!password) throw }` (line 398-401). So password-gated calendars are safe. **But every non-password calendar (the default) is wide open.** Attacker can:
+  - Spam every public booking slug with fake bookings → fills owner's calendar, denies real bookings.
+  - Inserts a fake `leads` row per unique email submitted (line 587 — `insert into leads`). Pollute every reseller's CRM with garbage leads, all tagged `source: "booking_link"`.
+  - Burn through whatever per-slot conflict detection there is by exhausting available slots.
+- Severity: **CRITICAL** (silent lead-table pollution across tenants + DoS of any public calendar)
+- Minimal fix:
+  1. Add honeypot field + math-captcha to `publicBookSchema` (mirror contact.ts pattern).
+  2. Add per-IP rate-limit table or reuse `contact_submissions`-style counter (5 / 10min, 20 / 24h).
+  3. Add dedup window: same `(calendarId, email, starts_at)` within 60s → return success without insert.
+  4. Verify `Origin` header against an allowlist before processing (the edge functions already do this via `buildCorsHeaders` — port the same allowlist here).
+
+#### 2. `verifyCalendarPasswordFn` — unbounded password guess oracle (MAJOR)
+- File: `src/functions/appointments.functions.ts` lines 454-462
+- Public endpoint, no rate limit, no captcha, no lockout. Returns 200/throw based on password match. Attacker brute-forces calendar access passwords offline-equivalent (scrypt is slow but server pays cost; still trivially abusable with cheap parallelism).
+- Severity: **MAJOR** (password-gated calendars assumed private; this endpoint makes them effectively guessable for short passwords)
+- Minimal fix: per-IP+calendarId attempt counter (e.g. 5 failed tries / hour → 429 + delay).
+
+#### 3. `getAvailableSlotsFn` — same surface as #1, scrape vector (MINOR)
+- File: `src/functions/appointments.functions.ts` lines 468-538
+- No auth, no rate limit. Anyone can enumerate every public calendar's availability + booked slot deltas (by subtraction: hit twice, see what disappeared = booked time). Not a validation bypass but is the recon endpoint that feeds #1.
+- Severity: **MINOR** (privacy + scraping; not corrupting state)
+- Minimal fix: per-IP rate limit on the public slot endpoint.
+
+#### 4. `/hooks/calculate-payouts` — "auth" check accepts ANY non-empty token (CRITICAL)
+- File: `src/routes/hooks/calculate-payouts.ts` lines 14-24
+- Vulnerable lines:
+  ```ts
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.replace("Bearer ", "");
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Missing authorization header" }), { status: 401 });
+  }
+  // ← then proceeds to call supabase.rpc("calculate_reseller_payouts") with SERVICE ROLE
+  ```
+  Token value is never compared to a secret. Anyone sending `Authorization: Bearer x` can trigger the monthly payout calculation against arbitrary `periodStart`/`periodEnd` from request body. RPC runs with `SUPABASE_SERVICE_ROLE_KEY`.
+- What attacker gets: force-recompute payouts for any period (potentially overwriting `pending` rows), DoS of an expensive RPC, possibly cause double-counting if the RPC isn't fully idempotent on partial states.
+- Severity: **CRITICAL** (financial calc tampering + cron-replay DoS)
+- Minimal fix: compare token to `process.env.CRON_SECRET` (already the pattern used by `contact-followup-reminders.ts`, `dispatch-followups.ts`, `classify-contact-submissions.ts`):
+  ```ts
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || request.headers.get("x-cron-secret") !== cronSecret) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  ```
+
+#### 5. `/hooks/send-pending-welcomes` — same "any-token" bug (MAJOR)
+- File: `src/routes/hooks/send-pending-welcomes.ts` lines 41-51
+- Identical pattern to #4: token presence check only. Anyone can trigger the welcome-email queue drain → mass-replay welcome emails (if any `pending_welcome_emails` rows have `send_after <= now`). Also costs your transactional email quota.
+- Severity: **MAJOR** (email spam vector + quota burn; not financial, hence not critical)
+- Minimal fix: same — compare to `CRON_SECRET` (or `SUPABASE_SERVICE_ROLE_KEY` like `lovable/email/queue/process.ts` does).
+
+#### 6. `/api/public/hooks/dispatch-sequences` — same "any-token" bug (MAJOR)
+- File: `src/routes/api/public/hooks/dispatch-sequences.ts` lines 90-102
+- Vulnerable lines:
+  ```ts
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.replace("Bearer ", "");
+  if (!token) { return 401 }
+  const supabase = createClient(VITE_SUPABASE_URL!, token, { ... });
+  ```
+  Token is fed to `createClient` as the auth — but `createClient(url, key, ...)` treats the second arg as the **client key**, not an auth token, so any non-empty string passes the early gate and Supabase later rejects on RLS. **However**, since `outreach_sequence_enrollments` etc. likely have RLS that requires `service_role` or org membership, the actual writes may fail — but the function still does the (expensive) enrollment scan, hydration of leads/orgs/templates, and the work loop. **Confirm RLS on `outreach_sequence_enrollments` / `outreach_sequences`** — if any are anon-readable, this becomes worse.
+- Severity: **MAJOR** (DoS + likely info leak depending on RLS; demote to MINOR only if you confirm every table touched here has anon=deny)
+- Minimal fix: switch to `CRON_SECRET` header check (same as `dispatch-followups.ts` does correctly).
+
+#### 7. `/api/public/hooks/purge-audit-log` — same "any-token" bug (MAJOR)
+- File: `src/routes/api/public/hooks/purge-audit-log.ts` lines 7-22
+- Identical pattern. Calls `supabase.rpc("purge_advisor_audit_log")` with whatever token was supplied. The RPC is `SECURITY DEFINER` per migration `20260423080340_*` (and was reinforced in `20260517133315_lock_down_security_definer_funcs.sql`), so this either no-ops on anon (good) or actually purges (bad) depending on the GRANT. **Audit the GRANT on `purge_advisor_audit_log`** — if `anon` or `authenticated` has EXECUTE, any logged-in user (or anon) can wipe the audit log.
+- Severity: **MAJOR** pending the GRANT check; **CRITICAL** if anon has EXECUTE.
+- Minimal fix: switch to `CRON_SECRET` gate + `REVOKE EXECUTE ON FUNCTION public.purge_advisor_audit_log FROM anon, authenticated`.
+
+#### 8. `supabase/functions/create-checkout` — unauth, accepts arbitrary `userId`/`organizationId` metadata (MAJOR)
+- File: `supabase/functions/create-checkout/index.ts` lines 9-77
+- Listed in `supabase/config.toml` as `verify_jwt = false`. Body fields `userId`, `attributedResellerId`, `resellerPlanId`, `organizationId` are taken verbatim and stamped onto `session.metadata`. Anyone can create a Stripe checkout session with arbitrary stamping.
+- What attacker gets: actual fraudulent grant requires the attacker to pay Stripe (webhook signature is verified, so just calling the webhook doesn't help). But:
+  - Can mint a session whose `metadata.organizationId` points at someone else's org — if anyone pays it (e.g. attacker tricks a victim into completing checkout via a phishing link to the embedded checkout client_secret), credits land in the attacker's chosen org.
+  - Can cause arbitrary upserts into `transactions`/`subscriptions` mapped to unrelated `userId`s if attacker pays for trivial-cost line items.
+  - Discount-promo abuse: forces `launch30` coupon onto every session forever.
+- Severity: **MAJOR** (real money required, but cross-tenant attribution corruption is possible end-to-end)
+- Minimal fix: require auth on `create-checkout` (set `verify_jwt = true` in `config.toml` OR validate the bearer in-function and ensure `userId == authed user id` + caller has membership in `organizationId`). `verify-checkout-session` already does this — mirror that pattern. Keep `get-stripe-price` public (read-only price lookup is fine).
+
+#### 9. `supabase/functions/get-stripe-price` — `priceId` regex permits abuse (MINOR)
+- File: `supabase/functions/get-stripe-price/index.ts` lines 11-16
+- No auth, no rate limit. Regex `/^[a-zA-Z0-9_-]+$/` permits brute-enumerating any Stripe price lookup_key. Cost: 1 Stripe API call per request. Attacker can DoS Stripe quota or scrape the full pricing matrix.
+- Severity: **MINOR** (info-only, Stripe rate-limits will eventually fire)
+- Minimal fix: per-IP rate-limit (10/min) and short cache of resolved lookup_keys.
+
+### Inventory of public endpoints
+
+| Endpoint | Method | Auth | Rate limit | Captcha | Honeypot | Origin check | Signature |
+|---|---|---|---|---|---|---|---|
+| `POST /api/public/contact` | POST | none | yes (IP + dedup) | required (math) | yes (website) | no | no |
+| `POST /api/public/hooks/classify-contact-submissions` | POST | `x-cron-secret` | n/a | n/a | n/a | no | no |
+| `POST /api/public/hooks/dispatch-followups` | POST | `x-cron-secret` | n/a | n/a | n/a | no | no |
+| `POST /api/public/hooks/contact-followup-reminders` | POST | `x-cron-secret` | n/a | n/a | n/a | no | no |
+| `POST /api/public/hooks/dispatch-sequences` | POST | **broken** (any token) | n/a | n/a | n/a | no | no |
+| `POST /api/public/hooks/purge-audit-log` | POST | **broken** (any token) | n/a | n/a | n/a | no | no |
+| `POST /hooks/calculate-payouts` | POST | **broken** (any token) | n/a | n/a | n/a | no | no |
+| `POST /hooks/send-pending-welcomes` | POST | **broken** (any token) | n/a | n/a | n/a | no | no |
+| `POST /api/notify-low-balance` | POST | JWT + owner role | n/a | n/a | n/a | no | no |
+| `POST /lovable/email/auth/webhook` | POST | n/a | n/a | n/a | n/a | no | **HMAC (LOVABLE_API_KEY)** |
+| `POST /lovable/email/suppression` | POST | n/a | n/a | n/a | n/a | no | **HMAC (LOVABLE_API_KEY)** |
+| `POST /lovable/email/transactional/send` | POST | JWT | n/a | n/a | n/a | no | no |
+| `POST /lovable/email/transactional/preview` | POST | `LOVABLE_API_KEY` bearer | n/a | n/a | n/a | no | no |
+| `POST /lovable/email/auth/preview` | POST | `LOVABLE_API_KEY` bearer | n/a | n/a | n/a | no | no |
+| `POST /lovable/email/queue/process` | POST | `SERVICE_ROLE_KEY` bearer | n/a | n/a | n/a | no | no |
+| `GET/POST /email/unsubscribe` | GET/POST | unsub token (per email) | no | n/a | n/a | no | no (RFC 8058 one-click) |
+| `GET /sitemap.xml` | GET | none | n/a | n/a | n/a | n/a | n/a |
+| `POST` getPublicCalendarFn (TanStack server fn) | POST | none | no | no | no | no | no |
+| `POST` verifyCalendarPasswordFn (TanStack server fn) | POST | none | **no** | no | no | no | no |
+| `POST` getAvailableSlotsFn (TanStack server fn) | POST | none | no | no | no | no | no |
+| `POST` bookPublicAppointmentFn (TanStack server fn) | POST | none | **no** | **no** | **no** | no | no |
+| Edge fn `payments-webhook` (verify_jwt=false) | POST | n/a | n/a | n/a | n/a | n/a | **HMAC (Stripe webhook secret)** |
+| Edge fn `create-checkout` (verify_jwt=false) | POST | **none** | no | no | no | CORS only | no |
+| Edge fn `create-reseller-checkout` (verify_jwt=false) | POST | **none** | no | no | no | CORS only | no |
+| Edge fn `get-stripe-price` (verify_jwt=false) | POST | **none** | **no** | no | no | CORS only | no |
+| Edge fn `verify-checkout-session` (verify_jwt=false) | POST | JWT + session.metadata.userId match | n/a | n/a | n/a | CORS only | no |
+| Edge fn `create-submission-invoice` (verify_jwt=false) | POST | JWT + `is_platform_admin` RPC | n/a | n/a | n/a | CORS only | no |
+| All other supabase edge fns (verify_jwt=true) | POST | JWT enforced by Supabase | depends | n/a | n/a | CORS only | n/a |
+
+### Recurring anti-pattern
+
+Four cron-style routes (`#4`-`#7`) all share the same broken auth shape:
+
+```ts
+const token = request.headers.get("authorization")?.replace("Bearer ", "");
+if (!token) return 401;
+// ... proceeds with service-role work
+```
+
+The token value is never validated against a secret. Three siblings (`classify-contact-submissions`, `dispatch-followups`, `contact-followup-reminders`) do it correctly with `x-cron-secret` + `CRON_SECRET` env var. Pick one convention (recommend `x-cron-secret` to match the existing 3) and fix all four sites in one PR.
+
+### Notes / non-findings
+
+- All `lovable/email/*` routes properly gated (HMAC, service-role bearer, or LOVABLE_API_KEY bearer).
+- `/email/unsubscribe` correctly uses token + atomic compare-and-swap; safe as-is.
+- All TanStack server fns under `src/functions/*.ts` that use `requireSupabaseAuth` middleware are properly auth-gated — the `.optional()` fields in those schemas are on auth-required surface, so they're not in scope of this bug class.
+- Supabase edge functions NOT in `config.toml` default to `verify_jwt = true` per Supabase platform behavior — confirmed by reading individual fns (they call `supabase.auth.getUser(token)` and reject on failure).
+- Signup pages (`/signup`, `/r/$resellerSlug/signup`) call `supabase.auth.signUp` directly — abuse protection (captcha, rate limit) is configured at the Supabase Auth project level, not in app code.
