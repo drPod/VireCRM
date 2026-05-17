@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { useActionLock } from "@/hooks/useActionLock";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +86,7 @@ export function ResendSettingsCard() {
   const [testRecipient, setTestRecipient] = useState("");
   const sendLock = useActionLock();
   const [removeLock, setRemoveLock] = useState(false);
+  const { confirm } = useConfirm();
 
   const refresh = useCallback(async () => {
     if (!organization?.id || !isOwner) {
@@ -194,13 +196,13 @@ export function ResendSettingsCard() {
 
   const handleDisconnect = async () => {
     if (!organization?.id) return;
-    if (
-      !window.confirm(
-        "Disconnect Resend? Outreach emails will fall back to your other connected email channels.",
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Disconnect Resend?",
+      description: "Outreach emails will fall back to your other connected email channels.",
+      confirmLabel: "Disconnect",
+      destructive: true,
+    });
+    if (!ok) return;
     setRemoveLock(true);
     try {
       await disconnect({ data: { organizationId: organization.id } });

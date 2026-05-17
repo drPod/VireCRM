@@ -26,6 +26,7 @@ import { Crown, Loader2, RefreshCw, ShieldCheck, Trash2, Users } from "lucide-re
 import { formatDistanceToNow } from "date-fns";
 import { OrgFeaturesPanel } from "./OrgFeaturesPanel";
 import { PriceConsistencyCheck } from "./PriceConsistencyCheck";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface ManualSub {
   id: string;
@@ -57,6 +58,7 @@ export function PlatformAdminPanel() {
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [revokeEmail, setRevokeEmail] = useState("");
   const [revoking, setRevoking] = useState(false);
+  const { confirm } = useConfirm();
 
   const loadSubs = useCallback(async () => {
     setLoadingSubs(true);
@@ -128,13 +130,13 @@ export function PlatformAdminPanel() {
       toast.error("Enter a valid email");
       return;
     }
-    if (
-      !window.confirm(
-        `Revoke ALL active manual subscriptions for ${trimmed}? They'll lose access immediately.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Revoke ALL active manual subscriptions for ${trimmed}?`,
+      description: "They'll lose access immediately.",
+      confirmLabel: "Revoke",
+      destructive: true,
+    });
+    if (!ok) return;
 
     setRevoking(true);
     try {

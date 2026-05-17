@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Loader2, Search, Sparkles, Trash2 } from "lucide-react";
 import { FEATURE_CATALOG, FEATURE_BY_KEY } from "@/lib/features/catalog";
 import { invalidateFeatureCache } from "@/hooks/useFeatureFlag";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface OrgRow {
   id: string;
@@ -45,6 +46,7 @@ export function OrgFeaturesPanel() {
   const [grantingKey, setGrantingKey] = useState<string | null>(null);
   const [pickFeature, setPickFeature] = useState<string>(FEATURE_CATALOG[0]?.key ?? "");
   const [notes, setNotes] = useState("");
+  const { confirm } = useConfirm();
 
   const loadOrgs = useCallback(async (q: string) => {
     setLoadingOrgs(true);
@@ -130,11 +132,12 @@ export function OrgFeaturesPanel() {
 
   async function handleRevoke(featureKey: string) {
     if (!selectedOrgId) return;
-    if (
-      !window.confirm(`Revoke "${FEATURE_BY_KEY[featureKey]?.name ?? featureKey}" for this org?`)
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Revoke "${FEATURE_BY_KEY[featureKey]?.name ?? featureKey}" for this org?`,
+      confirmLabel: "Revoke",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       const { error } = await supabase.functions.invoke("manage-org-features", {
         body: {

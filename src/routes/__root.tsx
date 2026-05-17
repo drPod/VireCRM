@@ -7,6 +7,7 @@ import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
 import { GlobalAuthErrorListener } from "@/components/GlobalAuthErrorListener";
 import { PageTransition } from "@/components/PageTransition";
 import { Toaster } from "@/components/ui/sonner";
+import { ConfirmProvider } from "@/hooks/useConfirm";
 
 import appCss from "../styles.css?url";
 
@@ -144,9 +145,11 @@ function RootComponent() {
       <DomainBrandingProvider>
         <AuthProvider>
           <WhiteLabelTheme />
-          <PageTransition>
-            <Outlet />
-          </PageTransition>
+          <ConfirmProvider>
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
+          </ConfirmProvider>
           <Toaster />
         </AuthProvider>
       </DomainBrandingProvider>

@@ -16,6 +16,7 @@ import {
 import { Loader2, RefreshCw, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface AdminRow {
   user_id: string;
@@ -33,6 +34,7 @@ export function PlatformAdminsPanel() {
   const [inviteNotes, setInviteNotes] = useState("");
   const [inviting, setInviting] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const { confirm, prompt } = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -56,11 +58,15 @@ export function PlatformAdminsPanel() {
     // Typed confirmation — admin access is full Super Admin (financials, all
     // submissions, invoices, plan assignment). A mis-typed email or accidental
     // submit must NOT silently grant access.
-    const typed = window.prompt(
-      `Grant FULL Super Admin access to:\n\n  ${email}\n\nThis gives them complete control: financials, every customer's data, ` +
-        `invoice creation, plan assignment, and the ability to add/remove other admins.\n\n` +
-        `Type the email address again to confirm:`,
-    );
+    const typed = await prompt({
+      title: `Grant FULL Super Admin access to ${email}?`,
+      description:
+        "This gives them complete control: financials, every customer's data, invoice creation, plan assignment, and the ability to add/remove other admins.",
+      inputLabel: "Type the email address again to confirm",
+      placeholder: email,
+      confirmLabel: "Grant admin",
+      destructive: true,
+    });
     if (typed === null) return;
     if (typed.trim().toLowerCase() !== email.toLowerCase()) {
       toast.error("Email did not match — admin access NOT granted.");
@@ -84,7 +90,12 @@ export function PlatformAdminsPanel() {
   };
 
   const handleRevoke = async (row: AdminRow) => {
-    if (!window.confirm(`Revoke platform admin from ${row.email ?? row.user_id}?`)) return;
+    const ok = await confirm({
+      title: `Revoke platform admin from ${row.email ?? row.user_id}?`,
+      confirmLabel: "Revoke",
+      destructive: true,
+    });
+    if (!ok) return;
     setRevoking(row.user_id);
     const { data, error } = await supabase.rpc("revoke_platform_admin", { p_user_id: row.user_id });
     setRevoking(null);

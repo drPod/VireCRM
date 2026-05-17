@@ -57,6 +57,7 @@ import {
 import { PlatformAdminPanel } from "@/components/crm/PlatformAdminPanel";
 import { PlatformAdminsPanel } from "@/components/crm/PlatformAdminsPanel";
 import { QuotesPanel } from "@/components/admin/QuotesPanel";
+import { useConfirm } from "@/hooks/useConfirm";
 
 export const Route = createFileRoute("/_app/admin")({
   component: AdminConsole,
@@ -710,6 +711,7 @@ function OrganizationsPanel() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savingPlanId, setSavingPlanId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { confirm } = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -767,10 +769,11 @@ function OrganizationsPanel() {
     if (target && target.value !== "free") {
       const price = formatPlanPrice(target);
       const who = orgLabel ? ` to ${orgLabel}` : "";
-      const ok = window.confirm(
-        `Assign "${target.label}" (${price})${who}?\n\n${target.tagline}\n\nThis updates the org's plan immediately. ` +
-          `It does NOT charge the customer — use the invoice flow for billing.`,
-      );
+      const ok = await confirm({
+        title: `Assign "${target.label}" (${price})${who}?`,
+        description: `${target.tagline}\n\nThis updates the org's plan immediately. It does NOT charge the customer — use the invoice flow for billing.`,
+        confirmLabel: "Assign plan",
+      });
       if (!ok) return;
     }
     setSavingPlanId(orgId);
@@ -792,14 +795,14 @@ function OrganizationsPanel() {
     void load();
   };
 
-  const handleRemovePlan = (orgId: string, orgLabel?: string) => {
-    if (
-      !window.confirm(
-        `Remove the assigned plan${orgLabel ? ` from ${orgLabel}` : ""}? The organization will be downgraded to Free.`,
-      )
-    ) {
-      return;
-    }
+  const handleRemovePlan = async (orgId: string, orgLabel?: string) => {
+    const ok = await confirm({
+      title: `Remove the assigned plan${orgLabel ? ` from ${orgLabel}` : ""}?`,
+      description: "The organization will be downgraded to Free.",
+      confirmLabel: "Remove plan",
+      destructive: true,
+    });
+    if (!ok) return;
     void handlePlanChange(orgId, "free", orgLabel);
   };
 
@@ -1810,6 +1813,7 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
+  const { confirm, prompt } = useConfirm();
 
   const runInvoiceAction = async (
     inv: PlatformInvoiceRow,
@@ -1817,27 +1821,32 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
   ) => {
     let amountCents: number | undefined;
     if (action === "void") {
-      if (
-        !window.confirm(
-          `Void invoice ${inv.number ?? inv.stripe_invoice_id}? The customer will no longer be able to pay it.`,
-        )
-      ) {
-        return;
-      }
+      const ok = await confirm({
+        title: `Void invoice ${inv.number ?? inv.stripe_invoice_id}?`,
+        description: "The customer will no longer be able to pay it.",
+        confirmLabel: "Void invoice",
+        destructive: true,
+      });
+      if (!ok) return;
     } else if (action === "resend") {
-      if (
-        !window.confirm(
-          `Resend invoice ${inv.number ?? inv.stripe_invoice_id} email to the prospect via Stripe?`,
-        )
-      ) {
-        return;
-      }
+      const ok = await confirm({
+        title: `Resend invoice ${inv.number ?? inv.stripe_invoice_id}?`,
+        description: "Stripe will email this invoice to the prospect again.",
+        confirmLabel: "Resend email",
+      });
+      if (!ok) return;
     } else {
       const fullDollars = (inv.amount_paid_cents / 100).toFixed(2);
-      const input = window.prompt(
-        `Refund amount in ${inv.currency.toUpperCase()} (max $${fullDollars}). Leave blank for full refund.`,
-        fullDollars,
-      );
+      const input = await prompt({
+        title: "Refund invoice",
+        description: `Refund amount in ${inv.currency.toUpperCase()} (max $${fullDollars}). Leave blank for full refund.`,
+        inputLabel: "Amount",
+        defaultValue: fullDollars,
+        placeholder: fullDollars,
+        inputMode: "decimal",
+        confirmLabel: "Issue refund",
+        destructive: true,
+      });
       if (input === null) return;
       const trimmed = input.trim();
       if (trimmed.length > 0) {
@@ -2053,28 +2062,31 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
           <Select
             disabled={assigningPlan}
             onValueChange={(v) => {
-              if (v === "__remove__") {
-                if (
-                  !window.confirm(
-                    `Remove plan from ${submission.email}? They'll be downgraded to Free.`,
-                  )
-                )
+              void (async () => {
+                if (v === "__remove__") {
+                  const ok = await confirm({
+                    title: `Remove plan from ${submission.email}?`,
+                    description: "They'll be downgraded to Free.",
+                    confirmLabel: "Remove plan",
+                    destructive: true,
+                  });
+                  if (!ok) return;
+                  const success = await setPlanForCustomer("free");
+                  if (success) toast.success("Plan removed (set to Free)");
                   return;
-                void setPlanForCustomer("free").then(
-                  (ok) => ok && toast.success("Plan removed (set to Free)"),
-                );
-                return;
-              }
-              const target = getPlan(v);
-              if (target && target.value !== "free") {
-                const ok = window.confirm(
-                  `Assign "${target.label}" (${formatPlanPrice(target)}) to ${submission.email}?\n\n${target.tagline}\n\nThis grants access immediately and does NOT charge them.`,
-                );
-                if (!ok) return;
-              }
-              void setPlanForCustomer(v).then(
-                (ok) => ok && toast.success(`Assigned ${target?.label ?? v}`),
-              );
+                }
+                const target = getPlan(v);
+                if (target && target.value !== "free") {
+                  const ok = await confirm({
+                    title: `Assign "${target.label}" (${formatPlanPrice(target)}) to ${submission.email}?`,
+                    description: `${target.tagline}\n\nThis grants access immediately and does NOT charge them.`,
+                    confirmLabel: "Assign plan",
+                  });
+                  if (!ok) return;
+                }
+                const success = await setPlanForCustomer(v);
+                if (success) toast.success(`Assigned ${target?.label ?? v}`);
+              })();
             }}
           >
             <SelectTrigger className="h-8 w-[220px] text-xs">
