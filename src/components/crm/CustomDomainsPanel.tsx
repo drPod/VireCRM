@@ -19,8 +19,28 @@ import {
 import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import { CustomDomainAuditLog } from "@/components/crm/CustomDomainAuditLog";
 import { DomainHealthPanel } from "@/components/crm/DomainHealthPanel";
+import {
+  provisionCustomHostnameFn,
+  tearDownCustomHostnameFn,
+} from "@/functions/custom-hostnames.functions";
+
+// Server fns surface "CF for SaaS not configured" as a 503 Response — server
+// fn errors come back as Response instances on the client. Detect by status
+// so we can degrade gracefully without a string match. Mirrors the pattern in
+// EditClientWhiteLabelDialog; extract to shared util once both call sites are
+// stable and the verify session has finished walking the dialog.
+function isNotConfigured(err: unknown): boolean {
+  return err instanceof Response && err.status === 503;
+}
+
+function describeError(err: unknown): string {
+  if (err instanceof Response) return `${err.status} ${err.statusText}`.trim();
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
 
 // Fire-and-forget audit logger. Failures here must never block the user action,
 // so we just log them to the console for ops.
@@ -125,6 +145,8 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   const { enabled, loading: flagLoading } = useFeatureFlag("custom_domain");
   const { role } = useAuth();
   const isOwner = role?.role === "owner";
+  const provisionCf = useAuthedServerFn(provisionCustomHostnameFn);
+  const tearDownCf = useAuthedServerFn(tearDownCustomHostnameFn);
   const [rows, setRows] = useState<DomainRow[]>([]);
   const [owners, setOwners] = useState<OwnerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -445,6 +467,24 @@ export function CustomDomainsPanel({ organizationId }: Props) {
       status: "success",
       message: `Added ${clean}`,
     }).then(bumpAudit);
+
+    // Sync Cloudflare for SaaS state. Best-effort: a 503 means the operator
+    // hasn't finished CF setup yet; anything else is a real failure but we
+    // don't unwind the add — operator can retry from the panel once CF is
+    // healthy. Mirrors EditClientWhiteLabelDialog.handleSave.
+    try {
+      await provisionCf({ data: { organizationId, hostname: clean } });
+      toast.success("Cloudflare custom hostname provisioned");
+    } catch (err) {
+      if (isNotConfigured(err)) {
+        toast.warning(
+          "Hostname added, but Cloudflare for SaaS isn't configured on this worker yet — customer DNS won't resolve until that's done.",
+        );
+      } else {
+        toast.error(`Cloudflare provisioning failed: ${describeError(err)}`);
+      }
+    }
+
     setNewHost("");
     void refresh();
   };
@@ -527,6 +567,22 @@ export function CustomDomainsPanel({ organizationId }: Props) {
     setBusyId(row.id);
     cancelledRef.current[row.id] = true;
     clearTimer(row.id);
+
+    // Tear down on Cloudflare BEFORE we remove the local row — once
+    // org_custom_domains.id is gone, the server fn can no longer locate the
+    // cf_hostname_id needed to call DELETE on the CF API. Best-effort: 503 is
+    // silent (CF never configured); other failures surface a toast but we
+    // proceed with the local removal so the user isn't blocked.
+    if (organizationId) {
+      try {
+        await tearDownCf({ data: { organizationId, hostname: row.hostname } });
+      } catch (err) {
+        if (!isNotConfigured(err)) {
+          toast.error(`Couldn't tear down on Cloudflare: ${describeError(err)}`);
+        }
+      }
+    }
+
     const { data, error } = await supabase.rpc("remove_custom_domain", {
       p_domain_id: row.id,
     });

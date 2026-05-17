@@ -1141,3 +1141,36 @@ Picked up from prior handoff. Verified all 4 prior-session claims clean (rename,
 - **Persist a status field** alongside `cf_hostname_id`. Right now status is re-fetched on demand via `pollCustomHostnameStatusFn` — fine for a single panel render, but a periodic sweeper that writes back `cf_status`/`cf_ssl_status` would let the DB drive a "domains health" dashboard without spamming CF.
 - **One-time backfill** for orgs that already have `custom_domain` set but no `cf_hostname_id`. Either a manual operator action via the reseller dialog (re-save the domain) or a one-shot script that calls provision for every (org, custom_domain) tuple. Not automated — needs operator sign-off because each call is billable on CF.
 - **Auth-gated browser smoke still unverified** — surfaces touched today are server fn wires (CF provisioning) + a 2-line CSS scope change. CSS is verifiable via marketing-page screenshot (public). CF wire is verifiable end-to-end only by signing in as a reseller, opening the dialog on a real client org, and observing the toast pathways. Subagent verification post-deploy covers the public surface; auth-gated walk still needs an operator sign-in.
+
+
+---
+
+## CustomDomainsPanel CF wire + DomainHealthPanel status badges 2026-05-17 midnight
+
+Picked up handoff item 1. Sibling verify session (`auth-smoke-2026-05-17-late`) still walking the reseller-dialog wire — left both `EditClientWhiteLabelDialog.tsx` and `custom-hostnames.functions.ts` untouched.
+
+### Shipped this pass
+
+| Change | What |
+|---|---|
+| `src/components/crm/CustomDomainsPanel.tsx` | Wired `handleAdd` → `provisionCustomHostnameFn` after the `add_custom_domain` RPC success. Wired `handleRemove` → `tearDownCustomHostnameFn` BEFORE the `remove_custom_domain` RPC (row must still exist for `locateStorage` to find `cf_hostname_id`). Both calls go through `useAuthedServerFn` so the `Authorization: Bearer` header reaches the `requireSupabaseAuth` middleware. Best-effort handling mirrors the reseller dialog: 503 → `toast.warning`/silent, other failures → `toast.error` but local op proceeds. Copied `isNotConfigured` + `describeError` helpers locally instead of extracting to shared util — verify hasn't reported on the reseller dialog yet, so no refactor across the two call sites this pass. |
+| `src/components/crm/DomainHealthPanel.tsx` | Added per-row `CfHostnameStatus` subcomponent that calls `pollCustomHostnameStatusFn` once on mount (+ manual Refresh button). Renders a CF-for-SaaS row with status badge (Active / Setting up SSL / Verifying / Failed / Not provisioned / CF not configured), the raw `sslStatus` as an outline badge, and pending-TXT hints for ownership + DCV records. Per-hostname poll, not bulk — kept simple per brief. |
+
+### Latent bug spotted (NOT fixed this pass)
+
+`src/components/crm/EditClientWhiteLabelDialog.tsx` imports `provisionCustomHostnameFn` / `tearDownCustomHostnameFn` and calls them directly without `useAuthedServerFn`. `requireSupabaseAuth` middleware rejects any request lacking `Authorization: Bearer <token>` with a 401 BEFORE the handler can throw 503 — so the "503 → warning toast" path described in the handoff brief will never fire; users will see a generic auth error instead.
+
+Left untouched because the verify session is mid-walk on that dialog and the handoff explicitly forbade edits there. Once verify reports, swap the direct imports for `useAuthedServerFn(...)` wrappers (drop-in replacement, same call signature) — then both call sites can share an extracted helper.
+
+### Verification
+
+- `bun run typecheck` — clean.
+- `bunx eslint src/components/crm/CustomDomainsPanel.tsx src/components/crm/DomainHealthPanel.tsx` — clean (prettier auto-fixed during writeup).
+- No browser walk yet — auth-gated, gated on operator pushing `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ZONE_ID` to the worker. CF status badge will render "CF not configured" until then; provision/teardown will toast.warning the same way.
+
+### Still outstanding (next pickups)
+
+- **Cron gaps** from this morning's audit (line ~1083 onwards) — `dispatch-followups`, `contact-followup-reminders`, `dispatch-sequences`, `purge-audit-log`, `calculate-payouts` all need pg_cron migrations. Pick reasonable intervals (purge-audit-log = daily off-peak; dispatch-* = every 5–10 min).
+- **CF status sweeper** — periodic server fn that iterates rows with non-null `cf_hostname_id`, polls CF, writes back `cf_status` + `cf_ssl_status`. New migration adds the two columns + a new pg_cron entry → `/api/public/hooks/cf-hostname-sweeper.ts`. Once shipped, `CfHostnameStatus` can read from DB instead of polling CF on every panel render.
+- **CF backfill script** for orgs with `custom_domain` set but `cf_hostname_id` null. `scripts/cf-backfill.ts` — Bun script, NOT auto-run; each provision is billable on CF, operator invokes manually.
+- **Extract `isNotConfigured` + `describeError` to shared util** (e.g. `src/lib/server-fn-errors.ts`) once the verify session releases `EditClientWhiteLabelDialog.tsx`. Both call sites are now duplicating the same 4-line helpers.

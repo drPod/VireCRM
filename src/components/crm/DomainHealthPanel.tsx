@@ -29,6 +29,10 @@ import {
   type DomainHealthIssue,
   type DomainHealthResult,
 } from "@/functions/domain-health.functions";
+import {
+  pollCustomHostnameStatusFn,
+  type CustomHostnameSnapshot,
+} from "@/functions/custom-hostnames.functions";
 
 import { REQUIRED_CNAME_TARGET } from "@/lib/dns-check";
 
@@ -83,6 +87,7 @@ function StatusBadge({ result }: { result: DomainHealthResult }) {
 
 export function DomainHealthPanel({ organizationId }: Props) {
   const runCheck = useAuthedServerFn(checkDomainHealth);
+  const pollCf = useAuthedServerFn(pollCustomHostnameStatusFn);
   const [results, setResults] = useState<DomainHealthResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
@@ -221,6 +226,18 @@ export function DomainHealthPanel({ organizationId }: Props) {
                 />
                 <CheckPill label="Serves this app" ok={r.servesThisApp} failLabel="Wrong content" />
               </div>
+
+              {/* Cloudflare for SaaS status (per-hostname poll). Surfaces the
+                  CF custom-hostname + SSL cert state separately from the live
+                  HTTPS probe above so operators can see when a hostname is
+                  still being provisioned vs. fully active. */}
+              {organizationId && (
+                <CfHostnameStatus
+                  organizationId={organizationId}
+                  hostname={r.hostname}
+                  poll={pollCf}
+                />
+              )}
 
               {/* Issues */}
               {r.issues.length > 0 && (
@@ -449,9 +466,8 @@ function RedirectGuideDialog({
                 — apex domains can't legally hold a CNAME at most registrars.
               </li>
               <li>
-                Both HTTP and HTTPS on{" "}
-                <code className="text-foreground">{host}</code> are served — Cloudflare upgrades to
-                HTTPS automatically.
+                Both HTTP and HTTPS on <code className="text-foreground">{host}</code> are served —
+                Cloudflare upgrades to HTTPS automatically.
               </li>
               <li>
                 Don't add a 301 at your registrar; the app handles redirects between configured
@@ -502,6 +518,192 @@ function RecordRow({
         <CopyField label="Value" value={value} />
       </div>
       <p className="text-[11px] text-muted-foreground">{note}</p>
+    </div>
+  );
+}
+
+type CfStatusKind =
+  | "loading"
+  | "active"
+  | "ssl"
+  | "verifying"
+  | "failed"
+  | "unprovisioned"
+  | "unconfigured"
+  | "error";
+
+function classifyCfStatus(snap: CustomHostnameSnapshot | null): {
+  kind: CfStatusKind;
+  label: string;
+} {
+  if (!snap) return { kind: "unprovisioned", label: "Not provisioned" };
+  const status = snap.status;
+  const ssl = snap.sslStatus;
+  const failed = new Set(["blocked", "deleted", "deactivated", "test_blocked", "test_failed"]);
+  if (failed.has(status)) return { kind: "failed", label: "Failed" };
+  if (status === "active" || status === "active_redeploying") {
+    if (ssl === "active") return { kind: "active", label: "Active" };
+    return { kind: "ssl", label: "Setting up SSL" };
+  }
+  // pending, pending_blocked, pending_migration, pending_deletion, test_pending,
+  // test_active, test_active_apex, moved → all map to "Verifying" while the
+  // hostname clears CF's ownership/DCV gauntlet.
+  return { kind: "verifying", label: "Verifying" };
+}
+
+function CfStatusBadge({ kind, label }: { kind: CfStatusKind; label: string }) {
+  if (kind === "loading") {
+    return (
+      <Badge variant="outline" className="gap-1">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Checking Cloudflare…
+      </Badge>
+    );
+  }
+  if (kind === "active") {
+    return (
+      <Badge variant="secondary" className="gap-1">
+        <CheckCircle2 className="h-3 w-3" />
+        {label}
+      </Badge>
+    );
+  }
+  if (kind === "failed") {
+    return (
+      <Badge variant="destructive" className="gap-1">
+        <AlertCircle className="h-3 w-3" />
+        {label}
+      </Badge>
+    );
+  }
+  if (kind === "unconfigured" || kind === "unprovisioned" || kind === "error") {
+    return (
+      <Badge variant="outline" className="gap-1">
+        <AlertTriangle className="h-3 w-3" />
+        {label}
+      </Badge>
+    );
+  }
+  // verifying / ssl
+  return (
+    <Badge variant="warning" className="gap-1">
+      <Loader2 className="h-3 w-3 animate-spin" />
+      {label}
+    </Badge>
+  );
+}
+
+// One-shot CF status poll per row. Brief is "keep it simple, per-hostname,
+// not bulk" — so this just fetches once on mount + offers a manual refresh.
+// No polling loop; a periodic sweeper that writes back cf_status into the
+// DB is tracked separately (next pickup item).
+function CfHostnameStatus({
+  organizationId,
+  hostname,
+  poll,
+}: {
+  organizationId: string;
+  hostname: string;
+  poll: (opts: {
+    data: { organizationId: string; hostname: string };
+  }) => Promise<CustomHostnameSnapshot | null>;
+}) {
+  const [snapshot, setSnapshot] = useState<CustomHostnameSnapshot | null>(null);
+  const [loading, setLoading] = useState(true);
+  // unconfigured = 503 from server fn (CLOUDFLARE_API_TOKEN / _ZONE_ID missing).
+  // error = other failure; we show the message inline rather than toasting
+  // since this panel may render many rows and a toast storm would be noisy.
+  const [state, setState] = useState<CfStatusKind>("loading");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const run = useCallback(async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const result = await poll({ data: { organizationId, hostname } });
+      setSnapshot(result);
+      if (!result) {
+        setState("unprovisioned");
+      } else {
+        setState(classifyCfStatus(result).kind);
+      }
+    } catch (err) {
+      if (err instanceof Response && err.status === 503) {
+        setState("unconfigured");
+        setErrorMsg("Cloudflare for SaaS not configured on this worker.");
+      } else {
+        setState("error");
+        const msg =
+          err instanceof Response
+            ? `${err.status} ${err.statusText}`.trim()
+            : err instanceof Error
+              ? err.message
+              : String(err);
+        setErrorMsg(msg || "Cloudflare poll failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [poll, organizationId, hostname]);
+
+  useEffect(() => {
+    void run();
+  }, [run]);
+
+  const classification = snapshot
+    ? classifyCfStatus(snapshot)
+    : {
+        kind: state,
+        label:
+          state === "unprovisioned"
+            ? "Not provisioned"
+            : state === "unconfigured"
+              ? "CF not configured"
+              : state === "error"
+                ? "Cloudflare poll failed"
+                : "",
+      };
+  const kind: CfStatusKind = loading ? "loading" : state;
+  const label = kind === "loading" ? "Checking…" : classification.label;
+
+  return (
+    <div className="rounded-md border border-border bg-background/60 px-3 py-2 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-medium text-foreground">Cloudflare for SaaS</span>
+        <CfStatusBadge kind={kind} label={label} />
+        {snapshot?.sslStatus && (
+          <Badge variant="outline" className="text-[10px]">
+            SSL: {snapshot.sslStatus}
+          </Badge>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto h-6 gap-1 px-2 text-[10px]"
+          onClick={() => void run()}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3 w-3" />
+          )}
+          Refresh
+        </Button>
+      </div>
+      {errorMsg && <p className="text-[11px] text-muted-foreground">{errorMsg}</p>}
+      {snapshot?.ownershipVerification && (
+        <p className="text-[11px] text-muted-foreground">
+          Ownership TXT pending:{" "}
+          <code className="text-foreground">{snapshot.ownershipVerification.name}</code>
+        </p>
+      )}
+      {snapshot && snapshot.sslValidationRecords.length > 0 && (
+        <p className="text-[11px] text-muted-foreground">
+          SSL DCV TXT pending ({snapshot.sslValidationRecords.length} record
+          {snapshot.sslValidationRecords.length === 1 ? "" : "s"}) at customer DNS.
+        </p>
+      )}
     </div>
   );
 }
