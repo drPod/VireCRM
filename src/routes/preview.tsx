@@ -409,8 +409,13 @@ function CrmPreviewPage() {
                 Preview
               </Badge>
             </div>
-            <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70">
-              <Settings className="h-4 w-4" />
+            <div
+              role="link"
+              aria-disabled="true"
+              tabIndex={-1}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70"
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
               Settings
             </div>
           </div>
@@ -432,13 +437,19 @@ function CrmPreviewPage() {
                 <kbd className="rounded border border-border bg-background px-1.5 text-xs">⌘K</kbd>
               </div>
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="relative"
-                aria-label="Notifications (read-only)"
+                aria-label="Notifications (read-only preview)"
+                aria-disabled="true"
+                disabled
               >
-                <Bell className="h-4 w-4" />
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
+                <Bell className="h-4 w-4" aria-hidden="true" />
+                <span
+                  aria-hidden="true"
+                  className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary"
+                />
               </Button>
               <TooltipProvider delayDuration={150}>
                 <Tooltip>

@@ -274,11 +274,16 @@ function TierCard({
             return (
               <>
                 <div className="mt-3 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-foreground">{discounted}</span>
+                  <span className="text-3xl font-bold text-foreground tabular-nums">
+                    {discounted}
+                  </span>
                   <span className="text-xs text-muted-foreground">{tier.period}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground line-through">
+                  <span
+                    aria-hidden="true"
+                    className="text-xs text-muted-foreground line-through tabular-nums"
+                  >
                     {displayedPrice}
                   </span>
                   <Badge variant="warning" className="text-[10px] px-1.5 py-0">
@@ -296,7 +301,9 @@ function TierCard({
           return (
             <>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-foreground">{displayedPrice}</span>
+                <span className="text-3xl font-bold text-foreground tabular-nums">
+                  {displayedPrice}
+                </span>
                 <span className="text-xs text-muted-foreground">{tier.period}</span>
               </div>
               {overridden && (

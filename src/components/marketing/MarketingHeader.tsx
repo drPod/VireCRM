@@ -42,6 +42,7 @@ export function MarketingHeader() {
               <Link
                 key={link.to}
                 to={link.to}
+                activeProps={{ "aria-current": "page" }}
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {link.label}
@@ -65,7 +66,7 @@ export function MarketingHeader() {
               <button
                 type="button"
                 aria-label="Open menu"
-                className="rounded-md p-1.5 text-foreground transition-colors hover:bg-muted md:hidden"
+                className="rounded-md p-1.5 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
@@ -77,6 +78,7 @@ export function MarketingHeader() {
                   <Link
                     key={link.to}
                     to={link.to}
+                    activeProps={{ "aria-current": "page" }}
                     className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                     onClick={() => setMobileOpen(false)}
                   >

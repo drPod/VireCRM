@@ -91,19 +91,19 @@ export function HeroSection() {
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-success" /> Set up in days, not months
             </span>
-            <span className="hidden sm:inline">·</span>
+            <span aria-hidden="true" className="hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-success" /> No technical skills required
             </span>
-            <span className="hidden sm:inline">·</span>
+            <span aria-hidden="true" className="hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-success" /> Automated follow-up built in
             </span>
-            <span className="hidden sm:inline">·</span>
+            <span aria-hidden="true" className="hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-success" /> Pipeline runs 24/7
             </span>
-            <span className="hidden sm:inline">·</span>
+            <span aria-hidden="true" className="hidden sm:inline">·</span>
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-success" /> Built around how you sell
             </span>
@@ -131,6 +131,8 @@ export function HeroSection() {
               alt="Majix AI CRM — automated sales pipeline overview"
               width={1920}
               height={1080}
+              fetchPriority="high"
+              decoding="async"
               className="w-full"
             />
           </div>
