@@ -107,7 +107,7 @@ async function lookupTxt(
   token: string,
 ): Promise<{ found: boolean; error: string | null }> {
   try {
-    const lookup = `_vireon.${hostname}`;
+    const lookup = `_majix.${hostname}`;
     const res = await fetch(
       `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(lookup)}&type=TXT`,
       { headers: { Accept: "application/dns-json" } },
@@ -248,7 +248,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
         hostname: row.hostname,
         eventType: "verify_attempt",
         status: "info",
-        message: `Looking up TXT _vireon.${row.hostname}`,
+        message: `Looking up TXT _majix.${row.hostname}`,
       }).then(bumpAudit);
     }
     const { found, error } = await lookupTxt(row.hostname, row.verification_token);
@@ -461,7 +461,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
         await refresh();
         return;
       }
-      toast.error(`No matching TXT record yet at _vireon.${row.hostname}. We'll keep checking.`);
+      toast.error(`No matching TXT record yet at _majix.${row.hostname}. We'll keep checking.`);
       startAutoVerify(row, { silent: true });
     } finally {
       setBusyId(null);
@@ -582,7 +582,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
       return (
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
           <Loader2 className="h-3 w-3 animate-spin" />
-          Checking DNS for <code className="text-foreground">_vireon.{row.hostname}</code>…
+          Checking DNS for <code className="text-foreground">_majix.{row.hostname}</code>…
         </div>
       );
     }
@@ -610,7 +610,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
           <div>
             Auto-verification stopped after {s.maxAttempts} attempts.
             {s.lastError ? ` Last error: ${s.lastError}.` : ""} Add the TXT record at{" "}
-            <code className="text-destructive">_vireon.{row.hostname}</code>, then click{" "}
+            <code className="text-destructive">_majix.{row.hostname}</code>, then click{" "}
             <strong>Check now</strong>.
           </div>
         </div>
@@ -806,7 +806,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
                         <div>
                           <p className="text-[11px] font-semibold text-foreground">
                             Step 2 — Add TXT at{" "}
-                            <code className="text-foreground">_vireon.{row.hostname}</code>
+                            <code className="text-foreground">_majix.{row.hostname}</code>
                           </p>
                           <div className="mt-1 flex gap-2">
                             <input

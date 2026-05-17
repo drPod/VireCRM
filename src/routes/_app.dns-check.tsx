@@ -306,7 +306,7 @@ function DnsCheckPage() {
         <CardContent className="text-xs space-y-1.5 text-muted-foreground font-mono">
           <div>A     @           {REQUIRED_A_VALUE}</div>
           <div>A     www         {REQUIRED_A_VALUE}</div>
-          <div>TXT   _vireon     &lt;verification token&gt;</div>
+          <div>TXT   _majix      &lt;verification token&gt;</div>
           <div>AAAA  @           (delete if present)</div>
         </CardContent>
       </Card>

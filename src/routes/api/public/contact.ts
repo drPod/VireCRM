@@ -14,8 +14,8 @@ import { classifyAndStore } from "@/lib/contact/classify-submission";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
-const SENDER_DOMAIN = "notify.vireonx.space";
-const FROM_DOMAIN = "notify.vireonx.space";
+const SENDER_DOMAIN = "notify.majix.ai";
+const FROM_DOMAIN = "notify.majix.ai";
 const FROM_DISPLAY_NAME = "Genesis Contact Form";
 
 /**

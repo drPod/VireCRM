@@ -127,7 +127,7 @@ export const template = {
   previewData: {
     brandName: "Acme CRM",
     fullName: "Jane Doe",
-    loginUrl: "https://acme.vireonx.space/login",
+    loginUrl: "https://acme.majix.ai/login",
   },
 } satisfies TemplateEntry;
 

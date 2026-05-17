@@ -8,11 +8,11 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 const SITE_NAME = "Genesis";
 // SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
 // It MUST match the subdomain delegated to Lovable's nameservers. NEVER use the root domain.
-const SENDER_DOMAIN = "notify.vireonx.space";
+const SENDER_DOMAIN = "notify.majix.ai";
 // FROM_DOMAIN is the domain shown in the From: header. Must match a
 // verified Resend domain — keep it equal to SENDER_DOMAIN unless the apex
 // is also verified in Resend.
-const FROM_DOMAIN = "notify.vireonx.space";
+const FROM_DOMAIN = "notify.majix.ai";
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return "***";

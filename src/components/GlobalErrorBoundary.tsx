@@ -13,8 +13,8 @@ const SYSTEM_HOST_PATTERNS = [
   /\.lovableproject\.com$/i,
   /^localhost$/i,
   /^127\.0\.0\.1$/i,
-  /^vireonx\.space$/i,
-  /^www\.vireonx\.space$/i,
+  /^majix\.ai$/i,
+  /^www\.majix\.ai$/i,
 ];
 
 function isSystemHost(hostname: string): boolean {

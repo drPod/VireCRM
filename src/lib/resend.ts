@@ -77,7 +77,7 @@ export async function verifyResendConnection(): Promise<
 }
 
 export interface ResendSendOpts {
-  /** Verified sender address, e.g. `noreply@notify.vireonx.space`. */
+  /** Verified sender address, e.g. `noreply@notify.majix.ai`. */
   from: string;
   /** Single recipient (we don't expose batching here — outreach is 1:1). */
   to: string;

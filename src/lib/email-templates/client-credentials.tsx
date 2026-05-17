@@ -82,7 +82,7 @@ export const template = {
     fullName: "Jane Doe",
     email: "jane@acme.com",
     password: "TempPass-9X2k",
-    loginUrl: "https://acme.vireonx.space/login",
+    loginUrl: "https://acme.majix.ai/login",
   },
 } satisfies TemplateEntry;
 

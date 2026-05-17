@@ -32,9 +32,9 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 
 // Configuration
 const SITE_NAME = "Genesis";
-const SENDER_DOMAIN = "notify.vireonx.space";
-const ROOT_DOMAIN = "vireonx.space";
-const FROM_DOMAIN = "notify.vireonx.space";
+const SENDER_DOMAIN = "notify.majix.ai";
+const ROOT_DOMAIN = "majix.ai";
+const FROM_DOMAIN = "notify.majix.ai";
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return "***";

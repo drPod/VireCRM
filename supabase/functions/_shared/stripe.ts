@@ -83,8 +83,8 @@ export async function verifyWebhook(
 // (no Origin header) are unaffected.
 const ALLOWED_ORIGIN_SUFFIXES = [
   ".lovable.app",
-  ".vireonx.space",
-  "vireonx.space",
+  ".majix.ai",
+  "majix.ai",
   ".genesisx.space",
   "genesisx.space",
   ".vercel.app",

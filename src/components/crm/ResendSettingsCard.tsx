@@ -5,7 +5,7 @@
  * per-org API key to paste. The card focuses on the only org-specific
  * settings that matter:
  *   - The verified `from` address (must be on a domain the org has verified
- *     in their Resend dashboard, e.g. `noreply@mail.vireonx.space`).
+ *     in their Resend dashboard, e.g. `noreply@notify.majix.ai`).
  *   - An optional `reply_to` address.
  *
  * The actual Resend connection is workspace-level (managed via the
@@ -276,7 +276,7 @@ export function ResendSettingsCard() {
                 type="email"
                 value={fromDraft}
                 onChange={(e) => setFromDraft(e.target.value)}
-                placeholder="noreply@mail.vireonx.space"
+                placeholder="noreply@notify.majix.ai"
                 className="font-mono text-sm"
                 spellCheck={false}
                 autoComplete="off"
@@ -294,7 +294,7 @@ export function ResendSettingsCard() {
                 type="email"
                 value={replyDraft}
                 onChange={(e) => setReplyDraft(e.target.value)}
-                placeholder="support@vireonx.space"
+                placeholder="support@majix.ai"
                 className="font-mono text-sm"
                 spellCheck={false}
                 autoComplete="off"

@@ -53,7 +53,7 @@ export async function runDomainChecklist(
     aRoot,
     aWww,
     aaaaRoot,
-    txtVireon,
+    txtMajix,
     mx,
     txtRoot,
     dmarc,
@@ -63,7 +63,7 @@ export async function runDomainChecklist(
     lookupDns(d, "A"),
     lookupDns(`www.${d}`, "A"),
     lookupDns(d, "AAAA"),
-    lookupDns(`_vireon.${d}`, "TXT"),
+    lookupDns(`_majix.${d}`, "TXT"),
     lookupDns(d, "MX"),
     lookupDns(d, "TXT"),
     lookupDns(`_dmarc.${d}`, "TXT"),
@@ -71,7 +71,7 @@ export async function runDomainChecklist(
     lookupDns(`s2-ionos._domainkey.${d}`, "CNAME"),
   ]);
 
-  const tokenMatch = token ? txtVireon.some((r) => r.includes(token)) : txtVireon.length > 0;
+  const tokenMatch = token ? txtMajix.some((r) => r.includes(token)) : txtMajix.length > 0;
 
   const required: CheckResult[] = [
     {
@@ -91,10 +91,10 @@ export async function runDomainChecklist(
       hint: aWww.length === 0 ? "Missing — www subdomain won't load" : undefined,
     },
     {
-      id: "txt-vireon",
-      label: `TXT _vireon.${d}`,
+      id: "txt-majix",
+      label: `TXT _majix.${d}`,
       expected: token ?? "(verification token from CRM)",
-      actual: txtVireon,
+      actual: txtMajix,
       status: tokenMatch ? "pass" : "fail",
       hint: !token ? "Open the org's white-label settings to grab the token" : undefined,
     },

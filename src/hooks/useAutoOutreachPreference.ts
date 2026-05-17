@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const STORAGE_KEY = "vireon.autoOutreachEnabled";
+const STORAGE_KEY = "majix.autoOutreachEnabled";
 
 /**
  * User preference for whether AI auto-outreach fires after a lead is added or

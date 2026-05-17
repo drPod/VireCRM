@@ -73,7 +73,7 @@ async function probeHostname(hostname: string, domainId: string): Promise<Domain
       signal: controller.signal,
       headers: {
         // Identify ourselves so reseller logs can attribute these probes.
-        "User-Agent": "VireonHealthCheck/1.0 (+https://vireonx.space)",
+        "User-Agent": "MajixHealthCheck/1.0 (+https://majix.ai)",
         Accept: "text/html,*/*;q=0.5",
       },
     });
