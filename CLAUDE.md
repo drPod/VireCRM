@@ -31,7 +31,7 @@ Project-scoped agent skills live in `.agents/skills/` (universal, multi-agent) a
 npx -y skills@latest experimental_install
 ```
 
-Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices, projects, upgrade), `web-design-guidelines`. Supabase, shadcn, and Vercel skills come from Claude Code **plugins** (auto-updated) — do NOT duplicate them via `skills add`.
+Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices, projects, upgrade), Resend (`resend`, `react-email`, `email-best-practices`), `web-design-guidelines`. Supabase, shadcn, and Vercel skills come from Claude Code **plugins** (auto-updated) — do NOT duplicate them via `skills add`.
 
 ## Dev server + env
 

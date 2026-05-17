@@ -1,6 +1,24 @@
 {
   "version": 1,
   "skills": {
+    "email-best-practices": {
+      "source": "resend/email-best-practices",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "6a88d51e8c8ffd7d5b70831c303878ad29a3734792db9b56456269c4d70c2ff8"
+    },
+    "react-email": {
+      "source": "resend/react-email",
+      "sourceType": "github",
+      "skillPath": "skills/react-email/SKILL.md",
+      "computedHash": "f086aedad8c9d9e00fa133f7c3ce33762ba60413c664fb3faf4f3a69a83bd1b1"
+    },
+    "resend": {
+      "source": "resend/resend-skills",
+      "sourceType": "github",
+      "skillPath": "skills/resend/SKILL.md",
+      "computedHash": "936851c3e22e6de1d416134a9cd170d7540ddebe5a1c0113eef66537c843c6ed"
+    },
     "stripe-best-practices": {
       "source": "stripe/agent-toolkit",
       "sourceType": "github",
