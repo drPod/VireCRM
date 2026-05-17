@@ -54,7 +54,7 @@ interface LessonMeta {
 export const Route = createFileRoute("/_app/academy")({
   component: AcademyIndex,
   head: () => ({
-    meta: [{ title: "Academy — Genesis" }],
+    meta: [{ title: "Academy — Majix" }],
   }),
 });
 

@@ -48,7 +48,7 @@ export const Route = createFileRoute("/_app/appointments")({
   component: AppointmentsPage,
   head: () => ({
     meta: [
-      { title: "Genesis — Appointments" },
+      { title: "Majix — Appointments" },
       { name: "description", content: "Calendars, availability, and bookings" },
     ],
   }),

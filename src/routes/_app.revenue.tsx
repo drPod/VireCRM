@@ -62,7 +62,7 @@ export const Route = createFileRoute("/_app/revenue")({
   errorComponent: RevenueErrorComponent,
   head: () => ({
     meta: [
-      { title: "Revenue & Finance — Genesis" },
+      { title: "Revenue & Finance — Majix" },
       {
         name: "description",
         content: "Track MRR, ARR, profit & loss, and team commission payouts across your CRM.",

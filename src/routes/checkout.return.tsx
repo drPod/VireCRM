@@ -11,7 +11,7 @@ export const Route = createFileRoute("/checkout/return")({
     session_id: typeof search.session_id === "string" ? search.session_id : undefined,
   }),
   head: () => ({
-    meta: [{ title: "Payment complete — Genesis" }],
+    meta: [{ title: "Payment complete — Majix" }],
   }),
 });
 
@@ -107,7 +107,7 @@ function CheckoutReturnPage() {
             </div>
             <h1 className="text-2xl font-bold text-foreground">You're all set!</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Your subscription is active. Welcome to Genesis.
+              Your subscription is active. Welcome to Majix.
             </p>
             {subscription?.price_id && (
               <p className="mt-3 text-xs text-muted-foreground">

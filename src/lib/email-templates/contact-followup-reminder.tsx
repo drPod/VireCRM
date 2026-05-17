@@ -12,7 +12,7 @@ import {
 import type { TemplateEntry } from "./registry";
 import { SUPPORT_EMAIL } from "@/config/support";
 
-const SITE_NAME = "Genesis";
+const SITE_NAME = "Majix";
 const OWNER_INBOX = SUPPORT_EMAIL;
 
 interface ContactFollowupReminderProps {

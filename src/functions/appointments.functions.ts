@@ -441,7 +441,7 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
       buffer_minutes: row.buffer_minutes,
       availability: (row.availability as unknown as Availability) || emptyAvailability(),
       organization_id: row.organization_id,
-      organization_name: org?.brand_name || org?.name || "Genesis",
+      organization_name: org?.brand_name || org?.name || "Majix",
       brand_logo: org?.logo_url || null,
       requires_password: !!(row as { access_password_hash: string | null }).access_password_hash,
     };

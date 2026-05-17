@@ -8,16 +8,16 @@ export const Route = createFileRoute("/refund-policy")({
   component: RefundPolicyPage,
   head: () => ({
     meta: [
-      { title: "Refund Policy — Genesis" },
+      { title: "Refund Policy — Majix" },
       {
         name: "description",
         content:
-          "Genesis's refund policy for subscription plans and purchases, including our 30-day money-back guarantee.",
+          "Majix's refund policy for subscription plans and purchases, including our 30-day money-back guarantee.",
       },
-      { property: "og:title", content: "Refund Policy — Genesis" },
+      { property: "og:title", content: "Refund Policy — Majix" },
       {
         property: "og:description",
-        content: "Genesis's refund policy and 30-day money-back guarantee.",
+        content: "Majix's refund policy and 30-day money-back guarantee.",
       },
       { property: "og:url", content: "https://majix.ai/refund-policy" },
     ],
@@ -39,7 +39,7 @@ function RefundPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">Overview</h2>
               <p className="mt-2">
-                We want you to be satisfied with Genesis. If you're not happy with your purchase, we
+                We want you to be satisfied with Majix. If you're not happy with your purchase, we
                 offer a straightforward refund policy as outlined below.
               </p>
             </section>
@@ -47,7 +47,7 @@ function RefundPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">30-Day Money-Back Guarantee</h2>
               <p className="mt-2">
-                If you are unsatisfied with Genesis for any reason, you may request a full refund
+                If you are unsatisfied with Majix for any reason, you may request a full refund
                 within <strong>30 days</strong> of your initial purchase. This applies to the first
                 payment of new subscriptions only.
               </p>

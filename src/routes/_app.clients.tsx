@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_app/clients")({
   component: ClientsPage,
   head: () => ({
     meta: [
-      { title: "Clients — Genesis" },
+      { title: "Clients — Majix" },
       { name: "description", content: "Manage your reseller client organizations" },
     ],
   }),

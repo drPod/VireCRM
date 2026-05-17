@@ -77,7 +77,7 @@ const PRIORITY_OPTIONS = ["all", "low", "medium", "high", "critical"] as const;
 export const Route = createFileRoute("/_app/contact-submissions")({
   component: ContactSubmissionsPage,
   head: () => ({
-    meta: [{ title: "Contact Submissions — Genesis CRM" }],
+    meta: [{ title: "Contact Submissions — Majix CRM" }],
   }),
 });
 

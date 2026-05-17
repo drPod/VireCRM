@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
   head: () => ({
     meta: [
-      { title: "Genesis — Calendar" },
+      { title: "Majix — Calendar" },
       { name: "description", content: "Appointment booking and calendar management" },
     ],
   }),

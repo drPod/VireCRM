@@ -121,7 +121,7 @@ export const Route = createFileRoute("/_app/qa-checklist")({
   component: QaChecklistPage,
   head: () => ({
     meta: [
-      { title: "Buyer-mode QA Checklist — Genesis" },
+      { title: "Buyer-mode QA Checklist — Majix" },
       {
         name: "description",
         content:

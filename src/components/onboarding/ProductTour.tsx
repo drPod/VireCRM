@@ -290,7 +290,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
 export const DEFAULT_TOUR_STEPS: TourStep[] = [
   {
     target: "_center",
-    title: "Welcome to Genesis 👋",
+    title: "Welcome to Majix 👋",
     body: "Let's take a 60-second tour so you know where everything lives. You can replay it anytime from the sidebar.",
     placement: "center",
   },

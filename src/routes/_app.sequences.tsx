@@ -62,7 +62,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_app/sequences")({
   component: SequencesPage,
   head: () => ({
-    meta: [{ title: "Sequences — Genesis" }],
+    meta: [{ title: "Sequences — Majix" }],
   }),
 });
 

@@ -131,7 +131,7 @@ export const whiteLabelTiers: PricingTier[] = [
     price: "$249",
     period: "/month",
     description:
-      "White-label Genesis CRM leased to your business. Full branding, your domain, your clients.",
+      "White-label Majix CRM leased to your business. Full branding, your domain, your clients.",
     stripePriceId: "lease_starter_monthly",
     features: [
       { text: "White-label branding", included: true },
@@ -176,7 +176,7 @@ export const whiteLabelTiers: PricingTier[] = [
     price: "$7,000",
     period: "one-time",
     description:
-      "Own the entire Genesis CRM platform outright. Your code, your servers, your business — forever.",
+      "Own the entire Majix CRM platform outright. Your code, your servers, your business — forever.",
     badge: "Best Value",
     isOwnership: true,
     excludeFromPromo: true,

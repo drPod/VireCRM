@@ -18,7 +18,7 @@ interface ReauthenticationEmailProps {
 
 export const ReauthenticationEmail = ({
   token,
-  siteName = "Genesis",
+  siteName = "Majix",
 }: ReauthenticationEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />

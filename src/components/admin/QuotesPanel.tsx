@@ -128,7 +128,7 @@ const DEFAULT_DIFFERENTIATORS: Differentiator[] = [
   },
   {
     title: "True white-label, not a reseller skin",
-    body: "Your domain, your branding, your login, your customers. Genesis is invisible.",
+    body: "Your domain, your branding, your login, your customers. Majix is invisible.",
   },
   {
     title: "Capped, transparent pricing",
@@ -715,7 +715,7 @@ function QuoteBuilderDialog({
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Genesis White-Label Setup"
+              placeholder="e.g. Majix White-Label Setup"
               maxLength={200}
             />
           </div>
@@ -808,7 +808,7 @@ function QuoteBuilderDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div>
-                <Label>What separates Genesis from other CRMs</Label>
+                <Label>What separates Majix from other CRMs</Label>
                 <p className="text-xs text-muted-foreground">
                   Bullets shown on the proposal PDF. Edit, add, or remove to tailor for this
                   recipient.

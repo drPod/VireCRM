@@ -105,7 +105,7 @@ const PROVIDERS: ProviderConfig[] = [
     setupSteps: [
       'Click "Get API key" above — it opens Apollo in a new tab.',
       "Sign in to your Apollo account (or create one — the free plan works).",
-      'On the API keys page, click "Create new key" and give it a name like "Genesis CRM".',
+      'On the API keys page, click "Create new key" and give it a name like "Majix CRM".',
       'Copy the long key that starts with letters and numbers, then paste it below and click "Connect".',
     ],
   },

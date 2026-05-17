@@ -61,17 +61,17 @@ export const Route = createFileRoute("/preview")({
   component: CrmPreviewPage,
   head: () => ({
     meta: [
-      { title: "Preview the CRM — Genesis" },
+      { title: "Preview the CRM — Majix" },
       {
         name: "description",
         content:
-          "Take a free interactive tour of the Genesis AI CRM dashboard, leads pipeline, and automation tools — no signup required.",
+          "Take a free interactive tour of the Majix AI CRM dashboard, leads pipeline, and automation tools — no signup required.",
       },
-      { property: "og:title", content: "Preview the Genesis CRM — no signup" },
+      { property: "og:title", content: "Preview the Majix CRM — no signup" },
       {
         property: "og:description",
         content:
-          "Explore a live, interactive preview of the Genesis AI CRM. See the dashboard, pipeline, and AI assistant in action.",
+          "Explore a live, interactive preview of the Majix AI CRM. See the dashboard, pipeline, and AI assistant in action.",
       },
     ],
   }),
@@ -239,7 +239,7 @@ function CrmPreviewPage() {
       tab: "dashboard",
       selector: '[data-tour="pipeline"]',
       title: "AI-prioritized pipeline",
-      body: "Genesis ranks every opportunity by intent and value, so your reps always know what to chase next.",
+      body: "Majix ranks every opportunity by intent and value, so your reps always know what to chase next.",
     },
     {
       tab: "messages",
@@ -250,8 +250,8 @@ function CrmPreviewPage() {
     {
       tab: "advisor",
       selector: '[data-tour="placeholder"]',
-      title: "Genesis AI Advisor",
-      body: "Ask anything about your pipeline — Genesis surfaces hot leads, suggests next actions, and writes outreach for you.",
+      title: "Majix AI Advisor",
+      body: "Ask anything about your pipeline — Majix surfaces hot leads, suggests next actions, and writes outreach for you.",
     },
   ];
 
@@ -372,7 +372,7 @@ function CrmPreviewPage() {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]">
               G
             </span>
-            <span className="text-lg font-bold text-gradient-primary">Genesis</span>
+            <span className="text-lg font-bold text-gradient-primary">Majix</span>
           </div>
 
           <div className="border-b border-sidebar-border px-6 py-3">
@@ -504,7 +504,7 @@ function DashboardView() {
             </div>
             <div
               className={`mt-3 flex items-center gap-1 text-xs font-medium ${
-                m.trend === "up" ? "text-success" : "text-success"
+                m.trend === "up" ? "text-success" : "text-destructive"
               }`}
             >
               {m.trend === "up" ? (
@@ -612,7 +612,7 @@ function DashboardView() {
               Ready to plug in your real pipeline?
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Start your free trial and let Genesis chase every lead for you, 24/7.
+              Start your free trial and let Majix chase every lead for you, 24/7.
             </p>
           </div>
           <div className="flex gap-2">
@@ -647,7 +647,7 @@ function PlaceholderView({ label }: { label: string }) {
         <h3 className="text-lg font-semibold text-foreground">{label} is part of the full CRM</h3>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">
           The interactive preview shows the Dashboard. Sign up for a free trial to unlock{" "}
-          {label.toLowerCase()}, AI automations, and the rest of Genesis.
+          {label.toLowerCase()}, AI automations, and the rest of Majix.
         </p>
       </div>
       <div className="flex gap-2">

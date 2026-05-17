@@ -16,7 +16,7 @@ type AdminClient = SupabaseClient<any, any, any, any, any>;
 
 const SENDER_DOMAIN = "notify.majix.ai";
 const FROM_DOMAIN = "notify.majix.ai";
-const FROM_DISPLAY_NAME = "Genesis Contact Form";
+const FROM_DISPLAY_NAME = "Majix Contact Form";
 
 /**
  * Test mode — when CONTACT_TEST_MODE=true, every contact submission is

@@ -46,7 +46,7 @@ export const Route = createFileRoute("/_app/dns-check")({
   }),
   head: () => ({
     meta: [
-      { title: "Genesis — DNS Checklist" },
+      { title: "Majix — DNS Checklist" },
       { name: "description", content: "Validate custom domain DNS records before verifying" },
     ],
   }),

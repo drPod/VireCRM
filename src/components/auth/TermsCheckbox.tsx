@@ -43,7 +43,7 @@ export function TermsCheckbox({
           rel="noopener noreferrer"
           className="font-medium text-primary hover:underline"
         >
-          GenesisX Terms &amp; Conditions
+          Majix Terms &amp; Conditions
         </Link>{" "}
         and acknowledge the{" "}
         <Link

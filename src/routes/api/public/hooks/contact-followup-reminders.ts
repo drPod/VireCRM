@@ -16,7 +16,7 @@ type AdminClient = SupabaseClient<any, any, any, any, any>;
 
 const SENDER_DOMAIN = "notify.majix.ai";
 const FROM_DOMAIN = "notify.majix.ai";
-const FROM_DISPLAY_NAME = "Genesis Contact Form";
+const FROM_DISPLAY_NAME = "Majix Contact Form";
 const REMINDER_DELAY_HOURS = 24;
 const REMINDER_COOLDOWN_HOURS = 24;
 const BATCH_LIMIT = 50;

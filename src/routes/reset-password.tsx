@@ -12,7 +12,7 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
   head: () => ({
     meta: [
-      { title: "Reset Password — Genesis" },
+      { title: "Reset Password — Majix" },
       { name: "description", content: "Set a new password for your account" },
     ],
   }),

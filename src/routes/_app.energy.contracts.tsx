@@ -38,6 +38,6 @@ export const Route = createFileRoute("/_app/energy/contracts")({
     </IndustryGate>
   ),
   head: () => ({
-    meta: [{ title: "Energy Contracts — Genesis" }],
+    meta: [{ title: "Energy Contracts — Majix" }],
   }),
 });

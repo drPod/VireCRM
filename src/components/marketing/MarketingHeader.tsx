@@ -31,9 +31,9 @@ export function MarketingHeader() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-primary-foreground shadow-[0_0_14px_-2px_var(--color-primary)] transition-all duration-300 hover:shadow-[0_0_24px_-2px_var(--color-primary)] hover:scale-105">
-              G
+              M
             </span>
-            <span className="text-lg font-bold text-gradient-primary">Genesis</span>
+            <span className="text-lg font-bold text-gradient-primary">Majix</span>
           </Link>
 
           {/* Desktop Nav */}

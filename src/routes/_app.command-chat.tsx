@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_app/command-chat")({
   component: CommandChat,
   head: () => ({
     meta: [
-      { title: "Command Chat — Genesis" },
+      { title: "Command Chat — Majix" },
       {
         name: "description",
         content:

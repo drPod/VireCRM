@@ -1,7 +1,7 @@
 import { Body, Container, Head, Html, Img, Preview, Text } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = "Genesis";
+const SITE_NAME = "Majix";
 
 interface OutreachEmailProps {
   /** AI-generated body text. Newlines become paragraph breaks. */

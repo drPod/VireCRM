@@ -14,7 +14,7 @@ import {
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = "Genesis";
+const SITE_NAME = "Majix";
 
 interface LineItem {
   description: string;
@@ -174,14 +174,14 @@ export const template = {
     totalFormatted: "$4,800.00",
     validUntil: "2026-06-30",
     lineItems: [
-      { description: "Genesis White-label — Annual", quantity: 1, unit_price_cents: 360000 },
+      { description: "Majix White-label — Annual", quantity: 1, unit_price_cents: 360000 },
       { description: "Onboarding & migration", quantity: 1, unit_price_cents: 120000 },
     ],
     currency: "usd",
     pdfUrl: "https://example.com/proposal.pdf",
     paymentLinkUrl: "https://buy.stripe.com/test_xyz",
     notes: "Pricing locks in for 30 days.",
-    senderName: "Genesis",
+    senderName: "Majix",
   },
 } satisfies TemplateEntry;
 

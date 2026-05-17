@@ -12,7 +12,7 @@ import {
 import type { TemplateEntry } from "./registry";
 import { SUPPORT_EMAIL } from "@/config/support";
 
-const SITE_NAME = "Genesis";
+const SITE_NAME = "Majix";
 // Fixed inbox — every public contact form submission lands here.
 // Sourced from the single SUPPORT_EMAIL constant so it can never drift.
 const OWNER_INBOX = SUPPORT_EMAIL;

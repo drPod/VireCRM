@@ -203,7 +203,7 @@ export function TeamMembers() {
         user.email ||
         "Your team owner";
       const orgName = organization.name || "your team";
-      const brandName = organization.brand_name?.trim() || "GenesisX";
+      const brandName = organization.brand_name?.trim() || "Majix";
       const replyTo = organization.support_email?.trim() || undefined;
 
       try {

@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_app/settings")({
   validateSearch: settingsSearchSchema,
   head: () => ({
     meta: [
-      { title: "Genesis — Settings" },
+      { title: "Majix — Settings" },
       { name: "description", content: "Organization, team, and white-label settings" },
     ],
   }),

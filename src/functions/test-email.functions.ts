@@ -48,7 +48,7 @@ export const sendQueuedTestEmailFn = createServerFn({ method: "POST" })
         .select("brand_name, name")
         .eq("id", profile.organization_id)
         .maybeSingle();
-      const brandName = org?.brand_name || org?.name || "Genesis";
+      const brandName = org?.brand_name || org?.name || "Majix";
 
       const idempotencyKey = `test-email-${userId}-${Date.now()}`;
 

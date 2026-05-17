@@ -67,7 +67,7 @@ const INITIAL_FORM: FormState = {
   website: "",
 };
 
-const DRAFT_KEY = "genesis:contact-draft";
+const DRAFT_KEY = "majix:contact-draft";
 const MESSAGE_MAX = 2000;
 
 export function ContactForm() {

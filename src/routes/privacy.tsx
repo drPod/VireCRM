@@ -8,16 +8,16 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
   head: () => ({
     meta: [
-      { title: "Privacy Policy — Genesis" },
+      { title: "Privacy Policy — Majix" },
       {
         name: "description",
         content:
-          "How Genesis collects, uses, and protects your personal data when you use our AI CRM platform.",
+          "How Majix collects, uses, and protects your personal data when you use our AI CRM platform.",
       },
-      { property: "og:title", content: "Privacy Policy — Genesis" },
+      { property: "og:title", content: "Privacy Policy — Majix" },
       {
         property: "og:description",
-        content: "How Genesis collects, uses, and protects your personal data.",
+        content: "How Majix collects, uses, and protects your personal data.",
       },
       { property: "og:url", content: "https://majix.ai/privacy" },
     ],
@@ -39,7 +39,7 @@ function PrivacyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">1. Who We Are</h2>
               <p className="mt-2">
-                Genesis ("<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>") is
+                Majix ("<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>") is
                 operated by Ethan Sereti. This Privacy Policy explains how we collect, use,
                 disclose, and safeguard your information when you use our website and services.
               </p>

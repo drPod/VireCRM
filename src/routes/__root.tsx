@@ -15,7 +15,7 @@ function NotFoundComponent() {
   // it, so override the title imperatively so 404s don't inherit the landing-page title.
   useEffect(() => {
     const prev = document.title;
-    document.title = "Page not found — Genesis";
+    document.title = "Page not found — Majix";
     return () => {
       document.title = prev;
     };
@@ -46,27 +46,27 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Genesis — AI CRM that follows up so your team can close" },
+      { title: "Majix — AI CRM that follows up so your team can close" },
       {
         name: "description",
         content:
-          "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+          "Majix is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
       },
       { name: "theme-color", content: "#9333EA" },
-      { property: "og:site_name", content: "Genesis" },
+      { property: "og:site_name", content: "Majix" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Genesis — AI CRM that follows up so your team can close" },
+      { property: "og:title", content: "Majix — AI CRM that follows up so your team can close" },
       {
         property: "og:description",
         content:
-          "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+          "Majix is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
       },
-      { name: "twitter:title", content: "Genesis — AI CRM that follows up so your team can close" },
+      { name: "twitter:title", content: "Majix — AI CRM that follows up so your team can close" },
       {
         name: "twitter:description",
         content:
-          "Genesis is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+          "Majix is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
       },
       {
         property: "og:image",
@@ -95,7 +95,7 @@ export const Route = createRootRoute({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "Genesis",
+          name: "Majix",
           url: "https://majix.ai",
           logo: "https://majix.ai/genesis-logo.png",
           sameAs: [],
@@ -112,7 +112,7 @@ export const Route = createRootRoute({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebSite",
-          name: "Genesis",
+          name: "Majix",
           url: "https://majix.ai",
         }),
       },

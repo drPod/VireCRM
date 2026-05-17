@@ -10,13 +10,13 @@ export const Route = createFileRoute("/features")({
   component: FeaturesPage,
   head: () => ({
     meta: [
-      { title: "Features — Genesis" },
+      { title: "Features — Majix" },
       {
         name: "description",
         content:
-          "Explore Genesis's full feature set: autonomous lead scoring, AI outreach, reply classification, auto scheduling, and white-labeling.",
+          "Explore Majix's full feature set: autonomous lead scoring, AI outreach, reply classification, auto scheduling, and white-labeling.",
       },
-      { property: "og:title", content: "Genesis Features — Autonomous Sales Automation" },
+      { property: "og:title", content: "Majix Features — Autonomous Sales Automation" },
       {
         property: "og:description",
         content:

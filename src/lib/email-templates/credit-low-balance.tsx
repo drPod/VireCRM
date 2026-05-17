@@ -11,7 +11,7 @@ import {
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = "Genesis";
+const SITE_NAME = "Majix";
 
 interface CreditLowBalanceProps {
   organizationName?: string;

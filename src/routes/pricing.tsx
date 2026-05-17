@@ -11,13 +11,13 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing — Genesis CRM" },
+      { title: "Pricing — Majix CRM" },
       {
         name: "description",
         content:
           "Done-for-you CRM plans from $97/mo or white-label plans to resell under your brand.",
       },
-      { property: "og:title", content: "Genesis Pricing — Plans That Fit Your Business" },
+      { property: "og:title", content: "Majix Pricing — Plans That Fit Your Business" },
       {
         property: "og:description",
         content: "CRM plans from $97/mo. White-label from $249/mo. Custom builds from $10K.",
@@ -88,7 +88,7 @@ export const Route = createFileRoute("/pricing")({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "LocalBusiness",
-          name: "Genesis",
+          name: "Majix",
           url: "https://majix.ai/pricing",
           telephone: "+1-940-365-6600",
           email: "support@majix.ai",

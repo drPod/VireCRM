@@ -990,3 +990,45 @@ Subagent walked `src/routes/_app.*` + `src/components/crm/*` + `src/components/d
 - `_app.tsx:33` + `LoadingShell:33` + `CrmSidebar:308,447` — `[oklch(0.65_0.16_320)]` color literal 4× — extract CSS var.
 - `TODO(connectors-phase-2)` at `src/functions/connectors.functions.ts:122` — tracking only.
 
+## Frontend pass continuation 2026-05-17 (OAuth migration + brand sweep)
+
+Resumed from the prior session handoff. Closed every Critical item that wasn't blocked on platform infra, then swept the rest of the residual "Genesis" branding so the marketing surface reads consistently.
+
+### Critical — closed
+
+| Item | What changed |
+|---|---|
+| **Google OAuth off Lovable cloud** | Deleted `src/integrations/lovable/index.ts` + the `@lovable.dev/cloud-auth-js` dep. All 4 callers (`signup.tsx`, `login.tsx`, `BrandedSignup.tsx`, `r.$resellerSlug.signup.tsx`) now use `supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } })` directly. Result is `{ data, error }`; on success Supabase redirects the browser, on error we toast + unfreeze the button. Toasts/sessionStorage bookkeeping preserved. |
+| **Email send "Lovable proxy" — audit was wrong premise** | `src/routes/lovable/email/transactional/send.ts` is a LIVE local CF Worker handler (suppression + unsubscribe + enqueue → Phase 1 Resend dispatcher). Path is `/lovable/email/...` for legacy reasons, not because it proxies to Lovable. Confirmed by reading the route. Callers (`send.ts`, `dispatch-outreach.ts`, `admin-quote-email.functions.ts`) target the same Worker — works. **No rewrite needed.** Updated misleading docstrings + sender label "Genesis" → "Majix". Rename of the route path itself left for a separate, non-urgent cleanup. |
+| **`CustomerDomainOnboardingDialog` + `DomainHealthPanel` DNS guidance** | Flipped TXT prefix `_lovable` → `_majix` so the UI matches `src/lib/dns-check.ts` + `EditClientWhiteLabelDialog` + `CustomDomainsPanel` (all already on `_majix`). Renamed constant `LOVABLE_A_RECORD` → `CRM_A_RECORD` and added a fat TODO on the value: **the A-record IP `185.158.133.1` is the old Lovable target and is wrong** — CRM is now on CF Workers (`genesisxsx.darsh-pod.workers.dev`) and `wrangler.jsonc` has no `routes` configured, so the entire customer custom-domain flow is broken end-to-end. Fixing that needs CF for SaaS / wrangler-routes provisioning, which is a platform-infra ticket, not a frontend swap. Dropped the dead `docs.lovable.dev/features/custom-domain` external link from the onboarding dialog. |
+| **`VerifiedExplainer.tsx`** | "We asked the Lovable Connector Gateway to refresh your {provider} token" → "We refreshed your stored {provider} token". Gateway is stubbed (503) per `connectors.functions.ts`, but the copy no longer leaks the old brand. |
+| **`ResendSettingsCard` + `resend.functions.ts` sentinel** | `KEY_SENTINEL = "__lovable_connector__"` → `"__platform_managed__"`. The `api_key` column is just a NOT-NULL placeholder (real key is in env), so the literal change is cosmetic + does not affect existing rows. Docstrings and the test-email HTML body now say "platform-managed Resend" instead of "Lovable connector gateway". |
+| **`admin-quote-email.functions.ts` fallback origin** | `https://genesisxsx.lovable.app` → `https://majix.ai`. Quote emails sent without explicit origin now deep-link correctly. Also flipped the hardcoded `senderName: "Genesis"` to `"Majix"`. |
+| **Supabase `_shared/stripe.ts` CORS** | Allow-list pruned: dropped `.lovable.app` + `.vercel.app` + dedupe (the list had `.majix.ai` / `majix.ai` twice). Default `Access-Control-Allow-Origin` fallback flipped `genesisxsx.lovable.app` → `majix.ai`. Added `.workers.dev` since dev/preview lives on `darsh-pod.workers.dev`. |
+
+### Marketing audit critical/high — closed in same pass
+
+- **`BrandedSignup.tsx`** — full rebuild of the form: replaced raw `<input>` + `outline-none focus:ring-1` (mouse-click ring) with `<Input>` + `<Label>` + per-field `errors` state + inline `<p className="text-xs text-destructive">` + `aria-invalid` (mirrors `signup.tsx` pattern). Brand-mark fallback now uses `bg-primary` Tailwind class instead of the broken `style={{ backgroundColor: "hsl(var(--primary))" }}` (was invalid CSS because design tokens are oklch). Same hsl→oklch fix applied to `r.$resellerSlug.signup.tsx`. Google button now shows the loading spinner. `disabled` propagated across submit + Google button so neither can race the other.
+- **`PasswordInput.tsx`** — `focus:ring-1 focus:ring-ring` → `focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring` at the source so every consumer (login, signup, BrandedSignup) benefits.
+- **`confirm-email.tsx:79`** — same `focus:` → `focus-visible:` swap on the resend-email input.
+- **`PromoBanner.tsx`** — block-level `<Link>` now has `aria-label="View pricing — 30% off everything"` so SR users get the goal when the verbose text is hidden on narrow viewports.
+- **`BusinessEmailBanner.tsx`** — `text-white/70` on `bg-[oklch(0.12_0.02_260)]` bumped to `text-white/90` for WCAG AA on small text.
+- **`preview.tsx:506`** — dead conditional `m.trend === "up" ? "text-success" : "text-success"` fixed to use `text-destructive` for "down" trends.
+- **`ContactForm.tsx`** — `DRAFT_KEY = "genesis:contact-draft"` → `"majix:contact-draft"` so sessionStorage namespace matches the rest of the app (`majix:pricing-overrides-changed`).
+- **Sitewide brand sweep** — `Genesis` → `Majix` across 64 files (105 occurrences). Then `MajixX`/`Majixx` → `Majix` to clean up the `GenesisX` collisions that the first sweep produced. Includes:
+  - All `head().meta` titles (`— Genesis` → `— Majix` across 38 routes + components)
+  - SEO descriptions, OG title/description on `login.tsx`, `signup.tsx`, `confirm-email.tsx`, etc.
+  - `MarketingHeader` + `MarketingFooter` monogram glyph `G` → `M`
+  - `login.tsx:99` `brandName` fallback "Genesis" → "Majix"
+  - 19 email template files (`contact-acknowledgment`, `quote-proposal`, `team-invite`, `client-credentials`, `client-welcome`, etc.) and the workflow runner.
+- The `genesis-logo.png` filename in `public/` is untouched on purpose — it's a URL path, not user-visible brand text. Renaming it would require an asset-move + 6 reference updates with no functional gain.
+
+### Still open
+
+- **CF Workers custom-domain infra.** Customer DNS onboarding flow is currently broken because the documented A-record (`185.158.133.1`) is the old Lovable IP. Needs `wrangler.jsonc` `routes` provisioning (or CF for SaaS fallback origin) before customers can connect their own hostname. Flagged with a TODO at both `CustomerDomainOnboardingDialog.tsx:15` and `DomainHealthPanel.tsx:33`. `src/lib/dns-check.ts` `REQUIRED_A_VALUE` is also stale for the same reason.
+- **Route-path rename `/lovable/email/*` → `/api/email/*`.** Cosmetic cleanup; touches 2 routes + 3 callers + `routeTree.gen.ts`. Defer.
+- **CRM audit High items** still open: `window.confirm`/`window.prompt` → `AlertDialog` in `_app.admin.tsx` (7 destructive ops), `AddLeadDialog.tsx` accessibility rebuild (every `<label>` bare, every `<input>` no `id`/`name`/`autoComplete`), `PipelineView.tsx` drag-only no keyboard alternative, per-route `errorComponent` on 42/47 `_app` routes. All meaningful chunks, would each benefit from a dedicated session.
+- **`<Link><Button>` button-in-anchor invalid HTML** — `<Button asChild><Link>...</Link></Button>` swap across HeroSection, TwoWaysSection, CtaSection, pricing, preview. Not done this pass; pattern is mechanical but spans ~15 sites.
+- **Marketing audit Medium/Low/polish items** — `transition-all` anti-pattern, missing `activeProps` on MarketingHeader nav links, `aria-hidden` on separator dots / strikethrough prices / `tabular-nums`, `<GoogleIcon />` extraction, real 1200×630 OG card asset. None blocking.
+- **Visual verification.** Dev server is up, all auth routes return 200 + HTML grep confirms "Majix" everywhere it should be. An agent-browser screenshot pass was dispatched but didn't gate this commit — the markdown is the evidence trail.
+

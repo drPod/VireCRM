@@ -14,8 +14,8 @@ export const Route = createFileRoute("/accept-invite")({
   }),
   head: () => ({
     meta: [
-      { title: "Accept Invitation — Genesis" },
-      { name: "description", content: "Join your team on Genesis" },
+      { title: "Accept Invitation — Majix" },
+      { name: "description", content: "Join your team on Majix" },
     ],
   }),
 });
@@ -98,7 +98,7 @@ function AcceptInvitePage() {
             <>
               <h1 className="text-xl font-bold text-foreground">Join your team</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                You&apos;ve been invited to join an organization on Genesis. Accepting will move
+                You&apos;ve been invited to join an organization on Majix. Accepting will move
                 your account into the new team.
               </p>
               <div className="mt-4 rounded-lg bg-secondary/40 p-3 text-xs text-muted-foreground">

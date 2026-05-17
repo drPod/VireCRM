@@ -62,7 +62,7 @@ export const Route = createFileRoute("/_app/leads")({
   },
   head: () => ({
     meta: [
-      { title: "Genesis — Leads" },
+      { title: "Majix — Leads" },
       { name: "description", content: "Manage and score your leads" },
     ],
   }),

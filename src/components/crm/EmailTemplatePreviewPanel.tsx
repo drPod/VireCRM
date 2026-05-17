@@ -120,7 +120,7 @@ export function EmailTemplatePreviewPanel() {
           Email template previews
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Click a Genesis transactional template to see exactly how it will render in a recipient's
+          Click a Majix transactional template to see exactly how it will render in a recipient's
           inbox. Previews use sample data — no email is sent.
         </p>
       </CardHeader>

@@ -1,6 +1,6 @@
 /**
  * Sender identity card — lets the org owner set the business email address
- * that's used as the Reply-To on all outreach emails sent through Genesis.
+ * that's used as the Reply-To on all outreach emails sent through Majix.
  *
  * Why a dedicated card (and not just the white-label settings)?
  *  - White-label settings are gated to the Enterprise plan, but every plan
@@ -91,7 +91,7 @@ export function BusinessEmailCard({ sendgridConnected }: BusinessEmailCardProps)
       </div>
 
       <p className="text-sm text-muted-foreground mb-3">
-        The address Genesis uses as <strong className="text-foreground">Reply-To</strong> on every
+        The address Majix uses as <strong className="text-foreground">Reply-To</strong> on every
         outreach email. When a lead hits Reply, the message lands in this inbox instead of
         disappearing into a generic platform address.
       </p>

@@ -17,7 +17,7 @@ type AdminClient = SupabaseClient<any, any, any, any, any>;
 
 const SENDER_DOMAIN = "notify.majix.ai";
 const FROM_DOMAIN = "notify.majix.ai";
-const FROM_DISPLAY_NAME = "Genesis Billing";
+const FROM_DISPLAY_NAME = "Majix Billing";
 
 const BodySchema = z.object({
   organizationId: z.string().uuid(),

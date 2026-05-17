@@ -229,7 +229,7 @@ export const Route = createFileRoute("/_app/billing")({
   }),
   head: () => ({
     meta: [
-      { title: "Billing — Genesis" },
+      { title: "Billing — Majix" },
       { name: "description", content: "Manage your subscription, plan, and payment method" },
     ],
   }),

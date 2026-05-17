@@ -11,10 +11,10 @@ export const Route = createFileRoute("/confirm-email")({
   component: ConfirmEmailPage,
   head: () => ({
     meta: [
-      { title: "Check Your Email — Genesis" },
+      { title: "Check Your Email — Majix" },
       {
         name: "description",
-        content: "Confirm your email address to activate your Genesis account",
+        content: "Confirm your email address to activate your Majix account",
       },
     ],
   }),
@@ -76,7 +76,7 @@ function ConfirmEmailPage() {
               placeholder="you@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+              className="h-10 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
             <Button type="submit" variant="outline" className="w-full" disabled={resending}>
               {resending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_app/conversations")({
   component: ConversationsPage,
   head: () => ({
     meta: [
-      { title: "Genesis — Conversations" },
+      { title: "Majix — Conversations" },
       {
         name: "description",
         content: "Unified inbox for SMS, email, social and webchat conversations with leads.",

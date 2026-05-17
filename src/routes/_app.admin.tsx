@@ -62,7 +62,7 @@ export const Route = createFileRoute("/_app/admin")({
   component: AdminConsole,
   head: () => ({
     meta: [
-      { title: "Genesis — Platform Admin" },
+      { title: "Majix — Platform Admin" },
       { name: "description", content: "Host-only platform administration console" },
       { name: "robots", content: "noindex" },
     ],
@@ -1337,7 +1337,7 @@ function ContactSubmissionsPanel() {
 
   // Mailto invoice flow stayed handy for non-Stripe customers.
   const buildInvoiceMailto = (s: AdminSubmissionRow) => {
-    const subject = `Genesis — Invoice for your ${s.project_type ?? "project"}`;
+    const subject = `Majix — Invoice for your ${s.project_type ?? "project"}`;
     const body = [
       `Hi ${s.name.split(" ")[0] || s.name},`,
       "",
@@ -1351,7 +1351,7 @@ function ContactSubmissionsPanel() {
       "",
       "Reply to this email with any questions.",
       "",
-      "— Ethan, Genesis",
+      "— Ethan, Majix",
     ].join("\n");
     return `mailto:${s.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
@@ -1885,7 +1885,7 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
 
   const [amount, setAmount] = useState<string>(() => suggestAmount(submission));
   const [description, setDescription] = useState<string>(
-    `Genesis — ${submission.project_type ?? "project"}${submission.company ? ` for ${submission.company}` : ""}`,
+    `Majix — ${submission.project_type ?? "project"}${submission.company ? ` for ${submission.company}` : ""}`,
   );
   const [dueDays, setDueDays] = useState<string>("14");
 

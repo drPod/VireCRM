@@ -146,6 +146,6 @@ function UnsubscribePage() {
 export const Route = createFileRoute("/unsubscribe")({
   component: UnsubscribePage,
   head: () => ({
-    meta: [{ title: "Unsubscribe — Genesis" }],
+    meta: [{ title: "Unsubscribe — Majix" }],
   }),
 });
