@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/stripe.ts";
+import { buildCorsHeaders } from "../_shared/stripe.ts";
 
 /**
  * Reseller-side admin operation: create a child organization + user under
@@ -16,6 +16,7 @@ const supabaseAdmin = createClient(
 );
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

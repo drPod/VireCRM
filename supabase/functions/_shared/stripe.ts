@@ -95,6 +95,8 @@ const ALLOWED_ORIGIN_SUFFIXES = [
   "vireonx.space",
   ".genesisx.space",
   "genesisx.space",
+  ".vercel.app",
+  "vercel.app",
   "localhost",
 ];
 
@@ -119,14 +121,6 @@ export function buildCorsHeaders(req: Request): Record<string, string> {
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
   };
 }
-
-// Backward-compatible default (kept for any caller not yet migrated). Prefer buildCorsHeaders(req).
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://genesisxsx.lovable.app",
-  "Vary": "Origin",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-};
 
 /**
  * Sanitize an error for client response. Logs full details server-side

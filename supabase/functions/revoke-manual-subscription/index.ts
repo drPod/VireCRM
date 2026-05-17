@@ -1,18 +1,7 @@
 // Revoke (cancel) all active manual subscriptions for a given email.
 // Platform-admin only. Mirrors auth/authorization model of grant-manual-subscription.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
-const corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+import { buildCorsHeaders } from "../_shared/stripe.ts";
 
 function getAdminEmails(): string[] {
   const raw = Deno.env.get("PLATFORM_ADMIN_EMAILS") ?? "";
@@ -27,6 +16,13 @@ function getAdminEmails(): string[] {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 

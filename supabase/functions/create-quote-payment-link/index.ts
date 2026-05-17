@@ -2,7 +2,7 @@
 // (either the total as one line, or every line item separately) and stores
 // the link URL + Stripe IDs back on the quote row.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { type StripeEnv, createStripeClient, corsHeaders } from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, buildCorsHeaders } from "../_shared/stripe.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -24,6 +24,7 @@ interface Body {
 const sanitize = (s: string) => s.replace(/[^\w .,()\-/&]/g, "").slice(0, 250) || "Quote item";
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });

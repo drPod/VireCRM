@@ -2,7 +2,7 @@
 // FROM the caller's connected Stripe account TO a lead (acting as customer).
 // Stores a mirror row in client_invoices.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { type StripeEnv, createStripeClient, corsHeaders } from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, buildCorsHeaders } from "../_shared/stripe.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -28,6 +28,7 @@ interface Body {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
