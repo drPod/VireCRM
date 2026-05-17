@@ -114,45 +114,17 @@ const refreshSchema = z.object({
   provider: z.enum(VALID_PROVIDERS),
 });
 
-/**
- * Best-effort fetch of the connected Google account email for a Google-family
- * connector (Gmail, Google Calendar, etc.). Returns null on any failure — the
- * caller treats null as "couldn't discover yet, try again later".
- *
- * - Gmail uses the dedicated profile endpoint which returns the mailbox.
- * - Google Calendar (and other Google connectors that don't expose a mailbox
- *   endpoint) fall back to the standard OAuth2 userinfo endpoint, which works
- *   as long as the OAuth scope includes `email` / `profile` — both of which
- *   the gateway requests by default.
- */
+// Best-effort lookup of the connected Google account email for Gmail /
+// Google Calendar connectors. Previously routed via the Lovable connector
+// gateway; that path was removed in Phase 1. Returns null until Phase 2
+// reintroduces a connector OAuth proxy (Nango or hand-rolled) — at which
+// point this should hit the new proxy's userinfo endpoint.
+// TODO(connectors-phase-2): wire to the new OAuth proxy.
 async function fetchGoogleConnectedEmail(
-  provider: "gmail" | "google_calendar",
-  envVar: string,
+  _provider: "gmail" | "google_calendar",
+  _envVar: string,
 ): Promise<string | null> {
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  const connectorKey = process.env[envVar];
-  if (!lovableKey || !connectorKey) return null;
-
-  const url =
-    provider === "gmail"
-      ? "https://connector-gateway.lovable.dev/google_mail/gmail/v1/users/me/profile"
-      : "https://connector-gateway.lovable.dev/google_calendar/oauth2/v2/userinfo";
-
-  try {
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": connectorKey,
-      },
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { emailAddress?: string; email?: string };
-    const email = data.emailAddress ?? data.email;
-    return typeof email === "string" && email.length > 0 ? email : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 export const refreshConnectorStatusFn = createServerFn({ method: "POST" })

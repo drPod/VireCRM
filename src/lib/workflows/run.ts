@@ -25,8 +25,8 @@
  *
  * Stubbed (skipped with status='skipped' + reason logged):
  *   - action.score_lead, action.classify_reply, action.personalize_message,
- *     action.book_appointment — depend on LOVABLE_API_KEY which is currently
- *     unset. Will execute as no-ops until the AI gateway migration lands.
+ *     action.book_appointment — pending wire-up to the Anthropic SDK path
+ *     (Phase 2 workflow AI). Will execute as no-ops until then.
  *
  * Retry policy:
  *   - Each entry into runOne() increments workflow_runs.attempts.
@@ -379,7 +379,7 @@ async function executeNode(
   const kind = node.data.kind;
   const config = node.data.config ?? {};
 
-  // ---- AI agent stubs (LOVABLE_API_KEY unavailable) ----
+  // ---- AI agent stubs (pending wire-up to Anthropic SDK path) ----
   if (AI_STUBS.has(kind)) {
     return done(start, "skipped", `${kind} stubbed (AI gateway offline)`, {});
   }

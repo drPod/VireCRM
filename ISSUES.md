@@ -32,8 +32,8 @@ All deployed to prod (Supabase project `coynbufhejaeuifpvmvw` + Vercel `genesisx
   - Local dev (`.env`, gitignored): `ANTHROPIC_API_KEY=sk-ant-…`, `RESEND_API_KEY=re_…`.
   - Cloudflare Worker (prod): `wrangler secret put ANTHROPIC_API_KEY` then `wrangler secret put RESEND_API_KEY` (interactive prompts).
   - Supabase Edge Functions (for `suggest-followup`, `score-lead`, `classify-reply`, `personalize-message`, `book-appointment`): `supabase secrets set ANTHROPIC_API_KEY=sk-ant-…`.
-  - ~~Verify Resend domain `notify.vireonx.space` in the Resend dashboard~~ — superseded by rebrand. New target: verify `notify.majix.ai` once IONOS DNS records land. SPF + DKIM must show green before the queue dispatcher can actually deliver email.
-  - Once Resend DNS lands, drop `LOVABLE_API_KEY` from every env layer — no code path consumes it after Phase 1.
+  - ~~Verify Resend domain `notify.vireonx.space` in the Resend dashboard~~ — superseded by rebrand. New target: verify `notify.majix.ai` once IONOS DNS records land. SPF + DKIM must show green before the queue dispatcher can actually deliver email. **Done 2026-05-17 ~14:35 PT — see "Resend e2e verification" section below.**
+  - ~~Once Resend DNS lands, drop `LOVABLE_API_KEY` from every env layer — no code path consumes it after Phase 1.~~ **Done 2026-05-17 — see "LOVABLE_API_KEY cleanup" section below.**
 - Phase 2 follow-up: replace `src/lib/connectors/gateway.ts` stub with real OAuth proxy (Nango or hand-rolled) so Apollo/Slack/Gmail/Twilio/Sendgrid integrations come back online. Until then, those routes return 503 "connector not configured" by design.
 - ~~Decide `LOVABLE_API_KEY` direction~~ — done (Phase 1, see row above).
 - Toggle on `auth_leaked_password_protection` in Supabase Auth → Password protection (not migration-able).
@@ -824,4 +824,49 @@ Plus partial index on `(next_attempt_at) WHERE status='queued'`.
 - Workers Builds "Variables and secrets" panel is empty. Push-to-main triggers a fresh build that runs `npx wrangler deploy` — that deploy inherits existing runtime secrets, so the first CI deploy *should* be fine. But if a future deploy ever needs to inject build-time secrets, they go in that panel, not via `wrangler secret put`.
 - Stripe webhooks live on Supabase Edge Functions, not the Worker — no external webhook URL needs repointing.
 - Lovable migration (`LOVABLE_API_KEY` etc.) still deferred. Now that hosting is solved, the next session can pick it up.
+
+---
+
+## 2026-05-17 Resend e2e verification + LOVABLE_API_KEY cleanup
+
+### Resend e2e verification
+
+**Symptom.** `POST /api/public/contact` enqueued both contact-inquiry + contact-acknowledgment rows to `email_send_log` (`status=pending`), but the queue drainer at `POST /lovable/email/queue/process` returned `{"processed":0,"stopped":"emails_disabled"}` on every run. Wrangler tail surfaced the underlying Resend error: `The notify.majix.ai domain is not verified. Please, add and verify your domain on https://resend.com/domains`. The drainer's `isForbidden(err)` branch maps Resend's 403 to "Emails disabled for this project" and moves the message to DLQ on first attempt — by design.
+
+**Root cause.** DNS records for `notify.majix.ai` (SPF, DKIM, MX) were live at IONOS authoritative NS + 1.1.1.1 + 8.8.8.8, but the Resend dashboard never re-ran its verification check. Clicking "Verify DNS" in the Resend domains UI flipped the domain to Verified within seconds.
+
+**Verification.** Re-ran drainer after verify; processed 4 messages — `bffdd38a` / `f16e4a34` / `c777482a` / `e4c58932` all `status=sent` in `email_send_log`. Pipeline live for outbound transactional email via `noreply@notify.majix.ai`.
+
+### LOVABLE_API_KEY cleanup
+
+Env layers were already clean from the prior rebrand commit (`.env`, wrangler, supabase secrets all confirmed empty of `LOVABLE_API_KEY`). The remaining work was 4 dead routes + 1 dead function still referencing `process.env.LOVABLE_API_KEY` plus 2 unused npm packages.
+
+**Deleted (4 dead Lovable-era routes):**
+- `src/routes/lovable/email/auth/webhook.ts` — Supabase Auth Hook receiver. Confirmed dead via Management API: `GET /v1/projects/coynbufhejaeuifpvmvw/config/auth` returns `hook_send_email_enabled = false` and `hook_send_email_uri = null`. Supabase is using built-in email delivery, not a custom hook. If custom auth emails are wanted later, the modern Supabase Send Email Hook uses Standard Webhooks signing, not the `@lovable.dev/webhooks-js` HMAC scheme — this route would be wrong anyway.
+- `src/routes/lovable/email/auth/preview.ts` — Lovable's preview UI for auth templates.
+- `src/routes/lovable/email/transactional/preview.ts` — Lovable's preview UI for transactional templates.
+- `src/routes/lovable/email/suppression.ts` — only ever called by Lovable's Go API.
+- Empty `src/routes/lovable/email/auth/` dir removed.
+
+**Stubbed (1 dead Lovable-gateway function):**
+- `fetchGoogleConnectedEmail` in `src/functions/connectors.functions.ts` now `return null` directly. Was POSTing to `connector-gateway.lovable.dev/google_mail` / `/google_calendar` — that gateway is gone post-Phase-1. Added `TODO(connectors-phase-2)` so the rewrite knows to wire the new OAuth proxy's userinfo endpoint.
+
+**Comment-only edits:**
+- `src/lib/workflows/run.ts` — 2 stale references to `LOVABLE_API_KEY` in JSDoc / inline-comment swapped for "Anthropic SDK path / Phase 2 workflow AI" framing.
+
+**Packages dropped:**
+- `@lovable.dev/email-js` — only consumer was the deleted auth/webhook route.
+- `@lovable.dev/webhooks-js` — same.
+
+**Packages intentionally kept:**
+- `@lovable.dev/cloud-auth-js` — still consumed by `src/integrations/lovable/index.ts` for social-signin (Google/Apple/Microsoft) via `lovable.auth.signInWithOAuth`. Called from `BrandedSignup.tsx`, `login.tsx`, `signup.tsx`, `r.$resellerSlug.signup.tsx`. Replacing it = its own migration (move social signin to Supabase native OAuth providers). Out of scope.
+- `@lovable.dev/vite-tanstack-config` — build-critical preset that emits the Cloudflare Worker bundle. Replacing it = re-architecting the build pipeline.
+
+`bun run typecheck` clean. `bun run build` clean (worker bundle ~10.3 MiB, fits 3 MiB gzipped limit).
+
+### Known follow-ups (still open)
+
+- **Cloudflare Workers Builds "Variables and secrets" panel.** Can't inspect via `bunx wrangler secret list` (that's runtime, not build). If `LOVABLE_API_KEY` was ever set there for the CI build, it's still there. Manual dashboard check needed: https://dash.cloudflare.com → Workers & Pages → genesisxsx → Settings → Variables.
+- **`contact-acknowledgment` template pricing URL.** Falls back to `https://genesisx.space/pricing` when no `origin` header is set on the request — should be `https://majix.ai/pricing` post-rebrand. Tiny edit, out of scope this pass.
+- **`@lovable.dev/cloud-auth-js` removal.** Migrating social signin to Supabase native OAuth (`signInWithOAuth({ provider: 'google' })` etc.) is its own session. Mostly contained to the 4 signup/login routes listed above.
 
