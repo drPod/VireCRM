@@ -9,12 +9,14 @@ export function HeroSection() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const el = imageWrapRef.current;
     if (!el) return;
 
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let frame = 0;
+    let attached = false;
+
     const update = () => {
       frame = 0;
       const offset = Math.min(Math.max(window.scrollY * 0.18, 0), 80);
@@ -26,11 +28,34 @@ export function HeroSection() {
       frame = window.requestAnimationFrame(update);
     };
 
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
+    const attach = () => {
+      if (attached) return;
+      attached = true;
+      update();
+      window.addEventListener("scroll", onScroll, { passive: true });
+    };
+
+    const detach = () => {
+      if (!attached) return;
+      attached = false;
       window.removeEventListener("scroll", onScroll);
-      if (frame) window.cancelAnimationFrame(frame);
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      el.style.setProperty("--parallax-y", "0px");
+    };
+
+    const onMotionChange = () => {
+      if (motionQuery.matches) detach();
+      else attach();
+    };
+
+    onMotionChange();
+    motionQuery.addEventListener("change", onMotionChange);
+    return () => {
+      motionQuery.removeEventListener("change", onMotionChange);
+      detach();
     };
   }, []);
 

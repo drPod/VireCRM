@@ -221,8 +221,12 @@ export function ContactForm() {
 
   if (submitted) {
     return (
-      <div className="rounded-2xl border border-success/30 bg-success/5 p-12 text-center">
-        <CheckCircle className="mx-auto h-12 w-12 text-success" />
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-2xl border border-success/30 bg-success/5 p-12 text-center"
+      >
+        <CheckCircle aria-hidden="true" className="mx-auto h-12 w-12 text-success" />
         <h2 className="mt-4 text-2xl font-bold text-foreground">Message Sent!</h2>
         <p className="mt-2 text-muted-foreground">
           Your inquiry was delivered to our team at{" "}
