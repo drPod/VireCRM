@@ -1,16 +1,15 @@
 /**
  * Resend integration card — owner-only.
  *
- * Resend is wired through the Lovable connector gateway, so there's no
- * per-org API key to paste. The card focuses on the only org-specific
- * settings that matter:
+ * Resend is platform-managed (single workspace-level `RESEND_API_KEY`), so
+ * there's no per-org API key to paste. The card focuses on the only
+ * org-specific settings that matter:
  *   - The verified `from` address (must be on a domain the org has verified
  *     in their Resend dashboard, e.g. `noreply@notify.majix.ai`).
  *   - An optional `reply_to` address.
  *
- * The actual Resend connection is workspace-level (managed via the
- * connector flow), so we only show whether `RESEND_API_KEY` is present in
- * the runtime — if it isn't, we tell the owner to connect Resend first.
+ * We only show whether `RESEND_API_KEY` is present in the runtime — if it
+ * isn't, we tell the owner to connect Resend first.
  */
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";

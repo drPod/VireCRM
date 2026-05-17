@@ -47,9 +47,8 @@ export function VerifiedExplainer({ variant, providerLabel }: Props) {
         {isConnector ? (
           <>
             <p className="text-muted-foreground">
-              We asked the Lovable Connector Gateway to refresh your {providerLabel} token and call
-              the provider with it. The provider accepted the call, so {providerLabel} is reachable
-              from your CRM right now.
+              We refreshed your stored {providerLabel} token and called the provider with it. The
+              provider accepted the call, so {providerLabel} is reachable from your CRM right now.
             </p>
             <p className="text-muted-foreground mt-2">
               If the provider later expires the token or revokes access, the card will switch to{" "}

@@ -12,7 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { BookOpen, Copy, Check, ExternalLink, Globe, ShieldCheck, Star, Plug } from "lucide-react";
 import { toast } from "sonner";
 
-const LOVABLE_A_RECORD = "185.158.133.1";
+// TODO(custom-domains): this IP is stale (Lovable hosting). The CRM is now on
+// Cloudflare Workers (genesisxsx.*.workers.dev) with no `routes` configured in
+// wrangler.jsonc. Once a Cloudflare for SaaS fallback origin (or worker route)
+// is provisioned, swap this for the real A/CNAME target. Until then customer
+// DNS onboarding is broken end-to-end. Tracked in ISSUES.md.
+const CRM_A_RECORD = "185.158.133.1";
 
 interface Props {
   triggerLabel?: string;
@@ -68,26 +73,26 @@ export function CustomerDomainOnboardingDialog({ triggerLabel = "Onboarding Guid
               <RecordRow
                 type="A"
                 name="@"
-                value={LOVABLE_A_RECORD}
+                value={CRM_A_RECORD}
                 copyKey="root"
                 copied={copied === "root"}
-                onCopy={() => copy(LOVABLE_A_RECORD, "root")}
+                onCopy={() => copy(CRM_A_RECORD, "root")}
               />
               <RecordRow
                 type="A"
                 name="www"
-                value={LOVABLE_A_RECORD}
+                value={CRM_A_RECORD}
                 copyKey="www"
                 copied={copied === "www"}
-                onCopy={() => copy(LOVABLE_A_RECORD, "www")}
+                onCopy={() => copy(CRM_A_RECORD, "www")}
               />
               <RecordRow
                 type="TXT"
-                name="_lovable"
-                value="lovable_verify=<token shown in panel>"
+                name="_majix"
+                value="majix-verify-<token shown in panel>"
                 copyKey="txt"
                 copied={copied === "txt"}
-                onCopy={() => copy("_lovable", "txt")}
+                onCopy={() => copy("_majix", "txt")}
               />
               <p className="text-[11px] text-muted-foreground">
                 The exact TXT token is generated when you add the hostname — copy it from the Custom
@@ -135,21 +140,6 @@ export function CustomerDomainOnboardingDialog({ triggerLabel = "Onboarding Guid
               >
                 <ExternalLink className="h-3 w-3" />
                 Check DNS propagation
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-[11px] gap-1.5"
-                onClick={() =>
-                  window.open(
-                    "https://docs.lovable.dev/features/custom-domain",
-                    "_blank",
-                    "noopener,noreferrer",
-                  )
-                }
-              >
-                <ExternalLink className="h-3 w-3" />
-                Full custom domain docs
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">

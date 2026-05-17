@@ -30,8 +30,10 @@ import {
   type DomainHealthResult,
 } from "@/functions/domain-health.functions";
 
-// Lovable hosting A-record target. Documented in the custom-domain setup flow.
-const LOVABLE_A_RECORD = "185.158.133.1";
+// TODO(custom-domains): IP is stale (legacy Lovable target). CRM now on
+// Cloudflare Workers without a custom-domain route configured. See the same
+// TODO on CustomerDomainOnboardingDialog.tsx.
+const CRM_A_RECORD = "185.158.133.1";
 
 interface Props {
   organizationId: string | undefined;
@@ -341,7 +343,7 @@ function IssueActions({
     buttons.push({
       label: "Copy A record value",
       icon: <Copy className="h-3 w-3" />,
-      onClick: () => void copyToClipboard(LOVABLE_A_RECORD, "A record"),
+      onClick: () => void copyToClipboard(CRM_A_RECORD, "A record"),
     });
     buttons.push({
       label: "Copy hostname",
@@ -432,21 +434,21 @@ function RedirectGuideDialog({
             label="A record (root domain)"
             type="A"
             name="@"
-            value={LOVABLE_A_RECORD}
+            value={CRM_A_RECORD}
             note={`Points ${apex} at this app.`}
           />
           <RecordRow
             label="A record (www subdomain)"
             type="A"
             name="www"
-            value={LOVABLE_A_RECORD}
+            value={CRM_A_RECORD}
             note={`Points ${wwwHost} at this app.`}
           />
           <RecordRow
             label="Verification TXT"
             type="TXT"
-            name="_lovable"
-            value="lovable_verify=…"
+            name="_majix"
+            value="majix-verify-…"
             note="Use the token shown when you added the hostname (not this placeholder)."
           />
 

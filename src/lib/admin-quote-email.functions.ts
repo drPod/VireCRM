@@ -94,7 +94,7 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
       requestOrigin ||
       process.env.SITE_URL ||
       process.env.PUBLISHED_URL ||
-      "https://genesisxsx.lovable.app";
+      "https://majix.ai";
 
     const sendRes = await fetch(`${origin}/lovable/email/transactional/send`, {
       method: "POST",
@@ -118,7 +118,7 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
           pdfUrl: signed.signedUrl,
           paymentLinkUrl: quote.payment_link_url,
           notes: quote.notes,
-          senderName: "Genesis",
+          senderName: "Majix",
         },
       }),
     });

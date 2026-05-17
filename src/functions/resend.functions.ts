@@ -1,12 +1,12 @@
 /**
  * Resend integration server functions — owner-only.
  *
- * Resend is wired through the Lovable connector gateway, so there's no per-org
- * API key. We persist a row in `org_integrations` with provider = 'resend'
- * purely to keep per-org settings (`fromAddress`, `replyTo`) and a
- * `last_verified_at` timestamp consistent with the rest of the integrations
- * surface. The `api_key` column gets a sentinel value since the real key
- * lives in `process.env.RESEND_API_KEY`.
+ * Resend is platform-managed (single `RESEND_API_KEY` env var on the worker),
+ * so there's no per-org API key. We persist a row in `org_integrations` with
+ * provider = 'resend' purely to keep per-org settings (`fromAddress`,
+ * `replyTo`) and a `last_verified_at` timestamp consistent with the rest of
+ * the integrations surface. The `api_key` column gets a sentinel value since
+ * the real key lives in `process.env.RESEND_API_KEY`.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -15,7 +15,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendResendEmail, verifyResendConnection } from "@/lib/resend";
 
 const PROVIDER = "resend" as const;
-const KEY_SENTINEL = "__lovable_connector__";
+// Stored in `api_key` to satisfy NOT NULL while signalling "managed by
+// platform, not a per-org secret". Previously read as `__lovable_connector__`;
+// kept the column unchanged so any existing rows continue to work.
+const KEY_SENTINEL = "__platform_managed__";
 
 async function assertOwner(userId: string, organizationId: string) {
   const { data: roleRow } = await supabaseAdmin
@@ -209,7 +212,7 @@ export const sendResendTestEmailFn = createServerFn({ method: "POST" })
       `<div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111">` +
       `<h2 style="margin:0 0 12px;font-size:18px">Resend is working ✅</h2>` +
       `<p style="margin:0 0 12px;line-height:1.5">` +
-      `This test email was sent through your Resend integration via the Lovable connector gateway. ` +
+      `This test email was sent through your platform-managed Resend integration. ` +
       `If you received it, outreach sends from <strong>${brandName}</strong> are wired up correctly.` +
       `</p>` +
       `<p style="margin:0;color:#666;font-size:12px">You can safely ignore or delete this message.</p>` +

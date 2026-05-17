@@ -21,7 +21,7 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Must match the constants baked into the transactional send route.
-const SITE_NAME = "Genesis";
+const SITE_NAME = "Majix";
 const SENDER_DOMAIN = "notify.majix.ai";
 const FROM_DOMAIN = "notify.majix.ai";
 

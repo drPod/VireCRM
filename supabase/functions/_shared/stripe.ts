@@ -82,13 +82,9 @@ export async function verifyWebhook(
 // Allowed origins for browser-initiated calls. Server-to-server callers
 // (no Origin header) are unaffected.
 const ALLOWED_ORIGIN_SUFFIXES = [
-  ".lovable.app",
   ".majix.ai",
   "majix.ai",
-  ".majix.ai",
-  "majix.ai",
-  ".vercel.app",
-  "vercel.app",
+  ".workers.dev",
   "localhost",
 ];
 
@@ -107,7 +103,7 @@ function isAllowedOrigin(origin: string | null): boolean {
 export function buildCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin");
   return {
-    "Access-Control-Allow-Origin": isAllowedOrigin(origin) ? origin! : "https://genesisxsx.lovable.app",
+    "Access-Control-Allow-Origin": isAllowedOrigin(origin) ? origin! : "https://majix.ai",
     "Vary": "Origin",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
