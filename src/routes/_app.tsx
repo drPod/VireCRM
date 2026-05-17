@@ -32,21 +32,76 @@ function LoadingShell() {
       aria-live="polite"
       aria-busy="true"
       aria-label="Loading workspace"
-      className="flex h-screen flex-col items-center justify-center gap-4 bg-background"
+      className="flex h-screen bg-background"
     >
-      <div className="relative flex h-14 w-14 items-center justify-center">
-        <span aria-hidden="true" className="absolute inset-0 animate-ping rounded-2xl bg-primary/20" />
-        <span
-          aria-hidden="true"
-          className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-xl font-extrabold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)]"
-        >
-          M
-        </span>
-      </div>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <span className="sr-only">
         <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
-        Loading your workspace…
-      </div>
+        Loading your workspace
+      </span>
+      {/* Sidebar skeleton — matches CrmSidebar's w-64 rail so first paint
+          doesn't shift when auth hydrates. Hidden on mobile (sidebar is a
+          sheet there). */}
+      <aside
+        aria-hidden="true"
+        className="hidden h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 md:flex"
+      >
+        <div className="flex items-center gap-2 pb-4">
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-base font-extrabold text-primary-foreground shadow-[0_0_18px_-4px_var(--color-primary)]"
+          >
+            M
+          </span>
+          <div className="h-4 w-24 rounded bg-sidebar-foreground/10 animate-pulse" />
+        </div>
+        <div className="mt-2 space-y-1.5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 px-2 py-1.5 animate-pulse"
+            >
+              <div className="h-4 w-4 rounded bg-sidebar-foreground/10" />
+              <div
+                className="h-3 rounded bg-sidebar-foreground/10"
+                style={{ width: `${50 + ((i * 7) % 40)}%` }}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="mt-auto pt-4 border-t border-sidebar-border/60">
+          <div className="flex items-center gap-2 animate-pulse">
+            <div className="h-8 w-8 rounded-full bg-sidebar-foreground/10" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3 w-2/3 rounded bg-sidebar-foreground/10" />
+              <div className="h-2 w-1/2 rounded bg-sidebar-foreground/10" />
+            </div>
+          </div>
+        </div>
+      </aside>
+      {/* Content area skeleton */}
+      <main className="flex-1 overflow-hidden p-6 space-y-6">
+        <div className="space-y-2">
+          <div className="h-7 w-48 rounded bg-muted animate-pulse" />
+          <div className="h-4 w-72 rounded bg-muted/70 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-border bg-card p-4 space-y-3 animate-pulse"
+            >
+              <div className="h-4 w-4 rounded bg-muted" />
+              <div className="h-3 w-2/3 rounded bg-muted/70" />
+              <div className="h-6 w-1/2 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-xl border border-border bg-card p-5 space-y-3 animate-pulse">
+          <div className="h-4 w-1/3 rounded bg-muted" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-3 w-full rounded bg-muted/60" />
+          ))}
+        </div>
+      </main>
     </div>
   );
 }

@@ -845,8 +845,32 @@ function LeadsPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          aria-label="Loading leads"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-border bg-card p-4 space-y-3 animate-pulse"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2 flex-1 min-w-0">
+                  <div className="h-4 w-3/4 rounded bg-muted" />
+                  <div className="h-3 w-1/2 rounded bg-muted/70" />
+                </div>
+                <div className="h-5 w-12 rounded-full bg-muted" />
+              </div>
+              <div className="h-3 w-2/3 rounded bg-muted/70" />
+              <div className="flex gap-2 pt-2">
+                <div className="h-7 w-20 rounded-md bg-muted" />
+                <div className="h-7 w-20 rounded-md bg-muted" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

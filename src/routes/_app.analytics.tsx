@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3, TrendingUp, Users, Clock, Loader2 } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Clock } from "lucide-react";
 import { MetricCard } from "@/components/crm/MetricCard";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -160,8 +160,41 @@ function AnalyticsPage() {
 
   if (loading || !data) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        aria-label="Loading analytics"
+        className="p-6 space-y-6"
+      >
+        <div className="space-y-2">
+          <div className="h-7 w-40 rounded bg-muted animate-pulse" />
+          <div className="h-4 w-72 rounded bg-muted/70 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-border bg-card p-4 space-y-3 animate-pulse"
+            >
+              <div className="h-4 w-4 rounded bg-muted" />
+              <div className="h-3 w-2/3 rounded bg-muted/70" />
+              <div className="h-6 w-1/2 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3 animate-pulse">
+            <div className="h-4 w-1/3 rounded bg-muted" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-3 w-full rounded bg-muted/60" />
+            ))}
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3 animate-pulse">
+            <div className="h-4 w-1/3 rounded bg-muted" />
+            <div className="h-32 w-full rounded bg-muted/60" />
+          </div>
+        </div>
       </div>
     );
   }
