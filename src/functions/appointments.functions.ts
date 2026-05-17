@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -545,18 +546,173 @@ const publicBookSchema = z.object({
   phone: z.string().max(40).optional(),
   notes: z.string().max(2000).optional(),
   password: z.string().max(200).optional(),
+  // Honeypot — real users leave it empty. Bots fill it in.
+  website: z.string().max(0).optional().nullable(),
+  // Math CAPTCHA — server re-checks a + b === answer. Required (not
+  // `.optional()`): making it optional historically let bots bypass the
+  // check entirely by simply omitting the field, which is the exact bug
+  // class fixed in /api/public/contact.
+  captcha: z.object({
+    a: z.number().int().min(0).max(20),
+    b: z.number().int().min(0).max(20),
+    answer: z.number().int().min(0).max(40),
+  }),
 });
+
+// Per-IP rate-limit thresholds for public booking. Tuned looser than
+// contact form because legitimate bookers may retry across slots, but
+// still tight enough to stop scripted spam.
+const BOOKING_RATE_SHORT_WINDOW_MS = 10 * 60 * 1000;
+const BOOKING_RATE_SHORT_MAX = 8;
+const BOOKING_RATE_DAY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const BOOKING_RATE_DAY_MAX = 30;
+const BOOKING_DEDUP_WINDOW_MS = 60 * 1000;
 
 export const bookPublicAppointmentFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof publicBookSchema>) => publicBookSchema.parse(input))
   .handler(async ({ data }): Promise<{ id: string; starts_at: string; ends_at: string }> => {
     const supabase = getServiceClient();
+
+    // Honeypot tripped — pretend success but drop silently.
+    if (data.website && data.website.length > 0) {
+      const ip = resolveRequestIp();
+      void recordBookingAttempt(supabase, {
+        calendarId: data.calendarId,
+        ip,
+        email: data.email,
+        startsAt: data.starts_at,
+        outcome: "honeypot_tripped",
+      });
+      // Fake an id so the client UI shows the normal confirmation; no DB write.
+      return {
+        id: crypto.randomUUID(),
+        starts_at: data.starts_at,
+        ends_at: new Date(new Date(data.starts_at).getTime() + 30 * 60 * 1000).toISOString(),
+      };
+    }
+
+    // CAPTCHA — server re-verifies the math answer.
+    {
+      const { a, b, answer } = data.captcha;
+      if (a + b !== answer) {
+        const ip = resolveRequestIp();
+        void recordBookingAttempt(supabase, {
+          calendarId: data.calendarId,
+          ip,
+          email: data.email,
+          startsAt: data.starts_at,
+          outcome: "captcha_failed",
+        });
+        throw new Error("Incorrect answer to the security question.");
+      }
+    }
+
+    // Per-IP rate limit (defense in depth alongside honeypot + CAPTCHA).
+    // The new public_booking_attempts table isn't in the generated Supabase
+    // types yet — cast through `any` until `supabase gen types` is re-run.
+    const attemptsTable = (supabase as unknown as {
+      from: (t: string) => ReturnType<typeof supabase.from>;
+    }).from("public_booking_attempts");
+    const ip = resolveRequestIp();
+    if (ip) {
+      const now = Date.now();
+      const shortAgo = new Date(now - BOOKING_RATE_SHORT_WINDOW_MS).toISOString();
+      const dayAgo = new Date(now - BOOKING_RATE_DAY_WINDOW_MS).toISOString();
+
+      const [{ count: shortCount }, { count: dayCount }] = await Promise.all([
+        attemptsTable
+          .select("id", { count: "exact", head: true })
+          .eq("ip_address" as never, ip as never)
+          .gte("created_at" as never, shortAgo as never),
+        (supabase as unknown as {
+          from: (t: string) => ReturnType<typeof supabase.from>;
+        })
+          .from("public_booking_attempts")
+          .select("id", { count: "exact", head: true })
+          .eq("ip_address" as never, ip as never)
+          .gte("created_at" as never, dayAgo as never),
+      ]);
+
+      if ((shortCount ?? 0) >= BOOKING_RATE_SHORT_MAX || (dayCount ?? 0) >= BOOKING_RATE_DAY_MAX) {
+        void recordBookingAttempt(supabase, {
+          calendarId: data.calendarId,
+          ip,
+          email: data.email,
+          startsAt: data.starts_at,
+          outcome: "rate_limited",
+        });
+        throw new Error("Too many booking attempts — please try again later.");
+      }
+    }
+
+    // Dedup: same (calendarId, email, starts_at) within 60s returns success
+    // without re-inserting. Catches double-clicks + retries; intentionally
+    // narrow so different visitors picking the same slot still see the real
+    // conflict check below.
+    const dedupSince = new Date(Date.now() - BOOKING_DEDUP_WINDOW_MS).toISOString();
+    const { data: recentDup } = await (supabase as unknown as {
+      from: (t: string) => ReturnType<typeof supabase.from>;
+    })
+      .from("public_booking_attempts")
+      .select("id")
+      .eq("calendar_id" as never, data.calendarId as never)
+      .eq("email" as never, data.email as never)
+      .eq("starts_at" as never, data.starts_at as never)
+      .eq("outcome" as never, "created" as never)
+      .gte("created_at" as never, dedupSince as never)
+      .limit(1)
+      .maybeSingle();
+
+    if (recentDup) {
+      // Pull the most recent appointment so the client gets a real id back.
+      const { data: existingAppt } = await supabase
+        .from("appointments")
+        .select("id, starts_at, ends_at")
+        .eq("calendar_id", data.calendarId)
+        .eq("starts_at", data.starts_at)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      void recordBookingAttempt(supabase, {
+        calendarId: data.calendarId,
+        ip,
+        email: data.email,
+        startsAt: data.starts_at,
+        outcome: "duplicate",
+      });
+      if (existingAppt) {
+        return {
+          id: existingAppt.id,
+          starts_at: existingAppt.starts_at,
+          ends_at: existingAppt.ends_at,
+        };
+      }
+    }
+
     // Validates calendar is active and password (if any) is correct.
     const cal = await loadPublicCalendarOrThrow(supabase, data.calendarId, data.password);
 
     const startMs = new Date(data.starts_at).getTime();
-    if (Number.isNaN(startMs)) throw new Error("Invalid start time");
-    if (startMs < Date.now() - 60_000) throw new Error("Cannot book a past slot");
+    if (Number.isNaN(startMs)) {
+      void recordBookingAttempt(supabase, {
+        calendarId: data.calendarId,
+        ip,
+        email: data.email,
+        startsAt: data.starts_at,
+        outcome: "invalid",
+      });
+      throw new Error("Invalid start time");
+    }
+    if (startMs < Date.now() - 60_000) {
+      void recordBookingAttempt(supabase, {
+        calendarId: data.calendarId,
+        ip,
+        email: data.email,
+        startsAt: data.starts_at,
+        outcome: "invalid",
+      });
+      throw new Error("Cannot book a past slot");
+    }
     const endMs = startMs + cal.slot_duration_minutes * 60 * 1000;
 
     // Conflict check
@@ -569,6 +725,13 @@ export const bookPublicAppointmentFn = createServerFn({ method: "POST" })
       .gt("ends_at", new Date(startMs).toISOString())
       .limit(1);
     if (conflicts && conflicts.length > 0) {
+      void recordBookingAttempt(supabase, {
+        calendarId: cal.id,
+        ip,
+        email: data.email,
+        startsAt: data.starts_at,
+        outcome: "conflict",
+      });
       throw new Error("This slot was just taken — please pick another");
     }
 
@@ -616,5 +779,63 @@ export const bookPublicAppointmentFn = createServerFn({ method: "POST" })
       .single();
     if (apptErr || !appt) throw new Error(apptErr?.message || "Booking failed");
 
+    void recordBookingAttempt(supabase, {
+      calendarId: cal.id,
+      ip,
+      email: data.email,
+      startsAt: appt.starts_at,
+      outcome: "created",
+    });
+
     return { id: appt.id, starts_at: appt.starts_at, ends_at: appt.ends_at };
   });
+
+// --- Helpers for booking abuse protection ---
+
+function resolveRequestIp(): string | null {
+  try {
+    const cf = getRequestHeader("cf-connecting-ip");
+    if (cf) return cf;
+    const xff = getRequestHeader("x-forwarded-for");
+    if (xff) return xff.split(",")[0]?.trim() || null;
+    return getRequestIP({ xForwardedFor: true }) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function recordBookingAttempt(
+  supabase: ReturnType<typeof createClient<Database>>,
+  args: {
+    calendarId: string | null;
+    ip: string | null;
+    email: string | null;
+    startsAt: string | null;
+    outcome:
+      | "created"
+      | "duplicate"
+      | "rate_limited"
+      | "captcha_failed"
+      | "honeypot_tripped"
+      | "conflict"
+      | "invalid";
+  },
+) {
+  try {
+    // Fire-and-forget; failures must never affect the user response.
+    // Cast through `any` until `supabase gen types` adds public_booking_attempts.
+    await (supabase as unknown as {
+      from: (t: string) => { insert: (row: unknown) => Promise<unknown> };
+    })
+      .from("public_booking_attempts")
+      .insert({
+        calendar_id: args.calendarId,
+        ip_address: args.ip,
+        email: args.email,
+        starts_at: args.startsAt,
+        outcome: args.outcome,
+      });
+  } catch (err) {
+    console.warn("[booking] failed to record attempt (non-fatal)", err);
+  }
+}

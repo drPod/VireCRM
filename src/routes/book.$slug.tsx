@@ -21,8 +21,17 @@ import {
   Clock,
   Lock,
   ArrowLeft,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+
+// Math CAPTCHA — same pattern as the marketing contact form. No third-party
+// dep, defends against naive bots that bypass the honeypot.
+function generateCaptcha() {
+  const a = Math.floor(Math.random() * 9) + 1;
+  const b = Math.floor(Math.random() * 9) + 1;
+  return { a, b, answer: a + b };
+}
 
 export const Route = createFileRoute("/book/$slug")({
   component: PublicBookingPage,
@@ -49,8 +58,14 @@ function PublicBookingPage() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
-  const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
+  const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "", website: "" });
+  const [errors, setErrors] = useState<{ name?: string; email?: string; captcha?: string }>({});
+  const [captcha, setCaptcha] = useState(() => generateCaptcha());
+  const [captchaInput, setCaptchaInput] = useState("");
+  const refreshCaptcha = () => {
+    setCaptcha(generateCaptcha());
+    setCaptchaInput("");
+  };
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<{ starts_at: string; ends_at: string } | null>(null);
 
@@ -157,6 +172,15 @@ function PublicBookingPage() {
   const handleBook = async () => {
     if (!calendar || !selectedSlot) return;
     if (!validateForm()) return;
+
+    const expected = String(captcha.answer);
+    if (captchaInput.trim() !== expected) {
+      setErrors((prev) => ({ ...prev, captcha: "Incorrect answer. Please try again." }));
+      refreshCaptcha();
+      return;
+    }
+    setErrors((prev) => ({ ...prev, captcha: undefined }));
+
     setSubmitting(true);
     try {
       const res = await bookPublicAppointmentFn({
@@ -168,11 +192,14 @@ function PublicBookingPage() {
           phone: form.phone.trim() || undefined,
           notes: form.notes.trim() || undefined,
           password: unlockedPassword || undefined,
+          website: form.website,
+          captcha: { a: captcha.a, b: captcha.b, answer: Number(captchaInput.trim()) },
         },
       });
       setConfirmed({ starts_at: res.starts_at, ends_at: res.ends_at });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Booking failed");
+      refreshCaptcha();
       void loadSlots();
     } finally {
       setSubmitting(false);
@@ -542,6 +569,70 @@ function PublicBookingPage() {
                     placeholder="A short context helps us prepare."
                   />
                 </div>
+
+                {/* Honeypot — visually hidden, off-screen, not focusable. Bots fill it; humans don't. */}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: "-10000px",
+                    top: "auto",
+                    width: 1,
+                    height: 1,
+                    overflow: "hidden",
+                  }}
+                >
+                  <label htmlFor="bk-website">Website (leave blank)</label>
+                  <input
+                    id="bk-website"
+                    name="website"
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={form.website}
+                    onChange={(e) => setForm({ ...form, website: e.target.value })}
+                  />
+                </div>
+
+                {/* Math CAPTCHA — blocks naive scripted submissions. */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="bk-captcha">
+                    Security check <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+                      What is {captcha.a} + {captcha.b}?
+                    </div>
+                    <Input
+                      id="bk-captcha"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Answer"
+                      value={captchaInput}
+                      onChange={(e) => {
+                        setCaptchaInput(e.target.value.replace(/[^0-9-]/g, "").slice(0, 4));
+                        if (errors.captcha) setErrors({ ...errors, captcha: undefined });
+                      }}
+                      maxLength={4}
+                      className="w-28"
+                      aria-invalid={!!errors.captcha}
+                      aria-label="Answer to the security question"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={refreshCaptcha}
+                      aria-label="Get a new security question"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {errors.captcha && (
+                    <p className="text-xs text-destructive">{errors.captcha}</p>
+                  )}
+                </div>
+
                 <Button
                   variant="command"
                   onClick={handleBook}

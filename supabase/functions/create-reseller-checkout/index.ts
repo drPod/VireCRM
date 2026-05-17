@@ -17,8 +17,42 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   try {
+    // --- AuthN ---
+    // verify_jwt=false in config.toml so we extract the bearer in-function
+    // and resolve the caller via supabase.auth.getUser. This prevents
+    // anonymous callers from stamping arbitrary userId onto session metadata
+    // (which downstream attribution treats as the paying user).
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = userData.user.id;
+
     const { resellerSlug, planSlug, customerEmail, userId, returnUrl, environment } =
       await req.json();
+
+    // --- AuthZ: if caller passes userId, it must match the authed user.
+    if (userId && userId !== callerId) {
+      return new Response(JSON.stringify({ error: "Forbidden: userId mismatch" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!resellerSlug || !planSlug) {
       return new Response(JSON.stringify({ error: "resellerSlug and planSlug required" }), {

@@ -39,14 +39,11 @@ export const Route = createFileRoute("/hooks/send-pending-welcomes")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const authHeader = request.headers.get("authorization");
-        const token = authHeader?.replace("Bearer ", "");
-
-        if (!token) {
-          return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          });
+        // Cron-only endpoint — gated by a shared secret, not a JWT, since
+        // pg_cron has no user identity. Matches sibling hooks.
+        const cronSecret = process.env.CRON_SECRET;
+        if (!cronSecret || request.headers.get("x-cron-secret") !== cronSecret) {
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;

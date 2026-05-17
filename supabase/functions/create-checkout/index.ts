@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient, buildCorsHeaders } from "../_shared/stripe.ts";
 
 serve(async (req) => {
@@ -7,6 +8,32 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   try {
+    // --- AuthN ---
+    // verify_jwt=false in config.toml so we extract the bearer in-function
+    // and resolve the caller via supabase.auth.getUser (mirrors
+    // verify-checkout-session). This prevents anonymous callers from
+    // stamping arbitrary userId / organizationId onto session metadata.
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = userData.user.id;
+
     const {
       priceId,
       quantity,
@@ -24,6 +51,34 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // --- AuthZ ---
+    // If the caller passes a userId, it must match the authed user.
+    if (userId && userId !== callerId) {
+      return new Response(JSON.stringify({ error: "Forbidden: userId mismatch" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // If the caller passes an organizationId, verify membership via the
+    // existing helper. Uses service-role to bypass RLS on the check itself.
+    if (organizationId) {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      const { data: belongs, error: belongsErr } = await adminClient.rpc("user_belongs_to_org", {
+        p_user_id: callerId,
+        p_org_id: organizationId,
+      });
+      if (belongsErr || !belongs) {
+        return new Response(JSON.stringify({ error: "Forbidden: not a member of organization" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const env = (environment || "sandbox") as StripeEnv;
