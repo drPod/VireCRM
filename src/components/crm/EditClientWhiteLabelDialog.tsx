@@ -24,6 +24,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { REQUIRED_CNAME_TARGET as CRM_CNAME_TARGET } from "@/lib/dns-check";
+import {
+  provisionCustomHostnameFn,
+  tearDownCustomHostnameFn,
+} from "@/functions/custom-hostnames.functions";
 
 interface Props {
   open: boolean;
@@ -31,6 +35,19 @@ interface Props {
   clientOrgId: string | null;
   clientName: string | null;
   onSaved?: () => void;
+}
+
+// Server fns surface "CF for SaaS not configured" as a 503 Response — server
+// fn errors come back as Response instances on the client. Detect by status
+// so we can degrade gracefully without a string match.
+function isNotConfigured(err: unknown): boolean {
+  return err instanceof Response && err.status === 503;
+}
+
+function describeError(err: unknown): string {
+  if (err instanceof Response) return `${err.status} ${err.statusText}`.trim();
+  if (err instanceof Error) return err.message;
+  return String(err);
 }
 
 interface ClientOrgRow {
@@ -94,13 +111,15 @@ export function EditClientWhiteLabelDialog({
   const handleSave = async () => {
     if (!clientOrgId) return;
     setSaving(true);
+    const nextDomain = customDomain.trim().toLowerCase() || null;
+    const previousDomain = savedDomain || null;
     const { error } = await supabase
       .from("organizations")
       .update({
         brand_name: brandName.trim() || null,
         primary_color: primaryColor || null,
         logo_url: logoUrl.trim() || null,
-        custom_domain: customDomain.trim().toLowerCase() || null,
+        custom_domain: nextDomain,
       })
       .eq("id", clientOrgId);
     setSaving(false);
@@ -109,6 +128,39 @@ export function EditClientWhiteLabelDialog({
       return;
     }
     toast.success("Client white-label settings saved");
+
+    // Sync Cloudflare for SaaS state to match the new domain. Best-effort:
+    // a 503 means the operator hasn't finished the CF dashboard setup yet,
+    // anything else is a real failure but we don't unwind the save — the
+    // operator can retry from the panel once CF is healthy.
+    if (previousDomain && previousDomain !== nextDomain) {
+      try {
+        await tearDownCustomHostnameFn({
+          data: { organizationId: clientOrgId, hostname: previousDomain },
+        });
+      } catch (err) {
+        if (!isNotConfigured(err)) {
+          toast.error(`Couldn't tear down old hostname on Cloudflare: ${describeError(err)}`);
+        }
+      }
+    }
+    if (nextDomain && nextDomain !== previousDomain) {
+      try {
+        await provisionCustomHostnameFn({
+          data: { organizationId: clientOrgId, hostname: nextDomain },
+        });
+        toast.success("Cloudflare custom hostname provisioned");
+      } catch (err) {
+        if (isNotConfigured(err)) {
+          toast.warning(
+            "Domain saved, but Cloudflare for SaaS isn't configured on this worker yet — customer DNS won't resolve until that's done.",
+          );
+        } else {
+          toast.error(`Cloudflare provisioning failed: ${describeError(err)}`);
+        }
+      }
+    }
+
     // Refresh local org so verification UI reflects the new domain
     const { data } = await supabase
       .from("organizations")
@@ -322,12 +374,7 @@ export function EditClientWhiteLabelDialog({
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs"
-                      asChild
-                    >
+                    <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
                       <a
                         href={`/dns-check?domain=${encodeURIComponent(savedDomain)}${
                           clientOrgId ? `&org=${clientOrgId}` : ""

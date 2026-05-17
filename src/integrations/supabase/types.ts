@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_quote_events: {
@@ -2608,6 +2633,7 @@ export type Database = {
       }
       org_custom_domains: {
         Row: {
+          cf_hostname_id: string | null
           created_at: string
           created_by: string | null
           hostname: string
@@ -2619,6 +2645,7 @@ export type Database = {
           verified_at: string | null
         }
         Insert: {
+          cf_hostname_id?: string | null
           created_at?: string
           created_by?: string | null
           hostname: string
@@ -2630,6 +2657,7 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          cf_hostname_id?: string | null
           created_at?: string
           created_by?: string | null
           hostname?: string
@@ -2746,6 +2774,7 @@ export type Database = {
           auto_invoice_template: Json
           brand_name: string | null
           button_color: string | null
+          cf_hostname_id: string | null
           commission_rate: number
           created_at: string
           credit_period_start: string
@@ -2788,6 +2817,7 @@ export type Database = {
           auto_invoice_template?: Json
           brand_name?: string | null
           button_color?: string | null
+          cf_hostname_id?: string | null
           commission_rate?: number
           created_at?: string
           credit_period_start?: string
@@ -2830,6 +2860,7 @@ export type Database = {
           auto_invoice_template?: Json
           brand_name?: string | null
           button_color?: string | null
+          cf_hostname_id?: string | null
           commission_rate?: number
           created_at?: string
           credit_period_start?: string
@@ -5335,6 +5366,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["owner", "manager", "sales_rep"],

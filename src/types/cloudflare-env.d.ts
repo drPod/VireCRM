@@ -40,6 +40,13 @@ declare global {
     PUBLISHED_URL?: string;
     SITE_URL?: string;
 
+    // Cloudflare for SaaS custom-hostname provisioning. Both must be set
+    // for `src/functions/custom-hostnames.functions.ts` to provision /
+    // poll / teardown — missing either yields a 503 "CF for SaaS not
+    // configured" response. See docs/custom-domains/cf-for-saas-setup.md.
+    CLOUDFLARE_API_TOKEN?: string;
+    CLOUDFLARE_ZONE_ID?: string;
+
     // Future bindings land here as: MY_KV: KVNamespace; DB: D1Database; etc.
   }
 

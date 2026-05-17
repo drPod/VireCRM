@@ -1115,3 +1115,29 @@ Picked up from prior frontend audit checklist. Caveman log of what shipped + wha
 - **`/lovable/email/*` → `/api/email/*` route rename — DONE.** Moved both route files (`queue/process.ts`, `transactional/send.ts`) under `src/routes/api/email/`, TanStack Router vite plugin auto-rewrote the `createFileRoute` paths + regenerated `src/routeTree.gen.ts`. Updated 3 callers (`src/lib/email/send.ts`, `src/lib/email/dispatch-outreach.ts`, `src/lib/admin-quote-email.functions.ts`) — fetch URLs + comments + cross-ref docstrings. Typecheck clean. Cron jobs in `supabase/migrations/` don't hit either endpoint, so no migration follow-up needed; `dispatch-outreach.ts` short-circuits the worker self-fetch in-process anyway (CF 522 fix).
 - **Pre-existing `transition-all` outside this pass' scope** — `src/components/marketing/FeaturesSection.tsx:161` (feature card hover) and `src/components/marketing/PricingCards.tsx:248` (pricing tier hover). Both animate only `box-shadow` + `border-color` in practice but use the lazy `transition-all` shortcut. Low priority — visible animation looks fine, no jank observed. Property-scope when next touching either file.
 
+
+---
+
+## Frontend handoff follow-ups 2026-05-17 late evening
+
+Picked up from prior handoff. Verified all 4 prior-session claims clean (rename, OG card, CF DNS rewrite, appointments stable id). No `server-entry.ts` divergence — `src/server.ts` only.
+
+### Shipped this pass
+
+| Change | What |
+|---|---|
+| `supabase/migrations/20260517223000_availability_window_ids.sql` | Applied to prod via `supabase db push` (now lives on remote alongside `20260517230000_schedule_remaining_phase1_crons.sql`). |
+| `src/components/marketing/FeaturesSection.tsx:161` | `transition-all` → `transition-[border-color,box-shadow]` — property-scoped to actual hover effects. |
+| `src/components/marketing/PricingCards.tsx:248` | `transition-all` → `transition-[border-color,background-color]` — same surgical fix. |
+| `supabase/migrations/20260518000000_cf_hostname_state.sql` | New `cf_hostname_id` column on both `org_custom_domains` and `organizations` (legacy single-string path), with partial indexes. Applied to prod. |
+| `src/functions/custom-hostnames.functions.ts` | New server fns: `provisionCustomHostnameFn`, `pollCustomHostnameStatusFn`, `tearDownCustomHostnameFn`. Gate on `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ZONE_ID` (both required). Missing env → 503 Response with body "CF for SaaS not configured". Idempotent: provision skips and polls when `cf_hostname_id` already set; teardown silent on CF 1436 (not found). Storage auto-routes to `org_custom_domains` first, falls back to `organizations.custom_domain`. Membership-checked via `requireSupabaseAuth` middleware + manual `profiles.organization_id` join. |
+| `src/components/crm/EditClientWhiteLabelDialog.tsx` | `handleSave` now calls `tearDownCustomHostnameFn(previousDomain)` then `provisionCustomHostnameFn(nextDomain)` after the row update. Best-effort: 503 → `toast.warning("Cloudflare for SaaS isn't configured… customer DNS won't resolve until that's done")`; other failures → toast.error but save is NOT unwound (operator can retry from the panel once CF is healthy). |
+| `src/types/cloudflare-env.d.ts` | Added optional `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` to `CloudflareEnv`. |
+| `src/integrations/supabase/types.ts` | Regenerated via `supabase gen types typescript --linked`. New `cf_hostname_id: string \| null` fields visible on both tables. |
+
+### Still outstanding (post-deploy)
+
+- **Wire `CustomDomainsPanel` (multi-domain)** to the same fns. Currently only the reseller dialog uses them. Symmetric work — call provision on `add_custom_domain` success, teardown on remove, poll inside `DomainHealthPanel`. Skipped this pass to stay surgical against the explicit handoff scope.
+- **Persist a status field** alongside `cf_hostname_id`. Right now status is re-fetched on demand via `pollCustomHostnameStatusFn` — fine for a single panel render, but a periodic sweeper that writes back `cf_status`/`cf_ssl_status` would let the DB drive a "domains health" dashboard without spamming CF.
+- **One-time backfill** for orgs that already have `custom_domain` set but no `cf_hostname_id`. Either a manual operator action via the reseller dialog (re-save the domain) or a one-shot script that calls provision for every (org, custom_domain) tuple. Not automated — needs operator sign-off because each call is billable on CF.
+- **Auth-gated browser smoke still unverified** — surfaces touched today are server fn wires (CF provisioning) + a 2-line CSS scope change. CSS is verifiable via marketing-page screenshot (public). CF wire is verifiable end-to-end only by signing in as a reseller, opening the dialog on a real client org, and observing the toast pathways. Subagent verification post-deploy covers the public surface; auth-gated walk still needs an operator sign-in.
