@@ -32,6 +32,7 @@ import { WorkflowNode } from "@/components/workflows/WorkflowNode";
 import { NodePalette } from "@/components/workflows/NodePalette";
 import { NodeInspector } from "@/components/workflows/NodeInspector";
 import { WorkflowRunsPanel } from "@/components/workflows/WorkflowRunsPanel";
+import { testRunWorkflowFn } from "@/functions/workflows.functions";
 
 export const Route = createFileRoute("/_app/workflows/$workflowId")({
   component: WorkflowEditorPage,
@@ -236,18 +237,17 @@ function Editor() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      const { data, error } = await supabase.functions.invoke("run-workflow", {
-        body: { workflow_id: workflowId, lead_id: lead?.id ?? null },
+      const data = await testRunWorkflowFn({
+        data: { workflow_id: workflowId, lead_id: lead?.id ?? null },
       });
-      if (error) throw error;
-      const status = (data as { status?: string })?.status ?? "completed";
+      const status = data.status;
       const targetMsg = lead?.name ? ` against ${lead.name}` : "";
       if (status === "completed") {
         toast.success(`Test run completed${targetMsg}`);
       } else if (status === "paused") {
         toast.info(`Run paused at a wait step${targetMsg}`);
       } else {
-        toast.error(`Run ${status}: ${(data as { error?: string })?.error ?? "see logs"}`);
+        toast.error(`Run ${status}: ${data.error ?? "see logs"}`);
       }
       setShowRuns(true);
     } catch (e) {

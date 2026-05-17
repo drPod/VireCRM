@@ -1,12 +1,12 @@
 /**
  * Workflow execution engine — in-process runtime.
  *
- * Used from two surfaces:
+ * Used from two surfaces, both Node TS, both calling runOne() directly:
  *   1. Cron worker  → src/routes/api/public/hooks/run-workflows.ts
  *      Drains queued runs + resumes paused runs whose wait elapsed.
- *   2. Edge function → supabase/functions/run-workflow/index.ts (test runs).
- *      That function has its own copy of similar logic; the cron path is the
- *      authoritative one going forward.
+ *   2. Server fn    → src/functions/workflows.functions.ts (Test Run button).
+ *      Enqueues a single run, drives it through synchronously, returns the
+ *      final status to the UI.
  *
  * Trigger surface (live):
  *   - lead_created   — fires from public.trg_workflow_lead_created
