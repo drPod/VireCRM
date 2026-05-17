@@ -46,6 +46,9 @@ interface LeadLite {
 
 export const Route = createFileRoute("/_app/followup-inbox")({
   component: FollowupInbox,
+  head: () => ({
+    meta: [{ title: "Follow-up Inbox — Genesis" }],
+  }),
 });
 
 const STATUS_TABS: { key: Suggestion["status"] | "all"; label: string }[] = [

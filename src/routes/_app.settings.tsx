@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
 import { WhiteLabelSettings } from "@/components/crm/WhiteLabelSettings";
 import { TeamMembers } from "@/components/crm/TeamMembers";
 import { CustomRolesPanel } from "@/components/crm/CustomRolesPanel";
@@ -16,8 +17,19 @@ import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard } from "lucide
 import { useAuth } from "@/components/auth/AuthProvider";
 import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 
+// Tab keys mirror the TabsTrigger `value` attrs below. Kept in sync manually
+// so the URL ?tab= param can deep-link straight to a section (e.g. Publish in
+// Settings → ?tab=branding from the branding preview page).
+const TAB_KEYS = ["team", "roles", "branding", "emails", "outreach", "payments", "integrations", "admin"] as const;
+
+const settingsSearchSchema = z.object({
+  tab: z.enum(TAB_KEYS).optional(),
+  stripe: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
+  validateSearch: settingsSearchSchema,
   head: () => ({
     meta: [
       { title: "Genesis — Settings" },
@@ -29,6 +41,9 @@ export const Route = createFileRoute("/_app/settings")({
 function SettingsPage() {
   useAuth();
   const { isAdmin: isPlatformAdmin } = usePlatformAdmin();
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/settings" });
+  const activeTab = search.tab ?? "team";
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -39,7 +54,16 @@ function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="team" className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) =>
+          navigate({
+            search: (prev) => ({ ...prev, tab: v === "team" ? undefined : (v as (typeof TAB_KEYS)[number]) }),
+            replace: true,
+          })
+        }
+        className="w-full"
+      >
         <TabsList className="mb-6">
           <TabsTrigger value="team" className="gap-2">
             <Users className="h-4 w-4" />

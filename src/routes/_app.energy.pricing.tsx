@@ -31,4 +31,7 @@ const config: EnergyTableConfig = {
 
 export const Route = createFileRoute("/_app/energy/pricing")({
   component: () => <EnergyTablePage config={config} />,
+  head: () => ({
+    meta: [{ title: "Energy Pricing — Genesis" }],
+  }),
 });

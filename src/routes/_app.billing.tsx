@@ -501,9 +501,13 @@ function BillingPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">
-              {subscription.cancel_at_period_end ? "Ends" : "Renews"}
+              {isManual ? "Renews" : subscription.cancel_at_period_end ? "Ends" : "Renews"}
             </p>
-            <p className="text-foreground">{formatDate(subscription.current_period_end)}</p>
+            {/* Lifetime / manually-provisioned accounts have no Stripe-managed
+                renewal date — show "Never" rather than a misleading future date. */}
+            <p className="text-foreground">
+              {isManual ? "Never" : formatDate(subscription.current_period_end)}
+            </p>
           </div>
         </div>
 

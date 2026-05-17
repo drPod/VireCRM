@@ -26,6 +26,9 @@ import { getTemplate } from "@/lib/industry-templates";
 
 export const Route = createFileRoute("/_app/energy")({
   component: EnergyHub,
+  head: () => ({
+    meta: [{ title: "Energy CRM — Genesis" }],
+  }),
 });
 
 const MODULES = [

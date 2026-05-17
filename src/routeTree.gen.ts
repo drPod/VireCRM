@@ -86,7 +86,6 @@ import { Route as AppEnergyCustomersRouteImport } from './routes/_app.energy.cus
 import { Route as AppEnergyContractsRouteImport } from './routes/_app.energy.contracts'
 import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
-import { Route as AppCampaignsAnalyticsRouteImport } from './routes/_app.campaigns.analytics'
 import { Route as AppAcademyCourseIdRouteImport } from './routes/_app.academy.$courseId'
 import { Route as RResellerSlugCheckoutPlanSlugRouteImport } from './routes/r.$resellerSlug.checkout.$planSlug'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -486,11 +485,6 @@ const AppClientsPayoutsRoute = AppClientsPayoutsRouteImport.update({
   path: '/payouts',
   getParentRoute: () => AppClientsRoute,
 } as any)
-const AppCampaignsAnalyticsRoute = AppCampaignsAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => AppCampaignsRoute,
-} as any)
 const AppAcademyCourseIdRoute = AppAcademyCourseIdRouteImport.update({
   id: '/$courseId',
   path: '/$courseId',
@@ -586,7 +580,7 @@ export interface FileRoutesByFullPath {
   '/appointments': typeof AppAppointmentsRoute
   '/billing': typeof AppBillingRoute
   '/calendar': typeof AppCalendarRoute
-  '/campaigns': typeof AppCampaignsRouteWithChildren
+  '/campaigns': typeof AppCampaignsRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
   '/contact-submissions': typeof AppContactSubmissionsRoute
@@ -618,7 +612,6 @@ export interface FileRoutesByFullPath {
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
-  '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
@@ -677,7 +670,7 @@ export interface FileRoutesByTo {
   '/appointments': typeof AppAppointmentsRoute
   '/billing': typeof AppBillingRoute
   '/calendar': typeof AppCalendarRoute
-  '/campaigns': typeof AppCampaignsRouteWithChildren
+  '/campaigns': typeof AppCampaignsRoute
   '/clients': typeof AppClientsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
   '/contact-submissions': typeof AppContactSubmissionsRoute
@@ -709,7 +702,6 @@ export interface FileRoutesByTo {
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
-  '/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/clients/payouts': typeof AppClientsPayoutsRoute
   '/clients/plans': typeof AppClientsPlansRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
@@ -770,7 +762,7 @@ export interface FileRoutesById {
   '/_app/appointments': typeof AppAppointmentsRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/calendar': typeof AppCalendarRoute
-  '/_app/campaigns': typeof AppCampaignsRouteWithChildren
+  '/_app/campaigns': typeof AppCampaignsRoute
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/command-chat': typeof AppCommandChatRoute
   '/_app/contact-submissions': typeof AppContactSubmissionsRoute
@@ -802,7 +794,6 @@ export interface FileRoutesById {
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/_app/academy/$courseId': typeof AppAcademyCourseIdRoute
-  '/_app/campaigns/analytics': typeof AppCampaignsAnalyticsRoute
   '/_app/clients/payouts': typeof AppClientsPayoutsRoute
   '/_app/clients/plans': typeof AppClientsPlansRoute
   '/_app/energy/contracts': typeof AppEnergyContractsRoute
@@ -895,7 +886,6 @@ export interface FileRouteTypes {
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
     | '/academy/$courseId'
-    | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
     | '/energy/contracts'
@@ -986,7 +976,6 @@ export interface FileRouteTypes {
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
     | '/academy/$courseId'
-    | '/campaigns/analytics'
     | '/clients/payouts'
     | '/clients/plans'
     | '/energy/contracts'
@@ -1078,7 +1067,6 @@ export interface FileRouteTypes {
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
     | '/_app/academy/$courseId'
-    | '/_app/campaigns/analytics'
     | '/_app/clients/payouts'
     | '/_app/clients/plans'
     | '/_app/energy/contracts'
@@ -1696,13 +1684,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsPayoutsRouteImport
       parentRoute: typeof AppClientsRoute
     }
-    '/_app/campaigns/analytics': {
-      id: '/_app/campaigns/analytics'
-      path: '/analytics'
-      fullPath: '/campaigns/analytics'
-      preLoaderRoute: typeof AppCampaignsAnalyticsRouteImport
-      parentRoute: typeof AppCampaignsRoute
-    }
     '/_app/academy/$courseId': {
       id: '/_app/academy/$courseId'
       path: '/$courseId'
@@ -1800,18 +1781,6 @@ const AppAcademyRouteChildren: AppAcademyRouteChildren = {
 
 const AppAcademyRouteWithChildren = AppAcademyRoute._addFileChildren(
   AppAcademyRouteChildren,
-)
-
-interface AppCampaignsRouteChildren {
-  AppCampaignsAnalyticsRoute: typeof AppCampaignsAnalyticsRoute
-}
-
-const AppCampaignsRouteChildren: AppCampaignsRouteChildren = {
-  AppCampaignsAnalyticsRoute: AppCampaignsAnalyticsRoute,
-}
-
-const AppCampaignsRouteWithChildren = AppCampaignsRoute._addFileChildren(
-  AppCampaignsRouteChildren,
 )
 
 interface AppClientsRouteChildren {
@@ -1912,7 +1881,7 @@ interface AppRouteChildren {
   AppAppointmentsRoute: typeof AppAppointmentsRoute
   AppBillingRoute: typeof AppBillingRoute
   AppCalendarRoute: typeof AppCalendarRoute
-  AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
+  AppCampaignsRoute: typeof AppCampaignsRoute
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppCommandChatRoute: typeof AppCommandChatRoute
   AppContactSubmissionsRoute: typeof AppContactSubmissionsRoute
@@ -1949,7 +1918,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAppointmentsRoute: AppAppointmentsRoute,
   AppBillingRoute: AppBillingRoute,
   AppCalendarRoute: AppCalendarRoute,
-  AppCampaignsRoute: AppCampaignsRouteWithChildren,
+  AppCampaignsRoute: AppCampaignsRoute,
   AppClientsRoute: AppClientsRouteWithChildren,
   AppCommandChatRoute: AppCommandChatRoute,
   AppContactSubmissionsRoute: AppContactSubmissionsRoute,

@@ -239,7 +239,9 @@ function BrandingPreviewPage() {
                 Reset
               </Button>
               <Button size="sm" asChild className="flex-1">
-                <Link to="/settings">Publish in Settings</Link>
+                <Link to="/settings" search={{ tab: "branding" }}>
+                  Publish in Settings
+                </Link>
               </Button>
             </div>
 

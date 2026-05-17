@@ -1,4 +1,5 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WhiteLabelTheme } from "@/components/auth/WhiteLabelTheme";
 import { DomainBrandingProvider } from "@/components/auth/DomainBrandingProvider";
@@ -10,6 +11,15 @@ import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
+  // Root route's `head` only fires on the root match; not-found renders inside
+  // it, so override the title imperatively so 404s don't inherit the landing-page title.
+  useEffect(() => {
+    const prev = document.title;
+    document.title = "Page not found — Genesis";
+    return () => {
+      document.title = prev;
+    };
+  }, []);
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">

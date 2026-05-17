@@ -32,4 +32,7 @@ const config: EnergyTableConfig = {
 
 export const Route = createFileRoute("/_app/energy/contracts")({
   component: () => <EnergyTablePage config={config} />,
+  head: () => ({
+    meta: [{ title: "Energy Contracts — Genesis" }],
+  }),
 });

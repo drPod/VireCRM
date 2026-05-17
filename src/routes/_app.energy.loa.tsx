@@ -36,4 +36,7 @@ const config: EnergyTableConfig = {
 
 export const Route = createFileRoute("/_app/energy/loa")({
   component: () => <EnergyTablePage config={config} />,
+  head: () => ({
+    meta: [{ title: "Energy LOA Requests — Genesis" }],
+  }),
 });

@@ -26,7 +26,6 @@ import {
   Send,
   BarChart3,
   Loader2,
-  LineChart,
   Play,
   Pause,
   Trash2,
@@ -229,12 +228,6 @@ function CampaignsPage() {
           <p className="text-sm text-muted-foreground">Automated outreach sequences</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/campaigns/analytics">
-              <LineChart className="h-4 w-4" />
-              View analytics
-            </Link>
-          </Button>
           <Button variant="command" size="sm" onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             New Campaign
