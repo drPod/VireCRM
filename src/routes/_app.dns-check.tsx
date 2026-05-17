@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  REQUIRED_A_VALUE,
+  REQUIRED_CNAME_TARGET,
   runDomainChecklist,
   type CheckResult,
   type ChecklistResult,
@@ -304,10 +304,8 @@ function DnsCheckPage() {
           <CardTitle className="text-base">What we expect</CardTitle>
         </CardHeader>
         <CardContent className="text-xs space-y-1.5 text-muted-foreground font-mono">
-          <div>A     @           {REQUIRED_A_VALUE}</div>
-          <div>A     www         {REQUIRED_A_VALUE}</div>
-          <div>TXT   _majix      &lt;verification token&gt;</div>
-          <div>AAAA  @           (delete if present)</div>
+          <div>CNAME &lt;subdomain&gt; {REQUIRED_CNAME_TARGET}</div>
+          <div>TXT   _majix.&lt;subdomain&gt; &lt;verification token&gt;</div>
         </CardContent>
       </Card>
     </div>

@@ -11,13 +11,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Copy, Check, ExternalLink, Globe, ShieldCheck, Star, Plug } from "lucide-react";
 import { toast } from "sonner";
+import { REQUIRED_CNAME_TARGET } from "@/lib/dns-check";
 
-// TODO(custom-domains): this IP is stale (Lovable hosting). The CRM is now on
-// Cloudflare Workers (genesisxsx.*.workers.dev) with no `routes` configured in
-// wrangler.jsonc. Once a Cloudflare for SaaS fallback origin (or worker route)
-// is provisioned, swap this for the real A/CNAME target. Until then customer
-// DNS onboarding is broken end-to-end. Tracked in ISSUES.md.
-const CRM_A_RECORD = "185.158.133.1";
+const CRM_CNAME_TARGET = REQUIRED_CNAME_TARGET;
 
 interface Props {
   triggerLabel?: string;
@@ -60,7 +56,7 @@ export function CustomerDomainOnboardingDialog({ triggerLabel = "Onboarding Guid
             number={1}
             icon={<Plug className="h-4 w-4" />}
             title="Add your hostname"
-            body="Open the Custom Domains panel below, click Add Domain, and enter your full hostname — for example crm.yourcompany.com or app.yourcompany.com."
+            body="Open the Custom Domains panel below, click Add Domain, and enter a subdomain you control — for example crm.yourcompany.com or app.yourcompany.com. Apex (root) domains aren't supported; use a subdomain."
           />
 
           <Step
@@ -71,24 +67,16 @@ export function CustomerDomainOnboardingDialog({ triggerLabel = "Onboarding Guid
           >
             <div className="mt-3 space-y-2">
               <RecordRow
-                type="A"
-                name="@"
-                value={CRM_A_RECORD}
-                copyKey="root"
-                copied={copied === "root"}
-                onCopy={() => copy(CRM_A_RECORD, "root")}
-              />
-              <RecordRow
-                type="A"
-                name="www"
-                value={CRM_A_RECORD}
-                copyKey="www"
-                copied={copied === "www"}
-                onCopy={() => copy(CRM_A_RECORD, "www")}
+                type="CNAME"
+                name="crm (or your chosen subdomain)"
+                value={CRM_CNAME_TARGET}
+                copyKey="cname"
+                copied={copied === "cname"}
+                onCopy={() => copy(CRM_CNAME_TARGET, "cname")}
               />
               <RecordRow
                 type="TXT"
-                name="_majix"
+                name="_majix.<your subdomain>"
                 value="majix-verify-<token shown in panel>"
                 copyKey="txt"
                 copied={copied === "txt"}
@@ -96,7 +84,8 @@ export function CustomerDomainOnboardingDialog({ triggerLabel = "Onboarding Guid
               />
               <p className="text-[11px] text-muted-foreground">
                 The exact TXT token is generated when you add the hostname — copy it from the Custom
-                Domains panel.
+                Domains panel. SSL certificates are issued automatically by Cloudflare once the
+                CNAME resolves.
               </p>
             </div>
           </Step>

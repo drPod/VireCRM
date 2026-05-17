@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { REQUIRED_CNAME_TARGET as CRM_CNAME_TARGET } from "@/lib/dns-check";
 
 interface Props {
   open: boolean;
@@ -291,9 +292,9 @@ export function EditClientWhiteLabelDialog({
                       1 — Point DNS
                     </h4>
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      At the registrar, add an A record for{" "}
+                      At the registrar, add a CNAME for{" "}
                       <code className="text-foreground">{savedDomain}</code> →{" "}
-                      <code className="text-foreground">185.158.133.1</code>.
+                      <code className="text-foreground">{CRM_CNAME_TARGET}</code>.
                     </p>
                   </div>
                   <div>

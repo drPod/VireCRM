@@ -30,10 +30,9 @@ import {
   type DomainHealthResult,
 } from "@/functions/domain-health.functions";
 
-// TODO(custom-domains): IP is stale (legacy Lovable target). CRM now on
-// Cloudflare Workers without a custom-domain route configured. See the same
-// TODO on CustomerDomainOnboardingDialog.tsx.
-const CRM_A_RECORD = "185.158.133.1";
+import { REQUIRED_CNAME_TARGET } from "@/lib/dns-check";
+
+const CRM_CNAME_TARGET = REQUIRED_CNAME_TARGET;
 
 interface Props {
   organizationId: string | undefined;
@@ -341,9 +340,9 @@ function IssueActions({
   // DNS / unreachable / wrong content → DNS-fix actions.
   if (issue.check === "https" || issue.check === "app_match") {
     buttons.push({
-      label: "Copy A record value",
+      label: "Copy CNAME target",
       icon: <Copy className="h-3 w-3" />,
-      onClick: () => void copyToClipboard(CRM_A_RECORD, "A record"),
+      onClick: () => void copyToClipboard(CRM_CNAME_TARGET, "CNAME target"),
     });
     buttons.push({
       label: "Copy hostname",
@@ -353,7 +352,7 @@ function IssueActions({
     buttons.push({
       label: "DNS checker",
       icon: <ExternalLink className="h-3 w-3" />,
-      onClick: () => openExternal(`https://dnschecker.org/#A/${hostname}`),
+      onClick: () => openExternal(`https://dnschecker.org/#CNAME/${hostname}`),
     });
   }
 
@@ -414,15 +413,12 @@ function RedirectGuideDialog({
 }) {
   if (!result) return null;
   const host = result.hostname;
-  const isWww = host.toLowerCase().startsWith("www.");
-  const apex = isWww ? host.slice(4) : host;
-  const wwwHost = `www.${apex}`;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Expected DNS & redirect rules</DialogTitle>
+          <DialogTitle>Expected DNS records</DialogTitle>
           <DialogDescription>
             Configure these records at your DNS registrar for{" "}
             <code className="text-foreground">{host}</code>. Copy any value with one click.
@@ -431,44 +427,35 @@ function RedirectGuideDialog({
 
         <div className="space-y-4 text-sm">
           <RecordRow
-            label="A record (root domain)"
-            type="A"
-            name="@"
-            value={CRM_A_RECORD}
-            note={`Points ${apex} at this app.`}
-          />
-          <RecordRow
-            label="A record (www subdomain)"
-            type="A"
-            name="www"
-            value={CRM_A_RECORD}
-            note={`Points ${wwwHost} at this app.`}
+            label="CNAME (hostname → SaaS)"
+            type="CNAME"
+            name={host}
+            value={CRM_CNAME_TARGET}
+            note={`Points ${host} at our Cloudflare for SaaS fallback. SSL is issued automatically.`}
           />
           <RecordRow
             label="Verification TXT"
             type="TXT"
-            name="_majix"
+            name={`_majix.${host}`}
             value="majix-verify-…"
             note="Use the token shown when you added the hostname (not this placeholder)."
           />
 
           <div className="rounded-md border border-border bg-secondary/20 p-3 text-xs space-y-2">
-            <p className="font-medium text-foreground">Redirect strategy</p>
-            <p className="text-muted-foreground">
-              Add <code className="text-foreground">{apex}</code> AND{" "}
-              <code className="text-foreground">{wwwHost}</code> as separate hostnames. Mark one as{" "}
-              <strong>Primary</strong> — the other will automatically redirect to it. Don't add a
-              301 at your registrar; the app handles it.
-            </p>
+            <p className="font-medium text-foreground">Setup notes</p>
             <ul className="list-disc pl-5 text-muted-foreground space-y-0.5">
               <li>
-                Visiting <code className="text-foreground">http://{host}</code> → redirects to{" "}
-                <code className="text-foreground">https://{host}</code>
+                Use a subdomain (e.g. <code className="text-foreground">crm.yourcompany.com</code>)
+                — apex domains can't legally hold a CNAME at most registrars.
               </li>
               <li>
-                Visiting <code className="text-foreground">https://{isWww ? apex : wwwHost}</code> →
-                redirects to <code className="text-foreground">https://{host}</code> (when {host} is
-                primary)
+                Both HTTP and HTTPS on{" "}
+                <code className="text-foreground">{host}</code> are served — Cloudflare upgrades to
+                HTTPS automatically.
+              </li>
+              <li>
+                Don't add a 301 at your registrar; the app handles redirects between configured
+                hostnames.
               </li>
             </ul>
           </div>

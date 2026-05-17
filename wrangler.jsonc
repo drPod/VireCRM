@@ -13,4 +13,25 @@
     "SUPABASE_URL": "https://coynbufhejaeuifpvmvw.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AfxTcWiGW7j882pfkhPhwg_hKKdSAW2"
   }
+  // Custom domains — Cloudflare for SaaS.
+  //
+  // Customer hostnames CNAME at `customers.majix.ai` (or whatever
+  // VITE_CF_FALLBACK_HOSTNAME resolves to). To bind that hostname to this
+  // worker and pick up custom-hostname traffic, uncomment the `routes`
+  // block below after:
+  //
+  //   1. Creating a proxied DNS record for `customers.majix.ai` in the
+  //      `majix.ai` zone (any A/AAAA/CNAME — value irrelevant since the
+  //      worker route intercepts before the record is fetched).
+  //   2. Enabling Cloudflare for SaaS on the `majix.ai` zone and
+  //      designating that record as the fallback origin.
+  //   3. Setting these secrets via `wrangler secret put`:
+  //        - CLOUDFLARE_API_TOKEN  (perm: Zone.SSL & Certificates:Edit on `majix.ai`)
+  //        - CLOUDFLARE_ZONE_ID    (id of the `majix.ai` zone)
+  //
+  // See docs/custom-domains/cf-for-saas-setup.md for the full runbook.
+  //
+  // "routes": [
+  //   { "pattern": "customers.majix.ai/*", "zone_name": "majix.ai" }
+  // ]
 }

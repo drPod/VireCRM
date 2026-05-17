@@ -1,9 +1,26 @@
 /**
  * Browser-side DNS-over-HTTPS lookups via Cloudflare. Same provider used by
  * the white-label verification flow in EditClientWhiteLabelDialog.
+ *
+ * Domain onboarding flow uses Cloudflare for SaaS: customers CNAME their
+ * hostname (e.g. `crm.acmecorp.com`) at our SaaS fallback hostname
+ * (`customers.majix.ai`). Cloudflare provisions the TLS cert + routes
+ * traffic through to our Worker. The checks below verify:
+ *
+ *   1. The customer's hostname CNAMEs at our fallback origin.
+ *   2. The customer added the `_majix.<domain>` TXT we issue (app-level
+ *      org binding — separate from CF's `_cf-custom-hostname` ownership
+ *      TXT which CF validates on its side).
+ *
+ * Email-related records (MX/SPF/DKIM/DMARC) are advisory — the customer's
+ * mail flow shouldn't change just because they pointed a subdomain at us.
  */
 
-export const REQUIRED_A_VALUE = "185.158.133.1";
+export const REQUIRED_CNAME_TARGET =
+  // Stable across customers — change here if the SaaS fallback hostname moves.
+  // Worker route on `customers.majix.ai/*` (see wrangler.jsonc).
+  (import.meta.env.VITE_CF_FALLBACK_HOSTNAME as string | undefined) ??
+  "customers.majix.ai";
 
 export type DnsType = "A" | "AAAA" | "TXT" | "MX" | "CNAME";
 
@@ -44,15 +61,22 @@ export interface ChecklistResult {
   verdict: "ready" | "not-ready" | "email-risk";
 }
 
+function normalizeCnameAnswer(value: string): string {
+  // DNS-over-HTTPS returns CNAME data with a trailing dot, e.g.
+  // "customers.majix.ai.". Strip so comparisons against the configured
+  // target succeed.
+  return value.replace(/\.$/, "").toLowerCase();
+}
+
 export async function runDomainChecklist(
   domain: string,
   token: string | null,
 ): Promise<ChecklistResult> {
   const d = domain.trim().toLowerCase();
+  const target = REQUIRED_CNAME_TARGET.toLowerCase();
   const [
+    cnameRoot,
     aRoot,
-    aWww,
-    aaaaRoot,
     txtMajix,
     mx,
     txtRoot,
@@ -60,9 +84,8 @@ export async function runDomainChecklist(
     dkim1,
     dkim2,
   ] = await Promise.all([
+    lookupDns(d, "CNAME"),
     lookupDns(d, "A"),
-    lookupDns(`www.${d}`, "A"),
-    lookupDns(d, "AAAA"),
     lookupDns(`_majix.${d}`, "TXT"),
     lookupDns(d, "MX"),
     lookupDns(d, "TXT"),
@@ -71,24 +94,27 @@ export async function runDomainChecklist(
     lookupDns(`s2-ionos._domainkey.${d}`, "CNAME"),
   ]);
 
+  const cnameMatches = cnameRoot.map(normalizeCnameAnswer).includes(target);
+  // Apex/root domains can't legally hold CNAMEs at most registrars; if the
+  // customer used the apex they'd need an ALIAS/ANAME or a flattening
+  // registrar. Surface that as a hint rather than a bare fail.
+  const looksLikeApex = d.split(".").length === 2;
   const tokenMatch = token ? txtMajix.some((r) => r.includes(token)) : txtMajix.length > 0;
 
   const required: CheckResult[] = [
     {
-      id: "a-root",
-      label: "A record (root)",
-      expected: REQUIRED_A_VALUE,
-      actual: aRoot,
-      status: aRoot.includes(REQUIRED_A_VALUE) ? "pass" : "fail",
-      hint: aRoot.length === 0 ? "No A record found at @" : undefined,
-    },
-    {
-      id: "a-www",
-      label: "A record (www)",
-      expected: REQUIRED_A_VALUE,
-      actual: aWww,
-      status: aWww.includes(REQUIRED_A_VALUE) ? "pass" : "fail",
-      hint: aWww.length === 0 ? "Missing — www subdomain won't load" : undefined,
+      id: "cname",
+      label: `CNAME → ${target}`,
+      expected: target,
+      actual: cnameRoot,
+      status: cnameMatches ? "pass" : "fail",
+      hint: !cnameMatches
+        ? looksLikeApex
+          ? `Apex domains can't hold CNAMEs at most registrars. Use a subdomain like crm.${d} or enable ALIAS/ANAME / CNAME flattening.`
+          : aRoot.length > 0
+            ? "Found an A record at this hostname — replace it with a CNAME pointing at the SaaS host."
+            : "No CNAME yet — add one pointing at the SaaS host."
+        : undefined,
     },
     {
       id: "txt-majix",
@@ -97,14 +123,6 @@ export async function runDomainChecklist(
       actual: txtMajix,
       status: tokenMatch ? "pass" : "fail",
       hint: !token ? "Open the org's white-label settings to grab the token" : undefined,
-    },
-    {
-      id: "aaaa-root",
-      label: "AAAA record (root)",
-      expected: "(none — should be removed)",
-      actual: aaaaRoot,
-      status: aaaaRoot.length === 0 ? "pass" : "warn",
-      hint: aaaaRoot.length > 0 ? "Delete the IPv6 record — we don't serve over IPv6" : undefined,
     },
   ];
 
