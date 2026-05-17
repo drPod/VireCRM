@@ -19,9 +19,9 @@ export const Route = createFileRoute("/refund-policy")({
         property: "og:description",
         content: "Genesis's refund policy and 30-day money-back guarantee.",
       },
-      { property: "og:url", content: "https://genesisx.space/refund-policy" },
+      { property: "og:url", content: "https://majix.ai/refund-policy" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/refund-policy" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/refund-policy" }],
   }),
 });
 

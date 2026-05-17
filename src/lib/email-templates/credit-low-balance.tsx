@@ -29,7 +29,7 @@ const CreditLowBalanceEmail = ({
   autoRechargeEnabled,
 }: CreditLowBalanceProps) => {
   const orgLine = organizationName ? ` for ${organizationName}` : "";
-  const href = billingUrl || "https://genesisx.space/billing";
+  const href = billingUrl || "https://majix.ai/billing";
 
   return (
     <Html lang="en" dir="ltr">
@@ -87,7 +87,7 @@ export const template = {
     organizationName: "Acme Inc.",
     balance: 38,
     threshold: 50,
-    billingUrl: "https://genesisx.space/billing",
+    billingUrl: "https://majix.ai/billing",
     autoRechargeEnabled: false,
   },
 } satisfies TemplateEntry;

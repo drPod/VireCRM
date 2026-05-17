@@ -6,5 +6,5 @@
  * still use the per-organization `support_email` column — this constant is
  * the Genesis-brand fallback only.
  */
-export const SUPPORT_EMAIL = "genesis@genesisx.space";
+export const SUPPORT_EMAIL = "support@majix.ai";
 export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}` as const;

@@ -31,9 +31,9 @@ export const Route = createFileRoute("/")({
         content:
           "AI-powered CRM systems that respond instantly, follow up relentlessly, and put your hottest leads in front of your sales team.",
       },
-      { property: "og:url", content: "https://genesisx.space/" },
+      { property: "og:url", content: "https://majix.ai/" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/" }],
   }),
 });
 

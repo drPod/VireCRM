@@ -457,7 +457,7 @@ async function sendVisitorAcknowledgment(args: {
     unsubscribeToken = stored?.token ?? unsubscribeToken;
   }
 
-  const pricingUrl = origin ? `${origin}/pricing` : "https://genesisx.space/pricing";
+  const pricingUrl = origin ? `${origin}/pricing` : "https://majix.ai/pricing";
   const ackData = {
     name: visitorName,
     message: visitorMessage,

@@ -19,9 +19,9 @@ export const Route = createFileRoute("/privacy")({
         property: "og:description",
         content: "How Genesis collects, uses, and protects your personal data.",
       },
-      { property: "og:url", content: "https://genesisx.space/privacy" },
+      { property: "og:url", content: "https://majix.ai/privacy" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/privacy" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/privacy" }],
   }),
 });
 

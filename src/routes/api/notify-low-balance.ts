@@ -146,7 +146,7 @@ export const Route = createFileRoute("/api/notify-low-balance")({
         const billingUrl = (() => {
           const origin = request.headers.get("origin");
           if (origin) return `${origin}/billing`;
-          return "https://genesisx.space/billing";
+          return "https://majix.ai/billing";
         })();
 
         const templateData = {

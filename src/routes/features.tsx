@@ -22,9 +22,9 @@ export const Route = createFileRoute("/features")({
         content:
           "AI lead scoring, automated outreach, reply classification, meeting booking, and white-label support.",
       },
-      { property: "og:url", content: "https://genesisx.space/features" },
+      { property: "og:url", content: "https://majix.ai/features" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/features" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/features" }],
   }),
 });
 

@@ -20,9 +20,9 @@ export const Route = createFileRoute("/contact")({
         property: "og:description",
         content: "Get a custom-built CRM tailored to your business. Enterprise pricing from $14K.",
       },
-      { property: "og:url", content: "https://genesisx.space/contact" },
+      { property: "og:url", content: "https://majix.ai/contact" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/contact" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/contact" }],
   }),
 });
 

@@ -25,7 +25,7 @@ const TeamInviteEmail = ({
   inviterName = "Your team owner",
   organizationName = "their CRM workspace",
   roleLabel = "Team Member",
-  acceptUrl = "https://genesisx.space",
+  acceptUrl = "https://majix.ai",
   brandName = "GenesisX",
 }: TeamInviteProps) => (
   <Html lang="en" dir="ltr">
@@ -76,7 +76,7 @@ export const template = {
     inviterName: "Alex Owner",
     organizationName: "Acme Sales Co.",
     roleLabel: "Sales Rep",
-    acceptUrl: "https://genesisx.space/accept-invite?token=sample",
+    acceptUrl: "https://majix.ai/accept-invite?token=sample",
     brandName: "GenesisX",
   },
 } satisfies TemplateEntry;

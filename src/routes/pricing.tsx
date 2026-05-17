@@ -22,9 +22,9 @@ export const Route = createFileRoute("/pricing")({
         property: "og:description",
         content: "CRM plans from $97/mo. White-label from $249/mo. Custom builds from $10K.",
       },
-      { property: "og:url", content: "https://genesisx.space/pricing" },
+      { property: "og:url", content: "https://majix.ai/pricing" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/pricing" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/pricing" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -77,7 +77,7 @@ export const Route = createFileRoute("/pricing")({
               name: "How do I reach you?",
               acceptedAnswer: {
                 "@type": "Answer",
-                text: "Call or text us at +1 (940) 365-6600 or email support@genesisx.space. We typically reply within one business day.",
+                text: "Call or text us at +1 (940) 365-6600 or email support@majix.ai. We typically reply within one business day.",
               },
             },
           ],
@@ -89,9 +89,9 @@ export const Route = createFileRoute("/pricing")({
           "@context": "https://schema.org",
           "@type": "LocalBusiness",
           name: "Genesis",
-          url: "https://genesisx.space/pricing",
+          url: "https://majix.ai/pricing",
           telephone: "+1-940-365-6600",
-          email: "support@genesisx.space",
+          email: "support@majix.ai",
           priceRange: "$97-$10000",
         }),
       },

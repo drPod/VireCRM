@@ -35,9 +35,9 @@ export const Route = createFileRoute("/signup")({
         content:
           "Create your Genesis account and start automating sales with AI-powered lead scoring and outreach.",
       },
-      { property: "og:url", content: "https://genesisx.space/signup" },
+      { property: "og:url", content: "https://majix.ai/signup" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/signup" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/signup" }],
   }),
 });
 

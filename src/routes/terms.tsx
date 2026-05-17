@@ -19,9 +19,9 @@ export const Route = createFileRoute("/terms")({
         property: "og:description",
         content: "Terms governing your use of the Genesis CRM platform.",
       },
-      { property: "og:url", content: "https://genesisx.space/terms" },
+      { property: "og:url", content: "https://majix.ai/terms" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/terms" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/terms" }],
   }),
 });
 

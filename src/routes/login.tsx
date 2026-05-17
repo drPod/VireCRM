@@ -46,9 +46,9 @@ export const Route = createFileRoute("/login")({
         content:
           "Sign in to your Genesis CRM workspace to manage leads, pipeline, and AI outreach.",
       },
-      { property: "og:url", content: "https://genesisx.space/login" },
+      { property: "og:url", content: "https://majix.ai/login" },
     ],
-    links: [{ rel: "canonical", href: "https://genesisx.space/login" }],
+    links: [{ rel: "canonical", href: "https://majix.ai/login" }],
   }),
 });
 
