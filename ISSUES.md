@@ -105,3 +105,28 @@ Last scan: 2026-05-17. Source: agent-browser tour of `/` marketing + source-tree
 - [x] Tooltip on disabled `/preview` "New Lead" button → "Sign up to create leads…"
 - [x] Signup disabled-button hint → shows "Accept Terms…" until checkbox ticked
 - [ ] Decide `/features` content
+
+---
+
+## Landing-page audit (2026-05-17, agent-browser tour)
+
+### Fixed
+- [x] **Top email bar:** dark text on dark navy bg → swapped to `text-white/70` + `text-white`
+- [x] **Mobile promo banner:** "View plans →" CTA clipped on mobile → mobile-specific copy variant
+- [x] **Footer Company column:** `<span>` "About"/"Careers" pretending to be links → removed, added `Contact` link
+- [x] **Favicon missing** → added `<link rel="icon">` to root meta (favicon.ico + png + apple-touch)
+- [x] **OG image:** gpt-engineer scaffolding URL → swapped to `https://genesisx.space/genesis-logo.png`
+
+### Open (visual / a11y)
+- [ ] **Mobile menu drawer:** no backdrop scrim — page content visible beneath drawer, breaks modal illusion
+- [ ] **Mobile drawer "Sign In":** plain text vs `Start Free Trial` button — inconsistent affordance
+- [ ] **Top nav "Home"** has no active state when on `/`
+- [ ] **30% off promo:** no expiry date — weakens urgency, looks placeholder. Decide: ends date, or "first 100 customers"
+
+### Open (build / deploy)
+- [ ] **Production build serving Vite HMR artifacts** — console shows `[vite] hot updated`, `connection lost` chatter. Deployed bundle may be dev build, not `vite build` output. Verify deploy pipeline.
+
+### Open (verification, not fixes)
+- [ ] **Hero "See It In Action" → `/preview`** — confirm preview route is intended demo, not stub
+- [ ] **Footer phone `+1 (940) 365-6600`** — looks real (Texas area code), tel: link wired. Confirm actually routed somewhere live.
+- [ ] **Captcha on `/contact`** — server-side validation not confirmed

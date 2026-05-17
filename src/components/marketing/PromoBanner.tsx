@@ -20,7 +20,10 @@ export function PromoBanner() {
             — limited time launch promo. Discount applied automatically at checkout.
           </span>
         </span>
-        <span className="hidden underline-offset-2 hover:underline sm:inline">View plans →</span>
+        <span className="underline-offset-2 hover:underline whitespace-nowrap">
+          <span className="hidden sm:inline">View plans →</span>
+          <span className="sm:hidden">— View plans →</span>
+        </span>
       </Link>
     </div>
   );

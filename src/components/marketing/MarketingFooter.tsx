@@ -35,8 +35,9 @@ export function MarketingFooter() {
           <div>
             <h4 className="text-sm font-semibold text-foreground">Company</h4>
             <div className="mt-3 flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">About</span>
-              <span className="text-sm text-muted-foreground">Careers</span>
+              <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground">
+                Contact
+              </Link>
               <a
                 href="tel:+19403656600"
                 className="text-sm text-muted-foreground hover:text-foreground"

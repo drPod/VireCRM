@@ -60,16 +60,17 @@ export const Route = createRootRoute({
       },
       {
         property: "og:image",
-        content:
-          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1b33a389-d5b4-45ab-96df-16d7cd7b35f6",
+        content: "https://genesisx.space/genesis-logo.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1b33a389-d5b4-45ab-96df-16d7cd7b35f6",
+        content: "https://genesisx.space/genesis-logo.png",
       },
     ],
     links: [
+      { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
+      { rel: "icon", type: "image/png", href: "/genesis-logo.png" },
+      { rel: "apple-touch-icon", href: "/genesis-logo.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
