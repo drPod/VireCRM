@@ -32,7 +32,9 @@ export const Route = createFileRoute("/api/public/hooks/purge-audit-log")({
           });
         }
 
-        console.log("[purge-audit-log] result:", data);
+        if (import.meta.env.DEV) {
+          console.log("[purge-audit-log] result:", data);
+        }
         return new Response(JSON.stringify({ success: true, result: data }), {
           headers: { "Content-Type": "application/json" },
         });

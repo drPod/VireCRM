@@ -284,8 +284,8 @@ function PlansPage() {
 
                 {plan.features.length > 0 && (
                   <ul className="text-xs text-muted-foreground space-y-1 mb-3">
-                    {plan.features.slice(0, 3).map((f, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
+                    {plan.features.slice(0, 3).map((f) => (
+                      <li key={f} className="flex items-start gap-1.5">
                         <CheckCircle2 className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
                         <span className="line-clamp-1">{f}</span>
                       </li>

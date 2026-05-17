@@ -166,11 +166,11 @@ export function WonDealsWidget({ organizationId }: { organizationId: string | nu
           </p>
         ) : (
           <div className="flex items-end gap-1 h-20">
-            {data.weeks.map((w, i) => {
+            {data.weeks.map((w) => {
               const pct = (w.valueCents / maxVal) * 100;
               return (
                 <div
-                  key={i}
+                  key={w.weekStart.toISOString()}
                   className="flex-1 rounded-t bg-success/70 transition-all hover:bg-success min-h-[2px]"
                   style={{ height: `${Math.max(pct, w.count > 0 ? 6 : 0)}%` }}
                   title={`Week of ${w.weekStart.toLocaleDateString()} — ${w.count} deal${w.count === 1 ? "" : "s"}, ${formatMoney(w.valueCents, data.currency)}`}

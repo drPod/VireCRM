@@ -199,8 +199,8 @@ export function AiAdvisorPanel() {
             <div className="mt-4">
               <p className="text-xs font-medium text-muted-foreground mb-2">Pain Points</p>
               <div className="space-y-1.5">
-                {result.icp.pain_points.map((p, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm text-foreground">
+                {result.icp.pain_points.map((p) => (
+                  <div key={p} className="flex items-start gap-2 text-sm text-foreground">
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />
                     {p}
                   </div>
@@ -211,8 +211,8 @@ export function AiAdvisorPanel() {
             <div className="mt-4">
               <p className="text-xs font-medium text-muted-foreground mb-2">Buying Signals</p>
               <div className="flex flex-wrap gap-2">
-                {result.icp.buying_signals.map((s, i) => (
-                  <Badge key={i} variant="info">
+                {result.icp.buying_signals.map((s) => (
+                  <Badge key={s} variant="info">
                     {s}
                   </Badge>
                 ))}

@@ -62,11 +62,11 @@ export function IndustryGate({ industry, children }: IndustryGateProps) {
               : " Ask your organization owner to switch the industry from Settings → Industry."}
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Link to="/dashboard">
-              <Button variant="secondary" size="sm">
+            <Button variant="secondary" size="sm" asChild>
+              <Link to="/dashboard">
                 Go to dashboard
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <Link
               to="/settings"
               search={{ tab: "industry" }}

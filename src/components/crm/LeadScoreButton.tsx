@@ -93,8 +93,8 @@ export function LeadScoreButton({
                     <TrendingUp className="h-3 w-3" /> Positive signals
                   </p>
                   <ul className="ml-5 list-disc space-y-0.5 text-xs text-muted-foreground">
-                    {result.signals.positive.map((s, i) => (
-                      <li key={i}>{s}</li>
+                    {result.signals.positive.map((s) => (
+                      <li key={s}>{s}</li>
                     ))}
                   </ul>
                 </div>
@@ -106,8 +106,8 @@ export function LeadScoreButton({
                     <TrendingDown className="h-3 w-3" /> Risk signals
                   </p>
                   <ul className="ml-5 list-disc space-y-0.5 text-xs text-muted-foreground">
-                    {result.signals.negative.map((s, i) => (
-                      <li key={i}>{s}</li>
+                    {result.signals.negative.map((s) => (
+                      <li key={s}>{s}</li>
                     ))}
                   </ul>
                 </div>

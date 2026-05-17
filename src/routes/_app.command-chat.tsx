@@ -287,8 +287,8 @@ function AssistantBubble({
               <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-300">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <ul className="space-y-0.5">
-                  {msg.plan.warnings.map((w, i) => (
-                    <li key={i}>{w}</li>
+                  {msg.plan.warnings.map((w) => (
+                    <li key={w}>{w}</li>
                   ))}
                 </ul>
               </div>
@@ -325,7 +325,7 @@ function AssistantBubble({
               <ul className="space-y-1 pl-6 text-xs">
                 {msg.result.results.map((r, i) => (
                   <li
-                    key={i}
+                    key={`${r.handler}-${i}`}
                     className={r.status === "error" ? "text-destructive" : "text-muted-foreground"}
                   >
                     <span className="font-medium text-foreground">{r.handler}</span>

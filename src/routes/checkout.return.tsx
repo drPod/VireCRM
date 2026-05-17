@@ -134,20 +134,20 @@ function CheckoutReturnPage() {
               <RefreshCw className={`h-4 w-4 ${retrying ? "animate-spin" : ""}`} />
               {retrying ? "Checking…" : "Retry activation check"}
             </Button>
-            <Link to="/contact">
-              <Button variant="outline" className="gap-2 w-full">
+            <Button variant="outline" className="gap-2 w-full" asChild>
+              <Link to="/contact">
                 <LifeBuoy className="h-4 w-4" />
                 Contact support
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         ) : (
-          <Link to="/dashboard">
-            <Button variant="command" className="mt-6 gap-2 w-full">
+          <Button variant="command" className="mt-6 gap-2 w-full" asChild>
+            <Link to="/dashboard">
               Go to dashboard
               <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         )}
       </div>
     </div>

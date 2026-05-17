@@ -64,7 +64,9 @@ export const Route = createFileRoute("/hooks/calculate-payouts")({
           });
         }
 
-        console.log("Payouts calculated:", data);
+        if (import.meta.env.DEV) {
+          console.log("Payouts calculated:", data);
+        }
         return new Response(JSON.stringify({ success: true, result: data }), {
           headers: { "Content-Type": "application/json" },
         });

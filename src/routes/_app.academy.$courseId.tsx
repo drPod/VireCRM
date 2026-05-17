@@ -196,12 +196,12 @@ function CourseDetail() {
     return (
       <div className="container mx-auto p-6">
         <p className="text-sm text-muted-foreground">Course not found.</p>
-        <Link to="/academy">
-          <Button variant="outline" size="sm" className="mt-3">
+        <Button variant="outline" size="sm" className="mt-3" asChild>
+          <Link to="/academy">
             <ArrowLeft className="h-4 w-4 mr-1.5" />
             Back
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
     );
   }

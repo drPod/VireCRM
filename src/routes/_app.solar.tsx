@@ -72,11 +72,11 @@ export function IndustryHub({ industry }: IndustryHubProps) {
           </div>
           <p className="text-sm text-muted-foreground">{template.tagline}</p>
         </div>
-        <Link to="/leads">
-          <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/leads">
             Open {template.terminology.leadPlural}
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </header>
 
       <Card>

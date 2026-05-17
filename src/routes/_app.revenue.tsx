@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   TrendingUp,
   DollarSign,
@@ -7,11 +7,11 @@ import {
   Users,
   Percent,
   Target,
-  AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
   Sparkles,
 } from "lucide-react";
+import { RouteError } from "@/components/RouteError";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -29,37 +29,9 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useRevenueMetrics } from "@/hooks/useRevenueMetrics";
 import { formatMoney, formatCompactMoney } from "@/lib/money";
 
-function RevenueErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  const router = useRouter();
-  return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Couldn't load revenue data</p>
-            <p className="text-xs text-muted-foreground mt-1">{error?.message}</p>
-          </div>
-        </div>
-        <Button
-          variant="command"
-          size="sm"
-          className="mt-4"
-          onClick={() => {
-            router.invalidate();
-            reset();
-          }}
-        >
-          Try again
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export const Route = createFileRoute("/_app/revenue")({
   component: RevenuePage,
-  errorComponent: RevenueErrorComponent,
+  errorComponent: (props) => <RouteError {...props} label="Couldn't load revenue data" />,
   head: () => ({
     meta: [
       { title: "Revenue & Finance — Majix" },
@@ -88,18 +60,18 @@ function RevenuePage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/payouts">
-            <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/payouts">
               <Wallet className="mr-1.5 h-3.5 w-3.5" />
               Team Payouts
-            </Button>
-          </Link>
-          <Link to="/expenses">
-            <Button variant="command" size="sm">
+            </Link>
+          </Button>
+          <Button variant="command" size="sm" asChild>
+            <Link to="/expenses">
               <Receipt className="mr-1.5 h-3.5 w-3.5" />
               Log Expense
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -282,16 +254,16 @@ function RevenuePage() {
             to start tracking revenue. Or log an expense to track your business costs.
           </p>
           <div className="flex gap-2 justify-center mt-4">
-            <Link to="/leads">
-              <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/leads">
                 Go to Leads
-              </Button>
-            </Link>
-            <Link to="/expenses">
-              <Button variant="command" size="sm">
+              </Link>
+            </Button>
+            <Button variant="command" size="sm" asChild>
+              <Link to="/expenses">
                 Log first expense
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
       )}

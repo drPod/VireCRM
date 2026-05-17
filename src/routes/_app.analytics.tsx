@@ -284,7 +284,10 @@ function AnalyticsPage() {
         ) : (
           <div className="flex items-end gap-2 h-32">
             {data.weeklyTrend.map((w, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div
+                key={w.weekStart.toISOString()}
+                className="flex-1 flex flex-col items-center gap-1"
+              >
                 <div
                   className="w-full rounded-t bg-primary/80 transition-all hover:bg-primary"
                   style={{ height: `${(w.sent / maxWeek) * 100}%` }}

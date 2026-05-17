@@ -586,7 +586,7 @@ export function AdvisorAuditLog() {
                         <ul className="space-y-1">
                           {(e.results as Array<Record<string, unknown>>).map((r, i) => (
                             <li
-                              key={i}
+                              key={`${e.id}-${i}`}
                               className="text-xs text-foreground bg-background/40 border border-border rounded-md px-2.5 py-1.5"
                             >
                               <span className="text-muted-foreground mr-2">

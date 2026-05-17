@@ -257,12 +257,12 @@ function CalendarPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link to="/leads">
-              <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" asChild>
+              <Link to="/leads">
                 <ExternalLink className="h-4 w-4" />
                 Open Leads
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <Button
               variant="command"
               className="gap-2"

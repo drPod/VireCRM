@@ -521,8 +521,8 @@ function QaChecklistPage() {
                     </div>
 
                     <ol className="list-decimal pl-5 space-y-1 text-sm text-foreground/90">
-                      {step.steps.map((s, i) => (
-                        <li key={i}>{s}</li>
+                      {step.steps.map((s) => (
+                        <li key={s}>{s}</li>
                       ))}
                     </ol>
 

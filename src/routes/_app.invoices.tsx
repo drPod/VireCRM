@@ -229,12 +229,12 @@ function InvoicesPage() {
                 New invoice
               </Button>
             )}
-            <Link to="/billing" search={{ required: undefined, plan: undefined }}>
-              <Button variant="outline">
+            <Button variant="outline" asChild>
+              <Link to="/billing" search={{ required: undefined, plan: undefined }}>
                 <CreditCard className="h-4 w-4" />
                 My billing
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -260,11 +260,11 @@ function InvoicesPage() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   Link your own Stripe account so payments from leads land directly in your bank.
                 </p>
-                <Link to="/settings">
-                  <Button variant="command" className="mt-4">
+                <Button variant="command" className="mt-4" asChild>
+                  <Link to="/settings">
                     Set up Stripe
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             ) : (
               <>

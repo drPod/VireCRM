@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { RouteError } from "@/components/RouteError";
 import { useState } from "react";
 import {
   Users,
@@ -119,40 +120,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-function DashboardErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  const router = useRouter();
-  return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Couldn't load your dashboard</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {error?.message || "Something went wrong."}
-            </p>
-          </div>
-        </div>
-        <div className="mt-4">
-          <Button
-            variant="command"
-            size="sm"
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-          >
-            Try again
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
-  errorComponent: DashboardErrorComponent,
+  errorComponent: (props) => <RouteError {...props} label="Couldn't load your dashboard" />,
   head: () => ({
     meta: [
       { title: "Dashboard — Majix" },
@@ -408,8 +378,8 @@ function Dashboard() {
 
           {plan.warnings.length > 0 && (
             <div className="border-t border-border bg-warning/5 px-5 py-3">
-              {plan.warnings.map((w, i) => (
-                <div key={i} className="flex items-start gap-2">
+              {plan.warnings.map((w) => (
+                <div key={w} className="flex items-start gap-2">
                   <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-warning" />
                   <span className="text-xs text-warning">{w}</span>
                 </div>
@@ -462,22 +432,22 @@ function Dashboard() {
                 manually, import a CSV, or let our AI scout build a list for you.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link to="/leads" search={{ action: "add" }}>
-                  <Button variant="command" size="sm" className="gap-1.5">
+                <Button variant="command" size="sm" className="gap-1.5" asChild>
+                  <Link to="/leads" search={{ action: "add" }}>
                     Add a lead
                     <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </Link>
-                <Link to="/leads" search={{ action: "import" }}>
-                  <Button variant="outline" size="sm">
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/leads" search={{ action: "import" }}>
                     Import CSV
-                  </Button>
-                </Link>
-                <Link to="/advisor">
-                  <Button variant="outline" size="sm">
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/advisor">
                     Let AI find leads
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -571,7 +541,7 @@ function ExecutionResults({ data }: { data: ExecuteCommandResponse }) {
                 ? "text-destructive"
                 : "text-muted-foreground";
           return (
-            <li key={i} className="flex items-start gap-3">
+            <li key={`${r.type}-${r.handler ?? "none"}-${i}`} className="flex items-start gap-3">
               <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${tone}`} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">

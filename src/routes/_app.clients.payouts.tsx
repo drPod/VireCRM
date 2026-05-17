@@ -472,13 +472,13 @@ function PayoutsPage() {
               <table className="w-full">
                 <thead className="border-b border-border bg-muted/30">
                   <tr className="text-left text-xs font-medium text-muted-foreground">
-                    <th className="px-4 py-3">Period</th>
-                    <th className="px-4 py-3">Active Clients</th>
-                    <th className="px-4 py-3">Gross Revenue</th>
-                    <th className="px-4 py-3">Rate</th>
-                    <th className="px-4 py-3">Commission</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Action</th>
+                    <th scope="col" className="px-4 py-3">Period</th>
+                    <th scope="col" className="px-4 py-3">Active Clients</th>
+                    <th scope="col" className="px-4 py-3">Gross Revenue</th>
+                    <th scope="col" className="px-4 py-3">Rate</th>
+                    <th scope="col" className="px-4 py-3">Commission</th>
+                    <th scope="col" className="px-4 py-3">Status</th>
+                    <th scope="col" className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -610,12 +610,12 @@ function PayoutsPage() {
               <table className="w-full">
                 <thead className="border-b border-border bg-muted/30">
                   <tr className="text-left text-xs font-medium text-muted-foreground">
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Client</th>
-                    <th className="px-4 py-3">Transaction ID</th>
-                    <th className="px-4 py-3 text-right">Amount</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Payout Period</th>
+                    <th scope="col" className="px-4 py-3">Date</th>
+                    <th scope="col" className="px-4 py-3">Client</th>
+                    <th scope="col" className="px-4 py-3">Transaction ID</th>
+                    <th scope="col" className="px-4 py-3 text-right">Amount</th>
+                    <th scope="col" className="px-4 py-3">Status</th>
+                    <th scope="col" className="px-4 py-3">Payout Period</th>
                   </tr>
                 </thead>
                 <tbody>

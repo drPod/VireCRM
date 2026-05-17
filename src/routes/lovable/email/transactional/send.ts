@@ -150,10 +150,12 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             status: "suppressed",
           });
 
-          console.log("Email suppressed", {
-            templateName,
-            recipient_redacted: redactEmail(effectiveRecipient),
-          });
+          if (import.meta.env.DEV) {
+            console.log("Email suppressed", {
+              templateName,
+              recipient_redacted: redactEmail(effectiveRecipient),
+            });
+          }
           return Response.json({ success: false, reason: "email_suppressed" });
         }
 
@@ -314,10 +316,12 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           return Response.json({ error: "Failed to enqueue email" }, { status: 500 });
         }
 
-        console.log("Transactional email enqueued", {
-          templateName,
-          recipient_redacted: redactEmail(effectiveRecipient),
-        });
+        if (import.meta.env.DEV) {
+          console.log("Transactional email enqueued", {
+            templateName,
+            recipient_redacted: redactEmail(effectiveRecipient),
+          });
+        }
 
         return Response.json({ success: true, queued: true });
       },

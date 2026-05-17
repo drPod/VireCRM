@@ -343,11 +343,11 @@ function PaymentStatusPage() {
                 />
                 Auto-refresh every 3s until settled
               </label>
-              <Link to="/dashboard">
-                <Button variant="command" size="sm" className="gap-2">
+              <Button variant="command" size="sm" className="gap-2" asChild>
+                <Link to="/dashboard">
                   Go to dashboard <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>

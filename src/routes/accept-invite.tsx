@@ -88,11 +88,11 @@ function AcceptInvitePage() {
               <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
               <h1 className="mt-4 text-xl font-bold text-foreground">Invitation problem</h1>
               <p className="mt-1 text-sm text-muted-foreground">{errorMsg}</p>
-              <Link to="/dashboard" className="mt-4 inline-block">
-                <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="mt-4" asChild>
+                <Link to="/dashboard">
                   Go to dashboard
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           ) : (
             <>

@@ -1,14 +1,14 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import {
   Wallet,
   CheckCircle2,
   Clock,
-  AlertTriangle,
   Download,
   Settings as SettingsIcon,
   TrendingUp,
 } from "lucide-react";
+import { RouteError } from "@/components/RouteError";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -41,37 +41,9 @@ interface LeadLite {
   company: string | null;
 }
 
-function PayoutsErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  const router = useRouter();
-  return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Couldn't load payouts</p>
-            <p className="text-xs text-muted-foreground mt-1">{error?.message}</p>
-          </div>
-        </div>
-        <Button
-          variant="command"
-          size="sm"
-          className="mt-4"
-          onClick={() => {
-            router.invalidate();
-            reset();
-          }}
-        >
-          Try again
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export const Route = createFileRoute("/_app/payouts")({
   component: PayoutsPage,
-  errorComponent: PayoutsErrorComponent,
+  errorComponent: (props) => <RouteError {...props} label="Couldn't load payouts" />,
   head: () => ({
     meta: [
       { title: "Team Payouts — Majix" },

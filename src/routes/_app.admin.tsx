@@ -2205,7 +2205,10 @@ function SubmissionInvoicePanel({ submission }: { submission: AdminSubmissionRow
                 {selectedPlan.label} — {selectedPlan.tagline}
               </div>
               {planLineItems(selectedPlan).map((li, i) => (
-                <div key={i} className="flex justify-between text-muted-foreground">
+                <div
+                  key={`${li.description}-${i}`}
+                  className="flex justify-between text-muted-foreground"
+                >
                   <span>{li.description}</span>
                   <span className="tabular-nums">${(li.amount_cents / 100).toFixed(2)}</span>
                 </div>

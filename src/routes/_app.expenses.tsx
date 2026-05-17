@@ -1,15 +1,15 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import {
   Plus,
   Receipt,
   Trash2,
-  AlertTriangle,
   Megaphone,
   Wrench,
   UserCircle,
   Box,
 } from "lucide-react";
+import { RouteError } from "@/components/RouteError";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,37 +42,9 @@ const CATEGORIES = [
   { value: "other", label: "Other", icon: Box, color: "text-muted-foreground" },
 ];
 
-function ExpensesErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  const router = useRouter();
-  return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Couldn't load expenses</p>
-            <p className="text-xs text-muted-foreground mt-1">{error?.message}</p>
-          </div>
-        </div>
-        <Button
-          variant="command"
-          size="sm"
-          className="mt-4"
-          onClick={() => {
-            router.invalidate();
-            reset();
-          }}
-        >
-          Try again
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export const Route = createFileRoute("/_app/expenses")({
   component: ExpensesPage,
-  errorComponent: ExpensesErrorComponent,
+  errorComponent: (props) => <RouteError {...props} label="Couldn't load expenses" />,
   head: () => ({
     meta: [
       { title: "Expenses — Majix" },

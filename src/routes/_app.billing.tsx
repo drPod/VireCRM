@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { RouteError } from "@/components/RouteError";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -144,8 +145,8 @@ function InlinePlans({
               <span className="text-xs font-normal text-muted-foreground">{tier.period}</span>
             </p>
             <ul className="mt-3 space-y-1.5 flex-1">
-              {tier.features.slice(0, 5).map((f, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-xs">
+              {tier.features.slice(0, 5).map((f) => (
+                <li key={f.text} className="flex items-start gap-1.5 text-xs">
                   {f.included ? (
                     <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                   ) : (
@@ -185,36 +186,13 @@ function InlinePlans({
 }
 
 function BillingErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  const router = useRouter();
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-4">
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Couldn't load billing</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {error?.message || "Something went wrong loading your subscription."}
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 flex gap-2">
-          <Button
-            variant="command"
-            size="sm"
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-          >
-            Try again
-          </Button>
-          <Link to="/pricing">
-            <Button variant="outline" size="sm">
-              View plans
-            </Button>
-          </Link>
-        </div>
+    <div className="space-y-4">
+      <RouteError error={error} reset={reset} label="Couldn't load billing" />
+      <div className="px-6 max-w-2xl mx-auto">
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/pricing">View plans</Link>
+        </Button>
       </div>
     </div>
   );
@@ -431,11 +409,11 @@ function BillingPage() {
           </div>
           <InlinePlans onSelect={handleSelectTier} />
           <div className="mt-4 flex justify-center">
-            <Link to="/contact">
-              <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/contact">
                 Talk to sales
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
         {CheckoutDialog}

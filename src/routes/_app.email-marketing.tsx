@@ -131,18 +131,18 @@ function EmailMarketingPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link to="/workflows">
-              <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" asChild>
+              <Link to="/workflows">
                 <FileText className="h-4 w-4" />
                 Workflows
-              </Button>
-            </Link>
-            <Link to="/campaigns" search={{ new: true }}>
-              <Button variant="command" className="gap-2">
+              </Link>
+            </Button>
+            <Button variant="command" className="gap-2" asChild>
+              <Link to="/campaigns" search={{ new: true }}>
                 <Plus className="h-4 w-4" />
                 New Campaign
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -198,12 +198,12 @@ function EmailMarketingPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   Create your first email campaign to start tracking performance.
                 </p>
-                <Link to="/campaigns" search={{ new: true }}>
-                  <Button variant="command" size="sm" className="mt-4 gap-1">
+                <Button variant="command" size="sm" className="mt-4 gap-1" asChild>
+                  <Link to="/campaigns" search={{ new: true }}>
                     <Plus className="h-3.5 w-3.5" />
                     Create campaign
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             ) : (
               campaigns.map((campaign) => {
@@ -319,11 +319,11 @@ function EmailMarketingPage() {
                 Build outreach sequences in Workflows, then attribute sends to a Campaign here to
                 track reply rate over time.
               </p>
-              <Link to="/workflows">
-                <Button variant="outline" size="sm" className="mt-3 w-full gap-1 text-xs">
+              <Button variant="outline" size="sm" className="mt-3 w-full gap-1 text-xs" asChild>
+                <Link to="/workflows">
                   Open Workflows
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </div>
         </div>

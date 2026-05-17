@@ -213,12 +213,12 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
               <span>{error}</span>
             </div>
             {showSettingsCta && (
-              <Link to="/settings" onClick={() => setOpen(false)}>
-                <Button variant="outline" className="w-full gap-2">
+              <Button variant="outline" className="w-full gap-2" asChild>
+                <Link to="/settings" onClick={() => setOpen(false)}>
                   <SettingsIcon className="h-4 w-4" />
                   Open Settings → Integrations
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
             {errorCode === "INTEGRATION_MISSING" && !isOwner && (
               <p className="text-xs text-muted-foreground text-center">

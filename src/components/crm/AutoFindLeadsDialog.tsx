@@ -405,12 +405,12 @@ export function AutoFindLeadsDialog({
             </div>
 
             <div className="grid gap-2 pt-1">
-              <Link to="/settings" onClick={() => setOpen(false)}>
-                <Button variant="command" className="w-full gap-2">
+              <Button variant="command" className="w-full gap-2" asChild>
+                <Link to="/settings" onClick={() => setOpen(false)}>
                   <SettingsIcon className="h-4 w-4" />
                   Open Settings → Integrations
-                </Button>
-              </Link>
+                </Link>
+              </Button>
               <Button variant="ghost" size="sm" onClick={reset}>
                 Back
               </Button>
@@ -451,19 +451,19 @@ export function AutoFindLeadsDialog({
                 </div>
 
                 <div className="grid gap-2 pt-1">
-                  <Link to="/pricing" onClick={() => setOpen(false)}>
-                    <Button variant="command" className="w-full gap-2">
+                  <Button variant="command" className="w-full gap-2" asChild>
+                    <Link to="/pricing" onClick={() => setOpen(false)}>
                       <Crown className="h-4 w-4" />
                       Upgrade plan for more credits
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                   {isOwner && (
-                    <Link to="/settings" onClick={() => setOpen(false)}>
-                      <Button variant="outline" className="w-full gap-2">
+                    <Button variant="outline" className="w-full gap-2" asChild>
+                      <Link to="/settings" onClick={() => setOpen(false)}>
                         <KeyRound className="h-4 w-4" />
                         Use my own Apollo key (unlimited)
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   )}
                   <Button variant="ghost" size="sm" onClick={reset}>
                     Back
@@ -655,19 +655,19 @@ export function AutoFindLeadsDialog({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link to="/pricing" onClick={() => setOpen(false)}>
-                    <Button variant="command" size="sm" className="gap-1.5">
+                  <Button variant="command" size="sm" className="gap-1.5" asChild>
+                    <Link to="/pricing" onClick={() => setOpen(false)}>
                       <Crown className="h-3.5 w-3.5" />
                       Upgrade plan
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                   {isOwner && (
-                    <Link to="/settings" onClick={() => setOpen(false)}>
-                      <Button variant="outline" size="sm" className="gap-1.5">
+                    <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                      <Link to="/settings" onClick={() => setOpen(false)}>
                         <KeyRound className="h-3.5 w-3.5" />
                         Use my Apollo key
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   )}
                 </div>
               </div>

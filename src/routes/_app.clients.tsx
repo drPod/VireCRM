@@ -244,14 +244,14 @@ function ClientsPage() {
           <table className="w-full">
             <thead className="border-b border-border bg-muted/30">
               <tr className="text-left text-xs font-medium text-muted-foreground">
-                <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3 text-right">Markup / mo</th>
-                <th className="px-4 py-3">Members</th>
-                <th className="px-4 py-3">Leads</th>
-                <th className="px-4 py-3">Notes</th>
-                <th className="px-4 py-3">Last Activity</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th scope="col" className="px-4 py-3">Client</th>
+                <th scope="col" className="px-4 py-3">Plan</th>
+                <th scope="col" className="px-4 py-3 text-right">Markup / mo</th>
+                <th scope="col" className="px-4 py-3">Members</th>
+                <th scope="col" className="px-4 py-3">Leads</th>
+                <th scope="col" className="px-4 py-3">Notes</th>
+                <th scope="col" className="px-4 py-3">Last Activity</th>
+                <th scope="col" className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
