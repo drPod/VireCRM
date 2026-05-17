@@ -3601,6 +3601,36 @@ export type Database = {
           },
         ]
       }
+      public_booking_attempts: {
+        Row: {
+          calendar_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          ip_address: string | null
+          outcome: string
+          starts_at: string | null
+        }
+        Insert: {
+          calendar_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          outcome: string
+          starts_at?: string | null
+        }
+        Update: {
+          calendar_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          outcome?: string
+          starts_at?: string | null
+        }
+        Relationships: []
+      }
       real_estate_listings: {
         Row: {
           address: string
