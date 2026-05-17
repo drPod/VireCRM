@@ -27,15 +27,24 @@ const FREE_PATHS = new Set<string>(["/billing", "/settings"]);
 
 function LoadingShell() {
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="Loading workspace"
+      className="flex h-screen flex-col items-center justify-center gap-4 bg-background"
+    >
       <div className="relative flex h-14 w-14 items-center justify-center">
-        <span className="absolute inset-0 animate-ping rounded-2xl bg-primary/20" />
-        <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-xl font-extrabold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)]">
-          G
+        <span aria-hidden="true" className="absolute inset-0 animate-ping rounded-2xl bg-primary/20" />
+        <span
+          aria-hidden="true"
+          className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-xl font-extrabold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)]"
+        >
+          M
         </span>
       </div>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
         Loading your workspace…
       </div>
     </div>
