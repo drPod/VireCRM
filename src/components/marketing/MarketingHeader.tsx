@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { PromoBanner } from "@/components/marketing/PromoBanner";
 import { BusinessEmailBanner } from "@/components/marketing/BusinessEmailBanner";
@@ -59,47 +60,47 @@ export function MarketingHeader() {
             </Link>
           </div>
 
-          {/* Mobile toggle */}
-          <button
-            type="button"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileOpen}
-            className="rounded-md p-1.5 text-foreground transition-colors hover:bg-muted md:hidden"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          {/* Mobile toggle — Sheet from Radix Dialog handles portal, overlay,
+              body scroll lock, focus trap, role=dialog + aria-modal. */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open menu"
+                className="rounded-md p-1.5 text-foreground transition-colors hover:bg-muted md:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-3/4 sm:max-w-sm">
+              <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+              <nav className="mt-6 flex flex-col gap-3">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <div className="mt-2 flex flex-col gap-2">
+                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link to="/signup" onClick={() => setMobileOpen(false)}>
+                    <Button variant="default" size="sm" className="w-full">
+                      Start Free Trial
+                    </Button>
+                  </Link>
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
-
-        {/* Mobile Nav */}
-        {mobileOpen && (
-          <div className="border-t border-border bg-background p-4 md:hidden">
-            <nav className="flex flex-col gap-3">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="text-sm font-medium text-muted-foreground"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <div className="mt-2 flex flex-col gap-2">
-                <Link to="/login">
-                  <Button variant="ghost" size="sm" className="w-full">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/signup">
-                  <Button variant="command" size="sm" className="w-full">
-                    Start Free Trial
-                  </Button>
-                </Link>
-              </div>
-            </nav>
-          </div>
-        )}
       </header>
     </>
   );
