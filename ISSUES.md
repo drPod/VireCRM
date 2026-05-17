@@ -37,7 +37,7 @@ All deployed to prod (Supabase project `coynbufhejaeuifpvmvw` + Vercel `genesisx
 - Phase 2 follow-up: replace `src/lib/connectors/gateway.ts` stub with real OAuth proxy (Nango or hand-rolled) so Apollo/Slack/Gmail/Twilio/Sendgrid integrations come back online. Until then, those routes return 503 "connector not configured" by design.
 - ~~Owner-side email dispatcher bug — discovered 2026-05-17 during Phase 1 e2e.~~ **Withdrawn — wrong diagnosis.** Initial e2e query window was too narrow; the owner-side `sent` row landed ~26s after producer's `pending` row (msg_id `8626f402-c92e-4c1f-9593-503a9af4543f`: pending at 19:34:36, sent at 19:35:02). Dispatcher pattern is INSERT-not-UPDATE on success, so two rows per message_id (pending + sent) is correct + intended. Both visitor (`delivered@resend.dev`) and owner (`genesis@genesisx.space`) sides confirmed `sent` end-to-end through Resend at `notify.majix.ai`. DLQ history shows 5-6 prior failed contact-inquiry attempts (TTL-exceeded from earlier dev cycles, pre-Resend-verify), not new bugs.
 - ~~**`supabase/functions/_shared/stripe.ts` ALLOWED_ORIGIN_SUFFIXES has duplicate `.majix.ai` / `majix.ai` entries** (lines 86-89).~~ **Already cleaned in `242951b` — current file has 4 entries (`.majix.ai`, `majix.ai`, `.workers.dev`, `localhost`). The two `.majix.ai`/`majix.ai` entries are NOT duplicates: leading-dot does suffix-match (subdomains), no-dot does exact-match (apex). Briefing was stale.**
-- **[Phase 1 regression] AI contact-form classification silently dropped on prod Cloudflare Worker.** Smoke-tested `POST https://genesisxsx.darsh-pod.workers.dev/api/public/contact` 2026-05-17 19:48 PT. Row landed in `contact_submissions` (id `e5a80cf9-0ab3-4171-9f56-ac120cb76b85`) but `sentiment`, `topic`, `priority_suggestion`, `classified_at` all NULL AND `classification_error` NULL. Same submission posted to local Vite classifies cleanly. Root cause: `src/routes/api/public/contact.ts:304` calls `void classifyAndStore(...)` fire-and-forget. Node/Vite keeps the event loop alive past the response; **Cloudflare Workers terminate the request lifecycle the moment `Response` returns, so unawaited promises get dropped before the Anthropic SDK fetch completes.** Email send path itself is unaffected (queue dispatcher is a separate Worker request). Fix options: (a) wrap in `ctx.waitUntil(classifyAndStore(...))` — CF-native, doesn't block response, requires plumbing `ctx` through TanStack Start handler (`request.cf?.waitUntil` may not exist; need to investigate). (b) `await classifyAndStore(...)` — blocks the response by ~2s but guaranteed to run on every runtime. (c) Drop inline classify entirely; rely on the cron sweeper that retries `WHERE classified_at IS NULL`. Cleanest is (a); (b) is fine if response latency is acceptable. Pre-existing rows on prod are recoverable by the cron sweeper. Local dev unaffected.
+- ~~**[Phase 1 regression] AI contact-form classification silently dropped on prod Cloudflare Worker.**~~ **Fixed 2026-05-17 — applied option (a) + (c) together. See "Phase 1 regression fix" section below.** Original triage retained for posterity: Smoke-tested `POST https://genesisxsx.darsh-pod.workers.dev/api/public/contact` 2026-05-17 19:48 PT. Row landed in `contact_submissions` (id `e5a80cf9-0ab3-4171-9f56-ac120cb76b85`) but `sentiment`, `topic`, `priority_suggestion`, `classified_at` all NULL AND `classification_error` NULL. Same submission posted to local Vite classifies cleanly. Root cause: `src/routes/api/public/contact.ts:304` calls `void classifyAndStore(...)` fire-and-forget. Node/Vite keeps the event loop alive past the response; **Cloudflare Workers terminate the request lifecycle the moment `Response` returns, so unawaited promises get dropped before the Anthropic SDK fetch completes.** Email send path itself is unaffected (queue dispatcher is a separate Worker request). Fix options: (a) wrap in `ctx.waitUntil(classifyAndStore(...))` — CF-native, doesn't block response, requires plumbing `ctx` through TanStack Start handler (`request.cf?.waitUntil` may not exist; need to investigate). (b) `await classifyAndStore(...)` — blocks the response by ~2s but guaranteed to run on every runtime. (c) Drop inline classify entirely; rely on the cron sweeper that retries `WHERE classified_at IS NULL`. Cleanest is (a); (b) is fine if response latency is acceptable. Pre-existing rows on prod are recoverable by the cron sweeper. Local dev unaffected.
 
   **2026-05-17 evening research — facts to inform the pick (don't decide yet; user call):**
   - **Option (a) cost is higher than briefing implied.** Current `wrangler.jsonc` sets `"main": "@tanstack/react-start/server-entry"` (the stock entry). No custom `src/server.ts` exists. Per TanStack Start docs (`/websites/tanstack_start_framework_react`), the default `createServerEntry({ fetch(request) })` exposes ONLY `request` to route handlers — neither `env` nor `ctx` is passed through. CF Workers' `fetch(request, env, ctx)` signature is the only place `ctx.waitUntil` lives. So (a) requires: write `src/server.ts` that wraps `createStartHandler` + captures `ctx` in `AsyncLocalStorage` (nodejs_compat is already on, so AsyncLocalStorage works), update `wrangler.jsonc` `main` to point at it, write a `getRequestExecutionContext()` helper, then change line 304 to `getRequestExecutionContext().waitUntil(classifyAndStore(...))`. ~3 new files of plumbing for a single use site. CF docs warn: **do not destructure `ctx.waitUntil`** ("Illegal invocation" at runtime — must call `ctx.waitUntil(...)` directly on the object).
@@ -1038,4 +1038,47 @@ Resumed from the prior session handoff. Closed every Critical item that wasn't b
 - **`<Link><Button>` button-in-anchor invalid HTML** — `<Button asChild><Link>...</Link></Button>` swap across HeroSection, TwoWaysSection, CtaSection, pricing, preview. Not done this pass; pattern is mechanical but spans ~15 sites.
 - **Marketing audit Medium/Low/polish items** — `transition-all` anti-pattern, missing `activeProps` on MarketingHeader nav links, `aria-hidden` on separator dots / strikethrough prices / `tabular-nums`, `<GoogleIcon />` extraction, real 1200×630 OG card asset. None blocking.
 - **Visual verification.** Dev server is up, all auth routes return 200 + HTML grep confirms "Majix" everywhere it should be. An agent-browser screenshot pass was dispatched but didn't gate this commit — the markdown is the evidence trail.
+
+
+
+---
+
+## 2026-05-17 Phase 1 regression fix — AI classify on Cloudflare Workers
+
+Picked option (a) + (c) together. Option (a) keeps the inline call working without adding latency to the contact-form response; option (c) is the durable backstop for any Anthropic outage or rate-limit hiccup that takes the inline call out.
+
+### Option (a) — custom server entry + ExecutionContext.waitUntil
+
+New plumbing:
+
+- `src/server-entry.ts` — wraps the default `@tanstack/react-start/server-entry` export. On each Worker `fetch(request, env, ctx)` it calls `cfCtxStorage.run({ waitUntil: ctx.waitUntil.bind(ctx) }, ...)` before delegating to the stock TanStack Start handler. `bind(ctx)` is required because CF Workers throws "Illegal invocation" on a detached `waitUntil`.
+- `src/lib/cf-context.ts` — exposes an `AsyncLocalStorage<{ waitUntil }>` plus a `waitUntilBackground(promise)` helper. The helper looks the store up at call time and calls `store.waitUntil(promise)` on CF; on Node (vite dev, tests) it falls back to fire-and-forget, which works because the Node event loop stays alive past the response.
+- `wrangler.jsonc` — `main` swapped from `@tanstack/react-start/server-entry` → `./src/server-entry.ts`. `nodejs_compat` was already on, so `AsyncLocalStorage` from `node:async_hooks` works without further config.
+- `src/routes/api/public/contact.ts` — the previous `void classifyAndStore(...).catch(...)` swapped for `const p = classifyAndStore(...).catch(...); waitUntilBackground(p);`. Same try/catch wrapping; only the lifecycle changes.
+
+Build confirms the custom entry compiled — `worker-entry-*.js` references `waitUntil` and the new `cfCtxStorage` module.
+
+### Option (c) — pg_cron sweeper
+
+- `supabase/migrations/20260517195500_schedule_classify_contact_sweeper.sql` — schedules `classify-contact-submissions` every `*/5 * * * *`, POSTing the existing `/api/public/hooks/classify-contact-submissions` Worker route with `x-cron-secret` from `vault.decrypted_secrets`. Idempotent (drops prior schedule by jobname before re-adding).
+
+Verified post-push: `cron.job` now lists both `classify-contact-submissions` (`*/5 * * * *`) and `drain-workflow-queue` (`* * * * *`).
+
+### Why both
+
+The inline path keeps freshness — classification lands on the submission row before the owner reads the inquiry email — without adding ~2s to the contact-form response. The cron is the backstop for transient Anthropic failures or any future fire-and-forget site that gets missed.
+
+### Other cron gaps (not fixed this pass, flagged for next session)
+
+Only two pg_cron jobs exist in the linked project: `drain-workflow-queue` (added today) and the new `classify-contact-submissions`. Other Worker hook routes that look like they want scheduled callers (no migration found via grep):
+
+- `src/routes/lovable/email/queue/process.ts` — email queue drainer. Currently driven manually + ad-hoc, not on a cron.
+- `src/routes/api/public/hooks/dispatch-followups.ts`
+- `src/routes/api/public/hooks/contact-followup-reminders.ts`
+- `src/routes/api/public/hooks/dispatch-sequences.ts`
+- `src/routes/api/public/hooks/purge-audit-log.ts`
+- `src/routes/hooks/send-pending-welcomes.ts`
+- `src/routes/hooks/calculate-payouts.ts`
+
+Each needs its own pg_cron migration on the same `vault.decrypted_secrets.cron_secret` pattern. Email queue is probably the most pressing — without a scheduled drain, any post-contact-form ack to the visitor sits in `transactional_emails` until something else triggers a drain.
 

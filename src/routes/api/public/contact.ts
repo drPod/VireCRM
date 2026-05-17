@@ -11,6 +11,7 @@ import { render } from "@react-email/components";
 import { z } from "zod";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 import { classifyAndStore } from "@/lib/contact/classify-submission";
+import { waitUntilBackground } from "@/lib/cf-context";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
@@ -298,11 +299,15 @@ export const Route = createFileRoute("/api/public/contact")({
           console.warn("contact: failed to persist CRM submission (non-fatal)", crmInsertErr);
         }
 
-        // Fire-and-forget AI classification. Never blocks the response or
-        // email delivery — failures are stamped on the row for the cron
-        // sweeper to retry.
+        // AI classification runs in the background — never blocks the
+        // response or email delivery. waitUntilBackground keeps the promise
+        // alive past the Response on Cloudflare Workers (where unawaited
+        // promises are dropped at handler return); on Node it degrades to
+        // fire-and-forget. The classify-contact-submissions cron sweeper
+        // is the backstop for any submission that still ends up with
+        // classified_at IS NULL.
         if (insertedSubmission?.id) {
-          void classifyAndStore(supabase, {
+          const classifyPromise = classifyAndStore(supabase, {
             id: insertedSubmission.id,
             name: payload.name,
             email: payload.email,
@@ -312,6 +317,7 @@ export const Route = createFileRoute("/api/public/contact")({
           }).catch((err) => {
             console.warn("contact: inline classify failed (non-fatal)", err);
           });
+          waitUntilBackground(classifyPromise);
         }
 
         // Stamp the log row with the IP so the rate limiter above can see it.
