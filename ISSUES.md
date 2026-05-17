@@ -35,6 +35,8 @@ All deployed to prod (Supabase project `coynbufhejaeuifpvmvw` + Vercel `genesisx
   - ~~Verify Resend domain `notify.vireonx.space` in the Resend dashboard~~ — superseded by rebrand. New target: verify `notify.majix.ai` once IONOS DNS records land. SPF + DKIM must show green before the queue dispatcher can actually deliver email. **Done 2026-05-17 ~14:35 PT — see "Resend e2e verification" section below.**
   - ~~Once Resend DNS lands, drop `LOVABLE_API_KEY` from every env layer — no code path consumes it after Phase 1.~~ **Done 2026-05-17 — see "LOVABLE_API_KEY cleanup" section below.**
 - Phase 2 follow-up: replace `src/lib/connectors/gateway.ts` stub with real OAuth proxy (Nango or hand-rolled) so Apollo/Slack/Gmail/Twilio/Sendgrid integrations come back online. Until then, those routes return 503 "connector not configured" by design.
+- **Owner-side email dispatcher bug — discovered 2026-05-17 during Phase 1 e2e.** After verifying Resend at `notify.majix.ai`, POSTed `/api/public/contact` w/ `email=delivered@resend.dev`. Visitor acknowledgment row in `email_send_log` flipped `pending → sent` cleanly (`message_id=a58bdda4-047b-4e58-bda3-32b8766a4034`). Owner-side `contact-inquiry → genesis@genesisx.space` row stayed `pending`; second dispatcher trigger returned `{processed:0}`, meaning the underlying pgmq message was consumed but the log row never advanced. Hypotheses: (a) success-write path skips log update on the owner-side branch; (b) `read_email_batch` RPC pulls + acks but downstream early-return in `process.ts` skips the `email_send_log` UPDATE; (c) message sent but log write rolled back in a silent tx. Investigate `src/routes/lovable/email/queue/process.ts` per-message handler, the `read_email_batch` RPC (in the most recent pgmq migration), and the success-path log-update site. Reproduce: POST `/api/public/contact` w/ fresh body, then trigger dispatcher twice — owner row stays `pending` while visitor row goes `sent`. Pre-existing, not Phase-1-introduced, but newly visible because the Resend send-path now actually completes.
+- **`supabase/functions/_shared/stripe.ts` ALLOWED_ORIGIN_SUFFIXES has duplicate `.majix.ai` / `majix.ai` entries** (lines 86-89). Functionally harmless (Array.some short-circuits) but ugly. Dedup next time the file's touched.
 - ~~Decide `LOVABLE_API_KEY` direction~~ — done (Phase 1, see row above).
 - Toggle on `auth_leaked_password_protection` in Supabase Auth → Password protection (not migration-able).
 - Stale 3 test users in `auth.users` (`audit-1779023439@…`, `qa+audit-1779023449@…`, `qa+audit-1779023457@…`) — SQL ready at line ~452, kept per "don't auto-delete" note.
@@ -869,4 +871,121 @@ Env layers were already clean from the prior rebrand commit (`.env`, wrangler, s
 - **Cloudflare Workers Builds "Variables and secrets" panel.** Can't inspect via `bunx wrangler secret list` (that's runtime, not build). If `LOVABLE_API_KEY` was ever set there for the CI build, it's still there. Manual dashboard check needed: https://dash.cloudflare.com → Workers & Pages → genesisxsx → Settings → Variables.
 - **`contact-acknowledgment` template pricing URL.** Falls back to `https://genesisx.space/pricing` when no `origin` header is set on the request — should be `https://majix.ai/pricing` post-rebrand. Tiny edit, out of scope this pass.
 - **`@lovable.dev/cloud-auth-js` removal.** Migrating social signin to Supabase native OAuth (`signInWithOAuth({ provider: 'google' })` etc.) is its own session. Mostly contained to the 4 signup/login routes listed above.
+
+
+## Frontend pass 2026-05-17 (sticky-stack + brand purge + audit kickoff)
+
+Continuation of prior frontend session. Two commits landed + pushed:
+
+| Commit | What |
+|---|---|
+| `b330842` | Unified sticky banner stack on MarketingHeader. PaymentTestModeBanner moved into the `sticky top-0 z-50 flex flex-col` parent (was standalone on /pricing, scrolled out of view on its own). Stripped stale Lovable docs URL from that banner → Stripe test-mode docs. `BUSINESS_EMAIL_BANNER_HEIGHT` export deleted, `pt-32` head offsets removed from 9 routes + HeroSection. `showMarketingHeader` dead-flag removed from login.tsx (MarketingHeader already self-gates on `isCustomDomain`). |
+| `d5cede1` | Brand pivot purge — residual `genesisx.space` refs in SEO/canonical/OG/JSON-LD on every marketing route, support email in __root.tsx Organization schema, sample/preview URLs in 3 React Email templates + outreach reply-to, `src/config/support.ts` SUPPORT_EMAIL, Supabase `_shared/stripe.ts` CORS allow-list, `public/robots.txt` sitemap host, two API route brand pulls. ISSUES.md / CLAUDE.md / 2026-04 migration left as historical record. Typecheck clean. |
+
+### Marketing routes static audit (web-design-guidelines) — 80+ findings
+
+Subagent walked routes + components against `web-design-guidelines` corpus.  
+Reports already addressed by `d5cede1`: all `genesisx.space` SEO leaks.  
+**Open items** for the next pass:
+
+#### Critical
+- `src/components/marketing/BrandedSignup.tsx:124` — fallback brand-mark uses `style={{ backgroundColor: accentColor || "hsl(var(--primary))" }}` — design tokens are oklch, `hsl(var(--primary))` resolves to invalid CSS, transparent box. Use `var(--color-primary)` per HeroSection pattern.
+- `src/components/marketing/BrandedSignup.tsx:185,204,224` — three inputs use `outline-none focus:ring-1 focus:ring-ring` (not `focus-visible:`) → ring appears on mouse click. Swap to `focus-visible:`.
+- `src/components/marketing/BrandedSignup.tsx:43-83` — submit validation = `toast.error` only, no inline `aria-invalid`/field errors/focus on first error. Mirror the signup.tsx inline pattern.
+- `src/routes/confirm-email.tsx:79` — input uses `focus:` not `focus-visible:` (has replacement ring, just wrong selector). Quick swap.
+- `src/routes/preview.tsx:506-507` — `m.trend === "up" ? "text-success" : "text-success"` — both branches identical, "down" trend renders green. Dead conditional.
+- `src/components/marketing/PromoBanner.tsx:11-27` — block-level `<Link>` without `aria-label` when verbose text is hidden on narrow viewport. Add `aria-label="View pricing — 30% off everything"`.
+
+#### High
+- `<Link><Button>` button-in-anchor invalid HTML pattern across: HeroSection.tsx:80,86; TwoWaysSection.tsx:64,99; CtaSection.tsx:22; pricing.tsx:155,162,191,196; preview.tsx:347-357,619-629,653-663. Convert to `<Button asChild><Link>...</Link></Button>`.
+- `src/routes/login.tsx:9` + `src/routes/signup.tsx:10` + `BrandedSignup.tsx:6` — imports `@/integrations/lovable/index` after Lovable migration. If it's a shim, rename to `@/integrations/auth/`.
+- `src/components/marketing/ContactForm.tsx:65` — `DRAFT_KEY = "genesis:contact-draft"` localStorage prefix stale; should be `majix:contact-draft` to match the `majix:pricing-overrides-changed` event namespace.
+- `src/routes/__root.tsx:18,49,65,98` + `src/routes/terms.tsx:11,15,36` — brand name inconsistency. "Genesis" in __root.tsx, "GenesisX CRM" in terms.tsx, `majix.ai` URLs everywhere. Settle the canonical product name.
+- `src/components/marketing/BusinessEmailBanner.tsx:15` — `text-[11px]` `text-white/70` on `bg-[oklch(0.12_0.02_260)]` fails WCAG AA (~3.8:1 on small text). Bump opacity to `/80` or full `text-white`.
+- `src/routes/preview.tsx:436-442` — Bell icon-only button has `aria-label` but no `onClick` and no `aria-disabled` — focusable real button that does nothing.
+- `src/routes/preview.tsx:412-415` — "Settings" sidebar entry is a `<div>` styled as nav, no role/button.
+- `src/components/marketing/MarketingHeader.tsx:69-75` — mobile hamburger `<button>` lacks `focus-visible:` style override; relies on browser default.
+
+#### Medium / polish
+- `transition-all` anti-pattern in MarketingHeader.tsx:33, MarketingFooter.tsx:13, preview.tsx:970,1016 — list properties explicitly.
+- `cursor-default` mask on close-tour button (preview.tsx:961-963).
+- `<Link>` nav items in MarketingHeader missing `activeProps={{ 'aria-current': 'page' }}`.
+- HeroSection.tsx:131-137 hero image lacks `fetchpriority="high"` for LCP.
+- HeroSection.tsx:96-110 separator `·` dots not `aria-hidden`; SR reads "dot dot dot".
+- ContactForm.tsx:225 success state lacks `aria-live` region.
+- PricingCards.tsx:282-283 strikethrough price lacks `aria-hidden` so SR reads both as valid.
+- PricingCards.tsx:299 numeric prices lack `font-variant-numeric: tabular-nums`.
+- Duplicate Google-icon SVG across login.tsx, signup.tsx, BrandedSignup.tsx — extract `<GoogleIcon />`.
+- Duplicate gradient G-logo in MarketingHeader + MarketingFooter — extract `<BrandMark />`.
+
+#### Low / nits
+- `__root.tsx:73-77` OG image is the logo PNG — replace with a real 1200×630 social card asset.
+- `__root.tsx:55` `theme-color: #9333EA` hex while rest of app is oklch — single source.
+- preview.tsx multiple `useState` for tab/dismissed-banner — should be URL-synced search params per deep-link rule.
+- HeroSection.tsx:7-35 parallax listener doesn't re-check `prefers-reduced-motion` on media-query change.
+- Curly quotes typography enforcement (SocialProofSection.tsx:52, terms.tsx mix).
+
+### Mobile-Sheet + sticky-stack live verification (agent-browser)
+
+All ✅:
+
+- Mobile Sheet opens, closes on backdrop / Esc / link click; focus trap cycles 10 focusables; body scroll lock + release verified.
+- Desktop sticky stack (167px) pinned at scrollY=1500 across PaymentTestMode + BusinessEmail + Promo + nav.
+- `/pricing` confirmed single PaymentTestModeBanner instance inside MarketingHeader's sticky parent — no duplicate.
+
+### Still in flight at handoff
+
+- **CRM `_app.*` static source audit** — subagent dispatched, was running when context filled. Next session: retrieve via SendMessage to its agent ID, OR redispatch with same prompt against `src/routes/_app.*` + `src/components/crm/*`. Expected output: prioritized markdown report similar in shape to the marketing audit above.
+- **`/signin` redirect** — `src/routes/signin.tsx` exists; `curl -sS -o /dev/null -w "%{http_code}" http://localhost:8080/signin` returns `307 → /login`. Working. Not commited yet (was already in working tree).
+
+### Frontend backlog (from prior session handoff, still open)
+
+- Run `ui-ux-pro-max --design-system` once → generates baseline anti-pattern list at `design-system/MASTER.md`.
+- Defense-in-depth: add support email/phone to MarketingFooter (BUSINESS_EMAIL_BANNER_HEIGHT hint suggests author worried about visibility — banner is sticky now, but footer is still belt+suspenders).
+
+
+### CRM `_app.*` static audit — top findings
+
+Subagent walked `src/routes/_app.*` + `src/components/crm/*` + `src/components/dashboard/*`. ~90 entries; promoting the highest-impact ones, full report in next-session subagent transcript.
+
+#### Critical (functionally broken / data risk)
+- **`src/integrations/lovable/index.ts` is STILL LIVE.** `createLovableAuth()` exported as `lovable`; `lovable.auth.signInWithOAuth("google", ...)` invoked from `signup.tsx`, `login.tsx`, `BrandedSignup.tsx`, `r.$resellerSlug.signup.tsx`. Google OAuth currently round-trips through dead/decommissioning Lovable cloud auth. Migrate to `supabase.auth.signInWithOAuth("google", { redirectTo: ... })` directly. Supabase project already configured for Google OAuth (existing flow on /confirm-email + AuthProvider).
+- **Email send path still hits Lovable.** `src/lib/email/send.ts:36` + `src/lib/email/dispatch-outreach.ts` + `src/lib/admin-quote-email.functions.ts:99` POST to `/lovable/email/transactional/send`. Phase 1 Resend migration only swapped the queue dispatcher (`src/routes/lovable/email/queue/process.ts`); the *callers* still target the killed Lovable proxy URL. Either keep the `/lovable/email/transactional/send` route alive as a Resend SDK shim or rewrite callers to invoke Resend directly.
+- **Customer-domain onboarding tells users to point DNS at LOVABLE.** `src/components/crm/CustomerDomainOnboardingDialog.tsx:15,71-90,145` + `src/components/crm/DomainHealthPanel.tsx:33-34,344,435-449` instruct paying customers to set an A-record at `185.158.133.1` (Lovable IP) and add `_lovable` TXT records. Update to Cloudflare Workers target + the `_majix` verification token introduced in migration `20260517170000_rebrand_verification_token_prefix.sql`.
+- **`src/components/crm/VerifiedExplainer.tsx:50`** — user-facing text "We asked the Lovable Connector Gateway to refresh your {providerLabel} token". Connector gateway is stubbed out (`gateway.ts` throws 503). Rewrite copy.
+- **`src/components/crm/ResendSettingsCard.tsx:4` + `src/functions/resend.functions.ts:4,18,212`** — runtime sentinel `KEY_SENTINEL = "__lovable_connector__"` still gates per-org Resend API key flow. Phase 1 swapped to direct SDK — this likely no longer functions.
+- **`src/lib/admin-quote-email.functions.ts:97`** — fallback origin hardcoded `https://genesisxsx.lovable.app`. Quote emails sent without explicit origin deep-link to dead host. Update to majix.ai or workers.dev.
+- **`window.confirm`/`window.prompt`** in `_app.admin.tsx:770,797,1821,1829,1837,2058,2070` for 7 destructive ops. Port to shadcn `AlertDialog`/controlled dialog (pattern in same file at 2213+).
+- **`src/components/crm/AddLeadDialog.tsx:160-329`** — every `<label>` is bare (no `htmlFor`), every `<input>` lacks `id`/`name`/`autoComplete`. Primary lead-entry form inaccessible to SR + password managers.
+- **`src/components/crm/PipelineView.tsx:286-320`** — drag-and-drop only; no keyboard alternative. Pipeline unreachable via keyboard.
+
+#### High
+- **Brand name unify.** `CrmSidebar.tsx:91,312,447,451` fallback "Genesis", plus 30+ `head()` titles ending `— Genesis` across `_app.*` (full list in subagent transcript: sequences, energy.suppliers, clients.payouts, email-marketing, calendar, energy.usage, admin, billing, qa-checklist, reputation, clients, energy, revenue, energy.contracts, analytics, command-chat, contact-submissions, academy, settings, energy.customers, energy.pricing, messages, settings.branding-preview, funnels, advisor, leads, followup-inbox, workflows.index, dns-check). Settle product name (Majix vs Genesis vs MajixCRM) and `sed`-sweep.
+- **`src/routes/_app.admin.tsx:1340,1354,1888`** — admin invoice email subjects/signatures hardcode "Genesis"/"— Ethan, Genesis".
+- **`CrmSidebar.tsx:113-120`** — body-scroll lock effect snapshots `document.body.style.overflow` per render; route change while drawer open can strand `overflow: hidden`. Snapshot on mount only.
+- **`CrmSidebar.tsx:163`** — `void enabledModules;` — feature-flag gating broken; module gating non-functional.
+- **`CrmSidebar.tsx:384,415,425`** — three top-level `<button>` lack `type="button"`; submits ancestor form if ever nested.
+- **`CrmLayout.tsx`** — dead component; never imported. Delete.
+- **`_app.tsx:154`** — `LoadingShell` returns blank-screen-with-logo during auth + sub load on every refresh. Render sidebar skeleton.
+- **Per-route `errorComponent` missing on 42/47 _app routes.** Only dashboard/billing/expenses/revenue/payouts have one. Any data-fetch throw crashes to root boundary.
+- **Loading state UX:** `_app.leads.tsx:847-850` centered spinner instead of grid skeleton; `_app.analytics.tsx:161-165` full-page spinner replaces metric grid.
+- **`LeadCard.tsx:65-71,74`** — status indicated only via Badge color; score bar red/yellow/green only. Add text/icon redundancy.
+- **`key={i}` on mutable lists** across `_app.admin.tsx:2207-2212`, `_app.billing.tsx:148`, `_app.command-chat.tsx:291,328`, `_app.dashboard.tsx:412,574`, `_app.qa-checklist.tsx:525`, `_app.appointments.tsx:612`, `_app.analytics.tsx:287`, `_app.clients.plans.tsx:288`, `AdvisorAuditLog.tsx:589`, `AddLeadDialog.tsx:64,67,331-339`.
+- **`<th>` scope missing entirely in src/.** `_app.clients.payouts.tsx:475-481,613-618`, `_app.clients.tsx:247-253`. Breaks SR table semantics.
+- **`console.log` in prod paths**: `email/unsubscribe.ts:144`, `api/public/hooks/purge-audit-log.ts:35`, `hooks/calculate-payouts.ts:67`, `lovable/email/transactional/send.ts:153,317`.
+
+#### Medium / polish
+- `CrmSidebar.tsx:444` — drawer + desktop sidebar render same JSX twice on `lg` viewport when `mobileOpen`; cleanup races.
+- `CrmSidebar.tsx:407` — `to={"/settings" as string}` cast defeats type-safe routing.
+- `_app.dashboard.tsx:344-357` greeting computed in body — SSR/client timezone mismatch potential hydration warning.
+- 4× repeated `document.createElement("a") + click()` download flow — extract `downloadBlob()` helper.
+- Icon-only `<Button>` missing `aria-label` (using `title`): CommissionRulesDialog.tsx:194, LeadInvoicesPanel.tsx:208,250, NewLeadInvoiceDialog.tsx:210, OutreachTemplatesManager.tsx:239-254.
+- `_app.command-chat.tsx:286` raw `text-amber-300` instead of `text-warning` token.
+- `_app.admin.tsx:2213-2218` raw `accent-primary` checkbox instead of shadcn `<Checkbox>`.
+
+#### Low
+- Sidebar `industryItems` / `sections` rebuilt every render; hoist or memo.
+- Duplicate lucide import `Sun as SunIcon` while `Sun` already imported (`CrmSidebar.tsx:33`).
+- `_app.tsx:33` + `LoadingShell:33` + `CrmSidebar:308,447` — `[oklch(0.65_0.16_320)]` color literal 4× — extract CSS var.
+- `TODO(connectors-phase-2)` at `src/functions/connectors.functions.ts:122` — tracking only.
 
