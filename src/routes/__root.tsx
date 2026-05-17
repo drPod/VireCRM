@@ -71,11 +71,22 @@ export const Route = createRootRoute({
       },
       {
         property: "og:image",
-        content: "https://majix.ai/genesis-logo.png",
+        content: "https://majix.ai/og-card.png",
+      },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      {
+        property: "og:image:alt",
+        content: "Majix — AI CRM that follows up so your team can close.",
       },
       {
         name: "twitter:image",
-        content: "https://majix.ai/genesis-logo.png",
+        content: "https://majix.ai/og-card.png",
+      },
+      {
+        name: "twitter:image:alt",
+        content: "Majix — AI CRM that follows up so your team can close.",
       },
     ],
     links: [
