@@ -59,15 +59,14 @@ const ContactSchema = z.object({
   message: z.string().trim().min(1, "Message is required").max(4000),
   // Honeypot — real users leave it empty. Bots fill it in.
   website: z.string().max(0).optional().nullable(),
-  // Math CAPTCHA — server re-checks a + b === answer. Optional for
-  // backward compatibility with older clients, but required when present.
-  captcha: z
-    .object({
-      a: z.number().int().min(0).max(20),
-      b: z.number().int().min(0).max(20),
-      answer: z.number().int().min(0).max(40),
-    })
-    .optional(),
+  // Math CAPTCHA — server re-checks a + b === answer. Required: making
+  // this `.optional()` previously allowed bots to bypass the check entirely
+  // by simply omitting the field.
+  captcha: z.object({
+    a: z.number().int().min(0).max(20),
+    b: z.number().int().min(0).max(20),
+    answer: z.number().int().min(0).max(40),
+  }),
 });
 
 function generateToken(): string {
@@ -115,7 +114,7 @@ export const Route = createFileRoute("/api/public/contact")({
         // CAPTCHA — server re-verifies the math answer. Reject mismatches
         // outright (vs. silently dropping) so legitimate users with a typo
         // get a clear error and can retry.
-        if (payload.captcha) {
+        {
           const { a, b, answer } = payload.captcha;
           if (a + b !== answer) {
             return jsonError("Incorrect answer to the security question.", 400);

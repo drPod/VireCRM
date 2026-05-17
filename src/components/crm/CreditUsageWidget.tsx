@@ -291,58 +291,63 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
         </>
       )}
 
-      <div className="mt-4 border-t border-border pt-3">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-            <FlaskConical className="h-3 w-3" /> Tier change simulation
-          </p>
-          {testing && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            { key: "crm_starter_monthly", label: "Starter" },
-            { key: "crm_growth_monthly", label: "Growth" },
-            { key: "crm_pro_monthly", label: "Pro" },
-            { key: "crm_ownership_onetime", label: "Ownership" },
-          ].map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              disabled={testing}
-              onClick={() => runTierTest(t.key)}
-              className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {testResult && (
-          <div
-            className={`mt-2 rounded-md border p-2 text-xs ${
-              testResult.passed
-                ? "border-primary/40 bg-primary/5 text-foreground"
-                : "border-destructive/40 bg-destructive/5 text-destructive"
-            }`}
-          >
-            <div>
-              <strong>{testResult.passed ? "✓ Passed" : "✗ Mismatch"}</strong> —{" "}
-              {testResult.step.price_key}
-            </div>
-            <div className="mt-1 text-muted-foreground">
-              expected quota {testResult.step.expected.quota}
-              {testResult.step.expected.unlimited ? " (∞)" : ""} · got{" "}
-              {testResult.step.actual.quota}
-              {testResult.step.actual.unlimited ? " (∞)" : ""} · plan {testResult.step.actual.plan}
-            </div>
-            {testResult.restored && (
-              <div className="mt-1 text-muted-foreground">
-                restored to {testResult.restored.actual.plan} (quota{" "}
-                {testResult.restored.actual.quota})
-              </div>
-            )}
+      {import.meta.env.DEV && (
+        <div className="mt-4 border-t border-border pt-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <FlaskConical className="h-3 w-3" /> Tier change simulation
+              <span className="ml-1 rounded bg-yellow-500/20 px-1 py-0.5 text-[9px] font-semibold uppercase text-yellow-700 dark:text-yellow-300">
+                dev
+              </span>
+            </p>
+            {testing && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
           </div>
-        )}
-      </div>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { key: "crm_starter_monthly", label: "Starter" },
+              { key: "crm_growth_monthly", label: "Growth" },
+              { key: "crm_pro_monthly", label: "Pro" },
+              { key: "crm_ownership_onetime", label: "Ownership" },
+            ].map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                disabled={testing}
+                onClick={() => runTierTest(t.key)}
+                className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {testResult && (
+            <div
+              className={`mt-2 rounded-md border p-2 text-xs ${
+                testResult.passed
+                  ? "border-primary/40 bg-primary/5 text-foreground"
+                  : "border-destructive/40 bg-destructive/5 text-destructive"
+              }`}
+            >
+              <div>
+                <strong>{testResult.passed ? "✓ Passed" : "✗ Mismatch"}</strong> —{" "}
+                {testResult.step.price_key}
+              </div>
+              <div className="mt-1 text-muted-foreground">
+                expected quota {testResult.step.expected.quota}
+                {testResult.step.expected.unlimited ? " (∞)" : ""} · got{" "}
+                {testResult.step.actual.quota}
+                {testResult.step.actual.unlimited ? " (∞)" : ""} · plan {testResult.step.actual.plan}
+              </div>
+              {testResult.restored && (
+                <div className="mt-1 text-muted-foreground">
+                  restored to {testResult.restored.actual.plan} (quota{" "}
+                  {testResult.restored.actual.quota})
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 border-t border-border pt-3">
         <div className="mb-2 flex items-center justify-between">
