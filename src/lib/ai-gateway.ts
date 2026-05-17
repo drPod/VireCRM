@@ -1,39 +1,43 @@
 /**
- * Shared helper for calling the Lovable AI Gateway with automatic multi-model
- * fallback. If the primary model fails (transient 5xx, no tool_calls returned,
- * malformed response), the helper transparently retries with the next model
- * in the list. Hard errors (429 rate limit, 402 credits exhausted) short-circuit
+ * Shared helper for calling Anthropic with automatic multi-model fallback.
+ * If the primary model fails (transient 5xx, no tool_use returned, malformed
+ * arguments), the helper transparently retries with the next model in the list.
+ * Hard errors (429 rate limit, 402 quota, 401 auth, 4xx request-shape) short-circuit
  * — fallbacks won't help for those.
+ *
+ * Phase 1 migration note: previously a Lovable Gateway proxy over multiple
+ * providers (Gemini/Claude/etc) using OpenAI-style tool_calls. Now calls
+ * Anthropic directly with native tool_use blocks. Public API kept identical
+ * so callers (workflows, contact classify, advisor, command, etc.) don't change.
  *
  * Usage:
  *   const args = await callAiWithFallback({
  *     toolName: "analyze_business",
- *     models: ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"],
+ *     models: DEFAULT_TEXT_MODELS,
  *     systemPrompt,
  *     userPrompt,
  *     toolSchema: { ...JSON schema for the tool's parameters... },
  *     featureLabel: "AI advisor",
  *   });
- *   // args is the parsed JSON object from tool_calls[0].function.arguments
+ *   // args is the parsed JSON object from the tool_use block's input.
  */
 
+import Anthropic from "@anthropic-ai/sdk";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 export interface AiGatewayCallOptions {
   /** Name of the tool/function the model should call. */
   toolName: string;
-  /** Models to try in order. The first one that returns valid tool_calls wins. */
+  /** Models to try in order. The first one that returns a valid tool_use wins. */
   models: string[];
-  /** System message content. */
+  /** System message content. Cached when ≥1024 tokens on Sonnet 4.6 / ≥4096 on Haiku 4.5. */
   systemPrompt: string;
   /** User message content. */
   userPrompt: string;
   /** JSON schema describing the tool's `parameters` object. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   toolSchema: Record<string, any>;
-  /** Optional human-readable label used only in logs/error messages (e.g. "AI advisor"). */
+  /** Optional human-readable label used only in logs/error messages. */
   featureLabel?: string;
   /** Optional description for the tool — improves model adherence. */
   toolDescription?: string;
@@ -66,7 +70,6 @@ function logAiCall(entry: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any> | null;
 }) {
-  // Fire-and-forget — never block the AI response on telemetry.
   void supabaseAdmin
     .from("ai_call_log")
     .insert({
@@ -86,10 +89,6 @@ function logAiCall(entry: {
     });
 }
 
-/**
- * Thrown for terminal failures the user should see directly. The helper has
- * already exhausted fallbacks by the time this is thrown.
- */
 export class AiGatewayError extends Error {
   constructor(
     message: string,
@@ -100,12 +99,21 @@ export class AiGatewayError extends Error {
   }
 }
 
-export async function callAiWithFallback<T = unknown>(opts: AiGatewayCallOptions): Promise<T> {
-  const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-  if (!LOVABLE_API_KEY) {
-    throw new AiGatewayError("AI service not configured");
-  }
+/**
+ * `max_tokens` is the per-response cap. We use a tool with constrained schema,
+ * so outputs are bounded — 4096 leaves plenty of headroom while keeping cost
+ * predictable. Tune up if a specific feature needs long structured output.
+ */
+const MAX_TOKENS = 4096;
 
+function getClient(): Anthropic {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new AiGatewayError("AI service not configured");
+  return new Anthropic({ apiKey });
+}
+
+export async function callAiWithFallback<T = unknown>(opts: AiGatewayCallOptions): Promise<T> {
+  const client = getClient();
   const label = opts.featureLabel ?? opts.toolName;
   let lastReason: string | null = null;
 
@@ -122,54 +130,40 @@ export async function callAiWithFallback<T = unknown>(opts: AiGatewayCallOptions
       user_id: opts.userId ?? null,
     };
 
-    let response: Response;
+    let response: Anthropic.Message;
     try {
-      response = await fetch(GATEWAY_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: opts.systemPrompt },
-            { role: "user", content: opts.userPrompt },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: opts.toolName,
-                description: opts.toolDescription ?? `Return structured ${opts.toolName} output`,
-                parameters: opts.toolSchema,
-              },
-            },
-          ],
-          tool_choice: { type: "function", function: { name: opts.toolName } },
-        }),
+      response = await client.messages.create({
+        model,
+        max_tokens: MAX_TOKENS,
+        // Disable thinking — classification/extraction is structured and
+        // deterministic; thinking adds latency and tokens without measurable
+        // quality gain on tool-forced outputs.
+        thinking: { type: "disabled" },
+        system: [
+          {
+            type: "text",
+            text: opts.systemPrompt,
+            // Cache the system prompt + tool schema prefix. Below minimum
+            // cacheable prefix length (1024 on Sonnet 4.6, 4096 on Haiku 4.5)
+            // this is a silent no-op; above it, repeated classifications hit
+            // cache_read at ~10% of write cost.
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        tools: [
+          {
+            name: opts.toolName,
+            description: opts.toolDescription ?? `Return structured ${opts.toolName} output`,
+            input_schema: opts.toolSchema as Anthropic.Tool.InputSchema,
+          },
+        ],
+        tool_choice: { type: "tool", name: opts.toolName },
+        messages: [{ role: "user", content: opts.userPrompt }],
       });
     } catch (err) {
-      // Network blip — try next model.
-      lastReason = err instanceof Error ? err.message : "network error";
-      console.warn(`[${label}] gateway request failed on ${model}:`, lastReason);
-      logAiCall({
-        ...baseLog,
-        latency_ms: Date.now() - startedAt,
-        status: "network_error",
-        error_message: lastReason,
-      });
-      if (isLast) break;
-      continue;
-    }
-
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
       const latency_ms = Date.now() - startedAt;
-      console.error(`[${label}] gateway error (${model})`, response.status, errBody.slice(0, 300));
-
-      // Hard-stop errors — fallbacks won't help and we should surface immediately.
-      if (response.status === 429) {
+      // Hard-stops — fallbacks won't help.
+      if (err instanceof Anthropic.RateLimitError) {
         logAiCall({
           ...baseLog,
           latency_ms,
@@ -182,106 +176,91 @@ export async function callAiWithFallback<T = unknown>(opts: AiGatewayCallOptions
           429,
         );
       }
-      if (response.status === 402) {
+      if (err instanceof Anthropic.AuthenticationError) {
         logAiCall({
           ...baseLog,
           latency_ms,
           status: "hard_error",
-          http_status: 402,
-          error_message: "credits exhausted",
+          http_status: 401,
+          error_message: "auth failed",
         });
-        throw new AiGatewayError(
-          "AI credits exhausted on this workspace. Add credits in Settings → Workspace → Usage.",
-          402,
-        );
+        throw new AiGatewayError("AI service authentication failed.", 401);
       }
-      // 4xx other than the hard-stops are usually request-shape issues — not
-      // recoverable by switching models. Throw on the first one.
-      if (response.status >= 400 && response.status < 500) {
+      if (err instanceof Anthropic.BadRequestError) {
         logAiCall({
           ...baseLog,
           latency_ms,
           status: "hard_error",
-          http_status: response.status,
-          error_message: errBody.slice(0, 500) || `HTTP ${response.status}`,
+          http_status: 400,
+          error_message: err.message.slice(0, 500),
         });
         throw new AiGatewayError(
-          `${label}: AI request rejected (${response.status})${errBody ? ` — ${errBody.slice(0, 200)}` : ""}`,
-          response.status,
+          `${label}: AI request rejected — ${err.message.slice(0, 200)}`,
+          400,
         );
       }
-
-      lastReason = `HTTP ${response.status}`;
+      // Treat InternalServerError / overloaded / connection blip as retryable.
+      const reason =
+        err instanceof Anthropic.APIError
+          ? `HTTP ${err.status}: ${err.message.slice(0, 200)}`
+          : err instanceof Error
+            ? err.message
+            : "unknown error";
+      lastReason = reason;
+      console.warn(`[${label}] request failed on ${model}:`, reason);
       logAiCall({
         ...baseLog,
         latency_ms,
         status: isLast ? "error" : "fallback",
-        http_status: response.status,
-        error_message: errBody.slice(0, 500) || lastReason,
-      });
-      if (isLast) break;
-      continue; // 5xx → try next model
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = await response.json();
-    } catch {
-      lastReason = "non-JSON gateway response";
-      console.warn(`[${label}] non-JSON response from ${model}`);
-      logAiCall({
-        ...baseLog,
-        latency_ms: Date.now() - startedAt,
-        status: isLast ? "error" : "fallback",
-        http_status: response.status,
-        error_message: lastReason,
+        http_status: err instanceof Anthropic.APIError ? err.status : null,
+        error_message: reason,
       });
       if (isLast) break;
       continue;
     }
 
-    const toolCallArgs = (
-      parsed as {
-        choices?: Array<{
-          message?: { tool_calls?: Array<{ function?: { arguments?: string } }> };
-        }>;
-      }
-    )?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    const toolUseBlock = response.content.find(
+      (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+    );
 
-    if (!toolCallArgs) {
-      lastReason = "no tool_calls returned";
-      console.warn(
-        `[${label}] no tool_calls from ${model}, snippet:`,
-        JSON.stringify(parsed).slice(0, 300),
-      );
+    if (!toolUseBlock) {
+      lastReason = "no tool_use block returned";
+      console.warn(`[${label}] no tool_use from ${model}, stop_reason=${response.stop_reason}`);
       logAiCall({
         ...baseLog,
         latency_ms: Date.now() - startedAt,
         status: isLast ? "error" : "fallback",
-        http_status: response.status,
-        error_message: lastReason,
+        http_status: 200,
+        error_message: `${lastReason} (stop_reason=${response.stop_reason})`,
       });
       if (isLast) break;
       continue;
     }
 
+    // tool_use.input is already parsed JSON (Anthropic does the JSON.parse).
     try {
-      const result = JSON.parse(toolCallArgs) as T;
+      const result = toolUseBlock.input as T;
       logAiCall({
         ...baseLog,
         latency_ms: Date.now() - startedAt,
         status: "success",
-        http_status: response.status,
+        http_status: 200,
+        metadata: {
+          input_tokens: response.usage.input_tokens,
+          output_tokens: response.usage.output_tokens,
+          cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+          cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
+        },
       });
       return result;
     } catch (err) {
-      lastReason = `malformed JSON: ${err instanceof Error ? err.message : "parse error"}`;
-      console.warn(`[${label}] JSON parse failed on ${model}:`, lastReason);
+      lastReason = `malformed tool input: ${err instanceof Error ? err.message : "parse error"}`;
+      console.warn(`[${label}] tool input parse failed on ${model}:`, lastReason);
       logAiCall({
         ...baseLog,
         latency_ms: Date.now() - startedAt,
         status: isLast ? "error" : "fallback",
-        http_status: response.status,
+        http_status: 200,
         error_message: lastReason,
       });
       if (isLast) break;
@@ -294,5 +273,9 @@ export async function callAiWithFallback<T = unknown>(opts: AiGatewayCallOptions
   );
 }
 
-/** Default fallback chain for general-purpose tool-calling features. */
-export const DEFAULT_TEXT_MODELS = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
+/**
+ * Default fallback chain. Sonnet 4.6 leads on quality (sales decisions,
+ * classification, advisor); Haiku 4.5 catches when Sonnet is rate-limited
+ * or down. Set per-feature when a different mix is warranted.
+ */
+export const DEFAULT_TEXT_MODELS = ["claude-sonnet-4-6", "claude-haiku-4-5"];

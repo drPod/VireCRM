@@ -1,15 +1,16 @@
 /**
- * Server-only: classify a single contact submission via the Lovable AI
- * gateway and persist the result. Safe to call in fire-and-forget mode —
- * all errors are caught and stamped onto `classification_error` so the
- * cron sweeper can retry later.
+ * Server-only: classify a single contact submission and persist the result.
+ * Safe to call fire-and-forget — all errors are caught and stamped onto
+ * `classification_error` so the cron sweeper can retry later.
+ *
+ * Goes through `callAiWithFallback` so it inherits the same model-fallback,
+ * prompt caching, hard-error routing, and telemetry as every other AI
+ * feature (advisor, command bar, auto-outreach, etc.).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
-
-const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3-flash-preview";
 
 const SENTIMENTS = ["positive", "neutral", "negative", "urgent"] as const;
 const TOPICS = [
@@ -55,12 +56,14 @@ const TOOL_SCHEMA = {
   additionalProperties: false,
 } as const;
 
+const SYSTEM_PROMPT =
+  "You triage inbound contact-form submissions for a B2B CRM company. " +
+  "Classify sentiment, topic, suggested follow-up priority, and write a one-line intent summary. " +
+  "Be skeptical: vague or low-effort messages are usually low priority. Mark obvious junk as topic=spam, priority=low.";
+
 export async function classifySubmissionWithAI(
   submission: SubmissionToClassify,
 ): Promise<ClassificationResult> {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
-
   const userBlock = [
     `From: ${submission.name} <${submission.email}>`,
     submission.company ? `Company: ${submission.company}` : null,
@@ -71,47 +74,16 @@ export async function classifySubmissionWithAI(
     .filter(Boolean)
     .join("\n");
 
-  const res = await fetch(LOVABLE_AI_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You triage inbound contact-form submissions for a B2B CRM company. " +
-            "Classify sentiment, topic, suggested follow-up priority, and write a one-line intent summary. " +
-            "Be skeptical: vague or low-effort messages are usually low priority. Mark obvious junk as topic=spam, priority=low.",
-        },
-        { role: "user", content: userBlock },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "classify_submission",
-            description: "Submit the structured classification for this contact form message.",
-            parameters: TOOL_SCHEMA,
-          },
-        },
-      ],
-      tool_choice: { type: "function", function: { name: "classify_submission" } },
-    }),
+  const parsed = await callAiWithFallback<ClassificationResult>({
+    featureLabel: "Contact submission classify",
+    models: DEFAULT_TEXT_MODELS,
+    toolName: "classify_submission",
+    toolDescription: "Submit the structured classification for this contact form message.",
+    toolSchema: TOOL_SCHEMA as Record<string, any>,
+    systemPrompt: SYSTEM_PROMPT,
+    userPrompt: userBlock,
   });
 
-  if (res.status === 429) throw new Error("AI rate limit (429)");
-  if (res.status === 402) throw new Error("AI credits exhausted (402)");
-  if (!res.ok) throw new Error(`AI gateway error ${res.status}: ${await res.text()}`);
-
-  const json = await res.json();
-  const args = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  if (!args) throw new Error("AI did not return a tool call");
-
-  const parsed = JSON.parse(args) as ClassificationResult;
   if (!SENTIMENTS.includes(parsed.sentiment)) throw new Error(`Bad sentiment: ${parsed.sentiment}`);
   if (!TOPICS.includes(parsed.topic)) throw new Error(`Bad topic: ${parsed.topic}`);
   if (!PRIORITIES.includes(parsed.priority_suggestion))

@@ -1,113 +1,124 @@
 /**
- * Resend client — calls go through the Lovable connector gateway, which
- * handles auth/refresh transparently. We never store a Resend API key per
- * org: the connection is workspace-level and `RESEND_API_KEY` is injected
- * into the server runtime by the connector.
+ * Resend client — calls the Resend SDK directly. `RESEND_API_KEY` is set as a
+ * Worker secret (`wrangler secret put RESEND_API_KEY`).
  *
- * Per-org settings (verified `from` address, optional `reply_to`) are stored
- * in `org_integrations.config` under provider = 'resend'.
+ * Phase 1 migration: previously routed through the Lovable Connector Gateway
+ * (`connector-gateway.lovable.dev/resend`). Now talks to Resend's API directly
+ * via `resend@6.x` SDK.
+ *
+ * Per-org settings (verified `from` address, optional `reply_to`) live in
+ * `org_integrations.config` under provider = 'resend' — unchanged.
  *
  * Docs: https://resend.com/docs/api-reference/emails/send-email
  */
+import { Resend, type ErrorResponse } from "resend";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
-
-function getGatewayHeaders(): Record<string, string> {
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  if (!lovableKey) {
-    throw new Error("LOVABLE_API_KEY is not configured on the server.");
-  }
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) {
+function getClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
     throw new Error(
-      "Resend is not connected. Connect the Resend integration from CRM settings to enable sending.",
+      "RESEND_API_KEY is not configured. Set it via `wrangler secret put RESEND_API_KEY`.",
     );
   }
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${lovableKey}`,
-    "X-Connection-Api-Key": resendKey,
-  };
+  return new Resend(apiKey);
 }
 
 /**
- * Lightweight ping to the connector gateway's verify endpoint. Confirms the
- * Resend connection is linked and credentials are valid without spending
- * a real send.
+ * Surfaces HTTP status + retry-after up to the dispatcher's existing
+ * `isRateLimited` / `isForbidden` / `getRetryAfterSeconds` helpers, which key
+ * off `.status` and `.retryAfterSeconds`. The Resend SDK returns `{ data, error }`
+ * without throwing — we throw this wrapper so the dispatcher's try/catch path
+ * keeps working unchanged.
+ */
+export class ResendSendError extends Error {
+  readonly status: number | null;
+  readonly retryAfterSeconds: number | null;
+  readonly name = "ResendSendError";
+  constructor(err: ErrorResponse) {
+    super(err.message);
+    this.status = err.statusCode;
+    // Resend SDK doesn't surface the Retry-After header — default to 60s on
+    // rate limit (matches the dispatcher's prior fallback for unstructured 429s).
+    this.retryAfterSeconds = err.statusCode === 429 ? 60 : null;
+  }
+}
+
+/**
+ * Lightweight probe — confirms the API key is accepted by Resend. Uses
+ * `domains.list()` because it's a cheap, read-only call that exercises the
+ * same auth path as `.emails.send()`. Does NOT verify the sender domain's
+ * DNS — that's a separate concern (see Resend dashboard).
  */
 export async function verifyResendConnection(): Promise<
   { ok: true } | { ok: false; reason: string }
 > {
   try {
-    const headers = getGatewayHeaders();
-    const res = await fetch("https://connector-gateway.lovable.dev/api/v1/verify_credentials", {
-      method: "POST",
-      headers,
-    });
-    if (res.status === 401 || res.status === 403) {
+    const resend = getClient();
+    const { error } = await resend.domains.list();
+    if (error) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return {
+          ok: false,
+          reason: "Resend API key rejected. Check RESEND_API_KEY secret.",
+        };
+      }
       return {
         ok: false,
-        reason:
-          "Resend connection rejected by the gateway. Try disconnecting and reconnecting Resend.",
+        reason: `Resend verify failed (${error.statusCode}): ${error.message.slice(0, 200)}`,
       };
     }
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      return {
-        ok: false,
-        reason: `Resend verify failed (${res.status}): ${text.slice(0, 200)}`,
-      };
-    }
-    const data = (await res.json().catch(() => ({}))) as {
-      outcome?: string;
-      error?: string;
-    };
-    if (data.outcome === "verified" || data.outcome === "skipped") {
-      return { ok: true };
-    }
-    return {
-      ok: false,
-      reason: data.error ?? "Resend rejected the credentials.",
-    };
+    return { ok: true };
   } catch (err) {
     return {
       ok: false,
-      reason: err instanceof Error ? err.message : "Couldn't reach the connector gateway.",
+      reason: err instanceof Error ? err.message : "Couldn't reach Resend.",
     };
   }
 }
 
 export interface ResendSendOpts {
-  /** Verified sender address, e.g. `noreply@mail.vireonx.space`. */
+  /** Verified sender address, e.g. `noreply@notify.vireonx.space`. */
   from: string;
   /** Single recipient (we don't expose batching here — outreach is 1:1). */
   to: string;
   subject: string;
-  /** HTML body. Plain text is auto-derived by Resend. */
+  /** HTML body. Plain text is auto-derived by Resend if `text` not given. */
   html: string;
+  /** Optional plain-text body. */
+  text?: string;
   /** Optional reply-to address. */
   replyTo?: string;
+  /** Optional idempotency key — Resend returns the same response for duplicate keys within 24h. */
+  idempotencyKey?: string;
+  /** Optional unsubscribe URL — emitted as List-Unsubscribe / List-Unsubscribe-Post headers. */
+  unsubscribeUrl?: string;
 }
 
 export async function sendResendEmail(opts: ResendSendOpts): Promise<{ messageId: string | null }> {
-  const headers = getGatewayHeaders();
-  const res = await fetch(`${GATEWAY_URL}/emails`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
+  const resend = getClient();
+
+  const headers: Record<string, string> = {};
+  if (opts.unsubscribeUrl) {
+    headers["List-Unsubscribe"] = `<${opts.unsubscribeUrl}>`;
+    headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+  }
+
+  const { data, error } = await resend.emails.send(
+    {
       from: opts.from,
       to: [opts.to],
       subject: opts.subject,
       html: opts.html,
-      ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
-    }),
-  });
+      ...(opts.text ? { text: opts.text } : {}),
+      ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
+      ...(Object.keys(headers).length ? { headers } : {}),
+    },
+    opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : undefined,
+  );
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Resend send failed [${res.status}]: ${text.slice(0, 300)}`);
+  if (error) {
+    throw new ResendSendError(error);
   }
 
-  const data = (await res.json().catch(() => ({}))) as { id?: string };
-  return { messageId: data.id ?? null };
+  return { messageId: data?.id ?? null };
 }

@@ -11,13 +11,8 @@
  * All generated suggestions land in `lead_followup_suggestions` with
  * status="pending" so a human reviews before send.
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { callStructured, cors, DEFAULT_MODEL } from "../_shared/ai-agent.ts";
 
 interface LeadRow {
   id: string;
@@ -33,8 +28,7 @@ interface LeadRow {
   score: number | null;
 }
 
-const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL = DEFAULT_MODEL;
 
 async function draftSuggestion(
   lead: LeadRow,
@@ -44,9 +38,6 @@ async function draftSuggestion(
   message: string;
   reasoning: string;
 } | null> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-
   const lastTouch = lead.last_contact
     ? new Date(lead.last_contact).toISOString().slice(0, 10)
     : "never";
@@ -60,65 +51,32 @@ Next action on file: ${lead.next_action ?? "none"}
 
 Draft the follow-up message now.`;
 
-  const res = await fetch(LOVABLE_AI_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: "system", content: sys },
-        { role: "user", content: user },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "draft_followup",
-            description: "Return a follow-up email draft.",
-            parameters: {
-              type: "object",
-              properties: {
-                subject: { type: "string", description: "Email subject line, <60 chars" },
-                message: { type: "string", description: "Email body, plain text, <120 words" },
-                reasoning: {
-                  type: "string",
-                  description: "1-2 sentence rationale for the angle/ask",
-                },
-              },
-              required: ["subject", "message", "reasoning"],
-              additionalProperties: false,
-            },
+  try {
+    const parsed = await callStructured<{ subject: string; message: string; reasoning: string }>({
+      system: sys,
+      user,
+      toolName: "draft_followup",
+      toolDescription: "Return a follow-up email draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          subject: { type: "string", description: "Email subject line, <60 chars" },
+          message: { type: "string", description: "Email body, plain text, <120 words" },
+          reasoning: {
+            type: "string",
+            description: "1-2 sentence rationale for the angle/ask",
           },
         },
-      ],
-      tool_choice: { type: "function", function: { name: "draft_followup" } },
-    }),
-  });
-
-  if (res.status === 429)
-    throw new Response(JSON.stringify({ error: "Rate limited, try again shortly." }), {
-      status: 429,
-      headers: { ...cors, "Content-Type": "application/json" },
+        required: ["subject", "message", "reasoning"],
+        additionalProperties: false,
+      },
+      model: MODEL,
     });
-  if (res.status === 402)
-    throw new Response(
-      JSON.stringify({ error: "AI credits exhausted. Add credits to keep using AI follow-up." }),
-      { status: 402, headers: { ...cors, "Content-Type": "application/json" } },
-    );
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("AI gateway error", res.status, text);
-    return null;
-  }
-
-  const data = await res.json();
-  const call = data?.choices?.[0]?.message?.tool_calls?.[0];
-  if (!call?.function?.arguments) return null;
-  try {
-    const parsed = JSON.parse(call.function.arguments);
     return { subject: parsed.subject, message: parsed.message, reasoning: parsed.reasoning };
   } catch (e) {
-    console.error("Failed to parse AI tool call", e);
+    // callStructured throws Response for rate-limit / auth — bubble it.
+    if (e instanceof Response) throw e;
+    console.error("draftSuggestion failed", e);
     return null;
   }
 }

@@ -5,11 +5,17 @@
  * from workflow steps or directly). They all share:
  *   - CORS preflight handling
  *   - Auth: caller's JWT must resolve to a user with an organization
- *   - LovableAI gateway call with tool-calling for structured output
+ *   - Anthropic call with forced tool_use for structured output
  *   - 429/402 passthrough so the client surfaces credit/rate issues
+ *
+ * Phase 1 migration: this previously hit `ai.gateway.lovable.dev` with
+ * OpenAI-style `tool_calls`. Now talks to Anthropic directly via the SDK
+ * (`npm:@anthropic-ai/sdk`) with native `tool_use` blocks.
  */
-// @ts-expect-error - Deno-only import
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @ts-expect-error - Deno-only npm specifier
+import { createClient } from "npm:@supabase/supabase-js@2";
+// @ts-expect-error - Deno-only npm specifier
+import Anthropic from "npm:@anthropic-ai/sdk@0.96.0";
 
 // Deno is only available at runtime in Supabase functions; types not present here.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,8 +27,15 @@ export const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-export const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-export const DEFAULT_MODEL = "google/gemini-3-flash-preview";
+/**
+ * Default model. Sonnet 4.6 — quality for sales decisions (lead scoring,
+ * reply classification, follow-up drafting). Override per-call via
+ * `args.model` if a feature needs Haiku or Opus.
+ */
+export const DEFAULT_MODEL = "claude-sonnet-4-6";
+
+/** Budget on per-call output tokens. Tool-forced outputs are bounded by schema. */
+const MAX_TOKENS = 4096;
 
 export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -95,62 +108,61 @@ interface CallAIArgs {
 }
 
 /**
- * Call the Lovable AI Gateway with forced tool-calling so the response is
- * always structured JSON. Returns the parsed tool args, or throws a Response
- * on rate-limit / credit exhaustion so the caller can return it directly.
+ * Call Anthropic with forced tool_use so the response is always structured
+ * JSON. Returns the parsed tool input, or throws a Response on rate-limit /
+ * credit exhaustion so the caller can return it directly.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function callStructured<T = any>(args: CallAIArgs): Promise<T> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
 
-  const res = await fetch(LOVABLE_AI_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  const client = new Anthropic({ apiKey });
+
+  let response: any;
+  try {
+    response = await client.messages.create({
       model: args.model ?? DEFAULT_MODEL,
-      messages: [
-        { role: "system", content: args.system },
-        { role: "user", content: args.user },
+      max_tokens: MAX_TOKENS,
+      thinking: { type: "disabled" },
+      system: [
+        {
+          type: "text",
+          text: args.system,
+          cache_control: { type: "ephemeral" },
+        },
       ],
       tools: [
         {
-          type: "function",
-          function: {
-            name: args.toolName,
-            description: args.toolDescription,
-            parameters: args.parameters,
-          },
+          name: args.toolName,
+          description: args.toolDescription,
+          input_schema: args.parameters,
         },
       ],
-      tool_choice: { type: "function", function: { name: args.toolName } },
-    }),
-  });
+      tool_choice: { type: "tool", name: args.toolName },
+      messages: [{ role: "user", content: args.user }],
+    });
+  } catch (err: any) {
+    if (err instanceof Anthropic.RateLimitError) {
+      throw jsonResponse({ error: "AI rate limit exceeded — try again shortly." }, 429);
+    }
+    if (err instanceof Anthropic.AuthenticationError) {
+      throw jsonResponse({ error: "AI service authentication failed." }, 401);
+    }
+    if (err instanceof Anthropic.BadRequestError) {
+      throw new Error(`Anthropic 400: ${err.message}`);
+    }
+    if (err instanceof Anthropic.APIError) {
+      throw new Error(`Anthropic ${err.status}: ${err.message}`);
+    }
+    throw err;
+  }
 
-  if (res.status === 429) {
-    throw jsonResponse({ error: "AI rate limit exceeded — try again shortly." }, 429);
+  const toolUse = (response.content as any[]).find((b) => b?.type === "tool_use");
+  if (!toolUse) {
+    throw new Error(`AI did not return a tool_use block (stop_reason=${response.stop_reason})`);
   }
-  if (res.status === 402) {
-    throw jsonResponse(
-      { error: "AI credits exhausted. Top up in Settings → Workspace → Usage." },
-      402,
-    );
-  }
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("AI gateway error", res.status, text);
-    throw new Error(`AI gateway error: ${res.status}`);
-  }
-
-  const json = await res.json();
-  const call = json.choices?.[0]?.message?.tool_calls?.[0];
-  if (!call?.function?.arguments) {
-    throw new Error("AI did not return a tool call");
-  }
-  return JSON.parse(call.function.arguments) as T;
+  return toolUse.input as T;
 }
 
 /** Wrap a handler with CORS + Response-throw passthrough. */
