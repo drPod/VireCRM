@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +17,22 @@ import { toast } from "sonner";
 
 const statusOptions = ["new", "contacted", "qualified", "negotiation", "won", "lost"] as const;
 
+interface CustomField {
+  id: string;
+  label: string;
+  value: string;
+}
+
 interface AddLeadDialogProps {
   onLeadAdded?: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
+}
+
+function makeFieldId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `cf-${Math.random().toString(36).slice(2, 11)}`;
 }
 
 export function AddLeadDialog({
@@ -50,22 +61,23 @@ export function AddLeadDialog({
     score: 50,
     next_action: "",
     notes: "",
-    contract_end_date: "" as string, // YYYY-MM-DD
+    contract_end_date: "" as string,
     current_supplier: "",
   });
-  // Custom user-defined fields appended to the lead notes/description.
-  const [customFields, setCustomFields] = useState<Array<{ label: string; value: string }>>([]);
-  // Additional details (industry-specific + custom) hidden by default — not every CRM user sells energy.
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [showAdditional, setShowAdditional] = useState(false);
+  const formId = useId();
+  const fid = (name: string) => `${formId}-${name}`;
 
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const addCustomField = () => setCustomFields((prev) => [...prev, { label: "", value: "" }]);
-  const updateCustomField = (idx: number, key: "label" | "value", v: string) =>
-    setCustomFields((prev) => prev.map((f, i) => (i === idx ? { ...f, [key]: v } : f)));
-  const removeCustomField = (idx: number) =>
-    setCustomFields((prev) => prev.filter((_, i) => i !== idx));
+  const addCustomField = () =>
+    setCustomFields((prev) => [...prev, { id: makeFieldId(), label: "", value: "" }]);
+  const updateCustomField = (id: string, key: "label" | "value", v: string) =>
+    setCustomFields((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: v } : f)));
+  const removeCustomField = (id: string) =>
+    setCustomFields((prev) => prev.filter((f) => f.id !== id));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +94,6 @@ export function AddLeadDialog({
       return;
     }
 
-    // Compose notes with any custom fields appended as "Label: value" lines.
     const customLines = customFields
       .map((f) => ({ label: f.label.trim(), value: f.value.trim() }))
       .filter((f) => f.label || f.value)
@@ -127,7 +138,6 @@ export function AddLeadDialog({
       setOpen(false);
       onLeadAdded?.();
 
-      // Trigger auto-outreach in background — only if the user has it enabled.
       if (outreachEnabled && inserted && inserted.length > 0) {
         triggerOutreach(inserted);
       }
@@ -140,6 +150,7 @@ export function AddLeadDialog({
 
   const inputClass =
     "h-9 w-full rounded-lg border border-input bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring";
+  const labelClass = "mb-1 block text-xs font-medium text-foreground";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -158,8 +169,15 @@ export function AddLeadDialog({
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-medium text-foreground">Name *</label>
+              <label htmlFor={fid("name")} className={labelClass}>
+                Name <span aria-hidden="true">*</span>
+              </label>
               <input
+                id={fid("name")}
+                name="name"
+                autoComplete="name"
+                required
+                aria-required="true"
                 className={inputClass}
                 placeholder="Jane Smith"
                 value={form.name}
@@ -167,8 +185,13 @@ export function AddLeadDialog({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-foreground">Company</label>
+              <label htmlFor={fid("company")} className={labelClass}>
+                Company
+              </label>
               <input
+                id={fid("company")}
+                name="company"
+                autoComplete="organization"
                 className={inputClass}
                 placeholder="Acme Corp"
                 value={form.company}
@@ -176,9 +199,15 @@ export function AddLeadDialog({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-foreground">Email</label>
+              <label htmlFor={fid("email")} className={labelClass}>
+                Email
+              </label>
               <input
+                id={fid("email")}
+                name="email"
                 type="email"
+                autoComplete="email"
+                inputMode="email"
                 className={inputClass}
                 placeholder="jane@acme.com"
                 value={form.email}
@@ -186,8 +215,15 @@ export function AddLeadDialog({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-foreground">Phone</label>
+              <label htmlFor={fid("phone")} className={labelClass}>
+                Phone
+              </label>
               <input
+                id={fid("phone")}
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                inputMode="tel"
                 className={inputClass}
                 placeholder="+1 555-0123"
                 value={form.phone}
@@ -195,8 +231,12 @@ export function AddLeadDialog({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-foreground">Status</label>
+              <label htmlFor={fid("status")} className={labelClass}>
+                Status
+              </label>
               <select
+                id={fid("status")}
+                name="status"
                 className={inputClass}
                 value={form.status}
                 onChange={(e) => update("status", e.target.value)}
@@ -209,13 +249,16 @@ export function AddLeadDialog({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-foreground">
+              <label htmlFor={fid("score")} className={labelClass}>
                 Score (0–100)
               </label>
               <input
+                id={fid("score")}
+                name="score"
                 type="number"
                 min={0}
                 max={100}
+                inputMode="numeric"
                 className={inputClass}
                 value={form.score}
                 onChange={(e) => update("score", Number(e.target.value))}
@@ -223,8 +266,12 @@ export function AddLeadDialog({
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-foreground">Next Action</label>
+            <label htmlFor={fid("next_action")} className={labelClass}>
+              Next Action
+            </label>
             <input
+              id={fid("next_action")}
+              name="next_action"
               className={inputClass}
               placeholder="Send intro email"
               value={form.next_action}
@@ -232,10 +279,12 @@ export function AddLeadDialog({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-foreground">
+            <label htmlFor={fid("notes")} className={labelClass}>
               Notes / description
             </label>
             <textarea
+              id={fid("notes")}
+              name="notes"
               className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
               rows={2}
               placeholder="Any notes about this lead..."
@@ -249,6 +298,8 @@ export function AddLeadDialog({
             <button
               type="button"
               onClick={() => setShowAdditional((v) => !v)}
+              aria-expanded={showAdditional}
+              aria-controls={fid("additional-panel")}
               className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/40 rounded-lg transition-colors"
             >
               <span className="flex items-center gap-1.5">
@@ -264,17 +315,22 @@ export function AddLeadDialog({
               </span>
             </button>
             {showAdditional && (
-              <div className="space-y-3 border-t border-border/60 px-3 py-3">
+              <div
+                id={fid("additional-panel")}
+                className="space-y-3 border-t border-border/60 px-3 py-3"
+              >
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     Energy / utilities (optional)
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-foreground">
+                      <label htmlFor={fid("contract_end_date")} className={labelClass}>
                         Contract end date
                       </label>
                       <input
+                        id={fid("contract_end_date")}
+                        name="contract_end_date"
                         type="date"
                         className={inputClass}
                         value={form.contract_end_date}
@@ -282,10 +338,12 @@ export function AddLeadDialog({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-foreground">
+                      <label htmlFor={fid("current_supplier")} className={labelClass}>
                         Current supplier
                       </label>
                       <input
+                        id={fid("current_supplier")}
+                        name="current_supplier"
                         className={inputClass}
                         placeholder="e.g. British Gas, EDF, Octopus"
                         value={form.current_supplier}
@@ -314,25 +372,35 @@ export function AddLeadDialog({
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {customFields.map((f, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
+                      {customFields.map((f) => (
+                        <div key={f.id} className="flex items-center gap-2">
+                          <label htmlFor={`${fid("cf-label")}-${f.id}`} className="sr-only">
+                            Custom field name
+                          </label>
                           <input
+                            id={`${fid("cf-label")}-${f.id}`}
+                            name={`custom_field_label_${f.id}`}
                             className={`${inputClass} sm:max-w-[40%]`}
                             placeholder="Field name"
                             value={f.label}
-                            onChange={(e) => updateCustomField(idx, "label", e.target.value)}
+                            onChange={(e) => updateCustomField(f.id, "label", e.target.value)}
                           />
+                          <label htmlFor={`${fid("cf-value")}-${f.id}`} className="sr-only">
+                            Custom field value
+                          </label>
                           <input
+                            id={`${fid("cf-value")}-${f.id}`}
+                            name={`custom_field_value_${f.id}`}
                             className={inputClass}
                             placeholder="Value"
                             value={f.value}
-                            onChange={(e) => updateCustomField(idx, "value", e.target.value)}
+                            onChange={(e) => updateCustomField(f.id, "value", e.target.value)}
                           />
                           <button
                             type="button"
-                            onClick={() => removeCustomField(idx)}
+                            onClick={() => removeCustomField(f.id)}
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
-                            aria-label="Remove field"
+                            aria-label={`Remove field${f.label ? ` ${f.label}` : ""}`}
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>

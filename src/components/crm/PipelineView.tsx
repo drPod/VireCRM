@@ -2,9 +2,17 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { LeadCard, type Lead } from "./LeadCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, ArrowRightLeft, Check } from "lucide-react";
 import { toast } from "sonner";
 import { notifyLeadsChanged, onLeadsChanged } from "@/lib/leads-events";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const stages = [
   { key: "new" as const, label: "New" },
@@ -139,30 +147,20 @@ export function PipelineView() {
     }
   }, []);
 
-  const handleDrop = useCallback(
-    async (e: React.DragEvent, newStatus: string) => {
-      e.preventDefault();
-      setDropTarget(null);
-
-      const leadId = e.dataTransfer.getData("text/plain");
-      if (!leadId) return;
-
+  // Shared mutation used by both drag-drop and the keyboard-accessible
+  // "Move to" menu — keeps optimistic update + revert behavior in one place.
+  const moveLeadToStage = useCallback(
+    async (leadId: string, newStatus: string) => {
       const lead = leads.find((l) => l.id === leadId);
       if (!lead || lead.status === newStatus) return;
-
-      // Optimistic update
       const oldStatus = lead.status;
       setLeads((prev) =>
         prev.map((l) => (l.id === leadId ? { ...l, status: newStatus as Lead["status"] } : l)),
       );
       setUpdating(leadId);
-
       const { error } = await supabase.from("leads").update({ status: newStatus }).eq("id", leadId);
-
       setUpdating(null);
-
       if (error) {
-        // Revert on failure
         setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: oldStatus } : l)));
         toast.error("Failed to update lead status");
       } else {
@@ -171,6 +169,17 @@ export function PipelineView() {
       }
     },
     [leads],
+  );
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent, newStatus: string) => {
+      e.preventDefault();
+      setDropTarget(null);
+      const leadId = e.dataTransfer.getData("text/plain");
+      if (!leadId) return;
+      await moveLeadToStage(leadId, newStatus);
+    },
+    [moveLeadToStage],
   );
 
   // Track scroll position to show/hide arrow affordances
@@ -304,14 +313,48 @@ export function PipelineView() {
                 {stageLeads.map((lead) => (
                   <div
                     key={lead.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, lead.id)}
-                    onDragEnd={handleDragEnd}
-                    className={`cursor-grab active:cursor-grabbing transition-opacity ${
+                    className={`relative group transition-opacity ${
                       draggedLeadId === lead.id ? "opacity-50" : ""
                     } ${updating === lead.id ? "pointer-events-none opacity-70" : ""}`}
                   >
-                    <LeadCard lead={lead} />
+                    <div
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, lead.id)}
+                      onDragEnd={handleDragEnd}
+                      className="cursor-grab active:cursor-grabbing"
+                    >
+                      <LeadCard lead={lead} />
+                    </div>
+                    {/* Keyboard-accessible alt for drag-drop: opens a "Move to"
+                        menu listing all stages. Focus-reachable; touch-friendly. */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={`Move "${lead.name}" to another stage`}
+                          className="absolute top-2 right-2 z-10 h-6 w-6 rounded-md border border-border bg-background/80 backdrop-blur opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-opacity"
+                        >
+                          <ArrowRightLeft className="h-3 w-3" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {stages.map((s) => (
+                          <DropdownMenuItem
+                            key={s.key}
+                            disabled={s.key === lead.status}
+                            onSelect={() => {
+                              void moveLeadToStage(lead.id, s.key);
+                            }}
+                            className="text-xs"
+                          >
+                            {s.label}
+                            {s.key === lead.status && <Check className="ml-auto h-3.5 w-3.5" />}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     {updating === lead.id && (
                       <div className="flex items-center justify-center -mt-2 pb-1">
                         <Loader2 className="h-3 w-3 animate-spin text-primary" />
