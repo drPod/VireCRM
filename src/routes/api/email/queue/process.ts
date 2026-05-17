@@ -71,22 +71,18 @@ export const Route = createFileRoute("/api/email/queue/process")({
         const apiKey = process.env.RESEND_API_KEY;
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const cronSecret = process.env.CRON_SECRET;
 
-        if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+        if (!apiKey || !supabaseUrl || !supabaseServiceKey || !cronSecret) {
           console.error("Missing required environment variables");
           return Response.json({ error: "Server configuration error" }, { status: 500 });
         }
 
-        // Verify the caller is authorized with the service role key.
-        // In the TanStack stack, the pg_cron job sends the service role key as a Bearer token.
-        const authHeader = request.headers.get("Authorization");
-        if (!authHeader?.startsWith("Bearer ")) {
+        // pg_cron has no user identity, so we gate on the shared CRON_SECRET
+        // (same x-cron-secret header convention as every sibling hook). The
+        // Supabase service role key is still loaded above for DB writes.
+        if (request.headers.get("x-cron-secret") !== cronSecret) {
           return Response.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const token = authHeader.slice("Bearer ".length).trim();
-        if (token !== supabaseServiceKey) {
-          return Response.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const supabase: any = createClient(supabaseUrl, supabaseServiceKey);
