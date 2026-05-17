@@ -65,12 +65,13 @@ const WEEKDAYS: { key: Weekday; label: string }[] = [
 ];
 
 function defaultAvailability(): Availability {
+  const win = () => ({ id: crypto.randomUUID(), start: "09:00", end: "17:00" });
   return {
-    mon: [{ start: "09:00", end: "17:00" }],
-    tue: [{ start: "09:00", end: "17:00" }],
-    wed: [{ start: "09:00", end: "17:00" }],
-    thu: [{ start: "09:00", end: "17:00" }],
-    fri: [{ start: "09:00", end: "17:00" }],
+    mon: [win()],
+    tue: [win()],
+    wed: [win()],
+    thu: [win()],
+    fri: [win()],
     sat: [],
     sun: [],
   };
@@ -609,7 +610,7 @@ function AppointmentsPage() {
                             <p className="text-xs text-muted-foreground py-1.5">Unavailable</p>
                           ) : (
                             windows.map((w, i) => (
-                              <div key={i} className="flex items-center gap-1.5">
+                              <div key={w.id} className="flex items-center gap-1.5">
                                 <Input
                                   type="time"
                                   value={w.start}
@@ -638,7 +639,7 @@ function AppointmentsPage() {
                                   onClick={() =>
                                     updateAvailabilityDay(
                                       key,
-                                      windows.filter((_, idx) => idx !== i),
+                                      windows.filter((win) => win.id !== w.id),
                                     )
                                   }
                                 >
@@ -654,7 +655,7 @@ function AppointmentsPage() {
                             onClick={() =>
                               updateAvailabilityDay(key, [
                                 ...windows,
-                                { start: "09:00", end: "17:00" },
+                                { id: crypto.randomUUID(), start: "09:00", end: "17:00" },
                               ])
                             }
                           >

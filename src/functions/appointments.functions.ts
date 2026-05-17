@@ -76,8 +76,31 @@ function verifyPassword(
  */
 
 export type Weekday = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
-export type DayWindow = { start: string; end: string };
+export type DayWindow = { id: string; start: string; end: string };
 export type Availability = Record<Weekday, DayWindow[]>;
+
+/**
+ * Existing rows may be missing the per-window `id` until the
+ * 20260518_*_availability_window_ids migration has run, so hydrate any
+ * legacy windows on read. We treat this as a one-way upgrade: once a row
+ * is read + written it keeps stable ids forever.
+ */
+function ensureWindowIds(availability: unknown): Availability {
+  const out = emptyAvailability();
+  if (!availability || typeof availability !== "object") return out;
+  for (const day of WEEKDAYS) {
+    const raw = (availability as Record<string, unknown>)[day];
+    if (!Array.isArray(raw)) continue;
+    out[day] = raw
+      .filter((w): w is Partial<DayWindow> => !!w && typeof w === "object")
+      .map((w) => ({
+        id: typeof w.id === "string" && w.id.length > 0 ? w.id : crypto.randomUUID(),
+        start: typeof w.start === "string" ? w.start : "09:00",
+        end: typeof w.end === "string" ? w.end : "17:00",
+      }));
+  }
+  return out;
+}
 
 export interface CalendarRow {
   id: string;
@@ -118,7 +141,10 @@ const WEEKDAYS: Weekday[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 function emptyAvailability(): Availability {
   return WEEKDAYS.reduce((acc, d) => {
-    acc[d] = d === "sat" || d === "sun" ? [] : [{ start: "09:00", end: "17:00" }];
+    acc[d] =
+      d === "sat" || d === "sun"
+        ? []
+        : [{ id: crypto.randomUUID(), start: "09:00", end: "17:00" }];
     return acc;
   }, {} as Availability);
 }
@@ -157,7 +183,7 @@ export const listCalendarsFn = createServerFn({ method: "POST" })
       const row = r as unknown as CalendarRow & { access_password_hash: string | null };
       return {
         ...row,
-        availability: (r.availability as unknown as Availability) || emptyAvailability(),
+        availability: ensureWindowIds(r.availability),
         has_access_password: !!row.access_password_hash,
       };
     });
@@ -178,7 +204,7 @@ const upsertCalendarSchema = orgScope.extend({
   availability: z
     .record(
       z.enum(["sun", "mon", "tue", "wed", "thu", "fri", "sat"]),
-      z.array(z.object({ start: z.string(), end: z.string() })),
+      z.array(z.object({ id: z.string().optional(), start: z.string(), end: z.string() })),
     )
     .optional(),
   // Access password control:
@@ -199,6 +225,16 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
 
     const { id, organizationId, access_password, ...fields } = data;
 
+    // Stamp every availability window with a stable id before writing so
+    // we never persist a window without one. ensureWindowIds preserves any
+    // ids the client already generated.
+    const normalizedFields = {
+      ...fields,
+      availability: fields.availability
+        ? ensureWindowIds(fields.availability)
+        : undefined,
+    };
+
     // Translate the plain access_password into a stored hash (or clear it).
     const passwordPatch: { access_password_hash?: string | null } = {};
     if (access_password !== undefined) {
@@ -209,21 +245,25 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
     if (id) {
       const { data: row, error } = await supabase
         .from("calendars")
-        .update({ ...fields, ...passwordPatch } as never)
+        .update({ ...normalizedFields, ...passwordPatch } as never)
         .eq("id", id)
         .eq("organization_id", organizationId)
         .select()
         .single();
       if (error || !row) throw new Error(error?.message || "Update failed");
       const r = row as unknown as CalendarRow & { access_password_hash: string | null };
-      return { ...r, has_access_password: !!r.access_password_hash };
+      return {
+        ...r,
+        availability: ensureWindowIds(r.availability),
+        has_access_password: !!r.access_password_hash,
+      };
     }
     const { data: row, error } = await supabase
       .from("calendars")
       .insert({
-        ...fields,
+        ...normalizedFields,
         ...passwordPatch,
-        availability: fields.availability || emptyAvailability(),
+        availability: normalizedFields.availability || emptyAvailability(),
         organization_id: organizationId,
         created_by: userId,
       } as never)
@@ -231,7 +271,11 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
       .single();
     if (error || !row) throw new Error(error?.message || "Create failed");
     const r = row as unknown as CalendarRow & { access_password_hash: string | null };
-    return { ...r, has_access_password: !!r.access_password_hash };
+    return {
+      ...r,
+      availability: ensureWindowIds(r.availability),
+      has_access_password: !!r.access_password_hash,
+    };
   });
 
 export const deleteCalendarFn = createServerFn({ method: "POST" })
@@ -439,7 +483,7 @@ export const getPublicCalendarFn = createServerFn({ method: "POST" })
       color: row.color,
       slot_duration_minutes: row.slot_duration_minutes,
       buffer_minutes: row.buffer_minutes,
-      availability: (row.availability as unknown as Availability) || emptyAvailability(),
+      availability: ensureWindowIds(row.availability),
       organization_id: row.organization_id,
       organization_name: org?.brand_name || org?.name || "Majix",
       brand_logo: org?.logo_url || null,
