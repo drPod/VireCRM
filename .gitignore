@@ -42,8 +42,10 @@ dist-ssr
 .env.*.local
 !.env.example
 
-# Claude Code local state
-.claude/
+# Claude Code: ignore local state, but DO commit project-scoped skills
+# (so teammates share the same skill set via the `skills` CLI ecosystem)
+.claude/*
+!.claude/skills/
 
 # Supabase CLI temp
 supabase/.temp/
