@@ -96,7 +96,7 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
       process.env.PUBLISHED_URL ||
       "https://majix.ai";
 
-    const sendRes = await fetch(`${origin}/lovable/email/transactional/send`, {
+    const sendRes = await fetch(`${origin}/api/email/transactional/send`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

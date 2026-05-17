@@ -2,7 +2,7 @@
  * Internal outreach email dispatcher — server-only.
  *
  * Why this exists: previously the outreach server functions issued an HTTP
- * `fetch(${origin}/lovable/email/transactional/send)` call back into the same
+ * `fetch(${origin}/api/email/transactional/send)` call back into the same
  * Worker. On Cloudflare that self-loop times out with a 522 (the worker
  * cannot make a request to its own public hostname while still handling the
  * inbound request). The fix is to do the same work in-process: render the
@@ -10,7 +10,7 @@
  * the message via the `enqueue_email` RPC — exactly what the send route does,
  * just without an HTTP hop.
  *
- * Keep the behavior aligned with src/routes/lovable/email/transactional/send.ts
+ * Keep the behavior aligned with src/routes/api/email/transactional/send.ts
  * so changes (suppression rules, unsubscribe handling, queue payload shape)
  * stay in sync.
  */

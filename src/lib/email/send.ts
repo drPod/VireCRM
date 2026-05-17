@@ -18,7 +18,7 @@ interface SendTransactionalEmailParams {
 }
 
 /**
- * Send a transactional email via the built-in `/lovable/email/transactional/send`
+ * Send a transactional email via the built-in `/api/email/transactional/send`
  * server route. Requires an authenticated Supabase session — the caller's JWT
  * is forwarded as the Bearer token.
  */
@@ -33,7 +33,7 @@ export async function sendTransactionalEmail(
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch("/lovable/email/transactional/send", {
+  const response = await fetch("/api/email/transactional/send", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

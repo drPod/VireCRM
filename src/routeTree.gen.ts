@@ -87,14 +87,14 @@ import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans
 import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as AppAcademyCourseIdRouteImport } from './routes/_app.academy.$courseId'
 import { Route as RResellerSlugCheckoutPlanSlugRouteImport } from './routes/r.$resellerSlug.checkout.$planSlug'
-import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksRunWorkflowsRouteImport } from './routes/api/public/hooks/run-workflows'
 import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/public/hooks/purge-audit-log'
 import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
 import { Route as ApiPublicHooksDispatchFollowupsRouteImport } from './routes/api/public/hooks/dispatch-followups'
 import { Route as ApiPublicHooksContactFollowupRemindersRouteImport } from './routes/api/public/hooks/contact-followup-reminders'
 import { Route as ApiPublicHooksClassifyContactSubmissionsRouteImport } from './routes/api/public/hooks/classify-contact-submissions'
+import { Route as ApiEmailTransactionalSendRouteImport } from './routes/api/email/transactional/send'
+import { Route as ApiEmailQueueProcessRouteImport } from './routes/api/email/queue/process'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -488,18 +488,6 @@ const RResellerSlugCheckoutPlanSlugRoute =
     path: '/r/$resellerSlug/checkout/$planSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
-const LovableEmailTransactionalSendRoute =
-  LovableEmailTransactionalSendRouteImport.update({
-    id: '/lovable/email/transactional/send',
-    path: '/lovable/email/transactional/send',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicHooksRunWorkflowsRoute =
   ApiPublicHooksRunWorkflowsRouteImport.update({
     id: '/api/public/hooks/run-workflows',
@@ -536,6 +524,17 @@ const ApiPublicHooksClassifyContactSubmissionsRoute =
     path: '/api/public/hooks/classify-contact-submissions',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiEmailTransactionalSendRoute =
+  ApiEmailTransactionalSendRouteImport.update({
+    id: '/api/email/transactional/send',
+    path: '/api/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiEmailQueueProcessRoute = ApiEmailQueueProcessRouteImport.update({
+  id: '/api/email/queue/process',
+  path: '/api/email/queue/process',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -614,14 +613,14 @@ export interface FileRoutesByFullPath {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
+  '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
   '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesByTo {
@@ -701,14 +700,14 @@ export interface FileRoutesByTo {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug': typeof RResellerSlugIndexRoute
+  '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
+  '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
   '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesById {
@@ -790,14 +789,14 @@ export interface FileRoutesById {
   '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
+  '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
+  '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
   '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRouteTypes {
@@ -879,14 +878,14 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/email/queue/process'
+    | '/api/email/transactional/send'
     | '/api/public/hooks/classify-contact-submissions'
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
-    | '/lovable/email/queue/process'
-    | '/lovable/email/transactional/send'
     | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -966,14 +965,14 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/workflows'
     | '/r/$resellerSlug'
+    | '/api/email/queue/process'
+    | '/api/email/transactional/send'
     | '/api/public/hooks/classify-contact-submissions'
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
-    | '/lovable/email/queue/process'
-    | '/lovable/email/transactional/send'
     | '/r/$resellerSlug/checkout/$planSlug'
   id:
     | '__root__'
@@ -1054,14 +1053,14 @@ export interface FileRouteTypes {
     | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
     | '/r/$resellerSlug/'
+    | '/api/email/queue/process'
+    | '/api/email/transactional/send'
     | '/api/public/hooks/classify-contact-submissions'
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
-    | '/lovable/email/queue/process'
-    | '/lovable/email/transactional/send'
     | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesById: FileRoutesById
 }
@@ -1093,14 +1092,14 @@ export interface RootRouteChildren {
   ApiPublicContactRoute: typeof ApiPublicContactRoute
   RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
   RResellerSlugIndexRoute: typeof RResellerSlugIndexRoute
+  ApiEmailQueueProcessRoute: typeof ApiEmailQueueProcessRoute
+  ApiEmailTransactionalSendRoute: typeof ApiEmailTransactionalSendRoute
   ApiPublicHooksClassifyContactSubmissionsRoute: typeof ApiPublicHooksClassifyContactSubmissionsRoute
   ApiPublicHooksContactFollowupRemindersRoute: typeof ApiPublicHooksContactFollowupRemindersRoute
   ApiPublicHooksDispatchFollowupsRoute: typeof ApiPublicHooksDispatchFollowupsRoute
   ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
   ApiPublicHooksRunWorkflowsRoute: typeof ApiPublicHooksRunWorkflowsRoute
-  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
-  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
   RResellerSlugCheckoutPlanSlugRoute: typeof RResellerSlugCheckoutPlanSlugRoute
 }
 
@@ -1652,20 +1651,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RResellerSlugCheckoutPlanSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/transactional/send': {
-      id: '/lovable/email/transactional/send'
-      path: '/lovable/email/transactional/send'
-      fullPath: '/lovable/email/transactional/send'
-      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/hooks/run-workflows': {
       id: '/api/public/hooks/run-workflows'
       path: '/api/public/hooks/run-workflows'
@@ -1706,6 +1691,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/classify-contact-submissions'
       fullPath: '/api/public/hooks/classify-contact-submissions'
       preLoaderRoute: typeof ApiPublicHooksClassifyContactSubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/email/transactional/send': {
+      id: '/api/email/transactional/send'
+      path: '/api/email/transactional/send'
+      fullPath: '/api/email/transactional/send'
+      preLoaderRoute: typeof ApiEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/email/queue/process': {
+      id: '/api/email/queue/process'
+      path: '/api/email/queue/process'
+      fullPath: '/api/email/queue/process'
+      preLoaderRoute: typeof ApiEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1917,6 +1916,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicContactRoute: ApiPublicContactRoute,
   RResellerSlugSignupRoute: RResellerSlugSignupRoute,
   RResellerSlugIndexRoute: RResellerSlugIndexRoute,
+  ApiEmailQueueProcessRoute: ApiEmailQueueProcessRoute,
+  ApiEmailTransactionalSendRoute: ApiEmailTransactionalSendRoute,
   ApiPublicHooksClassifyContactSubmissionsRoute:
     ApiPublicHooksClassifyContactSubmissionsRoute,
   ApiPublicHooksContactFollowupRemindersRoute:
@@ -1925,8 +1926,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDispatchSequencesRoute: ApiPublicHooksDispatchSequencesRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,
   ApiPublicHooksRunWorkflowsRoute: ApiPublicHooksRunWorkflowsRoute,
-  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
-  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
   RResellerSlugCheckoutPlanSlugRoute: RResellerSlugCheckoutPlanSlugRoute,
 }
 export const routeTree = rootRouteImport
