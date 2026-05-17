@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Zap,
   Infinity as InfinityIcon,
@@ -8,12 +8,36 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 import {
   simulateTierChangeFn,
   type SimulateTierChangeResponse,
 } from "@/functions/simulate-tier-change.functions";
 import { toast } from "sonner";
+
+/**
+ * Map price_id → human plan name. Must stay in sync with CrmSidebar.planLabel and
+ * the /billing "Current plan" card so a single user sees one consistent label.
+ */
+const PRICE_ID_LABELS: Record<string, string> = {
+  crm_starter_monthly: "Starter",
+  crm_growth_monthly: "Growth",
+  crm_pro_monthly: "Pro",
+  lease_starter_monthly: "WL — Starter",
+  lease_pro_monthly: "WL — Pro",
+};
+
+function deriveSubscriptionPlanLabel(args: {
+  isManual: boolean;
+  priceId: string | undefined;
+  fallbackPlan: string;
+}): string {
+  if (args.isManual) return "Lifetime / Paid externally";
+  if (args.priceId && PRICE_ID_LABELS[args.priceId]) return PRICE_ID_LABELS[args.priceId];
+  return args.fallbackPlan.replace(/_/g, " ");
+}
 
 interface CreditUsageWidgetProps {
   organizationId?: string;
@@ -76,6 +100,12 @@ function formatPeriod(iso: string | null): string {
 
 export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
   const [state, setState] = useState<CreditState>(INITIAL);
+  // Pull the same subscription source the sidebar + /billing page read, so the
+  // plan label + quota presentation match instead of falling back to the
+  // organizations.plan column (which can still say "starter" for manual subs).
+  const { user } = useAuth();
+  const { subscription } = useSubscription(user?.id);
+  const subIsManual = subscription?.environment === "manual" && subscription.status === "active";
 
   useEffect(() => {
     if (!organizationId) return;
@@ -199,9 +229,23 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
     );
   }
 
+  // Lifetime / manually-provisioned subs get unlimited treatment regardless of
+  // what the organizations.unlimited_credits column says — a stale Starter row
+  // from before the lifetime grant must not lie about the entitlement.
+  const displayUnlimited = state.unlimited || subIsManual;
+  const planLabel = useMemo(
+    () =>
+      deriveSubscriptionPlanLabel({
+        isManual: subIsManual,
+        priceId: subscription?.price_id,
+        fallbackPlan: state.plan,
+      }),
+    [subIsManual, subscription?.price_id, state.plan],
+  );
+
   const remaining = Math.max(state.quota - state.used, 0);
   const pct = state.quota > 0 ? Math.min((state.used / state.quota) * 100, 100) : 0;
-  const lowOnCredits = !state.unlimited && state.quota > 0 && remaining / state.quota < 0.15;
+  const lowOnCredits = !displayUnlimited && state.quota > 0 && remaining / state.quota < 0.15;
 
   const runTierTest = async (priceKey: string) => {
     setTesting(true);
@@ -232,12 +276,13 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Credit usage</h3>
-            <p className="text-xs text-muted-foreground capitalize">
-              {state.plan.replace(/_/g, " ")} plan · {formatPeriod(state.periodStart)}
+            <p className="text-xs text-muted-foreground">
+              <span className={subIsManual ? "" : "capitalize"}>{planLabel}</span>
+              {subIsManual ? " · Active" : ` plan · ${formatPeriod(state.periodStart)}`}
             </p>
           </div>
         </div>
-        {state.unlimited && (
+        {displayUnlimited && (
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
             <InfinityIcon className="h-3 w-3" />
             Unlimited
@@ -245,7 +290,7 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
         )}
       </div>
 
-      {state.unlimited ? (
+      {displayUnlimited ? (
         <div className="space-y-1">
           <p className="text-2xl font-semibold text-foreground">No usage limits</p>
           <p className="text-xs text-muted-foreground">
