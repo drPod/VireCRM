@@ -35,3 +35,19 @@ dist-ssr
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Claude Code local state
+.claude/
+
+# Supabase CLI temp
+supabase/.temp/
+
+# Vercel
+.vercel/
+
