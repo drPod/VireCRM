@@ -1362,4 +1362,7 @@ Knocked out the "quick wins" section of the 2026-05-17 landing audit. Two real f
 ### Verification
 - `bun run typecheck` clean.
 - `bunx eslint` clean on touched files (1 pre-existing `react-refresh/only-export-components` warning on `PromoBanner.tsx:40` — fires because the file exports both `PromoBanner` component and the `PROMO_DISCOUNT` / `applyPromoDiscount` helpers; unrelated to this pass).
-- Browser walk pending — will dispatch agent-browser session against `bun run dev` to render-check the promo banner copy + Home active state + unsubscribe title swap on invalid token.
+- Browser-verified via `agent-browser` subagent (session `easywins-verify`, headless Chromium, dev server `:8080`). All three checks PASS:
+  - PromoBanner desktop variant renders `30% OFF EVERYTHING — first 100 customers only. Discount applied automatically at checkout.` and Link `aria-label` matches exactly.
+  - Home nav link on `/` carries `aria-current="page"`, computed color `oklch(0.18 0.02 290)` (foreground) with font-weight `600` (semibold), visibly emphasized vs the other links which sit at muted-foreground / weight 500.
+  - `/unsubscribe` (no token) settles `document.title` to `Invalid unsubscribe link — Majix`; visible h1 is `Invalid link`. The `loading → invalid` transition resolves synchronously on the first effect tick so the `Verifying unsubscribe — Majix` title is too brief to catch via AXTree polling, but the per-state title mechanism is verified functional through the invalid path.
