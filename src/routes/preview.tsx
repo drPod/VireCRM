@@ -44,12 +44,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
   isAllowed,
@@ -349,7 +344,13 @@ function CrmPreviewPage() {
                 Exit preview
               </Link>
             </Button>
-            <Button asChild variant="command" size="sm" className="gap-1.5" data-preview-allow="true">
+            <Button
+              asChild
+              variant="command"
+              size="sm"
+              className="gap-1.5"
+              data-preview-allow="true"
+            >
               <Link to="/signup" data-preview-allow="true">
                 Start free trial
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -657,8 +658,8 @@ function PlaceholderView({ label }: { label: string }) {
       <div>
         <h3 className="text-lg font-semibold text-foreground">{label} is part of the full CRM</h3>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">
-          The interactive preview shows the Dashboard. Sign up for a free trial to unlock{" "}
-          {label.toLowerCase()}, AI automations, and the rest of Majix.
+          The interactive preview shows the Dashboard. Sign up for a free trial to unlock {label},
+          AI automations, and the rest of Majix.
         </p>
       </div>
       <div className="flex gap-2">

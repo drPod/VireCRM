@@ -16,7 +16,7 @@ function NotFoundComponent() {
   // it, so override the title imperatively so 404s don't inherit the landing-page title.
   useEffect(() => {
     const prev = document.title;
-    document.title = "Page not found — Majix";
+    document.title = "404 — Majix";
     return () => {
       document.title = prev;
     };

@@ -403,6 +403,7 @@ export function PricingCards() {
           <p className="mt-2 text-sm text-muted-foreground">
             We build, host, and maintain your CRM — you just use it. Setup fees invoiced separately.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">All prices in USD.</p>
         </div>
         <div className="grid gap-6 lg:grid-cols-4">
           {crmTiers.map((tier) => (
@@ -430,6 +431,7 @@ export function PricingCards() {
           <p className="mt-2 text-sm text-muted-foreground">
             Resell the CRM under your own brand. Your logo, your domain, your clients.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">All prices in USD.</p>
         </div>
         <div className="grid gap-6 lg:grid-cols-4">
           {whiteLabelTiers.map((tier) => (

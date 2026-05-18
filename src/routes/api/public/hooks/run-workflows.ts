@@ -1,8 +1,11 @@
 /**
  * Cron-triggered workflow runner.
  *
- * Vercel Cron sends GET with Authorization: Bearer $CRON_SECRET. External
- * schedulers may POST with x-cron-secret. Both verbs share one handler.
+ * Supabase pg_cron POSTs to this route once a minute (schedule:
+ * `supabase/migrations/20260517160500_schedule_workflow_drain_cron.sql`),
+ * authenticated via the `x-cron-secret` header sourced from
+ * `vault.decrypted_secrets`. `Authorization: Bearer $CRON_SECRET` is also
+ * accepted for backward compatibility with legacy callers.
  *
  *   1. Re-queue paused runs whose paused_until has elapsed.
  *   2. Pick up queued runs whose next_attempt_at is due (or null).

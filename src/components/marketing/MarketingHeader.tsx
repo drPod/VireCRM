@@ -43,7 +43,7 @@ export function MarketingHeader() {
                 key={link.to}
                 to={link.to}
                 activeProps={{ "aria-current": "page" }}
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground aria-[current=page]:font-semibold"
               >
                 {link.label}
               </Link>
@@ -79,7 +79,7 @@ export function MarketingHeader() {
                     key={link.to}
                     to={link.to}
                     activeProps={{ "aria-current": "page" }}
-                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground aria-[current=page]:font-semibold"
                     onClick={() => setMobileOpen(false)}
                   >
                     {link.label}

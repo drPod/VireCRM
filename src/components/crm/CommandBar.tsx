@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Send, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CommandBarProps {
   onCommand?: (command: string) => void;
@@ -38,13 +39,35 @@ export function CommandBar({ onCommand, isProcessing = false }: CommandBarProps)
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
           disabled={isProcessing}
         />
-        <Button type="submit" size="sm" variant="command" disabled={!input.trim() || isProcessing}>
-          {isProcessing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
+        <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* span wrapper so the tooltip still triggers when the button is disabled */}
+              <span tabIndex={!input.trim() && !isProcessing ? 0 : -1} className="inline-flex">
+                <Button
+                  type="submit"
+                  size="sm"
+                  variant="command"
+                  disabled={!input.trim() || isProcessing}
+                  aria-label="Send command"
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isProcessing
+                ? "Sending command..."
+                : !input.trim()
+                  ? "Type a command to send"
+                  : "Send command"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </form>
 
       {!input && (
