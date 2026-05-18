@@ -21,7 +21,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
-- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18) → ~~(1) schema migration `20260518200618_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column~~ (done 2026-05-18) → ~~(2) fix `ImportLeadsDialog.tsx` insert (parsed energy fields then dropped them)~~ (done 2026-05-18) → ~~(3) AI mapper prompt update~~ (done 2026-05-18) → ~~(4) historical-backfill toggle~~ (done 2026-05-18) → (5) Pricing tab → (6) Clients tab → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
+- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18) → ~~(1) schema migration `20260518200618_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column~~ (done 2026-05-18) → ~~(2) fix `ImportLeadsDialog.tsx` insert (parsed energy fields then dropped them)~~ (done 2026-05-18) → ~~(3) AI mapper prompt update~~ (done 2026-05-18) → ~~(4) historical-backfill toggle~~ (done 2026-05-18) → ~~(5) Pricing tab~~ (done 2026-05-18, `/pipeline`) → (6) Clients tab → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -114,6 +114,35 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-18 — green-energiai step 5: Pricing tab (`/pipeline`)
+**Tags:** [green-energiai] [frontend] [crm]
+
+Closes the "no surface for in-negotiation deals" gap. Agents now have one screen for every lead in pricing, with the rate + mils editable inline and Crystal's commission math (`commission_value` generated col) updating the instant the row is saved.
+
+#### Routing decision
+
+- **New route name `/pipeline`, sidebar label "Pricing".** Couldn't reuse `/pricing` (marketing public route) or `/clients` (legacy reseller-mgmt page gated `isReseller && isOwner`). Universal vocabulary in the URL + Crystal's mental model in the sidebar label. Decoupling = cheap rename later.
+
+#### Shipped
+
+- `src/routes/_app.pipeline.tsx` (new, 261 lines). Fetches `leads where status='negotiation' for current org`, sorted `contract_end_date asc nulls last` (expiring contracts first — natural renewal-hunt order).
+- Columns: deal, customer, service address, ESI (mono), annual kWh (right-aligned tabular), supplier (Badge), contract end (locale date), editable rate, editable mils, computed commission, "Mark Won" action.
+- Edit-in-place via shadcn `<Input type="number">` on blur, with diff check to skip no-op saves. Per-row `savingId`/`winningId` disables inputs + button during the mutation. Reload after save.
+- "Mark Won" toggles `status='won'` and reloads — the row falls off the Pricing tab and will surface in the Clients tab from Step 6.
+- Pipeline-commission summary chip in the header sums every visible `commission_value` ("total at stake right now").
+- `src/components/crm/CrmSidebar.tsx` — added `{ to: "/pipeline", icon: DollarSign, label: "Pricing" }` to the Overview section. Universal — every tenant sees it regardless of industry template.
+
+#### Gotchas
+
+- Dynamic-key Supabase update `{ [field]: next }` failed strict TS — Supabase JS's generated types reject "any string" keys on `update`. Fixed with an explicit ternary patch. If we add more editable columns, generalize then.
+- `routeTree.gen.ts` is auto-managed by `tanstackStart()` in `vite.config.ts` — `bun run build` regenerated it; `bun run typecheck` then passed.
+
+#### Verification
+
+- `bun run typecheck` clean.
+- `bun run build` clean (6.63s).
+- Browser walk (sign in as Crystal, move a lead to negotiation, edit rate/mils, Mark Won) deferred to Step 8 dev-server walk.
 
 ### 2026-05-18 — green-energiai step 4: historical backfill toggle in import dialog
 **Tags:** [green-energiai] [frontend]

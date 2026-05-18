@@ -18,11 +18,12 @@
 - Step 1 — schema migration `20260518200618_energy_broker_fields.sql` applied, `commission_value` generated column math verified
 - Step 2 — `ImportLeadsDialog.tsx` parses + inserts all energy fields. Typecheck + build clean. Not yet user-walked through dev server.
 
-**Done in session 2 (commits `4635496`, latest Step 4 commit):**
+**Done in session 2 (commits `4635496`, `4b6f75e`, pending Step 5 commit):**
 - Step 3 — AI mapper prompt + schema updated for 10 energy fields (`src/functions/import-mapping.functions.ts`). `buildLeadsFromAiMapping` reads AI energy indices first, falls back to raw-header heuristic. Typecheck + build clean.
 - Step 4 — Historical backfill toggle in `ImportLeadsDialog.tsx`. Backfill on → every row inserts as `status=won` + auto-outreach disabled (UI + handler both guard). Typecheck + build clean.
+- Step 5 — Pricing tab shipped at `src/routes/_app.pipeline.tsx` (URL `/pipeline`, sidebar label "Pricing"). Editable rate + mils per row, generated commission, Mark Won action. Sidebar entry added to Overview section. Typecheck + build clean.
 
-**Pick up at Step 5** (Pricing tab at `src/routes/_authed/crm/pricing.tsx`). Greenfield UI — invoke `Skill` → `tanstack-router-best-practices` + `tanstack-query-best-practices` + `shadcn` first. Editable `cost_per_kwh` + `agent_mils` per row, read-only computed `commission_value`. Then Step 6 (Clients tab, similar but read-only + sort by `contract_end_date` ascending). PR boundary: PR 3 = steps 5-6.
+**Pick up at Step 6** (Clients tab — leads where status='won', read-only, sort by contract_end_date ascending, supplier + expiry-window filters). Route file name: `src/routes/_app.book.tsx` (URL `/book`, sidebar label "Clients"). Reasons for `/book` instead of `/clients` in PR 5 notes — TL;DR `/clients` is the legacy reseller-mgmt page, can't collide. Mirror the Pipeline route's structure (already a known-good template), just drop the Input + Mark Won wiring and add filters. After Step 6, PR 3 boundary.
 
 **Before opening PR 1**, run an end-to-end dev-server walk:
 1. `bash scripts/restart-dev.sh` (fresh env bake — `VITE_SUPABASE_URL` is critical)
@@ -343,19 +344,21 @@ File: `src/components/crm/ImportLeadsDialog.tsx`
 
 **PR 2 boundary reached** per handoff cadence ("PR 2 = step 4"). Could ship now or bundle with PR 3 (Pricing + Clients tabs) since the toggle is only meaningful once the Clients tab exists to display the won rows.
 
-### Step 5 — Pricing tab `[ ]`
+### Step 5 — Pricing tab `[x]` (2026-05-18)
 
-New route: `src/routes/_authed/crm/pricing.tsx` (or wherever existing CRM routes live; check `src/routes/_authed/crm/`)
+- [x] **Routing decision:** new `_app.pipeline.tsx` (URL `/pipeline`, sidebar label "Pricing"). Couldn't reuse `/pricing` (marketing public route) or `/clients` (legacy reseller-mgmt scaffold gated `isReseller && isOwner`). `/pipeline` is universal vocabulary; the sidebar label says "Pricing" since that's Crystal's mental model. Decoupling URL from label means renames are cheap.
+- [x] Direct supabase + useState pattern (matches the rest of the project, e.g. `_app.expenses.tsx`). The project doesn't standardise on TanStack Query for screens like this — followed convention rather than introducing a new abstraction (CLAUDE.md "Use existing implementations").
+- [x] Sidebar entry added under Overview section in `src/components/crm/CrmSidebar.tsx`. Universal — appears for every tenant regardless of industry template.
+- [x] Route fetches `leads where status='negotiation' for current org`, sorted `contract_end_date ascending nulls last` (expiring contracts first — renewal hunt for the upgrade upsell).
+- [x] Columns: deal, customer, service address, ESI (monospaced), annual kWh (right-aligned tabular), supplier (Badge), contract end (locale date), editable rate, editable mils, computed commission, "Mark Won" action.
+- [x] Edit-in-place via shadcn `<Input type="number">` on blur. No save-button — onBlur with diff check (skip noop saves). Per-row `savingId` / `winningId` state disables both inputs + Mark Won button during the mutation. Reload after save.
+- [x] "Mark Won" → `status='won'` update + reload (row disappears, will reappear in Clients tab from Step 6).
+- [x] Pipeline-commission summary chip in header sums all visible `commission_value` rows — Crystal's "total at stake right now" number.
+- [x] Empty state + loading state styled per the rest of the CRM.
+- [x] Dynamic-key Supabase update gotcha hit: `{ [field]: next }` failed strict typing. Fixed with explicit ternary patch (one of two columns). PR review nit later if we add more editable cols — generalize then.
+- [x] `bun run typecheck` clean. `bun run build` clean (regenerated `routeTree.gen.ts` to register `/pipeline`).
 
-- [ ] Invoke `Skill` → `tanstack-router-best-practices` before writing
-- [ ] Invoke `Skill` → `tanstack-query-best-practices` for data fetching pattern
-- [ ] Invoke `Skill` → `shadcn` for table primitives
-- [ ] Add sidebar nav entry in `src/components/crm/CrmSidebar.tsx`: "Pricing"
-- [ ] Route fetches `leads` where `status='negotiation'` for current org, RLS handles isolation
-- [ ] Columns: `deal_name`, customer `name`, `service_address`, `esi_id`, `annual_kwh`, `current_supplier`, `contract_end_date` (existing contract expiring), **editable `cost_per_kwh`**, **editable `agent_mils`**, computed `commission_value` (read-only, from generated column)
-- [ ] Edit-in-place via shadcn `<Input>` + Supabase update + Query invalidation
-- [ ] Per-row "Mark Won" button → `status='won'` → row disappears from Pricing tab, appears in Clients tab
-- [ ] Verify in browser (agent-browser, headed, sign in as Crystal)
+**Browser verification debt:** sign in as Crystal, navigate to `/pipeline`, move a lead to negotiation status from the leads page, confirm it shows; edit rate + mils and confirm commission updates after blur; Mark Won and confirm the row disappears. Same Step 8 dev-server walk applies.
 
 ### Step 6 — Clients tab `[ ]`
 

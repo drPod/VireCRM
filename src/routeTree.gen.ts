@@ -40,6 +40,7 @@ import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
 import { Route as AppRealEstateRouteImport } from './routes/_app.real-estate'
 import { Route as AppQaChecklistRouteImport } from './routes/_app.qa-checklist'
+import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
 import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
@@ -249,6 +250,11 @@ const AppRealEstateRoute = AppRealEstateRouteImport.update({
 const AppQaChecklistRoute = AppQaChecklistRouteImport.update({
   id: '/qa-checklist',
   path: '/qa-checklist',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPipelineRoute = AppPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPayoutsRoute = AppPayoutsRouteImport.update({
@@ -579,6 +585,7 @@ export interface FileRoutesByFullPath {
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/payouts': typeof AppPayoutsRoute
+  '/pipeline': typeof AppPipelineRoute
   '/qa-checklist': typeof AppQaChecklistRoute
   '/real-estate': typeof AppRealEstateRouteWithChildren
   '/reputation': typeof AppReputationRoute
@@ -666,6 +673,7 @@ export interface FileRoutesByTo {
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/payouts': typeof AppPayoutsRoute
+  '/pipeline': typeof AppPipelineRoute
   '/qa-checklist': typeof AppQaChecklistRoute
   '/real-estate': typeof AppRealEstateRouteWithChildren
   '/reputation': typeof AppReputationRoute
@@ -755,6 +763,7 @@ export interface FileRoutesById {
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
   '/_app/payouts': typeof AppPayoutsRoute
+  '/_app/pipeline': typeof AppPipelineRoute
   '/_app/qa-checklist': typeof AppQaChecklistRoute
   '/_app/real-estate': typeof AppRealEstateRouteWithChildren
   '/_app/reputation': typeof AppReputationRoute
@@ -844,6 +853,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/messages'
     | '/payouts'
+    | '/pipeline'
     | '/qa-checklist'
     | '/real-estate'
     | '/reputation'
@@ -931,6 +941,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/messages'
     | '/payouts'
+    | '/pipeline'
     | '/qa-checklist'
     | '/real-estate'
     | '/reputation'
@@ -1019,6 +1030,7 @@ export interface FileRouteTypes {
     | '/_app/leads'
     | '/_app/messages'
     | '/_app/payouts'
+    | '/_app/pipeline'
     | '/_app/qa-checklist'
     | '/_app/real-estate'
     | '/_app/reputation'
@@ -1320,6 +1332,13 @@ declare module '@tanstack/react-router' {
       path: '/qa-checklist'
       fullPath: '/qa-checklist'
       preLoaderRoute: typeof AppQaChecklistRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pipeline': {
+      id: '/_app/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof AppPipelineRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/payouts': {
@@ -1838,6 +1857,7 @@ interface AppRouteChildren {
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
   AppPayoutsRoute: typeof AppPayoutsRoute
+  AppPipelineRoute: typeof AppPipelineRoute
   AppQaChecklistRoute: typeof AppQaChecklistRoute
   AppRealEstateRoute: typeof AppRealEstateRouteWithChildren
   AppReputationRoute: typeof AppReputationRoute
@@ -1875,6 +1895,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,
   AppPayoutsRoute: AppPayoutsRoute,
+  AppPipelineRoute: AppPipelineRoute,
   AppQaChecklistRoute: AppQaChecklistRoute,
   AppRealEstateRoute: AppRealEstateRouteWithChildren,
   AppReputationRoute: AppReputationRoute,
