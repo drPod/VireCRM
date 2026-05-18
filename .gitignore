@@ -54,3 +54,10 @@ supabase/.temp/
 .vercel/
 
 .vercel
+
+# Customer-supplied data (never commit — PII)
+*.xlsx
+*.xls
+*.csv
+!**/fixtures/*.csv
+!**/fixtures/*.xlsx
