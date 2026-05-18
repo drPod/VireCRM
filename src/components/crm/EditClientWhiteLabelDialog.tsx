@@ -28,6 +28,8 @@ import {
   provisionCustomHostnameFn,
   tearDownCustomHostnameFn,
 } from "@/functions/custom-hostnames.functions";
+import { isNotConfigured, describeError } from "@/lib/cf-saas-errors";
+import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
 
 interface Props {
   open: boolean;
@@ -35,19 +37,6 @@ interface Props {
   clientOrgId: string | null;
   clientName: string | null;
   onSaved?: () => void;
-}
-
-// Server fns surface "CF for SaaS not configured" as a 503 Response — server
-// fn errors come back as Response instances on the client. Detect by status
-// so we can degrade gracefully without a string match.
-function isNotConfigured(err: unknown): boolean {
-  return err instanceof Response && err.status === 503;
-}
-
-function describeError(err: unknown): string {
-  if (err instanceof Response) return `${err.status} ${err.statusText}`.trim();
-  if (err instanceof Error) return err.message;
-  return String(err);
 }
 
 interface ClientOrgRow {
@@ -67,6 +56,8 @@ export function EditClientWhiteLabelDialog({
   clientName,
   onSaved,
 }: Props) {
+  const provisionCf = useAuthedServerFn(provisionCustomHostnameFn);
+  const tearDownCf = useAuthedServerFn(tearDownCustomHostnameFn);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -135,7 +126,7 @@ export function EditClientWhiteLabelDialog({
     // operator can retry from the panel once CF is healthy.
     if (previousDomain && previousDomain !== nextDomain) {
       try {
-        await tearDownCustomHostnameFn({
+        await tearDownCf({
           data: { organizationId: clientOrgId, hostname: previousDomain },
         });
       } catch (err) {
@@ -146,7 +137,7 @@ export function EditClientWhiteLabelDialog({
     }
     if (nextDomain && nextDomain !== previousDomain) {
       try {
-        await provisionCustomHostnameFn({
+        await provisionCf({
           data: { organizationId: clientOrgId, hostname: nextDomain },
         });
         toast.success("Cloudflare custom hostname provisioned");
