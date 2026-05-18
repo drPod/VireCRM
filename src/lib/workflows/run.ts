@@ -23,10 +23,12 @@
  *   - action.branch         → if/else on a lead field, picks edge handle.
  *   - action.webhook_post   → POSTs JSON to a configured URL.
  *
- * Stubbed (skipped with status='skipped' + reason logged):
+ * AI agent actions (live):
  *   - action.score_lead, action.classify_reply, action.personalize_message,
- *     action.book_appointment — pending wire-up to the Anthropic SDK path
- *     (Phase 2 workflow AI). Will execute as no-ops until then.
+ *     action.book_appointment — dispatch to the matching Supabase Edge
+ *     Function via `supabaseAdmin.functions.invoke()`. Service role bearer
+ *     is auto-attached; we add `x-organization-id` so the agent's shared
+ *     `authenticate()` helper can short-circuit the user-JWT path.
  *
  * Retry policy:
  *   - Each entry into runOne() increments workflow_runs.attempts.
@@ -80,13 +82,15 @@ interface StepOutcome {
   retry?: boolean;
 }
 
-/** Action kinds that are intentional no-ops until the AI gateway is back. */
-const AI_STUBS: ReadonlySet<string> = new Set([
-  "action.score_lead",
-  "action.classify_reply",
-  "action.personalize_message",
-  "action.book_appointment",
-]);
+/** Workflow node kind → edge function name. Mirror of AGENT_KIND_TO_FUNCTION
+ *  in src/components/workflows/nodeTypes.ts. Duplicated here so the runtime
+ *  has no React/UI import dependency. */
+const AGENT_KIND_TO_FUNCTION: Record<string, string> = {
+  "action.score_lead": "score-lead",
+  "action.classify_reply": "classify-reply",
+  "action.personalize_message": "personalize-message",
+  "action.book_appointment": "book-appointment",
+};
 
 /**
  * Columns the workflow runtime is allowed to write via action.update_field.
@@ -379,9 +383,9 @@ async function executeNode(
   const kind = node.data.kind;
   const config = node.data.config ?? {};
 
-  // ---- AI agent stubs (pending wire-up to Anthropic SDK path) ----
-  if (AI_STUBS.has(kind)) {
-    return done(start, "skipped", `${kind} stubbed (AI gateway offline)`, {});
+  // ---- AI agent dispatch ----
+  if (AGENT_KIND_TO_FUNCTION[kind]) {
+    return await invokeAgent(kind, config, leadId, organizationId, start);
   }
 
   try {
@@ -606,4 +610,125 @@ function fillTokens(text: string, ctx: Record<string, string | null | undefined>
     const v = ctx[key];
     return v === null || v === undefined ? "" : String(v);
   });
+}
+
+/**
+ * Build the request body for one of the AI agent edge functions, based on
+ * the workflow node's persisted config + the current run's lead context.
+ */
+async function buildAgentBody(
+  kind: string,
+  config: Record<string, unknown>,
+  leadId: string | null,
+): Promise<{ body: Record<string, unknown> } | { skip: string }> {
+  if (!leadId) return { skip: "no lead" };
+
+  if (kind === "action.score_lead") {
+    return { body: { lead_id: leadId } };
+  }
+
+  if (kind === "action.classify_reply") {
+    const source = String(config.source ?? "last_message");
+    // Default: pull the lead's most recent inbound message and let the agent
+    // classify + write back sentiment/intent on that row.
+    if (source === "last_message") {
+      const { data: msg } = await supabaseAdmin
+        .from("messages")
+        .select("id, content")
+        .eq("lead_id", leadId)
+        .eq("direction", "inbound")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!msg) return { skip: "no inbound message" };
+      return { body: { message_id: msg.id, lead_id: leadId, table: "messages" } };
+    }
+    // Explicit text override on the node config.
+    const text = String(config.text ?? "").trim();
+    if (!text) return { skip: "no text" };
+    return { body: { text, lead_id: leadId } };
+  }
+
+  if (kind === "action.personalize_message") {
+    const body = String(config.body ?? "").trim();
+    if (!body) return { skip: "no template body" };
+    return {
+      body: {
+        lead_id: leadId,
+        subject: String(config.subject ?? ""),
+        body,
+        tone: String(config.tone ?? "warm, professional"),
+      },
+    };
+  }
+
+  if (kind === "action.book_appointment") {
+    return {
+      body: {
+        lead_id: leadId,
+        duration_minutes: Number(config.duration_minutes ?? 30),
+        auto_book: Boolean(config.auto_book ?? false),
+        calendar_id: config.calendar_id ?? null,
+        availability: Array.isArray(config.availability) ? config.availability : [],
+      },
+    };
+  }
+
+  return { skip: `unknown agent kind ${kind}` };
+}
+
+/**
+ * Invoke an AI agent edge function for one workflow step.
+ *
+ * Auth: `supabaseAdmin` was constructed with the service role key, so
+ * `functions.invoke()` attaches it as the `Authorization: Bearer ...`
+ * header. The edge function's shared `authenticate()` helper recognises
+ * that and uses the `x-organization-id` header to pin the org instead of
+ * looking one up from a user JWT (which we don't have here).
+ */
+async function invokeAgent(
+  kind: string,
+  config: Record<string, unknown>,
+  leadId: string | null,
+  organizationId: string,
+  start: number,
+): Promise<StepOutcome> {
+  const fnName = AGENT_KIND_TO_FUNCTION[kind];
+  if (!fnName) return done(start, "skipped", `no agent for ${kind}`, {});
+
+  const built = await buildAgentBody(kind, config, leadId);
+  if ("skip" in built) return done(start, "skipped", built.skip, {});
+
+  try {
+    const { data, error } = await supabaseAdmin.functions.invoke(fnName, {
+      body: built.body,
+      headers: { "x-organization-id": organizationId },
+    });
+
+    if (error) {
+      // supabase-js wraps the HTTP status on FunctionsHttpError.context.
+      const status =
+        (error as unknown as { context?: { status?: number } }).context?.status ?? 0;
+      const message = error instanceof Error ? error.message : "agent invoke failed";
+      // 5xx and network/relay errors are transient → retry. 4xx is permanent.
+      const isTransient = status === 0 || status >= 500 || status === 429;
+      const outcome = done(start, "error", `${fnName}: ${message}`, { status });
+      return { ...outcome, retry: isTransient };
+    }
+
+    const result = (data ?? {}) as Record<string, unknown>;
+    if (result.error) {
+      return done(start, "error", `${fnName}: ${String(result.error)}`, result);
+    }
+    return done(start, "ok", `${fnName} ok`, result);
+  } catch (e) {
+    // Network / fetch-level failure (rare; invoke usually wraps these).
+    const outcome = done(
+      start,
+      "error",
+      e instanceof Error ? e.message : `${fnName} threw`,
+      {},
+    );
+    return { ...outcome, retry: true };
+  }
 }

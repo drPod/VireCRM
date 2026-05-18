@@ -64,10 +64,37 @@ export async function authenticate(req: Request): Promise<AgentContext | Respons
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader) return jsonResponse({ error: "Missing Authorization" }, 401);
 
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+
+  // Internal service-role auth path: the workflow engine (and other server-side
+  // callers) invokes these agents via `supabase.functions.invoke()` on a client
+  // built with the service role key, so Authorization comes through as
+  // `Bearer <SERVICE_ROLE_KEY>`. Trust it, but require an explicit
+  // `x-organization-id` header — there's no user JWT to resolve from.
+  if (authHeader === `Bearer ${SERVICE_KEY}`) {
+    const orgId = req.headers.get("x-organization-id");
+    if (!orgId) {
+      return jsonResponse(
+        { error: "x-organization-id required for internal service-role calls" },
+        400,
+      );
+    }
+    const { data: org } = await admin
+      .from("organizations")
+      .select("industry_template")
+      .eq("id", orgId)
+      .maybeSingle();
+    return {
+      admin,
+      userId: "internal",
+      orgId,
+      industry: (org?.industry_template as string | null) ?? null,
+    };
+  }
+
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   const {
     data: { user },
