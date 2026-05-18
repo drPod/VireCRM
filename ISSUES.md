@@ -18,21 +18,9 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
 - [ ] **CF Workers Builds "Variables and secrets" panel** — manual dashboard check that no `LOVABLE_API_KEY` lingers (runtime `wrangler secret list` doesn't cover build-time). Dashboard → Workers & Pages → genesisxsx → Settings → Variables.
-- [ ] **Hostname rollout (designed 2026-05-18, code/migration shipped, infra pending).** Worker routes bound in `wrangler.jsonc` for apex / www / app / `*.majix.ai`; DB migration `20260518020000_get_org_by_domain_majix_subdomain.sql` extends `get_org_by_domain` to resolve `<slug>.majix.ai`. Still owed:
-  - [ ] **CF DNS records** (`majix.ai` zone, dashboard → DNS):
-    - `A    majix.ai             192.0.2.1   proxied` (placeholder IP — CF intercepts when proxied; orange cloud required)
-    - `CNAME www                majix.ai     proxied`
-    - `CNAME app                majix.ai     proxied`
-    - `A    *                   192.0.2.1   proxied` (wildcard for tenant subdomains)
-    - Leave `customers.majix.ai`, `notify.majix.ai` records alone — already live.
-    - Leave apex `MX` (IONOS mail) + `TXT` (IONOS SPF) alone.
-  - [ ] **CF wildcard cert.** Zone → SSL/TLS → Edge Certificates → "Order Advanced Certificate" → hostnames `majix.ai`, `*.majix.ai`. Universal SSL covers apex + first-level only — wildcard needs Advanced or ACM. Without this, `<slug>.majix.ai` HTTPS will fail until cert issued (~5-15 min).
-  - [ ] **Supabase Auth redirect URLs.** Dashboard → Authentication → URL Configuration:
-    - Site URL: `https://app.majix.ai`
-    - Additional Redirect URLs: `https://app.majix.ai/**`, `https://majix.ai/**`, `https://*.majix.ai/**` (Supabase supports wildcard).
-  - [ ] **`supabase db push`** to land `20260518020000_get_org_by_domain_majix_subdomain.sql`. Verify post-apply: `SELECT public.get_org_by_domain('app.majix.ai')` → `NULL` (reserved); `SELECT public.get_org_by_domain('<existing-org-slug>.majix.ai')` → JSON with `verified=true`.
-  - [ ] **`wrangler deploy`** to push the new routes config. Pre-flight: `bun run build` clean, `bun run typecheck` clean.
-  - [ ] **Decide signup-time slug provisioning.** Verify `signup_under_reseller` (or whichever signup RPC fires for direct-tenant signups) actually persists `organizations.slug` such that `<slug>.majix.ai` lookup matches. If signup defers slug pick, `app.majix.ai` is the post-signup landing until slug chosen.
+- [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
+  - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
+  - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -111,36 +99,71 @@ Every finding, every fix, every session — append before claiming done.
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-18 — hostname plan: bind apex/www/app + wildcard tenant subdomains
-
-User asked "domain still down?" — apex `majix.ai` was never bound to Worker (per CLAUDE.md it was planned-but-not-done). Designed full hostname tier, shipped code/migration/docs; DNS + cert + deploy pending user hands.
-
-#### Plan (user-approved)
-
-- `majix.ai` + `www.majix.ai` = public marketing (current `/` route, theme-aware via `useDomainBranding`).
-- `app.majix.ai` = central CRM landing + auth callbacks (single Supabase redirect URL) + Majix platform admin.
-- `<slug>.majix.ai` = per-tenant free white-label tier (every tenant auto-provisioned at signup; wildcard cert covers them).
-- `<custom>.acmecorp.com` = premium white-label via existing CF for SaaS flow (unchanged).
-- `customers.majix.ai`, `notify.majix.ai` left alone (already live).
-
-#### Shipped
-
-- `src/components/marketing/TwoWaysSection.tsx` — copy aligned to hostname tiers. Custom Build path = "your domain, top to bottom"; Done-for-You path = "live today on your Majix subdomain". Dropped vague "Optional white-label capability" bullet that conflated tiers.
-- `wrangler.jsonc` — added routes for `majix.ai/*`, `www.majix.ai/*`, `app.majix.ai/*`, `*.majix.ai/*`. Kept `customers.majix.ai/*`. Comment block updated to match the new plan. Wildcard does NOT match apex (CF rule, single-label minimum) — explicit apex row required.
-- `src/components/auth/DomainBrandingProvider.tsx` — `SYSTEM_HOST_PATTERNS` extended with `app.majix.ai`, `customers.majix.ai`, `notify.majix.ai`, and `.workers.dev` so they skip the tenant lookup.
-- `supabase/migrations/20260518020000_get_org_by_domain_majix_subdomain.sql` — rewrote `get_org_by_domain` in plpgsql with two branches: (1) verified `custom_domain` match (unchanged), (2) `<slug>.majix.ai` slug match (new). Reserved labels (`app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`) short-circuit to NULL even if a tenant somehow grabs that slug. Anon EXECUTE preserved (still in the anon-allowed bucket from `20260517133315_lock_down_security_definer_funcs.sql`).
-- `CLAUDE.md` + `AGENTS.md` — "Hosts" section rewritten as a tiered table. Reserved-label list documented. Both files agree.
-
-#### Verification
-
-- `bun run typecheck` — TODO before commit, will run after this entry lands.
-- Migration not yet pushed; reserved-label query verification listed in `## Open` user-action checklist.
-- DNS / cert / deploy left in user's hands — see `## Open` "Hostname rollout".
+### 2026-05-18 — `@cloudflare/workers-types` shim audit — verdict: permanent until first binding
 
 #### Found
 
-- `get_org_by_domain` was matching `custom_domain` only, so without the new migration `<slug>.majix.ai` would render as un-themed default Majix even after wildcard route bound.
-- `signup_under_reseller` RPC writes `organizations.slug`, but the direct-tenant signup path needs verification (open item).
+- Shim at `src/types/cloudflare-env.d.ts` is the correct call until the first CF native binding (KV/D1/R2/Durable Object/Queue) lands. `wrangler.jsonc` carries only `vars` + `routes` + observability today — zero bindings. Reseller-path stack (Supabase / Resend / Anthropic / CF for SaaS REST) is all HTTP `fetch`, no native binding needed.
+- `@cloudflare/workers-types@4.20260517.1` already present in `bun.lock:175` transitively. NOT in `package.json` direct deps. NOT in `tsconfig.json:8` `types` array. Ambient globals stay clean.
+- Cloudflare's current recommended path is `wrangler types` (generates `worker-configuration.d.ts` from compat date + flags), used inside a split `tsconfig.worker.json` per the vite-plugin tutorial. Both would land together at migration time — split-tsconfig refactor on TanStack Start's isomorphic boundary (route loaders, server functions) is the real cost (~1hr + risk), and would be wasted effort with no binding to type today.
+
+#### Shipped
+
+- `src/types/cloudflare-env.d.ts:1-25` — header comment refreshed. Now points at `wrangler types` + split `tsconfig.worker.json` as the migration path when first binding lands, instead of the older "copy interface manually" hint. Cross-refs ISSUES.md + the queryable archive note.
+
+#### Verification
+
+- context7 `/websites/developers_cloudflare_workers` confirmed: `wrangler types` is the new recommended path (https://developers.cloudflare.com/workers/languages/typescript). CF's own vite-plugin tutorial uses a separate `tsconfig.worker.json` with `"types": ["@cloudflare/workers-types/2023-07-01", "vite/client"]` scoped to worker files only.
+- `grep workers-types` confirmed package not in `package.json` or `tsconfig.json` `types`.
+- No live `## Open` entry to remove — earlier audit-flag was from session scratch, not the build log.
+
+#### Manual follow-up (user)
+
+- None. Revisit ONLY when adding a CF native binding. Trigger = `wrangler.jsonc` gains a binding block (`kv_namespaces`, `d1_databases`, `r2_buckets`, `durable_objects`, `queues`). Stop reopening this in audits.
+
+### 2026-05-18 — hostname plan live: apex / www / app / wildcard tenant slug all deployed
+
+User asked "domain still down?" Apex `majix.ai` had never been bound to the Worker. Designed the full five-tier hostname plan, shipped code + migration + docs, then the user added DNS + the wildcard SSL cert + Supabase Auth URL config, and I pushed the migration + deployed the Worker. Smoke-verified all six hostnames in a real browser. End state: full hostname plan live.
+
+#### Plan (user-approved)
+
+- `majix.ai` + `www.majix.ai` → public marketing (existing `/` route, theme-aware via `useDomainBranding`).
+- `app.majix.ai` → central CRM landing + Supabase Auth callbacks + Majix platform admin.
+- `<slug>.majix.ai` → per-tenant free white-label tier (wildcard cert covers them all).
+- `<custom>.acmecorp.com` → premium white-label via existing CF for SaaS flow.
+- `customers.majix.ai`, `notify.majix.ai` left alone (already live).
+
+#### Shipped (commit `6f3756b`)
+
+- `src/components/marketing/TwoWaysSection.tsx` — copy aligned to hostname tiers. Custom Build path = "your domain, top to bottom"; Done-for-You path = "live today on your Majix subdomain". Dropped vague "Optional white-label capability" bullet that conflated tiers.
+- `wrangler.jsonc` — routes for `majix.ai/*`, `www.majix.ai/*`, `app.majix.ai/*`, `*.majix.ai/*`. Kept `customers.majix.ai/*`. Wildcard does NOT match apex (CF rule, non-empty label required) — explicit apex row required.
+- `src/components/auth/DomainBrandingProvider.tsx` — `SYSTEM_HOST_PATTERNS` extended with `app.majix.ai`, `customers.majix.ai`, `notify.majix.ai`, and `.workers.dev` so they skip the tenant lookup.
+- `supabase/migrations/20260518020000_get_org_by_domain_majix_subdomain.sql` — rewrote `get_org_by_domain` in plpgsql with two branches: (1) verified `org_custom_domains.hostname` match (preserves prior shape), (2) `<slug>.majix.ai` slug match (new). Reserved labels (`app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`) short-circuit to NULL even if a tenant somehow grabs that slug. Anon EXECUTE preserved.
+- `CLAUDE.md`, `AGENTS.md`, `README.md` — "Hosts" sections rewritten as a tiered table. Reserved-label list documented. Three files agree.
+
+#### Verification
+
+- `bun run typecheck` clean.
+- `supabase db push` applied migration to `coynbufhejaeuifpvmvw`. Live RPC checks via `mcp__plugin_supabase_supabase__execute_sql`:
+  - `get_org_by_domain('app.majix.ai')` → NULL ✓ (reserved label short-circuits)
+  - `get_org_by_domain('www.majix.ai')` → NULL ✓
+  - `get_org_by_domain('customers.majix.ai')` → NULL ✓
+  - `get_org_by_domain('majix.ai')` → NULL ✓ (apex doesn't match `<label>.majix.ai`)
+  - `get_org_by_domain('darsh-test-bc97cbd6.majix.ai')` → real JSON blob with `brand_name="Darsh Test's CRM"`, primary `#3b82f6`, accent `#60a5fa`, sidebar `#0f172a`, `verified=true` ✓
+- `bunx wrangler deploy --config dist/server/wrangler.json` — version `a0d85229-1751-4c09-8607-c8e62d38ee7b`. Deploy triggers all 6 hostnames including the wildcard.
+- HTTP smoke (`curl -skI`) — apex, www, app, tenant-slug, customers, workers.dev all 200 OK.
+- Live browser smoke via two parallel `agent-browser` subagents (sessions `majix-public-smoke-2026-05-18` and `majix-tenant-smoke-2026-05-18`, both closed cleanly):
+  - `majix.ai/` — marketing renders. Title "Majix — Never Let a Lead Go Cold Again". H1 "Custom CRM & AI Sales Systems Built for Your Business — Not One-Size-Fits-All". "Two Ways to Run Your Sales System on Majix" section visible. CTAs: Sign In, Start Free Trial, Book a Demo, Pricing. Console clean.
+  - `www.majix.ai/` — byte-identical to apex (no 308 redirect — left for follow-up polish).
+  - `app.majix.ai/login` — login surface renders. H1 "Welcome back". Email + password + Show toggle, Forgot password, Continue with Google, Start free trial link.
+  - `darsh-test-bc97cbd6.majix.ai/` — themed correctly. `document.title="Darsh Test's CRM"`, H1 "Get started with Darsh Test's CRM". CSS variables `--primary=#3b82f6`, `--accent=#60a5fa`, `--sidebar=#0f172a` all set from DB. Wildcard route + RPC path 2 working end-to-end.
+  - `customers.majix.ai/` — 200 OK. Falls through to default Majix marketing surface (acceptable; never user-visible per CLAUDE.md).
+
+#### Found
+
+- `get_org_by_domain` had been rewritten in migration `20260427030638` to return `json` (not `jsonb`) and join through `org_custom_domains` (not the `organizations.custom_domain` column). First version of my migration was based on the older 2026-04-20 definition and Postgres rejected `CREATE OR REPLACE` with "cannot change return type" (SQLSTATE 42P13). Rewrote against the actual current shape; re-pushed cleanly. Lesson: always grep for the LATEST migration touching a function before writing a replacement — don't trust the first hit.
+- `www.majix.ai` serves identical content to apex (no canonical redirect). Logged as optional polish.
+- Direct-tenant signup path's slug-provisioning needs a quick trace to confirm `organizations.slug` is set synchronously at signup. Logged as Open follow-up.
 
 
 

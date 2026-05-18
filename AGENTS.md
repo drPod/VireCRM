@@ -74,18 +74,25 @@ Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices/project
 
 ## Hosts (don't confuse)
 
-Hostname plan designed 2026-05-18 — Worker routes bound in `wrangler.jsonc`, DNS records still pending at CF dashboard.
+Hostname plan live 2026-05-18 — all five tiers deployed + smoke-verified (200 OK + UI renders).
 
-- `majix.ai` + `www.majix.ai` — Public marketing (landing, pricing, signup CTA). Worker route bound; DNS pending.
-- `app.majix.ai` — Central CRM landing + auth callbacks + Majix platform admin (operator surface). Worker route bound; DNS pending.
-- `<slug>.majix.ai` — Per-tenant white-label CRM (free tier, every tenant gets one at signup). Wildcard route bound; wildcard DNS + cert pending.
-- `customers.majix.ai` — CF for SaaS fallback for custom hostnames. Infra-only, never user-visible. Live.
-- `notify.majix.ai` — Resend sender. Verified, live.
-- `genesisxsx.darsh-pod.workers.dev` — Worker subdomain (dev/preview). Stays as escape hatch.
+- `majix.ai` + `www.majix.ai` — Public marketing (landing, pricing, `/features`, signup CTA). Both serve the same Worker bundle, no redirect between them.
+- `app.majix.ai` — Central CRM landing + Supabase Auth callbacks + Majix platform admin. All auth redirect URLs configured here.
+- `<slug>.majix.ai` — Per-tenant white-label CRM (free tier). Wildcard Worker route + wildcard Advanced cert (`majix.ai` + `*.majix.ai`).
+- `<custom>.acmecorp.com` — Per-tenant white-label CRM (premium tier) via existing CF for SaaS flow (CNAME → `customers.majix.ai`).
+- `customers.majix.ai` — CF for SaaS fallback. Infra-only, never user-visible. If hit directly, serves default Majix marketing.
+- `notify.majix.ai` — Resend transactional email sender (`noreply@notify.majix.ai`). Verified.
+- `genesisxsx.darsh-pod.workers.dev` — Worker subdomain, dev/preview escape hatch.
 
-Reserved subdomain labels (never tenant slugs): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in `get_org_by_domain` migration + `DomainBrandingProvider` `SYSTEM_HOST_PATTERNS`.
+Reserved subdomain labels (never tenant slugs, blocked at both DB + client): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in `get_org_by_domain` migration (`20260518020000_…`) + `DomainBrandingProvider.SYSTEM_HOST_PATTERNS`.
 
-Tenant theming resolves via `get_org_by_domain(host)` — matches `custom_domain` for premium-tier hostnames, slug match for `<slug>.majix.ai` subdomains. Both paths return a `DomainBranding` JSON blob; `DomainBrandingProvider` applies theme client-side.
+Tenant theming pipeline:
+1. `DomainBrandingProvider` reads `window.location.hostname` client-side.
+2. If host matches a system pattern, skip RPC + render default Majix theme.
+3. Otherwise call `get_org_by_domain(host)` — RPC tries verified custom hostname (`org_custom_domains` join), then `<label>.majix.ai` slug match. Returns `json` blob or NULL.
+4. If a blob is returned, the provider applies CSS variables for primary/secondary/accent/sidebar/button color, plus favicon, font, document title.
+
+The marketing surface and the CRM surface share routes — hostname does not change which file renders, only which UI it returns. Marketing pages (`/`, `/pricing`, `/features`, `/contact`, `/signup`) are tenant-theme-aware via `useDomainBranding()`, so hitting `acme.majix.ai/` shows Acme-branded marketing, not generic Majix marketing.
 
 ## Verify before claiming done
 

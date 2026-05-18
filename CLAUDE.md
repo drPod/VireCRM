@@ -38,20 +38,24 @@ Host migration history: Vercel was abandoned because the Lovable Vite preset emi
 - Routing: customer hostnames CNAME at `customers.majix.ai`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup → renders white-labeled UI.
 - Feature surfaces: `is_reseller=true` org flag, `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/cf-for-saas-setup.md`. These are **first-class product features**, not Lovable dead code — do not strip when seen in audits.
 
-### Hostname plan (designed 2026-05-18; routes bound in `wrangler.jsonc`, DNS pending)
+### Hostname plan (live 2026-05-18 — all five tiers deployed + smoke-verified)
 
-| Hostname | Role | State |
+| Hostname | Role | Notes |
 |---|---|---|
-| `majix.ai` + `www.majix.ai` | Public marketing — landing, pricing, signup CTA | Worker route bound; CF DNS still needs apex `A` + `www` `CNAME` proxied |
-| `app.majix.ai` | Central CRM landing + auth callbacks + Majix platform admin (operator surface) | Worker route bound; CF DNS still needs `CNAME` proxied |
-| `<slug>.majix.ai` | Per-tenant white-label CRM (free tier — every tenant gets one at signup) | Wildcard Worker route bound; CF DNS needs wildcard `A` for `*` proxied + wildcard cert on the zone |
-| `<custom>.acmecorp.com` | Per-tenant white-label CRM (premium tier — custom hostname via CF for SaaS) | Tenants `CNAME` to `customers.majix.ai`; existing CF for SaaS flow handles cert + routing |
-| `customers.majix.ai` | CF for SaaS fallback — infra only, never user-visible | Live |
-| `notify.majix.ai` | Resend sender subdomain (transactional email) | Live, verified |
+| `majix.ai` + `www.majix.ai` | Public marketing — landing, pricing, `/features`, `/contact`, signup CTA | Both serve the same Worker bundle. `www` does NOT 308 to apex — they're treated as peers. The marketing routes live alongside the CRM in `src/routes/*`; hostname does not change which route renders, only which UI surface the route returns. |
+| `app.majix.ai` | Central CRM landing + Supabase Auth callbacks + Majix platform admin | All Supabase Auth redirect URLs land here. Tenants without a slug yet (or who came in via the `/r/<reseller>/signup` flow before pick) end up here. |
+| `<slug>.majix.ai` | Per-tenant white-label CRM (free tier) | Wildcard Worker route + wildcard Advanced cert. Theme/brand resolved by `get_org_by_domain` path 2 (slug match). |
+| `<custom>.acmecorp.com` | Per-tenant white-label CRM (premium tier) | Tenants CNAME their record to `customers.majix.ai`. CF for SaaS handles cert + routing. Theme resolved by `get_org_by_domain` path 1 (`org_custom_domains.hostname` match). |
+| `customers.majix.ai` | CF for SaaS fallback — infrastructure only | Never user-visible. If hit directly, falls through to default Majix marketing — acceptable. |
+| `notify.majix.ai` | Resend transactional email sender | SPF + DKIM verified. Outbound: `noreply@notify.majix.ai`. |
 
-Reserved subdomain labels (never assigned as tenant slugs, hard-coded in `get_org_by_domain` + `DomainBrandingProvider` `SYSTEM_HOST_PATTERNS`): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`.
+Routes are defined in `wrangler.jsonc`. The `*.majix.ai/*` wildcard does NOT match the apex (Cloudflare requires a non-empty label), so `majix.ai/*` needs its own explicit row. More-specific rows (`app`, `www`, `customers`) take precedence over the wildcard at the edge.
 
-Tenant theming: `DomainBrandingProvider` calls `get_org_by_domain(hostname)` which resolves both custom hostnames (path 1, `organizations.custom_domain` match) AND `<slug>.majix.ai` subdomains (path 2, slug match). Reserved labels short-circuit to NULL on the server side too.
+Reserved subdomain labels (never tenant slugs, blocked at both DB and client layers): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in:
+- `get_org_by_domain` (migration `20260518020000_get_org_by_domain_majix_subdomain.sql`) — returns NULL early when the label is reserved
+- `DomainBrandingProvider.SYSTEM_HOST_PATTERNS` — short-circuits the RPC call client-side
+
+Tenant theming: `DomainBrandingProvider` reads `window.location.hostname`, skips the lookup for system hosts, otherwise calls `get_org_by_domain(host)`. The RPC has two paths: (1) verified custom hostname via `org_custom_domains` join, (2) slug match for `<label>.majix.ai`. Both return a `json` blob with `id`, `slug`, `brand_name`, `logo_url`, `favicon_url`, `font_family`, `primary_color`, `secondary_color`, `accent_color`, `sidebar_color`, `button_color`, `is_reseller`, `support_email`, `verified`. Majix subdomains always return `verified=true` (we own the parent zone + wildcard cert).
 
 If a feature looks like it only matters for resellers and the audit suggests killing it: **keep it.** Reseller path is core, not optional.
 
