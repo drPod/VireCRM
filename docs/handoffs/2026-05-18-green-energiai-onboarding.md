@@ -11,6 +11,40 @@
 
 > Continue the Green EnergiAi onboarding + energy-broker CRM build from `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Read the handoff, jump to the **"What's done / what's next"** section, pick first unchecked step. Caveman mode. Don't re-litigate decisions in the **"Decisions locked"** section. Append progress to **"What's done / what's next"** before context fills. Verify before claiming done per CLAUDE.md.
 
+## Continue here (handoff for next session, 2026-05-18)
+
+**Done in session 1 (commits `30f3a54`, `e0ada67`, latest pending Step 2 commit):**
+- Step 0 — tenant provisioned, `greenenergiai.majix.ai` renders white-label, agent-browser smoke ✓
+- Step 1 — schema migration `20260518200618_energy_broker_fields.sql` applied, `commission_value` generated column math verified
+- Step 2 — `ImportLeadsDialog.tsx` parses + inserts all energy fields. Typecheck + build clean. Not yet user-walked through dev server.
+
+**Pick up at Step 3** (AI mapper prompt update — `src/functions/import-mapping.functions.ts`). Cheap step. Then Step 4 (backfill toggle, also localized to `ImportLeadsDialog.tsx`). PR boundary per handoff cadence is "PR 1 = steps 0-3" — Step 3 is the natural end of PR 1.
+
+**Before opening PR 1**, run an end-to-end dev-server walk:
+1. `bash scripts/restart-dev.sh` (fresh env bake — `VITE_SUPABASE_URL` is critical)
+2. Sign in as Crystal — issue her a one-shot magic-link first:
+   ```bash
+   set -a; source .env; set +a
+   curl -s -X POST "$SUPABASE_URL/auth/v1/admin/generate_link" \
+     -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+     -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"type":"magiclink","email":"crystal@greenenergiai.com","options":{"redirect_to":"https://greenenergiai.majix.ai/"}}'
+   ```
+   That returns the action link. Don't share it with Crystal yet — it's for dev verification.
+3. Open Import dialog, upload `Copy of NGP MASTER LIST - Copy.xlsx` (gitignored at repo root), confirm preview shows ESI/address/mils/cost/dates/title/deal_name columns populated.
+4. Click Import. Query `SELECT name, esi_id, service_address, annual_kwh, cost_per_kwh, agent_mils, contract_start_date, contract_end_date, commission_value FROM public.leads WHERE organization_id='c31c2a18-f595-499d-9353-f3cd1d9e659b' LIMIT 5;` and confirm every column populates per row.
+
+**Known state at handoff:**
+- Crystal's user: `b5ae0c3e-1655-48d5-b211-a9fd55aaafea`, org: `c31c2a18-f595-499d-9353-f3cd1d9e659b`, slug `greenenergiai`, owner role on the org.
+- Migration timestamp drift: handoff originally specced `20260518030000_*`, but `supabase migration new` stamped `20260518200618_*` (UTC at run time). Both work; the file's content matches the plan with the `age()` → date-subtraction fix.
+- `bunfig.toml`, `bun.lock`, vite config — all clean post-Lovable cleanup (yesterday's session). Don't reopen.
+
+**Open questions still queued** (don't block code progress, see "Open questions" section below):
+- Logo + brand colors for Green EnergiAi (Crystal hasn't sent assets yet)
+- Multi-ESI customer policy (current v1 hack: comma-separated in `esi_id text`)
+- "Total contract value" interpretation lock (mils-based per Decision 4; confirm next call)
+
 ---
 
 ## Customer context
@@ -219,7 +253,20 @@ create index if not exists idx_leads_esi on public.leads(organization_id, esi_id
 - Existing rows get `commission_value = 0` (all inputs null → coalesce zeros). Fine.
 - RLS already filters by `organization_id` on `leads` — no extra policy needed.
 
-### Step 2 — Fix import insert + expand header dictionary `[ ]`
+### Step 2 — Fix import insert + expand header dictionary `[x]` (2026-05-18)
+
+- [x] `ParsedLead` extended with `title`, `deal_name`, `service_address`, `esi_id`, `contract_start_date`, `cost_per_kwh`, `agent_mils`.
+- [x] Added 7 new header dictionaries (`ESI_HEADERS`, `ADDRESS_HEADERS`, `TITLE_HEADERS`, `DEAL_NAME_HEADERS`, `CONTRACT_START_HEADERS`, `COST_PER_KWH_HEADERS`, `MILS_HEADERS`).
+- [x] Added two parsers: `parseCostPerKwh` (strips `$`, `¢`, `/kwh`; ≥1 = cents → divide by 100; <1 = dollars verbatim → snaps to numeric(8,5) precision) and `parseMils` (strips `mils`, accepts bare ints or "0.003" → 3 mils; snaps to numeric(6,3)).
+- [x] Renamed `parseContractEndDate` → `parseContractDate` (same logic, reused for start date too).
+- [x] `IndexMap` interface grew 7 fields; CSV path + XLSX path + AI-fallback path all find + pass the new indices.
+- [x] `buildLeadsFromIndices` emits every new field; soft warnings for unparseable cost/mils/dates, never blocks the row.
+- [x] **Critical fix** — insert payload now writes `title`, `deal_name`, `service_address`, `esi_id`, `annual_kwh`, `contract_start_date`, `contract_end_date`, `current_supplier`, `cost_per_kwh`, `agent_mils`. Earlier pipeline parsed these then silently dropped them at insert — that bug is what Crystal hit.
+- [x] `bun run typecheck` + `bun run build` clean.
+
+**Browser smoke test deferred** — see Step 8 + the "Continue here" note at the bottom of this doc. Reason: subagent context budget. The right test = actually upload Crystal's xlsx in `bun run dev`, sign in as Crystal (`crystal@greenenergiai.com` — magic-link issuance is Step 8), open Import dialog, confirm every column populates. That walk needs a fresh agent session.
+
+~~Original Step 2 plan (kept for diff context):~~
 
 File: `src/components/crm/ImportLeadsDialog.tsx`
 

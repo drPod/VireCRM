@@ -36,12 +36,26 @@ interface ParsedLead {
   score?: number;
   notes?: string;
   source?: string;
+  /** Contact's job title at the customer org. */
+  title?: string;
+  /** Agent-set deal label (e.g. "Acme Q3 Renewal"). */
+  deal_name?: string;
+  /** Physical service address of metered location. */
+  service_address?: string;
+  /** Texas ESID(s). Comma-separated for multi-meter customers (v1). */
+  esi_id?: string;
   /** Annual electricity usage in kWh (energy-broker workflow). */
   annual_kwh?: number | null;
+  /** Contract start date as ISO YYYY-MM-DD. */
+  contract_start_date?: string | null;
   /** Contract end date as ISO YYYY-MM-DD. */
   contract_end_date?: string | null;
   /** Current energy supplier name. */
   current_supplier?: string | null;
+  /** Supplier wholesale rate, $/kWh. */
+  cost_per_kwh?: number | null;
+  /** Broker commission rate in mils ($0.001/kWh). */
+  agent_mils?: number | null;
 }
 
 /** Per-row warning/error captured during parsing — surfaced to the user. */
@@ -118,6 +132,43 @@ const SUPPLIER_HEADERS = [
   "incumbent supplier",
   "current provider",
 ];
+const ESI_HEADERS = [
+  "esi",
+  "esi id",
+  "esi number",
+  "esid",
+  "meter",
+  "meter number",
+  "meter #",
+  "esi #",
+];
+const ADDRESS_HEADERS = [
+  "address",
+  "service address",
+  "premises address",
+  "site address",
+  "location",
+  "premise address",
+];
+const TITLE_HEADERS = ["title", "job title", "role", "position"];
+const DEAL_NAME_HEADERS = ["deal name", "deal", "opportunity", "opportunity name"];
+const CONTRACT_START_HEADERS = [
+  "contract start",
+  "contract start date",
+  "start date",
+  "effective date",
+  "csd",
+];
+const COST_PER_KWH_HEADERS = [
+  "cost per kwh",
+  "rate",
+  "supplier rate",
+  "cost/kwh",
+  "price per kwh",
+  "$/kwh",
+  "cost",
+];
+const MILS_HEADERS = ["mils", "agent mils", "broker mils", "margin", "spread"];
 
 const normalizeHeader = (key: string) => key.trim().toLowerCase().replace(/['"]/g, "");
 
@@ -155,9 +206,16 @@ function parseCSV(text: string): ParseOutcome {
   const scoreIdx = normalized.findIndex((h) => SCORE_HEADERS.includes(h));
   const notesIdx = normalized.findIndex((h) => NOTES_HEADERS.includes(h));
   const sourceIdx = normalized.findIndex((h) => SOURCE_HEADERS.includes(h));
+  const titleIdx = normalized.findIndex((h) => TITLE_HEADERS.includes(h));
+  const dealNameIdx = normalized.findIndex((h) => DEAL_NAME_HEADERS.includes(h));
+  const addressIdx = normalized.findIndex((h) => ADDRESS_HEADERS.includes(h));
+  const esiIdx = normalized.findIndex((h) => ESI_HEADERS.includes(h));
   const annualKwhIdx = normalized.findIndex((h) => ANNUAL_KWH_HEADERS.includes(h));
+  const contractStartIdx = normalized.findIndex((h) => CONTRACT_START_HEADERS.includes(h));
   const contractEndIdx = normalized.findIndex((h) => CONTRACT_END_HEADERS.includes(h));
   const supplierIdx = normalized.findIndex((h) => SUPPLIER_HEADERS.includes(h));
+  const costPerKwhIdx = normalized.findIndex((h) => COST_PER_KWH_HEADERS.includes(h));
+  const milsIdx = normalized.findIndex((h) => MILS_HEADERS.includes(h));
 
   return buildLeadsFromIndices({
     rows: dataRows,
@@ -170,9 +228,16 @@ function parseCSV(text: string): ParseOutcome {
     scoreIdx,
     notesIdx,
     sourceIdx,
+    titleIdx,
+    dealNameIdx,
+    addressIdx,
+    esiIdx,
     annualKwhIdx,
+    contractStartIdx,
     contractEndIdx,
     supplierIdx,
+    costPerKwhIdx,
+    milsIdx,
     defaultSource: "csv_import",
   });
 }
@@ -266,9 +331,16 @@ function parseXLSX(buffer: ArrayBuffer): ParseOutcome {
   const scoreIdx = normalized.findIndex((h) => SCORE_HEADERS.includes(h));
   const notesIdx = normalized.findIndex((h) => NOTES_HEADERS.includes(h));
   const sourceIdx = normalized.findIndex((h) => SOURCE_HEADERS.includes(h));
+  const titleIdx = normalized.findIndex((h) => TITLE_HEADERS.includes(h));
+  const dealNameIdx = normalized.findIndex((h) => DEAL_NAME_HEADERS.includes(h));
+  const addressIdx = normalized.findIndex((h) => ADDRESS_HEADERS.includes(h));
+  const esiIdx = normalized.findIndex((h) => ESI_HEADERS.includes(h));
   const annualKwhIdx = normalized.findIndex((h) => ANNUAL_KWH_HEADERS.includes(h));
+  const contractStartIdx = normalized.findIndex((h) => CONTRACT_START_HEADERS.includes(h));
   const contractEndIdx = normalized.findIndex((h) => CONTRACT_END_HEADERS.includes(h));
   const supplierIdx = normalized.findIndex((h) => SUPPLIER_HEADERS.includes(h));
+  const costPerKwhIdx = normalized.findIndex((h) => COST_PER_KWH_HEADERS.includes(h));
+  const milsIdx = normalized.findIndex((h) => MILS_HEADERS.includes(h));
 
   return buildLeadsFromIndices({
     rows: dataRows,
@@ -281,9 +353,16 @@ function parseXLSX(buffer: ArrayBuffer): ParseOutcome {
     scoreIdx,
     notesIdx,
     sourceIdx,
+    titleIdx,
+    dealNameIdx,
+    addressIdx,
+    esiIdx,
     annualKwhIdx,
+    contractStartIdx,
     contractEndIdx,
     supplierIdx,
+    costPerKwhIdx,
+    milsIdx,
     defaultSource: "xlsx_import",
   });
 }
@@ -300,9 +379,16 @@ interface IndexMap {
   scoreIdx: number;
   notesIdx: number;
   sourceIdx: number;
+  titleIdx: number;
+  dealNameIdx: number;
+  addressIdx: number;
+  esiIdx: number;
   annualKwhIdx: number;
+  contractStartIdx: number;
   contractEndIdx: number;
   supplierIdx: number;
+  costPerKwhIdx: number;
+  milsIdx: number;
   defaultSource: string;
 }
 
@@ -325,6 +411,40 @@ function parseAnnualKwh(raw: string): number | null {
 }
 
 /**
+ * Parse a $/kWh rate. Accepts "$0.085", "0.085", "8.5¢", "85", "85.5".
+ * Bare ints ≥1 are treated as cents (Crystal's spreadsheet style: "8.5" =
+ * 8.5¢/kWh = $0.085); anything <1 is taken as dollars verbatim. Returns
+ * dollars-per-kWh as numeric, or null if unparseable.
+ */
+function parseCostPerKwh(raw: string): number | null {
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  const cleaned = s.replace(/[$,\s]/g, "").replace(/¢$/, "").replace(/\/kwh$/, "");
+  const n = Number(cleaned);
+  if (!Number.isFinite(n) || n < 0) return null;
+  // Heuristic: >= 1 = cents/kWh (e.g. "8.5"), divide by 100. Else dollars.
+  const dollars = n >= 1 ? n / 100 : n;
+  // numeric(8,5) caps at ~999.99999 — well above any real rate.
+  return Math.round(dollars * 100000) / 100000;
+}
+
+/**
+ * Parse agent commission in mils ($0.001/kWh). Accepts "3", "3.0", "3 mils",
+ * "$0.003" (interpreted as 3 mils). Returns mils-per-kWh as numeric.
+ */
+function parseMils(raw: string): number | null {
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  const cleaned = s.replace(/[$,\s]/g, "").replace(/mils?$/, "");
+  const n = Number(cleaned);
+  if (!Number.isFinite(n) || n < 0) return null;
+  // Bare decimals like "0.003" → 3 mils. Whole numbers like "3" → 3 mils.
+  const mils = n > 0 && n < 1 ? n * 1000 : n;
+  // numeric(6,3) caps at 999.999.
+  return Math.round(mils * 1000) / 1000;
+}
+
+/**
  * Parse a contract end date cell into ISO YYYY-MM-DD. Accepts:
  * - YYYY-MM-DD / YYYY/MM/DD
  * - DD/MM/YYYY or DD-MM-YYYY (UK convention — common in energy contracts)
@@ -332,7 +452,7 @@ function parseAnnualKwh(raw: string): number | null {
  * - Anything Date.parse() understands as a last resort.
  * Returns null when the cell is blank or unparseable.
  */
-function parseContractEndDate(raw: string): string | null {
+function parseContractDate(raw: string): string | null {
   const s = raw.trim();
   if (!s) return null;
 
@@ -416,11 +536,22 @@ function buildLeadsFromIndices(m: IndexMap): ParseOutcome {
       }
     }
 
+    let contractStart: string | null = null;
+    if (m.contractStartIdx >= 0) {
+      const rawDate = (row[m.contractStartIdx] ?? "").toString();
+      if (rawDate.trim()) {
+        contractStart = parseContractDate(rawDate);
+        if (contractStart === null) {
+          issues.push({ row: rowNum, message: `unreadable contract start date "${rawDate}"` });
+        }
+      }
+    }
+
     let contractEnd: string | null = null;
     if (m.contractEndIdx >= 0) {
       const rawDate = (row[m.contractEndIdx] ?? "").toString();
       if (rawDate.trim()) {
-        contractEnd = parseContractEndDate(rawDate);
+        contractEnd = parseContractDate(rawDate);
         if (contractEnd === null) {
           issues.push({ row: rowNum, message: `unreadable contract end date "${rawDate}"` });
         }
@@ -429,6 +560,28 @@ function buildLeadsFromIndices(m: IndexMap): ParseOutcome {
 
     const supplier =
       m.supplierIdx >= 0 ? (row[m.supplierIdx] ?? "").toString().trim() || null : null;
+
+    let costPerKwh: number | null = null;
+    if (m.costPerKwhIdx >= 0) {
+      const rawCost = (row[m.costPerKwhIdx] ?? "").toString();
+      if (rawCost.trim()) {
+        costPerKwh = parseCostPerKwh(rawCost);
+        if (costPerKwh === null) {
+          issues.push({ row: rowNum, message: `unreadable cost per kWh "${rawCost}"` });
+        }
+      }
+    }
+
+    let agentMils: number | null = null;
+    if (m.milsIdx >= 0) {
+      const rawMils = (row[m.milsIdx] ?? "").toString();
+      if (rawMils.trim()) {
+        agentMils = parseMils(rawMils);
+        if (agentMils === null) {
+          issues.push({ row: rowNum, message: `unreadable mils "${rawMils}"` });
+        }
+      }
+    }
 
     leads.push({
       name,
@@ -443,9 +596,18 @@ function buildLeadsFromIndices(m: IndexMap): ParseOutcome {
         m.sourceIdx >= 0
           ? (row[m.sourceIdx] ?? "").toString().trim() || undefined
           : m.defaultSource,
+      title: m.titleIdx >= 0 ? (row[m.titleIdx] ?? "").toString().trim() || undefined : undefined,
+      deal_name:
+        m.dealNameIdx >= 0 ? (row[m.dealNameIdx] ?? "").toString().trim() || undefined : undefined,
+      service_address:
+        m.addressIdx >= 0 ? (row[m.addressIdx] ?? "").toString().trim() || undefined : undefined,
+      esi_id: m.esiIdx >= 0 ? (row[m.esiIdx] ?? "").toString().trim() || undefined : undefined,
       annual_kwh: annualKwh,
+      contract_start_date: contractStart,
       contract_end_date: contractEnd,
       current_supplier: supplier,
+      cost_per_kwh: costPerKwh,
+      agent_mils: agentMils,
     });
   });
 
@@ -480,13 +642,13 @@ function buildLeadsFromAiMapping(raw: RawSheet, mapping: ImportColumnMapping): P
   const dataRows = mapping.rowOneIsData ? [raw.headers, ...raw.rows] : raw.rows;
   const rowOffset = mapping.rowOneIsData ? 1 : 2;
 
-  // AI mapper doesn't know about energy fields yet — fall back to heuristic
-  // header matching against the raw headers so we still capture them when
-  // present.
+  // AI mapper produces mappings for the common contact/sales fields but not
+  // every energy-broker column yet (Step 3 expands the prompt). Fall back to
+  // heuristic header matching against the raw headers for energy fields so we
+  // still capture them when present.
   const normalizedRawHeaders = raw.headers.map((h) => normalizeHeader(String(h ?? "")));
-  const annualKwhIdx = normalizedRawHeaders.findIndex((h) => ANNUAL_KWH_HEADERS.includes(h));
-  const contractEndIdx = normalizedRawHeaders.findIndex((h) => CONTRACT_END_HEADERS.includes(h));
-  const supplierIdx = normalizedRawHeaders.findIndex((h) => SUPPLIER_HEADERS.includes(h));
+  const findRaw = (dict: readonly string[]) =>
+    normalizedRawHeaders.findIndex((h) => dict.includes(h));
 
   return buildLeadsFromIndices({
     rows: dataRows,
@@ -499,9 +661,16 @@ function buildLeadsFromAiMapping(raw: RawSheet, mapping: ImportColumnMapping): P
     scoreIdx: -1, // AI mapper doesn't produce score yet
     notesIdx: resolveIdx(mapping.fields.notes),
     sourceIdx: resolveIdx(mapping.fields.source),
-    annualKwhIdx,
-    contractEndIdx,
-    supplierIdx,
+    titleIdx: findRaw(TITLE_HEADERS),
+    dealNameIdx: findRaw(DEAL_NAME_HEADERS),
+    addressIdx: findRaw(ADDRESS_HEADERS),
+    esiIdx: findRaw(ESI_HEADERS),
+    annualKwhIdx: findRaw(ANNUAL_KWH_HEADERS),
+    contractStartIdx: findRaw(CONTRACT_START_HEADERS),
+    contractEndIdx: findRaw(CONTRACT_END_HEADERS),
+    supplierIdx: findRaw(SUPPLIER_HEADERS),
+    costPerKwhIdx: findRaw(COST_PER_KWH_HEADERS),
+    milsIdx: findRaw(MILS_HEADERS),
     defaultSource: raw.sheetName === "csv" ? "csv_import" : "xlsx_import",
   });
 }
@@ -683,6 +852,17 @@ export function ImportLeadsDialog({
         score: l.score ?? 50,
         notes: l.notes?.slice(0, 2000) || null,
         source: l.source || "csv_import",
+        // Energy-broker fields — were parsed but dropped pre-Step-2.
+        title: l.title?.slice(0, 100) || null,
+        deal_name: l.deal_name?.slice(0, 200) || null,
+        service_address: l.service_address?.slice(0, 500) || null,
+        esi_id: l.esi_id?.slice(0, 200) || null,
+        annual_kwh: l.annual_kwh ?? null,
+        contract_start_date: l.contract_start_date || null,
+        contract_end_date: l.contract_end_date || null,
+        current_supplier: l.current_supplier?.slice(0, 200) || null,
+        cost_per_kwh: l.cost_per_kwh ?? null,
+        agent_mils: l.agent_mils ?? null,
       }));
 
       const { error, data } = await supabase

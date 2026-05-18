@@ -115,6 +115,35 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-18 — green-energiai step 2: ImportLeadsDialog inserts energy fields
+**Tags:** [green-energiai] [bug] [frontend]
+
+The actual fix for Crystal's complaint ("only Customer Name imported, nothing else"). Pipeline was already parsing `annual_kwh`, `current_supplier`, `contract_end_date` — it just dropped them at the insert payload. Added 7 new fields end-to-end and wired the dropped ones into the insert.
+
+#### Shipped (`src/components/crm/ImportLeadsDialog.tsx`)
+
+- `ParsedLead` interface grew 7 fields (`title`, `deal_name`, `service_address`, `esi_id`, `contract_start_date`, `cost_per_kwh`, `agent_mils`).
+- 7 new header dictionaries added (`ESI_HEADERS` covers "esi"/"esid"/"meter number"; `MILS_HEADERS` covers "mils"/"agent mils"/"margin"/"spread"; etc.).
+- Two new parsers: `parseCostPerKwh` (handles `$0.085`/`8.5¢`/`85` cents-or-dollars heuristic, clamps to numeric(8,5) precision); `parseMils` (handles `3`, `3.0`, `0.003` decimal-or-bare-int heuristic, clamps to numeric(6,3)).
+- Renamed `parseContractEndDate` → `parseContractDate` and reused for `contract_start_date`.
+- `IndexMap` interface grew 7 fields; CSV path, XLSX path, and AI-fallback path all find + pass the new indices. AI fallback uses heuristic raw-header matching for the energy fields until Step 3 expands the AI mapper prompt.
+- `buildLeadsFromIndices` emits every new field; soft-warning per-row on unparseable cost/mils/dates rather than blocking the row.
+- **Critical fix** at the batch-insert payload (was line 675-686): now writes `title`, `deal_name`, `service_address`, `esi_id`, `annual_kwh`, `contract_start_date`, `contract_end_date`, `current_supplier`, `cost_per_kwh`, `agent_mils`. These were ALL parsed and discarded pre-fix.
+
+#### Verification
+
+- `bun run typecheck` → clean.
+- `bun run build` → ✓ built in 6.86s.
+- Not yet user-walked through dev server. Next session should: `scripts/restart-dev.sh`, sign in as Crystal via Auth Admin API magic-link, upload her xlsx, query DB for filled columns. Recipe in handoff doc "Continue here" block.
+
+#### Found
+
+- Verified `deal_name: string` (non-null) at types.ts:1532/1556 belongs to a separate `energy_customers` table, not the `leads` table I edited. Leads schema correctly nullable across all new fields.
+
+#### Manual follow-up (user)
+
+- None yet. Step 3 (AI mapper prompt) finishes off PR 1.
+
 ### 2026-05-18 — green-energiai step 1: energy-broker schema migration
 **Tags:** [green-energiai] [supabase]
 
