@@ -21,7 +21,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
-- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18, subdomain live, see Recent) → (1) schema migration `20260518030000_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column → (2) fix `ImportLeadsDialog.tsx:675-686` insert (currently parses energy fields then drops them) → (3) AI mapper prompt update → (4) historical-backfill toggle → (5) Pricing tab → (6) Clients tab → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
+- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18) → ~~(1) schema migration `20260518200618_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column~~ (done 2026-05-18) → ~~(2) fix `ImportLeadsDialog.tsx` insert (parsed energy fields then dropped them)~~ (done 2026-05-18) → ~~(3) AI mapper prompt update~~ (done 2026-05-18) → (4) historical-backfill toggle → (5) Pricing tab → (6) Clients tab → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -114,6 +114,32 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-18 — green-energiai step 3: AI mapper teaches itself the energy schema
+**Tags:** [green-energiai] [frontend] [ai]
+
+PR 1 closer. AI column mapper (`src/functions/import-mapping.functions.ts`) only knew about 7 contact fields; energy-broker sheets had to ride the raw-header heuristic fallback even when the AI fired. Now the mapper itself can hit ESID/Supplier/Mils/etc. with disambiguation rules for the easy-to-confuse pairs.
+
+#### Shipped (`src/functions/import-mapping.functions.ts`)
+
+- `ImportColumnMapping.fields` extended with 10 energy fields (`title`, `deal_name`, `service_address`, `esi_id`, `annual_kwh`, `current_supplier`, `contract_start_date`, `contract_end_date`, `cost_per_kwh`, `agent_mils`). Extracted shared `FieldSource` type alias.
+- `callAiWithFallback` result type + tool schema grew matching `<field>_source` props (optional / nullable; only `row_one_is_data` + `explanation` remain required).
+- System prompt rewritten: split into "Standard contact fields" + "Energy-broker fields (leave null for non-energy imports)". Each energy field documented with header synonyms — ESID/Meter Number, Annual kWh/Usage, REP/Provider, $/kWh/Rate, Mils/Margin. Two disambiguation rules: `current_supplier` vs `source` (energy retailer vs lead source), `company` vs `deal_name` (customer org vs broker-set deal label).
+- `resolve(...)` block returns the 10 new fields via the existing positional/header parser — no behaviour change required for the resolver itself.
+
+#### Shipped (`src/components/crm/ImportLeadsDialog.tsx`)
+
+- `buildLeadsFromAiMapping` now prefers AI energy indices, with raw-header heuristic as fallback via new `aiOrHeuristic(aiIdx, dict)` shim. Belt-and-suspenders: AI miss on a column we can still see by name doesn't lose the data.
+
+#### Verification
+
+- `bun run typecheck` clean.
+- `bun run build` clean (6.78s, no new warnings).
+- Real-XLSX confirmation deferred to end-to-end dev-server walk (Step 8 prerequisite per handoff).
+
+#### Manual follow-up (user)
+
+- Same Step-8 walk as the Step 2 entry — once PR 1 lands, restart dev server, issue Crystal's magic link, upload her xlsx, confirm the import dialog preview hits every energy column.
 
 ### 2026-05-18 — green-energiai step 2: ImportLeadsDialog inserts energy fields
 **Tags:** [green-energiai] [bug] [frontend]

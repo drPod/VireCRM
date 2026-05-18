@@ -642,13 +642,14 @@ function buildLeadsFromAiMapping(raw: RawSheet, mapping: ImportColumnMapping): P
   const dataRows = mapping.rowOneIsData ? [raw.headers, ...raw.rows] : raw.rows;
   const rowOffset = mapping.rowOneIsData ? 1 : 2;
 
-  // AI mapper produces mappings for the common contact/sales fields but not
-  // every energy-broker column yet (Step 3 expands the prompt). Fall back to
-  // heuristic header matching against the raw headers for energy fields so we
-  // still capture them when present.
+  // AI mapper covers energy fields as of Step 3, but keep heuristic header
+  // matching as a fallback when the AI returns null on a column we can still
+  // see by name (e.g. it skipped "ESI" because the row sample was sparse).
   const normalizedRawHeaders = raw.headers.map((h) => normalizeHeader(String(h ?? "")));
   const findRaw = (dict: readonly string[]) =>
     normalizedRawHeaders.findIndex((h) => dict.includes(h));
+  const aiOrHeuristic = (src: ReturnType<typeof resolveIdx> | number, dict: readonly string[]) =>
+    typeof src === "number" && src >= 0 ? src : findRaw(dict);
 
   return buildLeadsFromIndices({
     rows: dataRows,
@@ -661,16 +662,22 @@ function buildLeadsFromAiMapping(raw: RawSheet, mapping: ImportColumnMapping): P
     scoreIdx: -1, // AI mapper doesn't produce score yet
     notesIdx: resolveIdx(mapping.fields.notes),
     sourceIdx: resolveIdx(mapping.fields.source),
-    titleIdx: findRaw(TITLE_HEADERS),
-    dealNameIdx: findRaw(DEAL_NAME_HEADERS),
-    addressIdx: findRaw(ADDRESS_HEADERS),
-    esiIdx: findRaw(ESI_HEADERS),
-    annualKwhIdx: findRaw(ANNUAL_KWH_HEADERS),
-    contractStartIdx: findRaw(CONTRACT_START_HEADERS),
-    contractEndIdx: findRaw(CONTRACT_END_HEADERS),
-    supplierIdx: findRaw(SUPPLIER_HEADERS),
-    costPerKwhIdx: findRaw(COST_PER_KWH_HEADERS),
-    milsIdx: findRaw(MILS_HEADERS),
+    titleIdx: aiOrHeuristic(resolveIdx(mapping.fields.title), TITLE_HEADERS),
+    dealNameIdx: aiOrHeuristic(resolveIdx(mapping.fields.deal_name), DEAL_NAME_HEADERS),
+    addressIdx: aiOrHeuristic(resolveIdx(mapping.fields.service_address), ADDRESS_HEADERS),
+    esiIdx: aiOrHeuristic(resolveIdx(mapping.fields.esi_id), ESI_HEADERS),
+    annualKwhIdx: aiOrHeuristic(resolveIdx(mapping.fields.annual_kwh), ANNUAL_KWH_HEADERS),
+    contractStartIdx: aiOrHeuristic(
+      resolveIdx(mapping.fields.contract_start_date),
+      CONTRACT_START_HEADERS,
+    ),
+    contractEndIdx: aiOrHeuristic(
+      resolveIdx(mapping.fields.contract_end_date),
+      CONTRACT_END_HEADERS,
+    ),
+    supplierIdx: aiOrHeuristic(resolveIdx(mapping.fields.current_supplier), SUPPLIER_HEADERS),
+    costPerKwhIdx: aiOrHeuristic(resolveIdx(mapping.fields.cost_per_kwh), COST_PER_KWH_HEADERS),
+    milsIdx: aiOrHeuristic(resolveIdx(mapping.fields.agent_mils), MILS_HEADERS),
     defaultSource: raw.sheetName === "csv" ? "csv_import" : "xlsx_import",
   });
 }

@@ -13,12 +13,15 @@
 
 ## Continue here (handoff for next session, 2026-05-18)
 
-**Done in session 1 (commits `30f3a54`, `e0ada67`, latest pending Step 2 commit):**
+**Done in session 1 (commits `30f3a54`, `e0ada67`, `554580a`):**
 - Step 0 — tenant provisioned, `greenenergiai.majix.ai` renders white-label, agent-browser smoke ✓
 - Step 1 — schema migration `20260518200618_energy_broker_fields.sql` applied, `commission_value` generated column math verified
 - Step 2 — `ImportLeadsDialog.tsx` parses + inserts all energy fields. Typecheck + build clean. Not yet user-walked through dev server.
 
-**Pick up at Step 3** (AI mapper prompt update — `src/functions/import-mapping.functions.ts`). Cheap step. Then Step 4 (backfill toggle, also localized to `ImportLeadsDialog.tsx`). PR boundary per handoff cadence is "PR 1 = steps 0-3" — Step 3 is the natural end of PR 1.
+**Done in session 2 (commit pending below):**
+- Step 3 — AI mapper prompt + schema updated for 10 energy fields (`src/functions/import-mapping.functions.ts`). `buildLeadsFromAiMapping` reads AI energy indices first, falls back to raw-header heuristic. Typecheck + build clean.
+
+**Pick up at Step 4** (historical backfill toggle in `ImportLeadsDialog.tsx`). Then end-to-end dev-server walk (below) before opening PR 1. Alternatively, PR 1 can ship with steps 0-3 as-is and Step 4 goes into PR 2.
 
 **Before opening PR 1**, run an end-to-end dev-server walk:
 1. `bash scripts/restart-dev.sh` (fresh env bake — `VITE_SUPABASE_URL` is critical)
@@ -313,14 +316,18 @@ File: `src/components/crm/ImportLeadsDialog.tsx`
 
 **Verification:** drop Crystal's xlsx into the import dialog in dev (`bun run dev`, login as Crystal's user, navigate to leads, open Import). Confirm preview shows all energy fields. After import, query `select * from leads where organization_id = '<crystal-org-id>' limit 5;` — every column should populate.
 
-### Step 3 — AI mapper prompt update `[ ]`
+### Step 3 — AI mapper prompt update `[x]` (2026-05-18)
 
-File: `src/functions/import-mapping.functions.ts`
+- [x] `ImportColumnMapping.fields` extended with 10 energy-broker fields (`title`, `deal_name`, `service_address`, `esi_id`, `annual_kwh`, `current_supplier`, `contract_start_date`, `contract_end_date`, `cost_per_kwh`, `agent_mils`). Extracted shared `FieldSource` alias to keep the type declaration legible.
+- [x] `callAiWithFallback` result type + `toolSchema` properties grew matching `<field>_source` entries (still optional / nullable; only `row_one_is_data` + `explanation` required).
+- [x] System prompt now defines the energy-broker schema inline: field semantics + canonical header synonyms (ESID, Meter Number, Annual kWh, Supplier vs Source disambiguation, REP, Rate, $/kWh, Mils). Added two disambiguation rules: supplier vs lead source, company vs deal_name. Tells the AI to leave energy fields null on plain contact imports — no garbage-mapping pressure for non-energy tenants.
+- [x] `resolve(...)` block in the handler returns the 10 new fields; existing positional/header parser handles them identically to standard contact fields (no behaviour change required for the resolver itself).
+- [x] `ImportLeadsDialog.tsx` `buildLeadsFromAiMapping` now reads AI energy mappings first, falls back to raw-header heuristic via new `aiOrHeuristic(...)` shim. Belt-and-suspenders: AI miss on a column we can still see by name doesn't lose the data.
+- [x] `bun run typecheck` clean. `bun run build` clean (6.78s, no new warnings).
 
-- [ ] Read current AI mapper system prompt
-- [ ] Add the new canonical field names (`deal_name`, `esi_id`, `service_address`, `title`, `annual_kwh`, `current_supplier`, `contract_start_date`, `contract_end_date`, `cost_per_kwh`, `agent_mils`) to the mapper schema
-- [ ] Include examples from energy domain ("ESID" → `esi_id`, "Rate" → `cost_per_kwh`, "Mils" → `agent_mils`)
-- [ ] Verify with a deliberately mis-headered xlsx (e.g. headers shifted, abbreviated)
+**Verification debt (Step 8 walk):** real-XLSX confirmation that the AI mapper hits Crystal's headers is part of the end-to-end Step 8 dev-server walk. Until then the heuristic fallback covers her sheet — the AI mapper only fires when heuristic header detection fails to find a `name` column.
+
+**PR 1 ready.** Steps 0-3 land together. Branch + PR description still to write.
 
 ### Step 4 — Historical backfill toggle `[ ]`
 

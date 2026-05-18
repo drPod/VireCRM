@@ -24,16 +24,30 @@ const inputSchema = z.object({
   sampleRows: z.array(z.array(z.string())).max(5),
 });
 
+type FieldSource = { kind: "header"; key: string } | { kind: "index"; index: number } | null;
+
 export interface ImportColumnMapping {
   /** Field-to-source mapping. Source is either a header key or a positional column index. */
   fields: {
-    name?: { kind: "header"; key: string } | { kind: "index"; index: number } | null;
-    email?: { kind: "header"; key: string } | { kind: "index"; index: number } | null;
-    phone?: { kind: "header"; key: string } | { kind: "index"; index: number } | null;
-    company?: { kind: "header"; key: string } | { kind: "index"; index: number } | null;
-    status?: { kind: "header"; key: string } | { kind: "index"; index: number } | null;
-    notes?: { kind: "header"; key: string } | { kind: "index"; index: number } | null;
-    source?: { kind: "header"; key: string } | { kind: "index"; index: number } | null;
+    name?: FieldSource;
+    email?: FieldSource;
+    phone?: FieldSource;
+    company?: FieldSource;
+    status?: FieldSource;
+    notes?: FieldSource;
+    source?: FieldSource;
+    // Energy-broker fields (Step 3). All optional — only Texas energy-broker
+    // sheets carry these; standard contact imports leave them null.
+    title?: FieldSource;
+    deal_name?: FieldSource;
+    service_address?: FieldSource;
+    esi_id?: FieldSource;
+    annual_kwh?: FieldSource;
+    current_supplier?: FieldSource;
+    contract_start_date?: FieldSource;
+    contract_end_date?: FieldSource;
+    cost_per_kwh?: FieldSource;
+    agent_mils?: FieldSource;
   };
   /** True when row 1 looks like data, not headers. Caller should NOT skip it. */
   rowOneIsData: boolean;
@@ -75,6 +89,16 @@ export const mapImportColumnsFn = createServerFn({ method: "POST" })
       status_source?: string | null;
       notes_source?: string | null;
       source_source?: string | null;
+      title_source?: string | null;
+      deal_name_source?: string | null;
+      service_address_source?: string | null;
+      esi_id_source?: string | null;
+      annual_kwh_source?: string | null;
+      current_supplier_source?: string | null;
+      contract_start_date_source?: string | null;
+      contract_end_date_source?: string | null;
+      cost_per_kwh_source?: string | null;
+      agent_mils_source?: string | null;
       row_one_is_data: boolean;
       explanation: string;
     }>({
@@ -85,27 +109,41 @@ export const mapImportColumnsFn = createServerFn({ method: "POST" })
       toolName: "map_import_columns",
       toolDescription:
         "Map spreadsheet columns to lead CRM fields. Each *_source value is either the literal header text (string) or a positional column index in the form '#N' (e.g. '#0', '#3'). Use null when the field is not present. row_one_is_data must be true when the values in row 1 look like real data (numbers, dates, names) rather than column labels.",
-      systemPrompt: `You map messy spreadsheet columns to a CRM lead schema.
+      systemPrompt: `You map messy spreadsheet columns to a CRM lead schema. Some tenants are Texas energy brokers, so the schema includes energy-contract fields alongside standard contact fields.
 
-Lead fields you can map:
+Standard contact fields:
 - name (REQUIRED — the contact's full name; can be assembled from first/last name columns if a single column has full name)
 - email
 - phone
 - company / organization
+- title (contact's job title at their company, e.g. "Owner", "CFO", "Facilities Manager")
 - status (new, contacted, qualified, negotiation, won, lost)
 - notes / description / comments
-- source (where the lead came from — referral, website, csv_import, etc.)
+- source (where the LEAD came from — referral, website, csv_import, etc. Do NOT confuse with energy supplier.)
+
+Energy-broker fields (leave null when sheet is a plain contact import):
+- deal_name — per-deal label set by the broker, e.g. "ACME HQ Renewal", "Smith Bakery 2026"
+- service_address — physical address of the metered location (often "Service Address", "Premises Address", "Site Address", or just "Address")
+- esi_id — Texas ESID (Electric Service Identifier). 17-digit meter number, usually starts with "1044…" in Crystal's data. Headers: "ESI", "ESID", "ESI Number", "Meter Number", "Meter #". Critical field — never miss it when it's in the sheet.
+- annual_kwh — annual electricity usage in kilowatt-hours. Headers: "Annual Usage", "Annual kWh", "Usage", "kWh", "kWh/yr".
+- current_supplier — the energy retailer (TXU, Reliant, Constellation, Direct Energy, NRG, etc.). Headers: "Supplier", "Current Supplier", "REP", "Provider". This is the ENERGY supplier, NOT the lead source.
+- contract_start_date — start date of the supply contract. Headers: "Contract Start", "Start Date", "Effective Date", "CSD".
+- contract_end_date — end date of the supply contract. Headers: "Contract End", "End Date", "Expiration", "CED".
+- cost_per_kwh — supplier's wholesale rate in $/kWh, e.g. 0.085. Headers: "Cost per kWh", "Rate", "Supplier Rate", "$/kWh", "Price per kWh".
+- agent_mils — broker commission in mils ($0.001/kWh units). Numeric, often a small integer like 2, 3, 4. Headers: "Mils", "Agent Mils", "Broker Mils", "Margin", "Spread".
 
 Rules:
 1. Each *_source value must be EITHER:
    - The exact header string from the "Detected headers" list, OR
    - A positional reference like "#0", "#1", "#2" pointing at a column index from the sample rows.
-2. Use null when no column maps to that field.
+2. Use null when no column maps to that field. Leave energy fields null on plain contact imports.
 3. Set row_one_is_data=true when the "headers" list is clearly data (numbers, dates, person names, addresses) rather than column labels — this means there's no real header row and we should treat all rows as data.
 4. Set row_one_is_data=false when the headers look like real labels (e.g. "Name", "Email", "Phone", "Company").
 5. Prefer header strings over indices when a real header exists.
 6. The "name" field is required — pick the column with full names or the most name-like column. If the data has separate first/last name columns, pick the one closer to a full name.
-7. Keep explanation under 200 characters.`,
+7. Disambiguate supplier vs source: "Supplier"/"REP"/"Provider" → current_supplier; "Source"/"Lead Source"/"Origin" → source.
+8. Disambiguate company vs deal_name: "Company"/"Organization"/"Account" → company; "Deal"/"Opportunity"/"Deal Name" → deal_name.
+9. Keep explanation under 200 characters.`,
       userPrompt: `Detected headers (${trimmedHeaders.length}): ${trimmedHeaders.map((h, i) => `[${i}] "${truncate(h, 60)}"`).join(", ")}
 
 First ${data.sampleRows.length} data row${data.sampleRows.length === 1 ? "" : "s"}:
@@ -120,6 +158,16 @@ ${previewRows}`,
           status_source: { type: ["string", "null"] },
           notes_source: { type: ["string", "null"] },
           source_source: { type: ["string", "null"] },
+          title_source: { type: ["string", "null"] },
+          deal_name_source: { type: ["string", "null"] },
+          service_address_source: { type: ["string", "null"] },
+          esi_id_source: { type: ["string", "null"] },
+          annual_kwh_source: { type: ["string", "null"] },
+          current_supplier_source: { type: ["string", "null"] },
+          contract_start_date_source: { type: ["string", "null"] },
+          contract_end_date_source: { type: ["string", "null"] },
+          cost_per_kwh_source: { type: ["string", "null"] },
+          agent_mils_source: { type: ["string", "null"] },
           row_one_is_data: { type: "boolean" },
           explanation: { type: "string" },
         },
@@ -127,9 +175,7 @@ ${previewRows}`,
       },
     });
 
-    const resolve = (
-      raw: string | null | undefined,
-    ): { kind: "header"; key: string } | { kind: "index"; index: number } | null => {
+    const resolve = (raw: string | null | undefined): FieldSource => {
       if (!raw) return null;
       const trimmed = raw.trim();
       if (!trimmed) return null;
@@ -163,6 +209,16 @@ ${previewRows}`,
         status: resolve(result.status_source),
         notes: resolve(result.notes_source),
         source: resolve(result.source_source),
+        title: resolve(result.title_source),
+        deal_name: resolve(result.deal_name_source),
+        service_address: resolve(result.service_address_source),
+        esi_id: resolve(result.esi_id_source),
+        annual_kwh: resolve(result.annual_kwh_source),
+        current_supplier: resolve(result.current_supplier_source),
+        contract_start_date: resolve(result.contract_start_date_source),
+        contract_end_date: resolve(result.contract_end_date_source),
+        cost_per_kwh: resolve(result.cost_per_kwh_source),
+        agent_mils: resolve(result.agent_mils_source),
       },
       rowOneIsData: result.row_one_is_data,
       explanation: result.explanation,
