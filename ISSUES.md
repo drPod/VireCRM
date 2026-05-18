@@ -1387,7 +1387,56 @@ Prior session also added `scripts/inject-wrangler-routes.mjs` + post-build step 
 - `curl https://customers.majix.ai/` → 200.
 
 ### Manual follow-up (user)
-- **Rotate `CLOUDFLARE_API_TOKEN`.** Prior session's chat transcript leaked the live token value (scope: `Zone.SSL & Certificates:Edit` on `majix.ai`). CF dashboard → My Profile → API Tokens → trash that row → create replacement with same scope → `wrangler secret put CLOUDFLARE_API_TOKEN`.
+- **Rotate `CLOUDFLARE_API_TOKEN`.** Prior session's chat transcript leaked the live token value (scope: `Zone.SSL & Certificates:Edit` on `majix.ai`). CF dashboard → My Profile → API Tokens → trash that row → create replacement with same scope → `wrangler secret put CLOUDFLARE_API_TOKEN`. **Done 2026-05-18 — user confirmed rotation.**
+
+## 2026-05-18 CF for SaaS e2e + DomainHealthPanel smoke
+
+Followed up the route-binding fix with a real e2e against the live CF API on the `majix.ai` zone, plus a smoke against `DomainHealthPanel`'s CF poll surface. Both proved out the stack; one UI gap discovered.
+
+Also added `"preview_urls": false` to `wrangler.jsonc` to silence the deploy-time warning and stop CF from minting per-deploy preview URLs we don't use. Redeployed; workers.dev + customers.majix.ai both still 200. Version `f13544b1-4b6d-450c-b034-0e340cc1251c`.
+
+### e2e — custom hostname provision/teardown (PASS)
+
+Drove the full UI flow as a smoke owner (minted via `scripts/mint-smoke-user.ts`, org-level `custom_domain` feature flag enabled via `INSERT INTO org_features`). Two attempts:
+
+1. `e2e-cfsaas-1779126471.example.com` — CF API rejected with `"Custom hostnames ending in example.com, example.net, or example.org are prohibited. Please check your input and try again."`. **Useful signal**: this is verbatim CF API output, so the Worker successfully called CF; the rejection is RFC2606 input-validation. Proved Worker → CF transport works end-to-end (secrets resolvable, token scoped, zone reachable, response parsing intact).
+2. `crm-1779126843.smoketest-majix.app` — CF accepted. `provisionCustomHostnameFn` returned 200. `org_custom_domains.cf_hostname_id` populated with the CF-issued UUID `4d12c23e-648f-46c1-a454-9c267803fb66` — only written on `success: true` per `src/functions/custom-hostnames.functions.ts:287`. Tear-down via the panel's Remove button released the CF custom hostname cleanly (`tearDownCustomHostnameFn` 200, row deleted).
+
+### Smoke — `DomainHealthPanel` (PASS, with UI gap)
+
+`DomainHealthPanel` is gated on `org_custom_domains.verified_at IS NOT NULL` (`src/functions/domain-health.functions.ts:279`), so for a fake test hostname the panel renders "No verified hostnames yet" and never invokes `pollCustomHostnameStatusFn`. To exercise the panel's CF poll surface, I bypassed the app-level verification with a direct SQL update:
+
+```
+UPDATE org_custom_domains SET verified_at = NOW()
+WHERE hostname = 'crm-1779127359.smoketest-majix.app';
+```
+
+Reloaded `/settings?tab=branding`. Panel rendered the row, fired `pollCustomHostnameStatusFn`, and surfaced CF state. Captured raw server-fn payload by monkey-patching `window.fetch`:
+
+| Field | Value returned by CF | Surfaced in UI? |
+|---|---|---|
+| ownershipVerification.name | `_cf-custom-hostname.crm-1779127359.smoketest-majix.app` | yes |
+| ownershipVerification.value | `90395bf3-7d05-4be8-8227-68f527da56ae` | **no — UI drops this** |
+| sslValidationRecords[0].name | `_acme-challenge.crm-1779127359.smoketest-majix.app` | no — UI just shows a count |
+| sslValidationRecords[0].value | `lw5tRZNsEf9kttuyIgBvMuBPbBmjwJeNRM7V7IquiBI` | no — UI just shows a count |
+
+CF status badge rendered: "Verifying" + "SSL: pending_validation". Tear-down via UI cleanly removed the row (DB count = 0 post-remove).
+
+### Real bug surfaced
+
+**`src/components/crm/DomainHealthPanel.tsx:690-701` discards CF-issued TXT VALUES.** Server fn `pollCustomHostnameStatusFn` returns the full `{ name, value }` records — UI only renders `snapshot.ownershipVerification.name` and an SSL record count. Customer trying to fix a stuck-issuing hostname from this panel can't copy the actual TXT values they'd need to add to their DNS.
+
+Existing `CopyField` component at line 706-727 already does the labeled-input-with-copy-button pattern (used by `RedirectGuideDialog`). Fix is a few lines — render `<CopyField label="Ownership TXT name" value={...name} />` + value, and iterate `sslValidationRecords` with the same pattern. Not fixing in this pass — flagged for the next UI sweep.
+
+Slightly less critical: `DomainHealthPanel` reports "Origin returned HTTP 530" when DNS isn't pointing at `customers.majix.ai` yet. 530 is CF's "host not configured at edge" code — a CF-aware mapping ("DNS not yet pointing at our edge — add the CNAME at `customers.majix.ai`") would be more self-explanatory than the generic origin-failure copy. Same panel, same sweep.
+
+### Verification
+- 2 distinct CF provision attempts via real UI flow, real Supabase RPC, real Worker, real CF API on `majix.ai` zone.
+- Both teardowns clean — `cf_hostname_id` released on CF side both times.
+- `bun run typecheck` clean (no code changes this pass — only wrangler config + ISSUES.md).
+
+### Manual follow-up (user)
+- Clean up smoke user: `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or pass the specific `userId` — `516e90e0-b537-4506-90bd-134dc5d5cb81`).
 
 ---
 
