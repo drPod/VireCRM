@@ -7,13 +7,20 @@ Claude Code conventions + gotchas. Auto-loaded into Claude Code context every se
 - `AGENTS.md` — tool-agnostic mirror of invariants below (for Cursor / Aider / Codex / Copilot; they don't auto-load this file)
 - `ISSUES.md` — living build log; **read `## Open` first, append findings to `## Recent` before claiming done.** Full protocol in `ISSUES.md` "How to append" section.
 
-If you change a core invariant in this file (reseller-features-first-class, context7-first, Supabase-CLI > MCP, vite env-bake, bun.lock text, ISSUES.md protocol), mirror the change in `AGENTS.md` so non-Claude agents stay aligned. Surface area is small — drift = different agents acting on different rules.
+If you change a core invariant in this file (multi-tenant-no-reseller business model, context7-first, Supabase-CLI > MCP, vite env-bake, bun.lock text, ISSUES.md protocol), mirror the change in `AGENTS.md` so non-Claude agents stay aligned. Surface area is small — drift = different agents acting on different rules.
 
 ## ISSUES.md is non-negotiable
 
 Every session, before any other work: read `ISSUES.md` `## Open`. It contains: secrets/DNS the user owes, Phase 2 Lovable-cleanup follow-ups, bugs found-not-fixed (file:line), verification debts, product-call out-of-scope items. Transient categories (push-pending, in-flight audits) appear/vanish as work lands — read the live file.
 
-Every finding (bug discovered, audit result, schema gap) and every fix (commit landed, cron applied, route wired): append a section under `## Recent` using the template in `ISSUES.md` "How to append". Strike-through resolved items in `## Recent`; delete from `## Open`.
+Every finding (bug discovered, audit result, schema gap) and every fix (commit landed, cron applied, route wired): append a section under `## Recent` using the template in `ISSUES.md` "How to append". Header is `### YYYY-MM-DD — title` (three hashes) with a `**Tags:** [foo] [bar]` line directly below. Strike-through resolved items in `## Recent`; delete from `## Open`.
+
+**Two layers of enforcement — both shipped:**
+
+- **Agent layer** (`.claude/settings.json` PostToolUse hook → `.claude/hooks/lint-issues-on-edit.sh`): fires after every `Edit`/`Write`/`MultiEdit`. Exit 2 surfaces lint errors back inline so the agent can correct same-turn. Project-local, CC-only.
+- **Commit layer** (`.githooks/pre-commit` → `scripts/lint-issues.sh`): catches any agent (Cursor, Codex, manual) at commit time. Activate once on fresh clone via `bash scripts/install-hooks.sh` (sets `core.hooksPath=.githooks`).
+
+Manual invocation: `bash scripts/lint-issues.sh`. Catches orphan `####` subsections (real failure mode: commit `d9a8381` stomped a header) + missing tag lines + archive candidates >14d old.
 
 Cold sections (fully resolved AND >14 days old) move to `docs/issues-archive/YYYY-MM.md` (append verbatim, newest on top, tagged inline). Update `docs/issues-archive/README.md` table when creating a new month file. Don't let `ISSUES.md` grow past ~500 lines — archive aggressively.
 
@@ -28,15 +35,24 @@ Host migration history: Vercel was abandoned because the Lovable Vite preset emi
 
 ## What this product is (business model)
 
-**CRM-as-a-Service. Client is reseller. Her customers get white-labeled CRM instances on their own hostnames.** Not a single-tenant CRM, not a SaaS for one company.
+**Multi-tenant CRM SaaS.** Customers sign up directly with Majix. Each customer = one tenant org. Every tenant gets a white-labeled CRM instance:
 
-- Client = the reseller. Brand = `majix.ai`. Domain registered at IONOS, DNS now on Cloudflare.
-- Her customers = "resold orgs" inside the multi-tenant CRM. Each gets:
-  - Own custom hostname (e.g. `crm.acmecorp.com`) OR a Majix-branded subdomain
-  - White-label theme (logo, colors, copy)
-  - Own user pool, own data, own billing relationship with the reseller
-- Routing: customer hostnames CNAME at `customers.majix.ai`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup → renders white-labeled UI.
-- Feature surfaces: `is_reseller=true` org flag, `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/cf-for-saas-setup.md`. These are **first-class product features**, not Lovable dead code — do not strip when seen in audits.
+- **Free tier:** auto-provisioned `<slug>.majix.ai` subdomain (every tenant at signup).
+- **Premium tier:** own custom hostname (e.g. `crm.acmecorp.com`) via Cloudflare for SaaS.
+
+**No reseller layer.** Nobody resells the CRM. Every row in `organizations` = direct end-tenant of Majix. (Examples: Green EnergiAi is a tenant — they sell energy contracts to their own customers, but those customers don't get CRM accounts. They're just contacts/leads inside Green EnergiAi's CRM data.)
+
+- Brand = `majix.ai`. Domain at IONOS, DNS on Cloudflare.
+- Tenant gets: own user pool, own data, own theme (logo, colors, copy), own billing relationship with Majix.
+- Routing: custom hostnames CNAME at `customers.majix.ai`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup via `get_org_by_domain` → renders white-labeled UI.
+
+### Legacy "reseller" code in repo — don't strip in audits
+
+Lovable scaffold included reseller-tier features that do not match the current business model: `is_reseller=true` org flag, `signup_under_reseller` SQL function, `reseller_payouts` + `reseller_plans` + `commission_rules` + `commission_earnings` tables, `r/$resellerSlug/signup.tsx` route, `BrandedSignup.tsx`. These represent a *possible future* sub-reseller model — not in use today.
+
+**Custom-hostname + white-label features ARE still core** (they power the premium tier directly). Surfaces that stay first-class regardless of reseller framing: `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/cf-for-saas-setup.md`.
+
+If an audit suggests killing "reseller-only" code, **don't unilaterally delete** — flag the candidate in `ISSUES.md` `## Open` under "Lovable cleanup follow-ups" for explicit review. Chesterton's fence.
 
 ### Hostname plan (live 2026-05-18 — all five tiers deployed + smoke-verified)
 
@@ -57,7 +73,7 @@ Reserved subdomain labels (never tenant slugs, blocked at both DB and client lay
 
 Tenant theming: `DomainBrandingProvider` reads `window.location.hostname`, skips the lookup for system hosts, otherwise calls `get_org_by_domain(host)`. The RPC has two paths: (1) verified custom hostname via `org_custom_domains` join, (2) slug match for `<label>.majix.ai`. Both return a `json` blob with `id`, `slug`, `brand_name`, `logo_url`, `favicon_url`, `font_family`, `primary_color`, `secondary_color`, `accent_color`, `sidebar_color`, `button_color`, `is_reseller`, `support_email`, `verified`. Majix subdomains always return `verified=true` (we own the parent zone + wildcard cert).
 
-If a feature looks like it only matters for resellers and the audit suggests killing it: **keep it.** Reseller path is core, not optional.
+Reseller-named code (per "Legacy 'reseller' code" above) — don't unilaterally strip. White-label + custom-hostname features ARE the core premium product even though no resellers exist; the rest is dormant Lovable scaffold pending an explicit cleanup pass.
 
 Prefer Supabase CLI (`supabase ...`) over MCP `mcp__plugin_supabase_supabase__*` tools — CLI authenticated via `SUPABASE_ACCESS_TOKEN` in `~/.zshrc`, costs no extra context tokens.
 

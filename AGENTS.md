@@ -4,9 +4,21 @@ Routing index for AI agents (Claude Code, Cursor, Aider, OpenAI Codex, Copilot, 
 
 ## What product is
 
-White-label **CRM-as-a-Service**. Reseller `majix.ai` sells branded CRM instances to her customers. Multi-tenant. Each "resold org" = own hostname + theme + user pool + data. **Not single-tenant. Not SaaS for one company.**
+**Multi-tenant CRM SaaS.** Customers sign up directly with Majix. Every row in `organizations` = direct end-tenant of Majix. **No reseller layer** — nobody resells the CRM. **Not single-tenant. Not SaaS for one company.**
 
-Reseller path = core product. **Never strip "reseller-only" code in audits** — it's first-class. Surfaces: `is_reseller=true` org flag, `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/`.
+Two tiers per tenant:
+- **Free:** auto-provisioned `<slug>.majix.ai` subdomain at signup.
+- **Premium:** own custom hostname (e.g. `crm.acmecorp.com`) via Cloudflare for SaaS — tenants CNAME to `customers.majix.ai`.
+
+Each tenant: own user pool, own data, own theme (logo, colors, copy), own billing with Majix.
+
+### Legacy "reseller" code — don't strip in audits
+
+Lovable scaffold left reseller-tier features behind: `is_reseller` org flag, `signup_under_reseller` SQL fn, `reseller_payouts`/`reseller_plans`/`commission_rules`/`commission_earnings` tables, `r/$resellerSlug/signup.tsx` route, `BrandedSignup.tsx`. Not in use today.
+
+**Custom-hostname + white-label surfaces ARE still core** (they power the premium tier directly): `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/`. Keep these.
+
+Suspect a "reseller-only" file is dead → flag in `ISSUES.md` `## Open` "Lovable cleanup follow-ups" for review. Don't unilaterally delete. Chesterton's fence.
 
 ## File map
 
@@ -16,7 +28,7 @@ Reseller path = core product. **Never strip "reseller-only" code in audits** —
 | `README.md` | Setup, commands, deploy, layout. Human-facing entry. |
 | `CLAUDE.md` | Project invariants + conventions + gotchas. Claude Code auto-loads; other agents read too. |
 | `docs/issues-archive/YYYY-MM.md` | Cold history. Grep on demand for prior context (commits, prior bugs, root causes). |
-| `docs/custom-domains/cf-for-saas-setup.md` | Cloudflare for SaaS runbook (reseller hostnames). |
+| `docs/custom-domains/cf-for-saas-setup.md` | Cloudflare for SaaS runbook (premium-tier custom hostnames). |
 | `docs/handoffs/` | Phase plans, migration logs (Vercel → CF, Lovable → owned stack). |
 | `docs/UI_QA_CHECKLIST.md` | Manual UI QA checklist. |
 | `wrangler.jsonc` | Worker config. Routes + vars + Supabase pub key. Secrets via `wrangler secret put`. |
@@ -77,7 +89,7 @@ Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices/project
 Hostname plan live 2026-05-18 — all five tiers deployed + smoke-verified (200 OK + UI renders).
 
 - `majix.ai` + `www.majix.ai` — Public marketing (landing, pricing, `/features`, signup CTA). Both serve the same Worker bundle, no redirect between them.
-- `app.majix.ai` — Central CRM landing + Supabase Auth callbacks + Majix platform admin. All auth redirect URLs configured here.
+- `app.majix.ai` — Central CRM landing + Supabase Auth callbacks + Majix platform admin (operator surface — manages tenants). All auth redirect URLs configured here.
 - `<slug>.majix.ai` — Per-tenant white-label CRM (free tier). Wildcard Worker route + wildcard Advanced cert (`majix.ai` + `*.majix.ai`).
 - `<custom>.acmecorp.com` — Per-tenant white-label CRM (premium tier) via existing CF for SaaS flow (CNAME → `customers.majix.ai`).
 - `customers.majix.ai` — CF for SaaS fallback. Infra-only, never user-visible. If hit directly, serves default Majix marketing.
@@ -100,4 +112,22 @@ No "complete"/"fixed"/"passing" without evidence. Run `bun run typecheck` + `bun
 
 ## Where to append findings
 
-`ISSUES.md` — top of file (newest first), dated section header (`## YYYY-MM-DD short title`), terse caveman body. Cross-link to commit sha when applicable.
+`ISSUES.md` — append at top of `## Recent` (newest first). Format:
+
+```markdown
+### YYYY-MM-DD — short title
+**Tags:** [tag1] [tag2]
+
+#### Shipped / Found / Verification / Manual follow-up (user)
+- file:line — terse caveman OK. Commit `<sha>` if landed.
+```
+
+Exact rules + pre-append checklist live in `ISSUES.md` "How to append" — read once per session.
+
+**Enforcement:**
+
+- `bash scripts/lint-issues.sh` — manual lint, run after editing.
+- `.githooks/pre-commit` — auto-runs lint on any `git commit` touching `ISSUES.md`. Activate once via `bash scripts/install-hooks.sh` (sets `core.hooksPath=.githooks`). Catches Cursor/Codex/manual edits too.
+- `.claude/settings.json` PostToolUse hook — CC-only, fires inline after Edit/Write. Other agents skip this; the git hook is the universal guard.
+
+Lint catches: orphan `####` subsections (no `### YYYY-MM-DD` parent), missing `**Tags:**` line, sessions >14d old in `## Recent` (archive candidate, warning only).

@@ -100,7 +100,7 @@ asserts, for each:
 Run locally:
 
 ```bash
-QA_BASE_URL=https://genesisxsx.lovable.app \
+QA_BASE_URL=https://genesisxsx.darsh-pod.workers.dev \
 QA_TEST_EMAIL=... QA_TEST_PASSWORD=... QA_TEST_ORG_ID=... \
 SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
 bun run test:e2e:industry

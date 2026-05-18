@@ -6,12 +6,20 @@
  * that conflict with the DOM lib this app needs for React. Instead we
  * declare just the types our worker entry + context module reference.
  *
- * When a binding (KV, D1, R2, Durable Object, Queue) lands, extend the
- * binding type minimally here (or copy the relevant `interface` from
- * `@cloudflare/workers-types/index.d.ts` — but never add the package to
- * `tsconfig.json` `types` or load it via triple-slash, which would
- * clobber DOM globals).
+ * Migration path when the first CF binding (KV, D1, R2, Durable Object,
+ * Queue) lands: switch to Cloudflare's recommended `wrangler types` flow
+ * with a split `tsconfig.worker.json` scoped to worker-only files, per
+ * the vite-plugin tutorial
+ * (https://developers.cloudflare.com/workers/vite-plugin/tutorial). Until
+ * then, copy the relevant `interface` from
+ * `@cloudflare/workers-types/index.d.ts` into this file rather than
+ * adding the package to `tsconfig.json` `types` or loading it via
+ * triple-slash — both would clobber DOM globals.
  *
+ * Audit verdict (2026-05-18): shim is permanent until first binding;
+ * zero CF native bindings in `wrangler.jsonc` today, reseller stack runs
+ * over HTTP (Supabase / Resend / Anthropic / CF for SaaS REST). See
+ * ISSUES.md `## Recent` + `docs/issues-archive/2026-05.md:148`.
  * Initial inventory: env-audit subagent run 2026-05-17, see
  * docs/superpowers/specs/2026-05-17-cloudflare-context-scaffold-design.md.
  */

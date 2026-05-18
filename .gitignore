@@ -16,6 +16,12 @@ dist-ssr
 .nitro
 *.local
 
+# Foreign lockfiles — project is bun-only. Block accidental recreation
+# by npm/pnpm/yarn (Lovable scaffold originally shipped a package-lock.json).
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
@@ -42,10 +48,13 @@ dist-ssr
 .env.*.local
 !.env.example
 
-# Claude Code: ignore local state, but DO commit project-scoped skills
-# (so teammates share the same skill set via the `skills` CLI ecosystem)
+# Claude Code: ignore local state, but DO commit project-scoped skills,
+# hooks, and settings.json so teammates share the same automations.
+# settings.local.json stays ignored (per-user overrides).
 .claude/*
 !.claude/skills/
+!.claude/hooks/
+!.claude/settings.json
 
 # Supabase CLI temp
 supabase/.temp/
@@ -55,9 +64,7 @@ supabase/.temp/
 
 .vercel
 
-# Customer-supplied data (never commit — PII)
+# Customer data drops (xlsx/csv reseller imports — keep out of git)
 *.xlsx
 *.xls
 *.csv
-!**/fixtures/*.csv
-!**/fixtures/*.xlsx

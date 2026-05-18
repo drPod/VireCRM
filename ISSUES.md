@@ -21,6 +21,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
+- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: (0) provision tenant `greenenergiai.majix.ai` → (1) schema migration `20260518030000_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column → (2) fix `ImportLeadsDialog.tsx:675-686` insert (currently parses energy fields then drops them) → (3) AI mapper prompt update → (4) historical-backfill toggle → (5) Pricing tab → (6) Clients tab → (7) renewal cron. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -54,7 +55,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### Out of scope (need product call)
 
-- [ ] `/clients` reseller mgmt — single "Enable in Settings" CTA, full UI not wired. ~1-2 days.
+- [ ] `/clients` platform-admin tenant mgmt — single "Enable in Settings" CTA, full UI not wired (legacy Lovable reseller-style scaffold; in current model = Majix operator's tenant list). ~1-2 days. Reframe vs delete pending product call.
 - [ ] `/gym` member-health ingest UI — no way to add records. Need ingest UI or auto-populate-from-leads migration.
 - [ ] `/gym` doesn't use `IndustryHub` pattern like real-estate/insurance. Extend.
 - [ ] `/admin` gated 100% on platform-admin. Add "you would see X if admin" preview for docs.
@@ -66,21 +67,35 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 Every finding, every fix, every session — append before claiming done.
 
+### Pre-append checklist (run BEFORE writing the section, AGAIN after)
+
+Two minutes of mechanical checks beat reconstructing a stomped header three commits later (already happened once — the "docs reorg push" header at `### 2026-05-18` was rewritten away by an adjacent commit and had to be restored from `git log -p`).
+
+1. **Count `### 2026-` headers before editing:** `grep -c '^### 2026-' ISSUES.md`. Remember the number.
+2. **Edit `## Recent` only** — never `## Open` for shipped/found logs.
+3. **New session top of `## Recent`** with EXACTLY three hashes: `### YYYY-MM-DD — <short title>`. Not `##`. Not `####`.
+4. **Tag line immediately below the date header:** `**Tags:** [foo] [bar]` — required for archive grep. See tag glossary in `docs/issues-archive/README.md`.
+5. **Subsections inside the session use four hashes:** `#### Shipped`, `#### Found`, `#### Verification`, `#### Manual follow-up (user)`. Any `####` MUST live under a `### YYYY-MM-DD` parent — never orphan a `####` at the top of `## Recent`.
+6. **Verify after edit:** `bash scripts/lint-issues.sh`. Header count should be old + 1, lint should exit 0.
+
+If you're editing a prior session (e.g. striking through a resolved finding), step 1's count stays the same. If it dropped, you stomped a header — `git diff` and restore.
+
 ### Entry template
 
 ```markdown
-## YYYY-MM-DD — short title
+### YYYY-MM-DD — short title
+**Tags:** [tag1] [tag2]
 
-### Shipped (if applicable)
+#### Shipped (if applicable)
 - file:line — what changed. Commit `<sha>` if landed.
 
-### Found (if applicable)
+#### Found (if applicable)
 - **file:line** — symptom. Root cause if known.
 
-### Verification
+#### Verification
 - typecheck / lint / browser walk / e2e — what was actually run. No "passing" without evidence.
 
-### Manual follow-up (user)
+#### Manual follow-up (user)
 - One-line action items needing user hands.
 ```
 
@@ -88,10 +103,11 @@ Every finding, every fix, every session — append before claiming done.
 
 1. **Newest section on top of `## Recent`.** Push older sections down.
 2. **`## Open` = live state.** Outstanding items only. Move shipped items out (leave shipped entry in `## Recent` for context). Never strike-through inside `## Open` — delete instead.
-3. **`## Recent` = audit trail.** Strike-through (`~~…~~`) resolutions inline here. Preserve original wording.
-4. **Archive cutoff:** move a `## Recent` section to `docs/issues-archive/YYYY-MM.md` when (a) entire section is strikethrough/resolved AND (b) >14 days old. Append to matching month file.
+3. **`## Recent` = audit trail.** Strike-through (`~~…~~`) resolutions inline here when a LATER session invalidates or fixes a prior finding. Same-session shipments use the `#### Shipped` block — no strike-through needed. Preserve original wording either way.
+4. **Archive cutoff:** move a `## Recent` section to `docs/issues-archive/YYYY-MM.md` when (a) entire section is strikethrough/resolved AND (b) >14 days old. Append to matching month file. `scripts/lint-issues.sh` flags candidates.
 5. **Caveman OK** in prose. Code/error quotes verbatim. File paths + line numbers + commit shas required for any code-touching finding — downstream agents cite them.
 6. **Don't dupe across sections.** Open ↔ Recent linkage by file:line; don't restate full context twice.
+7. **Tag glossary:** see `docs/issues-archive/README.md`. Common: `[security]`, `[supabase]`, `[lovable-migration]`, `[cf-saas]`, `[reseller]`, `[audit]`, `[browser]`, `[bug]`, `[frontend]`, `[docs]`, `[git]`. Add new tag → document it in the archive README in the same edit.
 
 ---
 
@@ -99,7 +115,129 @@ Every finding, every fix, every session — append before claiming done.
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-18 — Lovable vite preset + bun.lock proxy removed
+**Tags:** [lovable-migration] [tooling]
+
+Followed up the two Phase 2 items added by yesterday's sweep. Both shipped same turn.
+
+#### Shipped
+
+- `vite.config.ts` — rewrote to import `tanstackStart`, `viteReact`, `tailwindcss`, `tsConfigPaths`, `cloudflare` directly. Dropped Lovable preset wrapper. Kept the load-bearing pieces (port 8080, `@` alias, React/TanStack dedupe, build-only Cloudflare plugin with `viteEnvironment: { name: "ssr" }`). Discarded Lovable-only bits (`componentTagger`, dev client/server-fn error loggers, sandbox env detection, watch debounce). Vite's native `import.meta.env.VITE_*` handling replaces the preset's manual `loadEnv` + `define` block — confirmed 18 callers compile cleanly.
+- `package.json:96` — removed `@lovable.dev/vite-tanstack-config@^1.3.0` from devDependencies. No transitive deps left in the tree.
+- `bunfig.toml` — flipped `saveTextLockfile = false` → `true`. Lovable's preset shipped the false setting; it forces binary `bun.lockb` which Cloudflare Workers Builds rejected (see 2026-05-17 migration entry in archive). Bun 1.2+ defaults to text; explicit flip preserves intent.
+- `bun.lock` — regenerated against `registry.npmjs.org`. 230 dead `europe-west4-npm.pkg.dev/lovable-core-prod/...` resolution entries from the previous binary lockfile are gone (the new text format doesn't embed tarball URLs at all — packages resolve via the bun default registry at install time, so no Lovable proxy surface remains).
+
+#### Verification
+
+- `bun run typecheck` → clean ($ tsc --noEmit).
+- `bun run build` → ✓ built in 7.20s (client + server bundles), `dist/server/index.js` + `dist/server/wrangler.json` emitted, no plugin warnings.
+- `bun run test` → 123 / 123 passed (4 files, 779ms).
+- `bun run dev` → boots on `http://localhost:8080/` in 989ms. Re-optimize dependencies log expected after lockfile rewrite.
+- `grep -cE 'lovable' bun.lock` → 0. `grep -c '@lovable.dev/vite-tanstack-config' package.json bun.lock` → 0 across both.
+
+### 2026-05-18 — ISSUES.md protocol hardening + two-layer enforcement (lint + git hook + CC PostToolUse)
+**Tags:** [docs] [tooling] [hooks]
+
+User flagged that the ISSUES.md append system wasn't working reliably and asked to fix it. Audit found three real bugs; shipped lint script + two enforcement layers (git pre-commit + Claude Code PostToolUse hook).
+
+#### Found
+
+- **Orphan `#### Shipped` block at `ISSUES.md:223-242` (pre-fix line numbers).** Commit `d9a8381` (hostname plan rollout) deleted the `### 2026-05-18 — docs reorg push` header while rewriting an adjacent section in the same edit. The session's Shipped/Verification/Manual-follow-up blocks survived; their parent H3 didn't. Caught by reading the file header-by-header — not by any mechanical check.
+- **Template heading-level typo at `ISSUES.md:72` (pre-fix) + `AGENTS.md:103`.** Both docs showed `## YYYY-MM-DD — short title` (two hashes), while every real entry uses `###`. Drift between template and practice.
+- **No mechanical guard.** Nothing flagged the orphan when it landed. No lint, no pre-commit, no session-end check.
+
+#### Shipped
+
+- `ISSUES.md` — restored the lost `### 2026-05-18 — docs reorg push to origin/main` header with `**Tags:** [git] [docs]` + a hindsight note pointing at the failure mode.
+- `ISSUES.md` "How to append" — rewrote with a six-step pre-append checklist (count headers before/after, three-hash H3 only, tag line immediately under date, four-hash H4 always under H3 parent, post-edit lint). Template fixed to `### YYYY-MM-DD`. Tag glossary pointer added.
+- `ISSUES.md` Rule 3 (strike-through) — clarified: strike-through only in a LATER session when prior finding is invalidated; same-session shipments use the `#### Shipped` block.
+- `scripts/lint-issues.sh` (104 lines, executable) — awk lint that detects (1) orphan `####` without parent `### YYYY-MM-DD`, (2) `### YYYY-MM-DD` headers missing the `**Tags:**` line, (3) sessions >14 days old in `## Recent` (archive candidate warning). BSD-awk and GNU-awk compatible.
+- `ISSUES.md` — backfilled `**Tags:**` lines on six pre-existing sessions (Lovable-remnant sweep, package-lock delete, workers-types audit, hostname plan live, cron health smoke, docs harmonization). Tags pulled from the archive glossary.
+- `CLAUDE.md` — "ISSUES.md is non-negotiable" updated with explicit three-hash + tag-line requirement and the two-layer enforcement description. Cross-references the `d9a8381` failure mode so future agents see the evidence.
+- `AGENTS.md` "Where to append findings" — fixed the stale `## YYYY-MM-DD` template to `### YYYY-MM-DD` + tag line + lint pointer + git-hook install command. Non-Claude agents now see the same protocol.
+- **Layer 2 (durable, all agents): `.githooks/pre-commit` (60 lines).** Bare git hook (no husky/lefthook dep — keeps lockfile churn out of the Phase 2 Lovable cleanup window). Fires on any `git commit` touching `ISSUES.md`. Calls `scripts/lint-issues.sh`. Skips merge commits. Activated via `bash scripts/install-hooks.sh` which sets `core.hooksPath=.githooks`. Idempotent.
+- `scripts/install-hooks.sh` (32 lines) — one-time setup for fresh clones. Sets `core.hooksPath` + chmods hooks. Wired into README "Quick start".
+- **Layer 1 (immediate, CC-only): `.claude/settings.json` PostToolUse hook + `.claude/hooks/lint-issues-on-edit.sh` (61 lines).** Fires after every `Edit|Write|MultiEdit`. Short-circuits unless the edited path's basename is `ISSUES.md` and it's inside this repo. On lint failure, exits 2 — surfaces the error inline so the agent corrects same-turn instead of waiting for the commit gate. jq + python3 fallback for JSON parsing.
+- `.gitignore` — whitelisted `.claude/settings.json` + `.claude/hooks/` so the agent hook is shared across clones. `.claude/settings.local.json` remains ignored (per-user overrides).
+- Research: scanned Anthropic's [hooks-guide](https://code.claude.com/docs/en/hooks-guide), [issue #6403](https://github.com/anthropics/claude-code/issues/6403), and community write-ups. Pattern is mature — exit-2-blocks-with-stderr is the canonical "surface to agent" signal. PostToolUse occasionally doesn't fire (issue #6403), which is the exact reason for pairing it with the durable git hook.
+
+#### Verification
+
+- `bash scripts/lint-issues.sh ISSUES.md` → `lint-issues: OK`. Initial run flagged 6 missing-tag errors; backfilled all six, re-ran clean.
+- `grep -n '^### \|^#### ' ISSUES.md` after fix: every `####` sits under a `### YYYY-MM-DD` parent. Orphan eliminated.
+- Lint syntax tested against BSD awk (macOS default) — initially failed with gawk-only `match($0, regex, array)`; rewrote with `substr` + `~` pattern match, now works on both. Date-arithmetic uses `date -d` (GNU) with `date -v-14d` (BSD) fallback.
+- `bash scripts/install-hooks.sh` → `core.hooksPath -> .githooks`. `git config --get core.hooksPath` returns `.githooks` ✓.
+- Git hook tested in three scenarios: (1) no ISSUES.md staged → exit 0 silent ✓; (2) clean ISSUES.md staged → exit 0 ✓; (3) ISSUES.md with injected orphan `####` → exit 1 with lint error + fix hint ✓.
+- CC PostToolUse hook tested in three scenarios via simulated stdin JSON: (1) ISSUES.md clean → exit 0 ✓; (2) non-ISSUES.md path (README.md) → exit 0 silent short-circuit ✓; (3) ISSUES.md with injected orphan → exit 2 with full lint error + actionable hint surfaced to stderr ✓.
+- `git check-ignore -v .claude/settings.json .claude/settings.local.json` → settings.json un-ignored via whitelist; settings.local.json still ignored ✓.
+
+#### Manual follow-up (user)
+
+- Run `bash scripts/install-hooks.sh` once on every fresh clone (already done in this session). Solo-dev so no broadcast needed; flag in README onboarding line for future contributors.
+
+### 2026-05-18 — Lovable-remnant sweep (post-`package-lock.json` delete)
+**Tags:** [lovable-migration] [audit]
+
+User asked whether more Lovable remnants remain after the lockfile delete. Triaged every match for `lovable|Lovable|LOVABLE|genesisx.space|lovable.app|lovable.dev|gpt-engineer` across the live tree (excluding `docs/issues-archive/`, `docs/superpowers/`, `.agents/`, `.claude/`, `node_modules/`). 32 file hits, classified into three buckets.
+
+#### Found (NEW — added to `## Open` Phase 2)
+
+- **`@lovable.dev/vite-tanstack-config@^1.3.0`** — live build-time dep at `package.json:96` + `vite.config.ts:7`. Preset auto-injects `@cloudflare/vite-plugin`, tanstack-start, `@vitejs/plugin-react`, `@tailwindcss/vite`, `vite-tsconfig-paths`, dev-only component tagger. Removal = rewrite vite.config.ts to wire those plugins inline. ~2hr; one-time cost; build glue only, no runtime path.
+- **`bun.lock` resolves through dead Lovable npm proxy.** ~40+ entries resolve via `europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/...` (sample: `bun.lock:105,107,109,111,139,157,179,181,183,185`). Tarballs cached locally so current installs work; fresh `bun install` on CI will fail if Lovable shuts the proxy. Fix: `rm bun.lock && bun install` regenerates against `registry.npmjs.org`.
+
+#### Shipped
+
+- `docs/UI_QA_CHECKLIST.md:103` — example `QA_BASE_URL=https://genesisxsx.lovable.app` → `https://genesisxsx.darsh-pod.workers.dev`. Dead host, e2e suite docs were stale.
+
+#### Found (already covered by other `## Open` items, no duplicate entries created)
+
+- **Old send-pending-welcomes cron** at `supabase/migrations/20260417054233_*.sql:25` targets `auto-pilot-sales-ace.lovable.app`. Superseded by `20260517220000_schedule_send_pending_welcomes_cron.sql` (which `cron.unschedule`s the old jobname before re-scheduling against `genesisxsx.darsh-pod.workers.dev`). Applying that pending migration (already in `## Open`) kills the Lovable row in one shot — no additional action.
+
+#### Found (historical scars — acceptable, no action)
+
+15 references are comments / migration audit trails / archive: `test-email.functions.ts`, `connectors.functions.ts`, `connectors/catalog.ts`, `ConnectorIntegrations.tsx`, `email-deliverability.functions.ts`, `dispatch-followups.ts`, `stripe.ts`, `resend.ts`, `ai-agent.ts`, `industry-switching.spec.ts`, plus README/AGENTS/CLAUDE history headers. `GlobalErrorBoundary.tsx:10-18` + `DomainBrandingProvider.tsx:39-51` carry intentional `SYSTEM_HOST_PATTERNS` regex matching `.lovable.app$`/`.lovable-project.com$`/`.lovableproject.com$` to gate platform-default support email on old hosts — load-bearing, keep.
+
+#### Verification
+
+- Grep `lovable|Lovable|LOVABLE` over live tree: 32 hits. After triage: 2 new `## Open` items, 1 shipped (`UI_QA_CHECKLIST.md`), 8 already tracked, 15 acceptable scars / docs.
+- `supabase/migrations/20260517220000_*.sql` reviewed — `DO $$ ... cron.unschedule('send-pending-welcomes') ... $$` confirmed idempotent unscheduler on apply.
+
+#### Manual follow-up (user)
+
+- None for the sweep. The two new `## Open` Phase 2 items track the build-dep swap and the bun.lock regeneration. Recommend landing them as one commit once the rest of Phase 2 cleanup is done — they touch the lockfile, so concentrate the churn.
+
+### 2026-05-18 — delete Lovable-era `package-lock.json` (bun-only project)
+**Tags:** [lovable-migration] [git]
+
+#### Found
+
+- `package-lock.json` (378KB / 10,805 lines) was a Lovable scaffold fossil. First committed by `Lovable <noreply@lovable.dev>` in `2744916 template: tanstack_start_ts`; last touched `3694f44` by `gpt-engineer-app[bot]` on 2026-04-15 (pre-bun era). Untouched since `bun.lock` (text format, 1977 lines) became canonical on 2026-05-17.
+- Zero live consumers: no `.github/` workflows, no scripts, no deploy config references `package-lock.json` or `npm ci|install`. Only mention was `.prettierignore:6` (defensive prettier-skip).
+- `package.json` mtime (2026-05-18 12:27) had already diverged from `package-lock.json` (2026-05-17 07:11) — lockfile was lying.
+
+#### Shipped
+
+- `git rm package-lock.json` — file deleted from tree.
+- `.gitignore` — added `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock` block so accidental `npm install` / `pnpm install` / `yarn install` doesn't recommit a foreign lockfile. `bun.lock` remains tracked (canonical).
+- `.prettierignore` — removed stale `package-lock.json` entry.
+
+#### Verification
+
+- `git ls-files | grep -E "package-lock|pnpm-lock|yarn.lock"` → empty.
+- `git check-ignore package-lock.json` → match (gitignore rule fires).
+- `grep -rn "package-lock\|npm ci\|npm install" scripts/ src/ supabase/ wrangler.jsonc package.json` → no live refs.
+
+#### Found (adjacent, not fixed this turn — separate scope)
+
+- `bunfig.toml:2` — `saveTextLockfile = false` forces bun back to binary `bun.lockb` on next `bun install`. Project explicitly moved to text `bun.lock` after CF Workers Builds rejected `bun.lockb` under `--frozen-lockfile` (per CLAUDE.md). Latent regression — flip to `true` (or delete the line) before next dependency change.
+- `package.json:115-119` — `pnpm.overrides` block (`entities@4.5.0`) in a bun-only project. Bun reads it, so currently effective, but semantically misnamed. Cosmetic; defer.
+
+#### Manual follow-up (user)
+
+- None for this delete. Decide whether to land the `bunfig.toml` fix in a follow-up (1-line edit, ships next bun install with text lockfile preserved).
+
 ### 2026-05-18 — `@cloudflare/workers-types` shim audit — verdict: permanent until first binding
+**Tags:** [cloudflare] [audit] [typescript]
 
 #### Found
 
@@ -122,6 +260,7 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 - None. Revisit ONLY when adding a CF native binding. Trigger = `wrangler.jsonc` gains a binding block (`kv_namespaces`, `d1_databases`, `r2_buckets`, `durable_objects`, `queues`). Stop reopening this in audits.
 
 ### 2026-05-18 — hostname plan live: apex / www / app / wildcard tenant slug all deployed
+**Tags:** [cf-saas] [reseller] [dns] [supabase]
 
 User asked "domain still down?" Apex `majix.ai` had never been bound to the Worker. Designed the full five-tier hostname plan, shipped code + migration + docs, then the user added DNS + the wildcard SSL cert + Supabase Auth URL config, and I pushed the migration + deployed the Worker. Smoke-verified all six hostnames in a real browser. End state: full hostname plan live.
 
@@ -165,7 +304,8 @@ User asked "domain still down?" Apex `majix.ai` had never been bound to the Work
 - `www.majix.ai` serves identical content to apex (no canonical redirect). Logged as optional polish.
 - Direct-tenant signup path's slug-provisioning needs a quick trace to confirm `organizations.slug` is set synchronously at signup. Logged as Open follow-up.
 
-
+### 2026-05-18 — docs reorg push to origin/main
+**Tags:** [git] [docs]
 
 #### Shipped
 
@@ -180,7 +320,10 @@ User asked "domain still down?" Apex `majix.ai` had never been bound to the Work
 
 - None for the push itself. Decide what to do with the two staged-but-uncommitted Phase 2 files (`run.ts` + `ai-agent.ts`) next session.
 
+> _Header restored 2026-05-18 — original lost when hostname-plan commit `d9a8381` rewrote adjacent section. This is the exact failure mode the new pre-append checklist + `scripts/lint-issues.sh` are designed to catch._
+
 ### 2026-05-18 — cron 24h health smoke
+**Tags:** [supabase] [cron] [audit]
 
 #### Shipped
 
@@ -205,6 +348,7 @@ User asked "domain still down?" Apex `majix.ai` had never been bound to the Work
 - None. CF 1042 transient — no action unless recurrence across multiple hour buckets.
 
 ### 2026-05-18 — docs harmonization + ISSUES.md restructure
+**Tags:** [docs]
 
 #### Shipped
 

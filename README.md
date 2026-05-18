@@ -1,6 +1,6 @@
 # genesisxsx
 
-White-label CRM-as-a-Service. Reseller (`majix.ai`) sells branded CRM instances to her customers. Each customer = "resold org" with own hostname, theme, user pool, data.
+Multi-tenant white-label CRM SaaS. Customers sign up directly with Majix and get their own white-labeled CRM instance — on a `<slug>.majix.ai` subdomain (free tier, auto-provisioned at signup) or on their own custom hostname (premium tier, via Cloudflare for SaaS). No reseller layer; every tenant is a direct customer of Majix.
 
 - Marketing site: https://majix.ai/
 - Sign in / sign up: https://app.majix.ai/login
@@ -17,7 +17,7 @@ The Worker answers on five hostname tiers. One bundle, behaviour switches on the
 | Hostname | Audience | Surface |
 |---|---|---|
 | `majix.ai` + `www.majix.ai` | Public visitor | Marketing landing, pricing, signup CTA. Same routes as the rest of the app — the marketing pages live at `/`, `/pricing`, `/features`, `/contact`, etc. |
-| `app.majix.ai` | Logged-in user without a tenant slug yet, plus Majix's platform admin | Central CRM landing. Auth callbacks (Supabase magic links + OAuth) land here too. Also where the reseller manages her customers (`/_app/admin`). |
+| `app.majix.ai` | Logged-in user without a tenant slug yet, plus the Majix platform operator | Central CRM landing. Auth callbacks (Supabase magic links + OAuth) land here too. Also where the Majix platform admin manages tenants (`/_app/admin`). |
 | `<slug>.majix.ai` | Per-tenant white-label CRM (free tier) | Same CRM app, but theme + brand_name + favicon swapped to the tenant's settings. Every tenant is provisioned a slug at signup. Reserved labels (`app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`) are blocked at both the DB and client layers. |
 | `<custom>.acmecorp.com` (any tenant-owned hostname) | Per-tenant white-label CRM (premium tier) | Same as the slug tier, but on a tenant-owned domain. Tenants CNAME their record to `customers.majix.ai`; Cloudflare for SaaS handles cert issuance + routing. Verification runbook: `docs/custom-domains/cf-for-saas-setup.md`. |
 | `customers.majix.ai` | Infrastructure only — never user-visible | CF for SaaS fallback target. Custom hostnames CNAME here. |
@@ -41,8 +41,9 @@ The Cloudflare zone has a wildcard Advanced Certificate covering `majix.ai` + `*
 
 ```bash
 bun install
-cp .env.development .env  # fill VITE_SUPABASE_* if not present
-bun run dev               # vite dev on :8080
+cp .env.development .env       # fill VITE_SUPABASE_* if not present
+bash scripts/install-hooks.sh  # one-time: activate .githooks/ (ISSUES.md lint on commit)
+bun run dev                    # vite dev on :8080
 ```
 
 Vite bakes `VITE_*` into bundle at startup. Edit `.env` → restart dev server (HMR will not pick up env). Use `scripts/restart-dev.sh`.
@@ -98,7 +99,7 @@ docs/
 - [AGENTS.md](./AGENTS.md) — agent-facing routing index (tool-agnostic)
 - [CLAUDE.md](./CLAUDE.md) — Claude Code project conventions + gotchas
 - [ISSUES.md](./ISSUES.md) — running log of bugs found + fixes (append findings)
-- [docs/custom-domains/cf-for-saas-setup.md](./docs/custom-domains/cf-for-saas-setup.md) — reseller hostname runbook
+- [docs/custom-domains/cf-for-saas-setup.md](./docs/custom-domains/cf-for-saas-setup.md) — premium-tier custom hostname runbook
 - [docs/handoffs/](./docs/handoffs/) — phase plans + migration logs
 - [docs/UI_QA_CHECKLIST.md](./docs/UI_QA_CHECKLIST.md) — manual QA checklist
 
