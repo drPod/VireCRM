@@ -37,9 +37,21 @@ Host migration history: Vercel was abandoned because the Lovable Vite preset emi
   - Own user pool, own data, own billing relationship with the reseller
 - Routing: customer hostnames CNAME at `customers.majix.ai`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup → renders white-labeled UI.
 - Feature surfaces: `is_reseller=true` org flag, `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/cf-for-saas-setup.md`. These are **first-class product features**, not Lovable dead code — do not strip when seen in audits.
-- `customers.majix.ai` = CF for SaaS fallback hostname (infra-only, never user-visible).
-- `notify.majix.ai` = Resend sender subdomain (verified, working).
-- `majix.ai` apex = eventual public marketing + signup URL (planned, not yet bound to Worker).
+
+### Hostname plan (designed 2026-05-18; routes bound in `wrangler.jsonc`, DNS pending)
+
+| Hostname | Role | State |
+|---|---|---|
+| `majix.ai` + `www.majix.ai` | Public marketing — landing, pricing, signup CTA | Worker route bound; CF DNS still needs apex `A` + `www` `CNAME` proxied |
+| `app.majix.ai` | Central CRM landing + auth callbacks + Majix platform admin (operator surface) | Worker route bound; CF DNS still needs `CNAME` proxied |
+| `<slug>.majix.ai` | Per-tenant white-label CRM (free tier — every tenant gets one at signup) | Wildcard Worker route bound; CF DNS needs wildcard `A` for `*` proxied + wildcard cert on the zone |
+| `<custom>.acmecorp.com` | Per-tenant white-label CRM (premium tier — custom hostname via CF for SaaS) | Tenants `CNAME` to `customers.majix.ai`; existing CF for SaaS flow handles cert + routing |
+| `customers.majix.ai` | CF for SaaS fallback — infra only, never user-visible | Live |
+| `notify.majix.ai` | Resend sender subdomain (transactional email) | Live, verified |
+
+Reserved subdomain labels (never assigned as tenant slugs, hard-coded in `get_org_by_domain` + `DomainBrandingProvider` `SYSTEM_HOST_PATTERNS`): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`.
+
+Tenant theming: `DomainBrandingProvider` calls `get_org_by_domain(hostname)` which resolves both custom hostnames (path 1, `organizations.custom_domain` match) AND `<slug>.majix.ai` subdomains (path 2, slug match). Reserved labels short-circuit to NULL on the server side too.
 
 If a feature looks like it only matters for resellers and the audit suggests killing it: **keep it.** Reseller path is core, not optional.
 

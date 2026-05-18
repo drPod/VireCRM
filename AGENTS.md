@@ -74,10 +74,18 @@ Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices/project
 
 ## Hosts (don't confuse)
 
-- `genesisxsx.darsh-pod.workers.dev` — Worker subdomain. Current canonical.
-- `customers.majix.ai` — Cloudflare for SaaS fallback. Infra-only. Never user-visible.
-- `notify.majix.ai` — Resend sender. Verified.
-- `majix.ai` apex — planned public marketing + signup. Not bound yet.
+Hostname plan designed 2026-05-18 — Worker routes bound in `wrangler.jsonc`, DNS records still pending at CF dashboard.
+
+- `majix.ai` + `www.majix.ai` — Public marketing (landing, pricing, signup CTA). Worker route bound; DNS pending.
+- `app.majix.ai` — Central CRM landing + auth callbacks + Majix platform admin (operator surface). Worker route bound; DNS pending.
+- `<slug>.majix.ai` — Per-tenant white-label CRM (free tier, every tenant gets one at signup). Wildcard route bound; wildcard DNS + cert pending.
+- `customers.majix.ai` — CF for SaaS fallback for custom hostnames. Infra-only, never user-visible. Live.
+- `notify.majix.ai` — Resend sender. Verified, live.
+- `genesisxsx.darsh-pod.workers.dev` — Worker subdomain (dev/preview). Stays as escape hatch.
+
+Reserved subdomain labels (never tenant slugs): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in `get_org_by_domain` migration + `DomainBrandingProvider` `SYSTEM_HOST_PATTERNS`.
+
+Tenant theming resolves via `get_org_by_domain(host)` — matches `custom_domain` for premium-tier hostnames, slug match for `<slug>.majix.ai` subdomains. Both paths return a `DomainBranding` JSON blob; `DomainBrandingProvider` applies theme client-side.
 
 ## Verify before claiming done
 

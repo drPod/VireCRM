@@ -3,17 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Check, Wrench, Zap, ArrowRight } from "lucide-react";
 
 const customBuildPoints = [
-  "Built around your exact workflow",
-  "Fully branded and owned by you",
-  "Designed to scale as you grow",
-  "Optional white-label capability",
+  "Tailored to your exact workflow",
+  "Your domain, your brand, top to bottom",
+  "White-glove setup + custom integrations",
+  "Scales with your team as you grow",
 ];
 
 const doneForYouPoints = [
-  "Fast setup",
-  "Simple to use",
-  "Continuous updates and improvements",
-  "Built from proven systems",
+  "Live today on your own Majix subdomain",
+  "Battle-tested playbooks for your industry",
+  "Continuous updates, zero maintenance",
+  "Upgrade to your own domain anytime",
 ];
 
 export function TwoWaysSection() {
@@ -26,10 +26,10 @@ export function TwoWaysSection() {
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Two Ways to Build Your Sales System
+            Two Ways to Run Your Sales System on Majix
           </h2>
           <p className="mt-4 text-base text-muted-foreground">
-            Build it — or plug into it. Either way, your pipeline runs smarter.
+            Build it from scratch with us — or plug straight in. Same CRM, your brand either way.
           </p>
         </div>
 
@@ -47,8 +47,8 @@ export function TwoWaysSection() {
 
             <h3 className="text-2xl font-bold text-foreground">Own Your AI Sales Infrastructure</h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              A fully custom-built CRM and automation system designed specifically for your
-              business.
+              A fully custom-built CRM on your domain. We design it around your workflow,
+              integrate your stack, and brand it end to end.
             </p>
 
             <ul className="mt-6 space-y-3">
@@ -82,8 +82,8 @@ export function TwoWaysSection() {
 
             <h3 className="text-2xl font-bold text-foreground">Plug Into Our Proven System</h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              Get access to a ready-to-use CRM and automation system designed to start working
-              immediately.
+              Pick a slug, get <code className="rounded bg-muted px-1 py-0.5 text-xs">you.majix.ai</code>{" "}
+              in minutes. Your branding, your pricing, our infrastructure.
             </p>
 
             <ul className="mt-6 space-y-3">
