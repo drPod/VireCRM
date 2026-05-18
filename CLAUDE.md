@@ -1,6 +1,25 @@
 # genesisxsx
 
-Vibe-coded on Lovable — trust no existing code, we're here to fix it. Log every finding to `ISSUES.md`.
+Claude Code conventions + gotchas. Auto-loaded into Claude Code context every session.
+
+**Companions (keep in sync when editing):**
+- `README.md` — human entry: setup, commands, deploy, layout
+- `AGENTS.md` — tool-agnostic mirror of invariants below (for Cursor / Aider / Codex / Copilot; they don't auto-load this file)
+- `ISSUES.md` — living build log; **read `## Open` first, append findings to `## Recent` before claiming done.** Full protocol in `ISSUES.md` "How to append" section.
+
+If you change a core invariant in this file (reseller-features-first-class, context7-first, Supabase-CLI > MCP, vite env-bake, bun.lock text, ISSUES.md protocol), mirror the change in `AGENTS.md` so non-Claude agents stay aligned. Surface area is small — drift = different agents acting on different rules.
+
+## ISSUES.md is non-negotiable
+
+Every session, before any other work: read `ISSUES.md` `## Open`. It contains: outstanding push, secrets the user owes, Phase 2 Lovable-cleanup follow-ups, bugs found-not-fixed (file:line), verification debts, product-call out-of-scope items.
+
+Every finding (bug discovered, audit result, schema gap) and every fix (commit landed, cron applied, route wired): append a section under `## Recent` using the template in `ISSUES.md` "How to append". Strike-through resolved items in `## Recent`; delete from `## Open`.
+
+Cold sections (fully resolved AND >14 days old) move to `docs/issues-archive/YYYY-MM.md` (append verbatim, newest on top, tagged inline). Update `docs/issues-archive/README.md` table when creating a new month file. Don't let `ISSUES.md` grow past ~500 lines — archive aggressively.
+
+Archive is queryable corpus: `grep -nE '\[cf-saas\]' docs/issues-archive/*.md` etc. Tag glossary + conventions in `docs/issues-archive/README.md`. Use it before re-investigating something the team already shipped — saves spinning up audits twice.
+
+Vibe-coded on Lovable — trust no existing code, we're here to fix it.
 
 - Vibe-coded original: https://genesisx.space/
 - Fixed version (this repo, deployed to Cloudflare Workers): https://genesisxsx.darsh-pod.workers.dev
