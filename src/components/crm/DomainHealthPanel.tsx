@@ -688,17 +688,24 @@ function CfHostnameStatus({
       </div>
       {errorMsg && <p className="text-[11px] text-muted-foreground">{errorMsg}</p>}
       {snapshot?.ownershipVerification && (
-        <p className="text-[11px] text-muted-foreground">
-          Ownership TXT pending:{" "}
-          <code className="text-foreground">{snapshot.ownershipVerification.name}</code>
-        </p>
+        <RecordRow
+          label="Ownership verification (TXT)"
+          type="TXT"
+          name={snapshot.ownershipVerification.name}
+          value={snapshot.ownershipVerification.value}
+          note="Add this TXT record at the customer's DNS to prove ownership."
+        />
       )}
-      {(snapshot?.sslValidationRecords?.length ?? 0) > 0 && (
-        <p className="text-[11px] text-muted-foreground">
-          SSL DCV TXT pending ({snapshot!.sslValidationRecords.length} record
-          {snapshot!.sslValidationRecords.length === 1 ? "" : "s"}) at customer DNS.
-        </p>
-      )}
+      {snapshot?.sslValidationRecords?.map((record, idx) => (
+        <RecordRow
+          key={`${record.name}-${idx}`}
+          label={`SSL DCV (TXT)${snapshot.sslValidationRecords.length > 1 ? ` — ${idx + 1}/${snapshot.sslValidationRecords.length}` : ""}`}
+          type="TXT"
+          name={record.name}
+          value={record.value}
+          note="Add this TXT record at the customer's DNS so Cloudflare can issue the SSL cert."
+        />
+      ))}
     </div>
   );
 }
