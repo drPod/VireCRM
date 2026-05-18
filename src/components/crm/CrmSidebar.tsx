@@ -41,6 +41,7 @@ import {
   HelpCircle,
   CalendarCheck,
   Lock,
+  Briefcase,
   type LucideIcon,
 } from "lucide-react";
 import { getTemplate } from "@/lib/industry-templates";
@@ -169,6 +170,7 @@ export function CrmSidebar() {
         { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
         { to: "/leads", icon: Users, label: template.terminology.leadPlural },
         { to: "/pipeline", icon: DollarSign, label: "Pricing" },
+        { to: "/book", icon: Briefcase, label: "Clients" },
       ],
     },
     {
@@ -224,7 +226,12 @@ export function CrmSidebar() {
       items: [
         { to: "/academy", icon: GraduationCap, label: "Academy" },
         { to: "/billing", icon: CreditCard, label: "Billing" },
-        ...(isReseller && isOwner ? [{ to: "/clients", icon: Building2, label: "Clients" }] : []),
+        // Legacy reseller-mgmt page (Lovable scaffold). Renamed from "Clients"
+        // to avoid collision with the new universal `/book` Clients link in
+        // the Overview section. Underlying route + UI unchanged.
+        ...(isReseller && isOwner
+          ? [{ to: "/clients", icon: Building2, label: "Sub-accounts" }]
+          : []),
         ...(isPlatformAdmin ? [{ to: "/admin", icon: Crown, label: "Platform Admin" }] : []),
       ],
     },

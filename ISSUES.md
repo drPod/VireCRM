@@ -21,7 +21,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
-- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18) → ~~(1) schema migration `20260518200618_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column~~ (done 2026-05-18) → ~~(2) fix `ImportLeadsDialog.tsx` insert (parsed energy fields then dropped them)~~ (done 2026-05-18) → ~~(3) AI mapper prompt update~~ (done 2026-05-18) → ~~(4) historical-backfill toggle~~ (done 2026-05-18) → ~~(5) Pricing tab~~ (done 2026-05-18, `/pipeline`) → (6) Clients tab → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
+- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18) → ~~(1) schema migration `20260518200618_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column~~ (done 2026-05-18) → ~~(2) fix `ImportLeadsDialog.tsx` insert (parsed energy fields then dropped them)~~ (done 2026-05-18) → ~~(3) AI mapper prompt update~~ (done 2026-05-18) → ~~(4) historical-backfill toggle~~ (done 2026-05-18) → ~~(5) Pricing tab~~ (done 2026-05-18, `/pipeline`) → ~~(6) Clients tab~~ (done 2026-05-18, `/book`) → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -114,6 +114,31 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-18 — green-energiai step 6: Clients tab (`/book`)
+**Tags:** [green-energiai] [frontend] [crm]
+
+Counterpart to Step 5. Crystal's call note ("Needs a tab that says 'current clients'… when the deal is won, then the customer feeds into this new tab") is now satisfied. Sorted by renewal date so the broker can work the soonest expirations first.
+
+#### Routing decision
+
+- **New route name `/book`, sidebar label "Clients".** Same reasoning as the Pricing tab — `/clients` is the legacy reseller-mgmt page, would collide.
+- **Renamed the legacy reseller `/clients` sidebar link "Clients" → "Sub-accounts".** Sidebar entry only — route + UI untouched. Avoids two "Clients" labels in the same sidebar for reseller-tier tenants. Chesterton's fence holds — no Lovable-scaffold logic deleted, just a relabel.
+
+#### Shipped
+
+- `src/routes/_app.book.tsx` (new, 282 lines). Fetches `leads where status='won' for current org`, sorted `contract_end_date asc nulls last`.
+- Read-only columns: deal, customer, service address, ESI (mono), annual kWh, supplier (Badge), contract start, contract end (with tone-coded renewal pill — red ≤30d/expired, amber ≤90d, neutral otherwise), rate, mils, commission.
+- Filters: text search across customer/deal/address/ESI, supplier dropdown (built from distinct values in the dataset), expiry window (any / 30 / 60 / 90 days / already expired).
+- Book-commission summary chip sums commission across the *filtered* set — segment-aware totals, not just lifetime book.
+- Manual Refresh button + autoload on mount.
+- `src/components/crm/CrmSidebar.tsx` — added `{ to: "/book", icon: Briefcase, label: "Clients" }` to Overview section. Legacy reseller `/clients` item now labelled "Sub-accounts".
+
+#### Verification
+
+- `bun run typecheck` clean.
+- `bun run build` clean (6.44s).
+- Browser walk deferred to Step 8 once Crystal does the historical backfill (book is empty until then).
 
 ### 2026-05-18 — green-energiai step 5: Pricing tab (`/pipeline`)
 **Tags:** [green-energiai] [frontend] [crm]

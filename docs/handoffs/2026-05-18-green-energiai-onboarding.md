@@ -18,12 +18,13 @@
 - Step 1 — schema migration `20260518200618_energy_broker_fields.sql` applied, `commission_value` generated column math verified
 - Step 2 — `ImportLeadsDialog.tsx` parses + inserts all energy fields. Typecheck + build clean. Not yet user-walked through dev server.
 
-**Done in session 2 (commits `4635496`, `4b6f75e`, pending Step 5 commit):**
+**Done in session 2 (commits `4635496`, `4b6f75e`, `1448353`, pending Step 6 commit):**
 - Step 3 — AI mapper prompt + schema updated for 10 energy fields (`src/functions/import-mapping.functions.ts`). `buildLeadsFromAiMapping` reads AI energy indices first, falls back to raw-header heuristic. Typecheck + build clean.
 - Step 4 — Historical backfill toggle in `ImportLeadsDialog.tsx`. Backfill on → every row inserts as `status=won` + auto-outreach disabled (UI + handler both guard). Typecheck + build clean.
 - Step 5 — Pricing tab shipped at `src/routes/_app.pipeline.tsx` (URL `/pipeline`, sidebar label "Pricing"). Editable rate + mils per row, generated commission, Mark Won action. Sidebar entry added to Overview section. Typecheck + build clean.
+- Step 6 — Clients tab shipped at `src/routes/_app.book.tsx` (URL `/book`, sidebar label "Clients"). Read-only renewal-hunt view sorted by contract end ascending, with search + supplier + expiry-window (30/60/90/expired) filters and tone-coded renewal badges. Legacy reseller `/clients` sidebar link renamed to "Sub-accounts" to avoid collision. Typecheck + build clean.
 
-**Pick up at Step 6** (Clients tab — leads where status='won', read-only, sort by contract_end_date ascending, supplier + expiry-window filters). Route file name: `src/routes/_app.book.tsx` (URL `/book`, sidebar label "Clients"). Reasons for `/book` instead of `/clients` in PR 5 notes — TL;DR `/clients` is the legacy reseller-mgmt page, can't collide. Mirror the Pipeline route's structure (already a known-good template), just drop the Input + Mark Won wiring and add filters. After Step 6, PR 3 boundary.
+**Pick up at Step 7** (renewal cron — `supabase/migrations/<ts>_renewal_notification_cron.sql`). Mirror the pattern in `supabase/migrations/20260517230000_schedule_remaining_phase1_crons.sql`. pg_cron daily job: find `leads where status='won' AND contract_end_date BETWEEN now() AND now() + 90 days`, write a row to either `pending_welcome_emails` or a new `pending_renewal_emails` table for Resend pickup. Then Step 8 (DM Crystal magic-link + ask for backfill upload).
 
 **Before opening PR 1**, run an end-to-end dev-server walk:
 1. `bash scripts/restart-dev.sh` (fresh env bake — `VITE_SUPABASE_URL` is critical)
@@ -360,17 +361,21 @@ File: `src/components/crm/ImportLeadsDialog.tsx`
 
 **Browser verification debt:** sign in as Crystal, navigate to `/pipeline`, move a lead to negotiation status from the leads page, confirm it shows; edit rate + mils and confirm commission updates after blur; Mark Won and confirm the row disappears. Same Step 8 dev-server walk applies.
 
-### Step 6 — Clients tab `[ ]`
+### Step 6 — Clients tab `[x]` (2026-05-18)
 
-New route: `src/routes/_authed/crm/clients.tsx`
+- [x] **Routing decision:** new `_app.book.tsx` (URL `/book`, sidebar label "Clients"). Same reasoning as Step 5 — couldn't reuse `/clients` (legacy reseller-mgmt page).
+- [x] Renamed the legacy reseller `/clients` sidebar link from "Clients" → "Sub-accounts" to avoid collision when a tenant happens to be a reseller. Underlying route + UI untouched (Chesterton's fence on the Lovable reseller scaffold per CLAUDE.md).
+- [x] Route fetches `leads where status='won' for current org`, sorted `contract_end_date asc nulls last` (renewal-hunt order — soonest expirations at the top).
+- [x] Read-only columns: deal, customer, service address, ESI (mono), annual kWh, supplier, contract start, contract end (with renewal-tone badge: red ≤30d/expired, amber ≤90d, neutral otherwise), rate, mils, commission.
+- [x] Filters: search (customer/deal/address/ESI fuzzy match), supplier dropdown (built from distinct values in the fetched set), expiry window (any / 30 / 60 / 90 / already expired).
+- [x] Book-commission summary chip sums commission across the *filtered* set so the broker sees "what's at stake in this segment" — not just total book.
+- [x] Renewal cell shows the date and a tone-badged days-until-expiry pill ("in 47d", "Expired 12d ago"). Same component, no per-row logic in the parent table.
+- [x] Refresh button (in case a lead just landed via import or Mark Won) plus useEffect-on-mount autoload.
+- [x] `bun run typecheck` clean. `bun run build` clean (6.44s, `routeTree.gen.ts` picked up `/book` on build).
 
-- [ ] Same skill invocations as step 5
-- [ ] Sidebar nav: "Clients"
-- [ ] Route fetches `leads` where `status='won'` for current org
-- [ ] Columns: same as Pricing tab BUT all read-only after close
-- [ ] Filters: by `current_supplier`, by contract expiry window (90/60/30 days — renewal hunt)
-- [ ] Sort by `contract_end_date` ascending = renewal worklist
-- [ ] Verify in browser
+**Browser verification debt:** sign in as Crystal post-Step-8, navigate to `/book`, confirm her ~2yr of backfilled rows surface (post-historical-upload), check renewal-tone badges across the 30/60/90/expired bands, exercise the supplier + expiry filters, exercise the search.
+
+**PR 3 boundary reached** (steps 5 + 6 = Pricing + Clients tabs).
 
 ### Step 7 — Renewal cron (nice-to-have, not Crystal-blocking) `[ ]`
 
