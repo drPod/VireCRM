@@ -221,6 +221,16 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
     if (logOpen && logRows === null) loadLog();
   }, [logOpen, logRows, loadLog]);
 
+  const planLabel = useMemo(
+    () =>
+      deriveSubscriptionPlanLabel({
+        isManual: subIsManual,
+        priceId: subscription?.price_id,
+        fallbackPlan: state.plan,
+      }),
+    [subIsManual, subscription?.price_id, state.plan],
+  );
+
   if (state.loading) {
     return (
       <div className="rounded-lg border border-border bg-card p-5">
@@ -233,15 +243,6 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
   // what the organizations.unlimited_credits column says — a stale Starter row
   // from before the lifetime grant must not lie about the entitlement.
   const displayUnlimited = state.unlimited || subIsManual;
-  const planLabel = useMemo(
-    () =>
-      deriveSubscriptionPlanLabel({
-        isManual: subIsManual,
-        priceId: subscription?.price_id,
-        fallbackPlan: state.plan,
-      }),
-    [subIsManual, subscription?.price_id, state.plan],
-  );
 
   const remaining = Math.max(state.quota - state.used, 0);
   const pct = state.quota > 0 ? Math.min((state.used / state.quota) * 100, 100) : 0;
@@ -381,7 +382,8 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
                 expected quota {testResult.step.expected.quota}
                 {testResult.step.expected.unlimited ? " (∞)" : ""} · got{" "}
                 {testResult.step.actual.quota}
-                {testResult.step.actual.unlimited ? " (∞)" : ""} · plan {testResult.step.actual.plan}
+                {testResult.step.actual.unlimited ? " (∞)" : ""} · plan{" "}
+                {testResult.step.actual.plan}
               </div>
               {testResult.restored && (
                 <div className="mt-1 text-muted-foreground">

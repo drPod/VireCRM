@@ -1204,6 +1204,8 @@ Repro env: any brand-new account with empty pipeline/credits/subscription state.
 
 **Not fixing tonight** — scope creep; needs systematic debugging with a sourcemap-enabled prod build or local repro on a fresh account. Flagged for next session.
 
+**[FIXED 2026-05-18]** Root cause: `src/components/crm/CreditUsageWidget.tsx` had `useMemo(planLabel)` *after* the `if (state.loading) return <skeleton />` early return. Hook count differed between the loading render and the loaded render → React #310. Why it eluded last session's review: the file lists 13 hook calls before the early return, and `planLabel`'s `useMemo` sits between `if (state.loading) return` and the final `return ( ... )` JSX — easy to scan past when checking "are hooks called unconditionally?" Smoke org reproduces because brand-new accounts spend longer in `loading=true` (waiting for `organizationId` from auth + first `organizations` row fetch) than a steady-state account, exposing the violation reliably. Fix: hoist the `useMemo` above the early return. Typecheck + lint green.
+
 ### Smoke step status (after RLS hotfix)
 
 | Step | Outcome |
@@ -1217,3 +1219,24 @@ Repro env: any brand-new account with empty pipeline/credits/subscription state.
 ### Smoke user cleanup
 
 Throwaway account `smoke-mpadus93@genesisx.test` (userId `80f482c6-29fe-4284-b7fd-9b2ebf89f5ce`, owner of org `8438cee1-a49f-4b53-8da7-a59633796e0f`) tagged with `user_metadata.is_smoke_account=true`. Revoked via `bun run scripts/mint-smoke-user.ts --cleanup 80f482c6-29fe-4284-b7fd-9b2ebf89f5ce` after smoke runs complete. Profile + user_roles cascade via FK.
+
+---
+
+## 2026-05-18 Vercel project deletion
+
+Tail end of CF migration cleanup. `vercel.json` was dropped at `97e1bd1` (commit 2026-05-17) but the upstream Vercel project (`genesisxsx`, team `darshpodgmailcoms-projects`, projectId `prj_G1A1G9zaovvA8vzwxW6YWprE8GoZ`) was still alive in the dashboard, still showed `https://genesisxsx.vercel.app` as latest prod URL, and was rebuilding on every push since the GitHub integration was still attached.
+
+Confirmed nothing points at `genesisxsx.vercel.app` (no DNS CNAME, no Stripe webhook URL, no Supabase auth redirect, no `VITE_*` env, no bookmark traffic that matters). Deleted:
+
+```bash
+printf 'y\n' | vercel project rm genesisxsx   # remote — destructive, no --yes flag exists; pipe stdin
+rm -rf .vercel                                 # local unlink (was gitignored, no commit needed)
+```
+
+CLI printed `Success! Project genesisxsx removed`. Re-listed projects in scope `team_A4pKqhogvgZTBmbiEhHT9htB` — no `genesisxsx` row. `https://genesisxsx.vercel.app` now 404s. Active hosting surface = CF Worker `genesisxsx.darsh-pod.workers.dev` only.
+
+### Loose ends from the CF migration still in the tree (not blockers)
+
+- `src/routes/api/public/hooks/run-workflows.ts:4` JSDoc still says *"Vercel Cron sends GET with Authorization: Bearer $CRON_SECRET"*. The Bearer-auth code path still works (cron driver is now Supabase `pg_cron`, which uses `x-cron-secret`, but the GET+Bearer branch is harmless), comment is stale. One-line edit when next touching the file.
+- `.gitignore` still has `.vercel/` + `.vercel` entries. Harmless; leave in place in case someone re-runs `vercel link` by mistake.
+- `CLAUDE.md` host migration history paragraph still accurate post-deletion — no edit.
