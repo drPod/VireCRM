@@ -7,6 +7,23 @@ Vibe-coded on Lovable — trust no existing code, we're here to fix it. Log ever
 
 Host migration history: Vercel was abandoned because the Lovable Vite preset emits a Cloudflare Worker bundle that Vercel can't execute. See ISSUES.md 2026-05-17 Cloudflare migration.
 
+## What this product is (business model)
+
+**CRM-as-a-Service. Client is reseller. Her customers get white-labeled CRM instances on their own hostnames.** Not a single-tenant CRM, not a SaaS for one company.
+
+- Client = the reseller. Brand = `majix.ai`. Domain registered at IONOS, DNS now on Cloudflare.
+- Her customers = "resold orgs" inside the multi-tenant CRM. Each gets:
+  - Own custom hostname (e.g. `crm.acmecorp.com`) OR a Majix-branded subdomain
+  - White-label theme (logo, colors, copy)
+  - Own user pool, own data, own billing relationship with the reseller
+- Routing: customer hostnames CNAME at `customers.majix.ai`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup → renders white-labeled UI.
+- Feature surfaces: `is_reseller=true` org flag, `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/cf-for-saas-setup.md`. These are **first-class product features**, not Lovable dead code — do not strip when seen in audits.
+- `customers.majix.ai` = CF for SaaS fallback hostname (infra-only, never user-visible).
+- `notify.majix.ai` = Resend sender subdomain (verified, working).
+- `majix.ai` apex = eventual public marketing + signup URL (planned, not yet bound to Worker).
+
+If a feature looks like it only matters for resellers and the audit suggests killing it: **keep it.** Reseller path is core, not optional.
+
 Prefer Supabase CLI (`supabase ...`) over MCP `mcp__plugin_supabase_supabase__*` tools — CLI authenticated via `SUPABASE_ACCESS_TOKEN` in `~/.zshrc`, costs no extra context tokens.
 
 ## Lookups: context7 first, training data never

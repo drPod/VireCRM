@@ -1366,3 +1366,25 @@ Knocked out the "quick wins" section of the 2026-05-17 landing audit. Two real f
   - PromoBanner desktop variant renders `30% OFF EVERYTHING — first 100 customers only. Discount applied automatically at checkout.` and Link `aria-label` matches exactly.
   - Home nav link on `/` carries `aria-current="page"`, computed color `oklch(0.18 0.02 290)` (foreground) with font-weight `600` (semibold), visibly emphasized vs the other links which sit at muted-foreground / weight 500.
   - `/unsubscribe` (no token) settles `document.title` to `Invalid unsubscribe link — Majix`; visible h1 is `Invalid link`. The `loading → invalid` transition resolves synchronously on the first effect tick so the `Verifying unsubscribe — Majix` title is too brief to catch via AXTree polling, but the per-state title mechanism is verified functional through the invalid path.
+
+## 2026-05-18 CF for SaaS route binding + prod 404 recovery
+
+Prior session enabled Cloudflare for SaaS on `majix.ai` zone, uncommented `routes` in `wrangler.jsonc` to bind `customers.majix.ai/*`, and deployed. workers.dev URL went 404 mid-session because `workers_dev: true` was missing from source `wrangler.jsonc` — `routes` without it disables the `*.workers.dev` route. Source was fixed (added `workers_dev: true`) but never redeployed before handoff.
+
+Prior session also added `scripts/inject-wrangler-routes.mjs` + post-build step in `package.json` on the theory that `@cloudflare/vite-plugin` was silently dropping `routes` from `dist/server/wrangler.json`. **Wrong diagnosis.** Fresh `rm -rf dist && bunx vite build` this session emitted `dist/server/wrangler.json` with both `routes` and `workers_dev: true` correctly. Plugin works as documented (`src/plugins/output-config.ts` in `@cloudflare/vite-plugin@1.32.2` spreads the full input worker config — line 30458-30470 of the bundled `dist/index.mjs`). Prior session's symptom was almost certainly a stale `dist/server/wrangler.json` from a build that ran before the source edit landed.
+
+### Fixed
+| File | Change |
+|---|---|
+| `wrangler.jsonc` | `workers_dev: true` added; `routes` block uncommented for `customers.majix.ai/*` (kept from prior session). |
+| `package.json` | `build` script reverted to plain `vite build` — no more inject step. |
+| `scripts/inject-wrangler-routes.mjs` | Deleted — no-op workaround for a non-bug. |
+| `CLAUDE.md` | New "What this product is (business model)" section pinning the reseller/white-label CRM model + the CF-for-SaaS routing + the protected feature surfaces (`is_reseller`, `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `custom-hostnames.functions.ts`). Future audits won't strip reseller code as "Lovable dead code." All references verified to exist in `src/`. |
+
+### Verification
+- `bunx wrangler deploy --config dist/server/wrangler.json` succeeded; deploy banner printed both routes: `https://genesisxsx.darsh-pod.workers.dev` + `customers.majix.ai/* (zone name: majix.ai)`. Version `adf8896b-c171-4d2d-af6d-44ea590217d6`.
+- `curl https://genesisxsx.darsh-pod.workers.dev/` → 200.
+- `curl https://customers.majix.ai/` → 200.
+
+### Manual follow-up (user)
+- **Rotate `CLOUDFLARE_API_TOKEN`.** Prior session's chat transcript leaked the live token value (scope: `Zone.SSL & Certificates:Edit` on `majix.ai`). CF dashboard → My Profile → API Tokens → trash that row → create replacement with same scope → `wrangler secret put CLOUDFLARE_API_TOKEN`.
