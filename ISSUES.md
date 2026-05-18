@@ -10,10 +10,6 @@ Living doc. Reverse-chrono. **Every agent: read `## Open` at session start. Appe
 
 Outstanding action items. Removed when shipped. Strike-through belongs in `## Recent`, not here.
 
-### Push pending
-
-- [ ] **Local `main` is 4+ commits ahead of `origin/main`.** Includes DomainHealthPanel TXT-value fix (`2444041`), `/features` rebuild (`81a35ac`), `/preview` rich rebuild, CF for SaaS route binding (`d1e0788` + `6a95b8e`). Push when ready.
-
 ### User action required (secrets / DNS / product calls)
 
 - [ ] **Set `CRON_SECRET` in CF Worker prod env.** Update external scheduler / pg_cron rows to pass `x-cron-secret: $CRON_SECRET` to: `calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`. Otherwise 401 silent.
@@ -104,26 +100,39 @@ Every finding, every fix, every session — append before claiming done.
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-18 — cron health smoke (24h pg_net audit)
+### 2026-05-18 — docs reorg push
 
-#### Finding
+#### Shipped
 
-- All 9 `cron.job` rows active, no dead schedules. `pg_cron` `status='succeeded'` 100% across 8 monthly+sub-monthly jobs in last 24h (1440/1440/1213/1207/1207/269/80/20/1). `calculate-payouts` (jobid=10) monthly `0 2 1 * *` → 0 rows in 24h window, expected; last fire would be 2026-05-01.
-- Downstream HTTP via `net._http_response` (24h): **1504 × 200, 38 × 404**. 97.5% success.
-- 404 cluster = single hour 17:00–18:00 UTC, all `text/plain` body `error code: 1042` → Cloudflare edge "no origin available" / transient tunnel fail. NOT stale URL, NOT misconfigured cron. Worker recovered; 18:00+ all 200.
-- Cron URLs verified: 6 use `/api/public/hooks/*`, 1 uses `/api/email/queue/process`, 2 use legacy `/hooks/*` (`send-pending-welcomes`, `calculate-payouts`). Latter 2 still 200 — route handlers wired both paths.
+- Pushed `main` to `origin/main` — 7 commits (6 prior + docs harmonization `73c4a66`). Range `9de9cd0..73c4a66`. Resolved the `## Open` "Push pending" entry.
 
 #### Verification
 
-- `cron.job` enumeration: 9 active.
+- `git push origin main` exit 0.
+- Pre-existing modifications to `src/lib/workflows/run.ts` + `supabase/functions/_shared/ai-agent.ts` deliberately NOT committed — out-of-scope unfinished Phase 2 workflow-AI-dispatch work (see archive `## 2026-05-17 Phase 1 regression fix` notes). Still in working tree.
+
+#### Manual follow-up (user)
+
+- None for the push itself. Decide what to do with the two staged-but-uncommitted Phase 2 files (`run.ts` + `ai-agent.ts`) next session.
+
+### 2026-05-18 — cron 24h health smoke
+
+#### Found
+
+- 9/9 `cron.job` rows active. `pg_cron` `status='succeeded'` = 100% across 8 sub-monthly jobs in last 24h: drain-workflow-queue 1440, send-pending-welcomes 1213, email-queue-process 1207, dispatch-sequences 1207, classify-contact-submissions 269, dispatch-followups 80, contact-followup-reminders 20, purge-audit-log 1. `calculate-payouts` (jobid=10, `0 2 1 * *`) 0 rows last 24h, expected — last fire 2026-05-01.
+- Downstream HTTP (`net._http_response`, 24h): 1504 × 200 / 38 × 404 (97.5%).
+- 404s clustered single hour `2026-05-18 17:00:00+00`, body `error code: 1042` (`text/plain` from Cloudflare edge — transient origin-unreachable). Not stale URL, not dead route. Recovered by 18:00 UTC.
+
+#### Verification
+
+- `SELECT jobid, jobname, schedule, active FROM cron.job` → 9 rows, all `active=true`.
 - `cron.job_run_details` 24h GROUP BY jobname: 0 failed across all.
 - `net._http_response` 24h GROUP BY status_code: `{200: 1504, 404: 38}`.
-- `net._http_response` 24h GROUP BY hour where status<>200: single bucket `2026-05-18 17:00:00+00`.
+- `net._http_response` 24h GROUP BY hour WHERE status<>200: single bucket `17:00 UTC`.
 
-#### Out
+#### Manual follow-up (user)
 
-- No cron action needed. Cloudflare 1042 = origin/edge transient — not project bug. If recurrence-pattern emerges across multiple hour buckets, escalate to CF.
-- `## Open → Cron audit (in-flight)` partially resolved: dead-host hypothesis disproved, 404s are CF blip, not Lovable-era stale URLs. Leaving Open entry intact since user asked for per-row audit content review, not just smoke.
+- None. CF 1042 transient — no action unless recurrence across multiple hour buckets.
 
 ### 2026-05-18 — docs harmonization + ISSUES.md restructure
 
