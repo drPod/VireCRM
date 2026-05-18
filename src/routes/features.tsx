@@ -57,6 +57,7 @@ function FeaturesPage() {
       {CHAPTERS.map((chapter) => (
         <Fragment key={chapter.id}>
           <ChapterDivider
+            id={chapter.id}
             number={chapter.number}
             eyebrow={chapter.eyebrow}
             title={chapter.title}

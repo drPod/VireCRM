@@ -3,7 +3,19 @@ import { ArrowRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
+const PLACEHOLDER_BODY: Record<string, string> = {
+  Payouts:
+    "Payouts is a full feature in the real CRM — track pending balances, initiate transfers, and manage recipients. It lives behind authenticated workspaces with verified banking. Start a free trial to unlock it.",
+  Expenses:
+    "Expenses is a full feature in the real CRM — log spend, categorize entries, and reconcile against revenue. It lives behind authenticated workspaces with audit history. Start a free trial to unlock it.",
+  Billing:
+    "Billing is a full feature in the real CRM — plan management, invoice history, and payment methods. It lives behind authenticated workspaces. Start a free trial to unlock it.",
+};
+
 export function PlaceholderView({ label }: { label: string }) {
+  const body =
+    PLACEHOLDER_BODY[label] ??
+    `${label} is a full feature in the real CRM. It lives behind authenticated workspaces. Start a free trial to unlock it.`;
   return (
     <Card
       data-tour="placeholder"
@@ -14,10 +26,7 @@ export function PlaceholderView({ label }: { label: string }) {
       </div>
       <div>
         <h3 className="text-lg font-semibold text-foreground">Sign up to access {label}</h3>
-        <p className="mt-1 max-w-md text-sm text-muted-foreground">
-          {label} is a full feature in the real CRM — billing, plan management, and account settings
-          live behind authenticated workspaces. Start a free trial to unlock it.
-        </p>
+        <p className="mt-1 max-w-md text-sm text-muted-foreground">{body}</p>
       </div>
       <div className="flex gap-2">
         <Button asChild variant="outline" data-preview-allow="true">

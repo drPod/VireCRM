@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 interface Props {
+  id: string;
   number: string;
   eyebrow: string;
   title: ReactNode;
@@ -8,9 +9,12 @@ interface Props {
 }
 
 /** Numbered chapter divider — Linear/Attio narrative pattern. */
-export function ChapterDivider({ number, eyebrow, title, subtitle }: Props) {
+export function ChapterDivider({ id, number, eyebrow, title, subtitle }: Props) {
   return (
-    <section className="relative border-t border-border/60 bg-gradient-to-b from-background to-card/40 py-20 sm:py-24">
+    <section
+      id={id}
+      className="relative scroll-mt-24 border-t border-border/60 bg-gradient-to-b from-background to-card/40 py-20 sm:py-24"
+    >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"
