@@ -23,6 +23,7 @@ All deployed to prod (Supabase project `coynbufhejaeuifpvmvw` + Vercel `genesisx
 | _pending_ | Workflow engine build-out. See section below. |
 | `0e58713` | Industry picker + sidebar reveal. (1) Migration `20260517150107_allow_owner_industry_change.sql` updates `guard_industry_template_change` trigger to permit org owners (was platform-admin-only) + extends `log_template_change` audit metadata w/ actor_role. Existing `template_assignment_audit_log` covers it — no new table. (2) `OnboardingWizard` no longer skips industry step for non-platform-admin owners; all owners walk through the 3-step flow. (3) New `IndustryTemplatePicker` card in `/settings?tab=industry` — owner-only Select + AlertDialog confirm, theme + modules reseed on switch. (4) `CrmSidebar` shows all 5 vertical sections always under "Verticals"; mismatched ones render muted with lock icon + tooltip, still clickable. (5) `IndustryGate` empty-state CTA points at `/settings?tab=industry` instead of dead `/admin` link, copy adapts for owner vs non-owner. Also: stripped trailing CLI version-update text accidentally appended to `src/integrations/supabase/types.ts` ("is not a module" typecheck error). |
 | _pending_ | Domain rebrand `vireonx.space` → `majix.ai`. Triggered after the prior session's Resend setup found the wrong sender domain — the project's actual domain is `majix.ai` (registrar/DNS at IONOS), not `vireonx.space`. Full pivot across the codebase: (1) email producers — all 7 `FROM_DOMAIN` + matching `SENDER_DOMAIN` constants in `src/routes/{api/notify-low-balance,api/public/contact,api/public/hooks/contact-followup-reminders,hooks/send-pending-welcomes,lovable/email/{auth/webhook,transactional/send},lib/email/dispatch-outreach}` now point at `notify.majix.ai`; `ROOT_DOMAIN` in `webhook.ts`/`auth/preview.ts` flipped to `majix.ai`. (2) Unsubscribe URL fallback in `src/routes/lovable/email/queue/process.ts` swapped. (3) CORS allow-list in `supabase/functions/_shared/stripe.ts` swapped `.vireonx.space` entries for `.majix.ai`. (4) Branding regexes in `DomainBrandingProvider.tsx` + `GlobalErrorBoundary.tsx` updated. (5) White-label TXT verification record renamed `_vireon.<host>` → `_majix.<host>` everywhere (`dns-check.ts`, `CustomDomainsPanel.tsx`, `EditClientWhiteLabelDialog.tsx`, `_app.dns-check.tsx`). New migration `20260517170000_rebrand_verification_token_prefix.sql` flips the column DEFAULT from `vireon-verify-` to `majix-verify-` — existing tokens left untouched (matching is substring-inclusion, so prefix is cosmetic). (6) UA string in `domain-health.functions.ts` → `MajixHealthCheck/1.0 (+https://majix.ai)`. (7) CustomEvent name `vireon:pricing-overrides-changed` + localStorage keys `vireon.{autoOutreachEnabled,pricing-overrides.v1,test-email-report.v1}` renamed `majix.*` — pre-launch wipe of those keys for any browser that had used the app. (8) Email template preview URLs swapped `acme.vireonx.space` → `acme.majix.ai`. Resend domain swap (`notify.vireonx.space` deleted, `notify.majix.ai` created) handled out-of-band via dashboard subagent; DNS records pending entry at IONOS. `bun run typecheck` clean. |
+| _pending_ | Phase 2 workflow AI dispatch wired up (2026-05-18). `AI_STUBS` early-return removed from `src/lib/workflows/run.ts`; new `AGENT_KIND_TO_FUNCTION` map + `invokeAgent` helper call the 4 AI agent edge functions (`score-lead`, `classify-reply`, `personalize-message`, `book-appointment`) via `supabaseAdmin.functions.invoke()`. Service role bearer auto-attached; new `x-organization-id` header pins the org. Edge-side: `supabase/functions/_shared/ai-agent.ts` `authenticate()` gained an internal service-role path that recognises `Authorization: Bearer <SERVICE_KEY>` + `x-organization-id` and skips the user-JWT → profile → org lookup. Per-kind `buildAgentBody` maps node config to edge fn body: `classify_reply` default `source: "last_message"` resolves to the lead's most recent inbound `messages.id`; `personalize_message` forwards `subject`/`body`/`tone`; `book_appointment` forwards `duration_minutes`/`auto_book`/`calendar_id`/`availability`. Errors: HTTP 5xx / network / 429 marked transient (`retry: true` → backoff requeue); 4xx permanent. `bun run typecheck` clean. Edge fns need redeploy (`supabase functions deploy score-lead classify-reply personalize-message book-appointment`) — not auto-run, user-scoped. |
 | _pending_ | Lovable migration Phase 1 — AI + email swap. (1) `bun add @anthropic-ai/sdk resend`. (2) `src/lib/ai-gateway.ts` rewritten on Anthropic SDK; same `callAiWithFallback` surface, default chain now `["claude-sonnet-4-6", "claude-haiku-4-5"]`, system + tool schema marked `cache_control: ephemeral` (silent no-op below prefix length, ~10% read cost above). (3) `src/lib/contact/classify-submission.ts` no longer duplicates the Lovable fetch — uses `callAiWithFallback`, inherits fallback + telemetry + caching. (4) `src/lib/resend.ts` calls Resend SDK directly via `RESEND_API_KEY`; new `ResendSendError` carries `.status` + `.retryAfterSeconds` so the dispatcher's `isRateLimited`/`isForbidden` helpers keep working unchanged. (5) Queue dispatcher `src/routes/lovable/email/queue/process.ts` swapped from `sendLovableEmail` → `sendResendEmail`; gates on `RESEND_API_KEY` instead of `LOVABLE_API_KEY`; List-Unsubscribe headers emitted from `payload.unsubscribe_token`. (6) `src/lib/connectors/gateway.ts` reduced to a Phase 2 stub — `callGateway` throws `ConnectorNotConfiguredError(503)` instead of routing to Lovable; verify/revoke return clean no-ops. Routes that used the gateway (Apollo / Slack / Gmail / Twilio / Sendgrid via `connector-actions.functions.ts`, `outreach-delivery.ts`) now surface "not configured" instead of crashing 500. (7) `supabase/functions/_shared/ai-agent.ts` ported via `npm:@anthropic-ai/sdk@0.96.0`; default model `claude-sonnet-4-6`. `suggest-followup/index.ts` refactored to call shared `callStructured` (was duplicating Lovable fetch inline). `score-lead`, `classify-reply`, `personalize-message`, `book-appointment` pick up the swap for free. RESEND DNS at `notify.vireonx.space` is the known send-time blocker — emails enqueue + render fine, Resend rejects until SPF/DKIM verified. `bun run typecheck` clean. Live-test contract: POST `/api/public/contact` → `contact_submissions.{sentiment,topic,priority_suggestion,intent_summary,classified_at}` populated by `classifyAndStore`. |
 
 ### Manual follow-ups (user)
@@ -1513,3 +1514,72 @@ Render-only swap, low risk (`RecordRow`+`CopyField` already production-tested by
 
 - Push when ready — local `main` now 4 commits ahead of `origin/main`.
 - Smoke user cleanup still pending: `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or specific `userId` `516e90e0-b537-4506-90bd-134dc5d5cb81`).
+
+---
+
+## 2026-05-18 — /preview rich rebuild + bug fix sweep
+
+Continued from `/features` rebuild (commit `81a35ac`). Splits the 1077-LOC `preview.tsx` monolith, builds 9 rich demo modules, fixes the ISSUES bugs logged at lines 386 / 919-925 / 938, and extends the guided tour from 4 steps to 8.
+
+### Shipped
+
+**Split + modularize** — `src/routes/preview.tsx` shrinks from 1077 LOC to ~340 LOC dispatcher.
+
+- `src/components/preview/nav.ts` — `NAV_ITEMS` array + `VALID_VIEWS` set + `labelFor()` helper.
+- `src/components/preview/PreviewViewBanner.tsx` — per-view "simulated / disabled" banner (was inline).
+- `src/components/preview/GuidedTour.tsx` — extracted tour engine + `TourStep` type.
+- `src/components/preview/views/DashboardView.tsx` — extracted existing dashboard intact.
+- `src/components/preview/views/PlaceholderView.tsx` — honest copy "Sign up to access X" (was "X is part of the full CRM").
+- `src/components/preview/data/*.ts` (10 files) — seeded demo data: 30 leads, 10 message threads, 8 campaigns, 4 workflows, 14 calendar events, 12-mo revenue, 7 email campaigns, 6 reviews + rating breakdown, 4-turn advisor convo, 5-stage funnel + 4 reps.
+
+**9 new rich module views** (all under `src/components/preview/views/`):
+
+1. `LeadsView` — sortable shadcn table, 6 status filter chips, 4 KPI cards, search input, disabled bulk-actions toolbar w/ tooltip-explainers.
+2. `MessagesView` — 2-pane (thread list + active chat + AI-drafted footer). Sentiment status badges (Hot/Interested/Objection/OOO). Channel icons (email/SMS/WhatsApp/Instagram).
+3. `AdvisorView` — chat-style w/ 4 prompt cards, 2 mocked turns (user → AI), citations as Badge chips, disabled action buttons.
+4. `WorkflowsView` — 4 workflow cards, each with linear step nodes (trigger/filter/action/wait/branch) + connecting arrows.
+5. `CampaignsView` — card grid w/ 8 campaigns. Sent / Open % / Reply % / Booked stats per card. Status pills.
+6. `CalendarView` — full month grid (May 2026), 14 events color-coded by type, Up Next sidebar.
+7. `RevenueView` — 12-mo MRR SVG sparkline + breakdown table + AI forecast (low/likely/high).
+8. `EmailMarketingView` — 7-row campaigns table w/ open + click rates + status badges.
+9. `ReputationView` — overall rating (avg + breakdown bars) + KPI grid + 6 review cards w/ stars + source badges.
+10. `AnalyticsView` — 5-stage funnel with drop-off %, channel breakdown table, rep leaderboard.
+
+(That's 10 views including AnalyticsView — Reputation was added to round out the 9 modules in handoff plan.)
+
+**Bug fixes (Phase 3, per ISSUES lines 386, 919-925, 938):**
+
+- **`PlaceholderView` copy** — swapped "X is part of the full CRM" → "Sign up to access X". Honest framing, no false implication that the preview hides advanced features.
+- **Settings `<div role="link">` → real `<button disabled>`** — `preview.tsx:316-329`. Now wrapped in Tooltip explaining sign-up requirement. Lock icon visual cue.
+- **Button-in-anchor invalid HTML** — old line `347` (top-bar "Start free trial"). Inner `<Link>` now wraps content directly via `inline-flex` instead of an inner `<Button>`. Other two sites (`619` / `653`) lived in `DashboardView` and `PlaceholderView` — already use `<Button asChild><Link>` correctly.
+- **`transition-all` scoping** — replaced w/ specific transition properties on hover-able rows (`transition-colors duration-150`) and tour dots (`transition-[width,background-color] duration-200`).
+- **`cursor-default` on tour close-button** — removed. Button is a real action target.
+- **Bell button** — already had `disabled` + `aria-disabled` per prior fix. Wrapped in Tooltip now ("Notifications activate in a real workspace") so the visual disabled state has explanation.
+- **URL-synced tab state** — `useState("dashboard")` → TanStack Router `validateSearch` + `Route.useSearch()`. URL is `?view=leads` etc.; `?view=dashboard` collapses to bare `/preview`. Invalid view IDs fall through to dashboard. Deep-linking works.
+
+**Tour extension** — 4 → 8 steps walking through Dashboard → Pipeline → Leads → Messages → Workflows → Advisor → Calendar → Revenue. Each step lands on a real rich view (no more PlaceholderView spotlight).
+
+### Verified
+
+- `bunx tsc --noEmit` — clean.
+- Browser via `agent-browser` (subagent, session `genesisxsx-rich-preview-verify`, headless, viewport 1280):
+  - `/features` — console clean, 7 sticky-nav items, 10-row comparison table, FAQ accordion expands.
+  - `/preview?view=dashboard` — renders.
+  - All 10 rich views render rich content (LeadsView, MessagesView, CampaignsView, WorkflowsView, CalendarView, EmailMarketingView, RevenueView, ReputationView, AdvisorView, AnalyticsView).
+  - Locked views (`payouts`, `expenses`, `billing`) show new "Sign up to access" copy.
+  - Settings sidebar button is `[disabled]` (no `role="link"`).
+  - Disabled CTAs (e.g. top-bar "New Lead") show tooltip, no crash.
+  - Tour overlay opens at step 1/8 with title "Your dashboard at a glance".
+  - Zero console errors across full sweep.
+
+### Not done this pass
+
+- 375 / 768 mobile + tablet browser screenshots. 1280 only verified. Low risk (Tailwind responsive utilities used throughout) but flag for next pass if mobile regressions surface.
+- `/preview` AXTree pass — relied on subagent's visual confirmation. Worth a dedicated screen-reader audit if SOC2 work needs accessibility evidence.
+- Reputation banner copy not added to `VIEW_BANNER_COPY` for `reputation` — falls through to default fallback. Harmless but slightly less polished.
+
+### Open follow-ups (same as `/features` round)
+
+- [ ] Customer logos for `/features` above-the-fold logo bar.
+- [ ] Testimonial pull-quote (sentence + name + role + company).
+- [ ] Decide whether comparison-table competitor labels should name HubSpot / Pipedrive / GoHighLevel.
