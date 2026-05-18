@@ -2168,19 +2168,25 @@ export type Database = {
       }
       leads: {
         Row: {
+          agent_mils: number | null
           annual_kwh: number | null
           assigned_to: string | null
           closed_at: string | null
           closed_by_user_id: string | null
+          commission_value: number | null
           company: string | null
           contract_end_date: string | null
+          contract_start_date: string | null
+          cost_per_kwh: number | null
           created_at: string
           created_by: string | null
           current_supplier: string | null
           deal_currency: string
+          deal_name: string | null
           deal_value_cents: number | null
           deleted_at: string | null
           email: string | null
+          esi_id: string | null
           id: string
           last_contact: string | null
           name: string
@@ -2190,25 +2196,33 @@ export type Database = {
           phone: string | null
           score: number | null
           score_reason: string | null
+          service_address: string | null
           source: string | null
           status: string
           tags: string[]
+          title: string | null
           updated_at: string
         }
         Insert: {
+          agent_mils?: number | null
           annual_kwh?: number | null
           assigned_to?: string | null
           closed_at?: string | null
           closed_by_user_id?: string | null
+          commission_value?: number | null
           company?: string | null
           contract_end_date?: string | null
+          contract_start_date?: string | null
+          cost_per_kwh?: number | null
           created_at?: string
           created_by?: string | null
           current_supplier?: string | null
           deal_currency?: string
+          deal_name?: string | null
           deal_value_cents?: number | null
           deleted_at?: string | null
           email?: string | null
+          esi_id?: string | null
           id?: string
           last_contact?: string | null
           name: string
@@ -2218,25 +2232,33 @@ export type Database = {
           phone?: string | null
           score?: number | null
           score_reason?: string | null
+          service_address?: string | null
           source?: string | null
           status?: string
           tags?: string[]
+          title?: string | null
           updated_at?: string
         }
         Update: {
+          agent_mils?: number | null
           annual_kwh?: number | null
           assigned_to?: string | null
           closed_at?: string | null
           closed_by_user_id?: string | null
+          commission_value?: number | null
           company?: string | null
           contract_end_date?: string | null
+          contract_start_date?: string | null
+          cost_per_kwh?: number | null
           created_at?: string
           created_by?: string | null
           current_supplier?: string | null
           deal_currency?: string
+          deal_name?: string | null
           deal_value_cents?: number | null
           deleted_at?: string | null
           email?: string | null
+          esi_id?: string | null
           id?: string
           last_contact?: string | null
           name?: string
@@ -2246,9 +2268,11 @@ export type Database = {
           phone?: string | null
           score?: number | null
           score_reason?: string | null
+          service_address?: string | null
           source?: string | null
           status?: string
           tags?: string[]
+          title?: string | null
           updated_at?: string
         }
         Relationships: [

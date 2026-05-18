@@ -163,7 +163,18 @@ Format: each item has `[ ]` (pending) → `[~]` (in progress) → `[x]` (done, w
 - White-label theme uses platform defaults until Crystal sends logo + brand colors. Not a code blocker; tracked under "Open questions".
 - Doc title is SSR'd as "Majix — Never Let a Lead Go Cold Again" then client React swaps it to "Green EnergiAi" post-hydration. Acceptable; SSR title swap is a separate polish item if Crystal cares.
 
-### Step 1 — Schema migration `[ ]`
+### Step 1 — Schema migration `[x]` (2026-05-18, migration `20260518200618_energy_broker_fields.sql`)
+
+- [x] Created `supabase/migrations/20260518200618_energy_broker_fields.sql` (note: timestamp differs from handoff's `20260518030000_*` — `supabase migration new` stamps its own UTC; same content).
+- [x] Migration adds `service_address`, `esi_id`, `title`, `deal_name`, `contract_start_date`, `cost_per_kwh`, `agent_mils`, plus the generated `commission_value` column + the two partial indexes.
+- [x] Existing columns confirmed via live schema dump: `annual_kwh` (bigint), `contract_end_date` (date), `current_supplier` (text) were already on the table from an earlier migration — the only thing missing was the insert plumbing (Step 2). NOTE: the live `annual_kwh` is `bigint`, not the `integer` the handoff originally specced — bigint is the right call (multi-million kWh customers fit; integer caps at ~2.1B kWh which is also fine but bigint future-proofs). No change made.
+- [x] **First push failed** with `ERROR: generation expression is not immutable (SQLSTATE 42P17)` — `age()` and `extract(year from interval)` are STABLE not IMMUTABLE under Postgres's type rules (timezone-dependent timestamp conversion). Replaced the expression with date subtraction (`(end_date - start_date)` returns integer days, fully IMMUTABLE) divided by 365 and `floor`'d for year-count. Same `coalesce(..., 1)` semantics for null/short-span contracts. Migration re-applied cleanly.
+- [x] Math probe (1,000,000 kWh × 2-year contract × 3.0 mils × 0.001) → `commission_value = 6000.000000` ✓. Probe row deleted afterward.
+- [x] `supabase gen types typescript --linked > src/integrations/supabase/types.ts` regenerated; CLI version-update notice had to be stripped from stdout via `head -5403`. New fields visible in types: `agent_mils`, `cost_per_kwh`, `service_address`, `esi_id`, `deal_name`, `contract_start_date`, `commission_value`.
+- [x] `bun run typecheck` → clean.
+- [x] ISSUES.md `## Recent` to be appended in same commit as Step 1.
+
+~~Plan from original handoff (kept for context, see "(2026-05-18)" notes above for what actually shipped):~~
 
 - [ ] Create `supabase/migrations/20260518030000_energy_broker_fields.sql`:
 

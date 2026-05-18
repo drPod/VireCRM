@@ -115,6 +115,31 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-18 — green-energiai step 1: energy-broker schema migration
+**Tags:** [green-energiai] [supabase]
+
+Schema is the blocker for Steps 2-6. Added the missing energy-broker columns + a stored generated `commission_value` so Crystal's "total contract value" is computed-not-stored and never drifts from inputs.
+
+#### Shipped
+
+- `supabase/migrations/20260518200618_energy_broker_fields.sql` — additive `alter table public.leads` adding `service_address`, `esi_id`, `title`, `deal_name`, `contract_start_date`, `cost_per_kwh numeric(8,5)` (≥0), `agent_mils numeric(6,3)` (≥0), generated `commission_value numeric` STORED, and two partial indexes (`idx_leads_contract_end` on `(organization_id, contract_end_date)`, `idx_leads_esi` on `(organization_id, esi_id)`).
+- `src/integrations/supabase/types.ts` — regenerated via `supabase gen types typescript --linked`. Stdout had the "new version available" notice appended (one of the CLI's longer-running annoyances); had to `head -5403` to strip. New fields all flow through `Row`/`Insert`/`Update` shapes.
+
+#### Found
+
+- `age(date,date)` and `extract(year from interval)` are STABLE not IMMUTABLE — first migration push errored `ERROR: generation expression is not immutable (SQLSTATE 42P17)`. Postgres treats date→timestamp casts as timezone-dependent. Date subtraction (`end - start` returns integer days) is the only fully-immutable date-diff primitive for STORED generated columns. Rewrote the expression as `floor(((end - start)::numeric) / 365)` with the same `nullif(0,…)/coalesce(…,1)` null/short-contract guard. Result identical for whole-year terms; off-by-one risk only on leap-day exact-match contracts (acceptable for v1).
+- `leads.annual_kwh` was already `bigint` on the live schema (not `integer` as the handoff specced). Bigint is the better call — kept as-is, no migration change.
+
+#### Verification
+
+- `supabase db push --linked --include-all` → "Finished supabase db push" after rewrite.
+- Math probe: insert lead with annual_kwh=1,000,000, agent_mils=3.0, contract 2024-01-01 → 2026-01-01 → `commission_value=6000.000000` ✓. Probe deleted after.
+- `bun run typecheck` → clean.
+
+#### Manual follow-up (user)
+
+- None. Steps 2-7 unblocked.
+
 ### 2026-05-18 — green-energiai step 0: tenant provisioned, subdomain white-label live
 **Tags:** [green-energiai] [cf-saas] [supabase]
 
