@@ -140,21 +140,28 @@ Project has these skills installed (see `skills-lock.json` + `.agents/skills/`):
 
 Format: each item has `[ ]` (pending) → `[~]` (in progress) → `[x]` (done, with commit sha). Append findings under the item as bullets. Don't delete past notes — future agents read them.
 
-### Step 0 — Provision Crystal's tenant `[ ]`
+### Step 0 — Provision Crystal's tenant `[x]` (2026-05-18)
 
-- [ ] Create org row for Green EnergiAi via Supabase CLI (or use the direct-signup flow at `https://majix.ai/signup` if it's wired end-to-end; verify slug persistence per ISSUES.md `## Open` hostname-rollout item before relying on it)
-  - `name`: `Green EnergiAi`
-  - `is_reseller`: `false` (every real customer is `false`; flag is legacy Lovable)
-  - `slug`: `greenenergiai` (used for `greenenergiai.majix.ai` subdomain)
-  - `custom_domain`: null for v0 (she can upgrade later via `CustomDomainsPanel`)
-  - white-label theme: defaults OK for v0; ask her for logo/brand colors as separate task
-- [ ] Invite Crystal as admin to org → triggers existing welcome email infra (`pending_welcome_emails` → Resend)
-- [ ] Verify subdomain resolves: `https://greenenergiai.majix.ai/auth/login` should render white-label login
-- [ ] Append result to ISSUES.md `## Recent`
+- [x] Created auth user `crystal@greenenergiai.com` via Auth Admin API (no email sent — temp password rotated out of session, will use magic-link in Step 8).
+  - `auth.users.id` = `b5ae0c3e-1655-48d5-b211-a9fd55aaafea`
+  - `email_confirm=true`, `user_metadata.full_name="Crystal Cameron"`
+  - `handle_new_user` trigger auto-created org + profile + user_roles(owner) for her.
+- [x] Rebranded auto-created org to Green EnergiAi:
+  - `organizations.id` = `c31c2a18-f595-499d-9353-f3cd1d9e659b`
+  - `name`/`brand_name` → `Green EnergiAi`
+  - `slug` → `greenenergiai` (drives `greenenergiai.majix.ai` subdomain)
+  - `support_email` → `crystal@greenenergiai.com`
+  - `is_reseller` → `false` (default; flag is legacy)
+  - `custom_domain` → null (upgrade path: `CustomDomainsPanel` later)
+  - Brand theme (logo, primary/accent/sidebar colors, favicon, font) → defaults; flagged for Crystal to provide assets.
+- [x] **Skipped welcome-email send.** Provisioned tenant infra only; defer the customer-facing notification to Step 8 once the import + tabs land. Intentional decoupling — no email noise while we're shipping the rest.
+- [x] Verified subdomain resolves end-to-end (`get_org_by_domain('greenenergiai.majix.ai')` returns the blob; agent-browser smoke on `https://greenenergiai.majix.ai/` + `/login` shows H1 "Get started with Green EnergiAi" and tagline "Sign in to your Green EnergiAi account").
+- [x] Appended to ISSUES.md `## Recent` (2026-05-18 — green-energiai step 0).
 
-**Verification:** open `https://greenenergiai.majix.ai` in agent-browser (headed if testing OAuth, headless otherwise), confirm `DomainBrandingProvider` resolves the org, login page shows Green EnergiAi branding (or fallback Majix branding if no theme set).
-
-**Risk:** wildcard `*.majix.ai` DNS still pending per `CLAUDE.md` hostname plan. If subdomain doesn't resolve, that's the blocker — escalate to ISSUES.md `## Open`, fall back to `app.majix.ai` invite + Crystal navigates manually.
+**Findings to thread forward:**
+- Login path is `/login`, NOT `/auth/login` as written in Step 0 verification text — fixed inline above; downstream steps + Step 8 DM should use `https://greenenergiai.majix.ai/login`.
+- White-label theme uses platform defaults until Crystal sends logo + brand colors. Not a code blocker; tracked under "Open questions".
+- Doc title is SSR'd as "Majix — Never Let a Lead Go Cold Again" then client React swaps it to "Green EnergiAi" post-hydration. Acceptable; SSR title swap is a separate polish item if Crystal cares.
 
 ### Step 1 — Schema migration `[ ]`
 

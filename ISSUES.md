@@ -21,7 +21,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
-- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: (0) provision tenant `greenenergiai.majix.ai` → (1) schema migration `20260518030000_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column → (2) fix `ImportLeadsDialog.tsx:675-686` insert (currently parses energy fields then drops them) → (3) AI mapper prompt update → (4) historical-backfill toggle → (5) Pricing tab → (6) Clients tab → (7) renewal cron. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
+- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18, subdomain live, see Recent) → (1) schema migration `20260518030000_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column → (2) fix `ImportLeadsDialog.tsx:675-686` insert (currently parses energy fields then drops them) → (3) AI mapper prompt update → (4) historical-backfill toggle → (5) Pricing tab → (6) Clients tab → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -114,6 +114,31 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-18 — green-energiai step 0: tenant provisioned, subdomain white-label live
+**Tags:** [green-energiai] [cf-saas] [supabase]
+
+First real customer tenant onboarded. Auth user + org row + slug all wired; subdomain renders Green EnergiAi branding end-to-end. Welcome email deliberately not sent yet — defer to Step 8 after the energy-broker schema + import + tabs ship so Crystal doesn't log in to a half-built surface.
+
+#### Shipped
+
+- `auth.users.id=b5ae0c3e-1655-48d5-b211-a9fd55aaafea` — created via Auth Admin API (`POST /auth/v1/admin/users`, `email_confirm=true`, `user_metadata.full_name="Crystal Cameron"`). No email sent. Temp password rotated out of session — Step 8 will issue a recovery / magic-link.
+- `organizations.id=c31c2a18-f595-499d-9353-f3cd1d9e659b` — auto-created by `handle_new_user` trigger, then `UPDATE` to: `name`/`brand_name="Green EnergiAi"`, `slug="greenenergiai"`, `support_email="crystal@greenenergiai.com"`, `is_reseller=false` (default). `profiles` + `user_roles(owner)` rows came in via trigger automatically.
+
+#### Verification
+
+- `select public.get_org_by_domain('greenenergiai.majix.ai')` → full theme blob (`brand_name="Green EnergiAi"`, `verified=true`, slug-path branch, `is_reseller=false`). RPC working.
+- Agent-browser smoke on `https://greenenergiai.majix.ai/` + `/login` (headless, session `green-energiai-step0-smoke-2026-05-18`, closed cleanly): H1 "Get started with Green EnergiAi", `/login` H1 "Welcome back" + tagline "Sign in to your Green EnergiAi account", document.title → "Green EnergiAi" after hydration, no console errors. CSS `--primary=#3b82f6` (default seed) — colors/logo/favicon are platform defaults until Crystal provides assets.
+
+#### Found
+
+- Step 0 handoff text said `/auth/login`; correct path is `/login`. Fixed inline in handoff doc.
+- SSR title sent as "Majix — …" then client React swaps to tenant brand name. Post-hydration only. Polish, not blocker.
+- White-label theme assets (logo, primary/accent/sidebar/button colors, favicon, font) all null on her org row. Tracked as Open question 1 in handoff — visual asset blocker, not code blocker.
+
+#### Manual follow-up (user)
+
+- None for Step 0 itself. Step 8 will issue Crystal her login link (magic-link / recovery) after Steps 1-7 land. Schema + import + Pricing + Clients tabs all marching next.
 
 ### 2026-05-18 — Lovable vite preset + bun.lock proxy removed
 **Tags:** [lovable-migration] [tooling]
