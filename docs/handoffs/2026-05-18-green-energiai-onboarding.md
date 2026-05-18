@@ -18,13 +18,19 @@
 - Step 1 — schema migration `20260518200618_energy_broker_fields.sql` applied, `commission_value` generated column math verified
 - Step 2 — `ImportLeadsDialog.tsx` parses + inserts all energy fields. Typecheck + build clean. Not yet user-walked through dev server.
 
-**Done in session 2 (commits `4635496`, `4b6f75e`, `1448353`, pending Step 6 commit):**
+**Done in session 2 (commits `4635496`, `4b6f75e`, `1448353`, `6399b7b`):**
 - Step 3 — AI mapper prompt + schema updated for 10 energy fields (`src/functions/import-mapping.functions.ts`). `buildLeadsFromAiMapping` reads AI energy indices first, falls back to raw-header heuristic. Typecheck + build clean.
 - Step 4 — Historical backfill toggle in `ImportLeadsDialog.tsx`. Backfill on → every row inserts as `status=won` + auto-outreach disabled (UI + handler both guard). Typecheck + build clean.
 - Step 5 — Pricing tab shipped at `src/routes/_app.pipeline.tsx` (URL `/pipeline`, sidebar label "Pricing"). Editable rate + mils per row, generated commission, Mark Won action. Sidebar entry added to Overview section. Typecheck + build clean.
 - Step 6 — Clients tab shipped at `src/routes/_app.book.tsx` (URL `/book`, sidebar label "Clients"). Read-only renewal-hunt view sorted by contract end ascending, with search + supplier + expiry-window (30/60/90/expired) filters and tone-coded renewal badges. Legacy reseller `/clients` sidebar link renamed to "Sub-accounts" to avoid collision. Typecheck + build clean.
+- Step 7 — design analysis only (not implemented). `pending_welcome_emails` is invitation-specific; renewals need a new table + template + Worker route. Full design notes inline in the Step 7 section below.
 
-**Pick up at Step 7** (renewal cron — `supabase/migrations/<ts>_renewal_notification_cron.sql`). Mirror the pattern in `supabase/migrations/20260517230000_schedule_remaining_phase1_crons.sql`. pg_cron daily job: find `leads where status='won' AND contract_end_date BETWEEN now() AND now() + 90 days`, write a row to either `pending_welcome_emails` or a new `pending_renewal_emails` table for Resend pickup. Then Step 8 (DM Crystal magic-link + ask for backfill upload).
+**Crystal-blocking work is done.** Steps 0-6 form the full data flow she asked for (import → schema → tabs). Step 7 is optional automation that becomes useful only after she does the historical backfill in Step 8.
+
+**Pick up at one of:**
+- **Step 8 — DM Crystal** (immediate value). Generate a magic link via the curl recipe above, send it to Crystal with a short note explaining the new tabs + asking her to flip the historical-backfill toggle when re-uploading. PR-wise: probably nothing to commit, just the DM. After she uploads, do the dev-server walk to confirm everything Crystal-side worked end-to-end.
+- **Step 7 — Renewal cron** (deferred infra). See design analysis in the Step 7 section below. ~2-3hr of focused work; can ship after Crystal is using the system or even after she asks for it.
+- **Pre-PR end-to-end dev-server walk** if PR 1/3 haven't been opened yet. See the verification block above.
 
 **Before opening PR 1**, run an end-to-end dev-server walk:
 1. `bash scripts/restart-dev.sh` (fresh env bake — `VITE_SUPABASE_URL` is critical)
@@ -377,12 +383,28 @@ File: `src/components/crm/ImportLeadsDialog.tsx`
 
 **PR 3 boundary reached** (steps 5 + 6 = Pricing + Clients tabs).
 
-### Step 7 — Renewal cron (nice-to-have, not Crystal-blocking) `[ ]`
+### Step 7 — Renewal cron (nice-to-have, not Crystal-blocking) `[ ]` — design analysis done 2026-05-18
 
-- [ ] Migration: `supabase/migrations/20260518040000_renewal_notification_cron.sql`
-- [ ] pg_cron daily job: find leads where `contract_end_date` between `now()` and `now() + 90 days` AND `status='won'`, write to `pending_welcome_emails` (or new `pending_renewal_emails` table) for Resend pickup
-- [ ] Pattern: copy from `supabase/migrations/20260517230000_schedule_remaining_phase1_crons.sql`
-- [ ] Append cron name to ISSUES.md cron registry
+**Design analysis from session 2:**
+
+- `pending_welcome_emails` is **not reusable**. Schema is invitation-specific: `reseller_id NOT NULL`, `recipient_email NOT NULL`, `login_url NOT NULL`, fields hard-coded to the reseller-welcome use case. Renewal notifications need lead context (deal_name, supplier, contract_end_date, days-until-expiry, broker contact info) that don't fit.
+- **Need a new `pending_renewal_emails` table** scoped to lead-renewal context: `lead_id FK leads`, `organization_id` (for RLS scoping + brand template lookup), `recipient_email`, `recipient_name`, `deal_name`, `current_supplier`, `contract_end_date`, `days_until_expiry`, plus the same queue plumbing (`send_after`, `sent_at`, `failed_at`, `attempts`, `last_error`).
+- **Need a new Resend template** (`renewal-reminder.tsx` in `src/lib/email/templates/`) — broker-branded with org's logo + colors via the same DomainBranding flow that powers `<slug>.majix.ai`.
+- **Need a new Worker route** `/api/public/hooks/dispatch-renewal-reminders` that drains the queue (similar to existing `send-pending-welcomes`). Auth via `x-cron-secret` per existing pattern.
+- **pg_cron job:** daily at, say, 09:00 UTC. Two responsibilities — (a) INSERT into `pending_renewal_emails` for any lead where `status='won' AND contract_end_date BETWEEN now() AND now() + interval '90 days' AND NOT EXISTS (SELECT 1 FROM pending_renewal_emails WHERE lead_id = ... AND created_at > now() - interval '90 days')` (dedupe against the trailing 90-day window so we don't spam the same contact daily); (b) POST to the Worker hook to drain the queue.
+
+**Sequencing for next session:**
+
+1. Read `supabase/migrations/20260417054050_*.sql` for the `pending_welcome_emails` table pattern + RLS posture (private table, no anon policies, service-role-only access).
+2. Read `src/lib/email/templates/welcome-reseller-tenant.tsx` (likely path — verify) for the brand-aware template pattern.
+3. Read existing `/api/public/hooks/send-pending-welcomes` Worker route to model the drainer.
+4. Write migration `<ts>_renewal_notifications.sql` — table + RLS + indexes + cron `cron.schedule('dispatch-renewal-reminders', '0 9 * * *', $cron$ ... $cron$)`. Same vault-decrypted-secret pattern as the Phase 1 crons.
+5. Write template `renewal-reminder.tsx`.
+6. Write Worker route + hook handler.
+7. Add `dispatch-renewal-reminders` to the cron registry note in ISSUES.md.
+8. Wire `CRON_SECRET` reminder — already in ISSUES.md `## Open` user-action block.
+
+Estimated 2-3hr of focused work. Independent of Crystal — she gets value from the rest of this PR-train first; renewal cron only matters once her book has real expiring contracts (after she does the Step 8 backfill upload).
 
 ### Step 8 — Crystal does the backfill `[ ]`
 

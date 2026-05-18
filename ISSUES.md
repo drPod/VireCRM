@@ -115,6 +115,21 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-18 — green-energiai step 7: renewal cron — design analysis (not yet implemented)
+**Tags:** [green-energiai] [supabase] [cron] [design]
+
+Looked at reusing `pending_welcome_emails` per the original handoff. Won't fit — invitation-specific schema (`reseller_id NOT NULL`, `login_url NOT NULL`, no lead linkage). Step 7 needs a new `pending_renewal_emails` table, a Resend template, and a Worker drainer route. Pure deferred-design entry; no code shipped this session.
+
+#### Found
+
+- `pending_welcome_emails` rows are reseller-tenant welcome invitations, not generic notification queue. Repurposing breaks both consumers (the existing `/api/public/hooks/send-pending-welcomes` Worker route renders a welcome template, not a renewal notice).
+- The Phase 1 cron registry already wires every existing Worker hook (`email-queue-process`, `dispatch-sequences`, `dispatch-followups`, `contact-followup-reminders`, `purge-audit-log`, `calculate-payouts`). Renewal cron would slot in as `dispatch-renewal-reminders`, suggested daily 09:00 UTC.
+- Full design analysis + sequencing checklist for next session lives in `docs/handoffs/2026-05-18-green-energiai-onboarding.md` Step 7 block. Estimated 2-3hr focused work — needs new table + RLS + template + Worker route + cron entry.
+
+#### Manual follow-up (user)
+
+- Once Step 7 lands, `CRON_SECRET` must be set in the CF Worker prod env (already tracked at the top of `## Open` under "User action required") so the new `dispatch-renewal-reminders` POST authenticates.
+
 ### 2026-05-18 — green-energiai step 6: Clients tab (`/book`)
 **Tags:** [green-energiai] [frontend] [crm]
 
