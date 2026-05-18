@@ -18,10 +18,11 @@
 - Step 1 — schema migration `20260518200618_energy_broker_fields.sql` applied, `commission_value` generated column math verified
 - Step 2 — `ImportLeadsDialog.tsx` parses + inserts all energy fields. Typecheck + build clean. Not yet user-walked through dev server.
 
-**Done in session 2 (commit pending below):**
+**Done in session 2 (commits `4635496`, latest Step 4 commit):**
 - Step 3 — AI mapper prompt + schema updated for 10 energy fields (`src/functions/import-mapping.functions.ts`). `buildLeadsFromAiMapping` reads AI energy indices first, falls back to raw-header heuristic. Typecheck + build clean.
+- Step 4 — Historical backfill toggle in `ImportLeadsDialog.tsx`. Backfill on → every row inserts as `status=won` + auto-outreach disabled (UI + handler both guard). Typecheck + build clean.
 
-**Pick up at Step 4** (historical backfill toggle in `ImportLeadsDialog.tsx`). Then end-to-end dev-server walk (below) before opening PR 1. Alternatively, PR 1 can ship with steps 0-3 as-is and Step 4 goes into PR 2.
+**Pick up at Step 5** (Pricing tab at `src/routes/_authed/crm/pricing.tsx`). Greenfield UI — invoke `Skill` → `tanstack-router-best-practices` + `tanstack-query-best-practices` + `shadcn` first. Editable `cost_per_kwh` + `agent_mils` per row, read-only computed `commission_value`. Then Step 6 (Clients tab, similar but read-only + sort by `contract_end_date` ascending). PR boundary: PR 3 = steps 5-6.
 
 **Before opening PR 1**, run an end-to-end dev-server walk:
 1. `bash scripts/restart-dev.sh` (fresh env bake — `VITE_SUPABASE_URL` is critical)
@@ -329,14 +330,18 @@ File: `src/components/crm/ImportLeadsDialog.tsx`
 
 **PR 1 ready.** Steps 0-3 land together. Branch + PR description still to write.
 
-### Step 4 — Historical backfill toggle `[ ]`
+### Step 4 — Historical backfill toggle `[x]` (2026-05-18)
 
-File: `src/components/crm/ImportLeadsDialog.tsx`
+- [x] New `backfillMode` state in `ImportLeadsDialog`, default off, reset on dialog close.
+- [x] New `<Switch id="backfill-import">` placed ABOVE the auto-outreach switch. Label: "Import as closed clients (historical backfill)". Sublabel: "Sets every row to status 'won' and disables auto-outreach. Use when loading existing customers, not new leads."
+- [x] Batch insert overrides `status: "won"` for every row when `backfillMode` is on (otherwise honours parsed status).
+- [x] Auto-outreach switch goes visually disabled (muted label, `cursor-not-allowed`, sublabel swaps to "— disabled in backfill mode") + functionally disabled (`<Switch disabled>` + `checked={outreachEnabled && !backfillMode}`) when backfill is on. Underlying preference is preserved — re-enabling backfill restores the user's auto-outreach choice.
+- [x] Auto-outreach trigger in `handleImport` now gates on `outreachEnabled && !backfillMode` (belt-and-suspenders — UI already prevents this, but the state machine is two-source-of-truth so guard both).
+- [x] `bun run typecheck` + `bun run build` clean.
 
-- [ ] Add `<Switch>` under the auto-outreach toggle labeled "Import as closed clients (historical backfill)"
-- [ ] When on, sets `status: "won"` on every row in the batch (overriding parsed status)
-- [ ] Disables auto-outreach toggle when historical mode on (don't email old clients)
-- [ ] Crystal re-uploads her master list with this switch ON → all 2yrs of deals land as `status=won` → show up in Clients tab once that's built
+**Tested manually?** No — same Step-8 dev walk debt as Step 2/3. The unit logic is small enough to read; UX confirmation (visible disabled state, label swap, status pill in Clients tab after backfill upload) is the dev-server walk.
+
+**PR 2 boundary reached** per handoff cadence ("PR 2 = step 4"). Could ship now or bundle with PR 3 (Pricing + Clients tabs) since the toggle is only meaningful once the Clients tab exists to display the won rows.
 
 ### Step 5 — Pricing tab `[ ]`
 

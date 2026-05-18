@@ -715,6 +715,10 @@ export function ImportLeadsDialog({
   const [parseError, setParseError] = useState<string | null>(null);
   const [aiMapping, setAiMapping] = useState<boolean>(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
+  // Historical-backfill mode: override every imported row's status to "won"
+  // and suppress auto-outreach. For energy brokers like Green EnergiAi who
+  // are loading their existing client list at onboarding, not new leads.
+  const [backfillMode, setBackfillMode] = useState<boolean>(false);
 
   const mapColumns = useAuthedServerFn(mapImportColumnsFn);
 
@@ -725,6 +729,7 @@ export function ImportLeadsDialog({
     setImportResult(null);
     setParseError(null);
     setAiNote(null);
+    setBackfillMode(false);
   }, []);
 
   const handleFile = useCallback(
@@ -855,7 +860,7 @@ export function ImportLeadsDialog({
         email: l.email?.slice(0, 255) || null,
         phone: l.phone?.slice(0, 50) || null,
         company: l.company?.slice(0, 200) || null,
-        status: l.status || "new",
+        status: backfillMode ? "won" : l.status || "new",
         score: l.score ?? 50,
         notes: l.notes?.slice(0, 2000) || null,
         source: l.source || "csv_import",
@@ -891,8 +896,9 @@ export function ImportLeadsDialog({
       toast.success(`Imported ${success} lead${success > 1 ? "s" : ""} successfully!`);
       onLeadsImported?.();
 
-      // Trigger auto-outreach in background — only if the user opted in.
-      if (outreachEnabled && allInserted.length > 0) {
+      // Trigger auto-outreach in background — only if the user opted in
+      // and backfill mode is off (don't email historical clients).
+      if (outreachEnabled && !backfillMode && allInserted.length > 0) {
         triggerOutreach(allInserted);
       }
     }
@@ -1084,19 +1090,44 @@ export function ImportLeadsDialog({
 
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
                   <label
+                    htmlFor="backfill-import"
+                    className="flex flex-col gap-0.5 text-xs font-medium text-foreground cursor-pointer"
+                  >
+                    <span>Import as closed clients (historical backfill)</span>
+                    <span className="font-normal text-muted-foreground">
+                      Sets every row to status &ldquo;won&rdquo; and disables auto-outreach. Use when
+                      loading existing customers, not new leads.
+                    </span>
+                  </label>
+                  <Switch
+                    id="backfill-import"
+                    checked={backfillMode}
+                    onCheckedChange={setBackfillMode}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2">
+                  <label
                     htmlFor="auto-outreach-import"
-                    className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer"
+                    className={`flex items-center gap-2 text-xs font-medium ${
+                      backfillMode
+                        ? "text-muted-foreground cursor-not-allowed"
+                        : "text-foreground cursor-pointer"
+                    }`}
                   >
                     <Sparkles className="h-3.5 w-3.5 text-primary" />
                     AI auto-outreach
                     <span className="font-normal text-muted-foreground">
-                      — email imported leads with addresses
+                      {backfillMode
+                        ? "— disabled in backfill mode"
+                        : "— email imported leads with addresses"}
                     </span>
                   </label>
                   <Switch
                     id="auto-outreach-import"
-                    checked={outreachEnabled}
+                    checked={outreachEnabled && !backfillMode}
                     onCheckedChange={setOutreachEnabled}
+                    disabled={backfillMode}
                   />
                 </div>
 

@@ -21,7 +21,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
-- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18) → ~~(1) schema migration `20260518200618_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column~~ (done 2026-05-18) → ~~(2) fix `ImportLeadsDialog.tsx` insert (parsed energy fields then dropped them)~~ (done 2026-05-18) → ~~(3) AI mapper prompt update~~ (done 2026-05-18) → (4) historical-backfill toggle → (5) Pricing tab → (6) Clients tab → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
+- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18) → ~~(1) schema migration `20260518200618_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column~~ (done 2026-05-18) → ~~(2) fix `ImportLeadsDialog.tsx` insert (parsed energy fields then dropped them)~~ (done 2026-05-18) → ~~(3) AI mapper prompt update~~ (done 2026-05-18) → ~~(4) historical-backfill toggle~~ (done 2026-05-18) → (5) Pricing tab → (6) Clients tab → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -114,6 +114,25 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-18 — green-energiai step 4: historical backfill toggle in import dialog
+**Tags:** [green-energiai] [frontend]
+
+Crystal has ~2 years of closed deals to load. They aren't new leads — they're existing clients she wants visible in the (forthcoming) Clients tab. Toggle this on at import time, every row lands as `status=won` and the auto-outreach trigger sits down.
+
+#### Shipped (`src/components/crm/ImportLeadsDialog.tsx`)
+
+- New `backfillMode` state, default off, reset on dialog close.
+- New Switch placed above the auto-outreach Switch. Label: "Import as closed clients (historical backfill)" + sublabel explaining the override behaviour.
+- Batch insert overrides `status: "won"` when backfill is on (otherwise honours parsed status).
+- Auto-outreach Switch goes visually + functionally disabled when backfill is on. Sublabel swaps to "— disabled in backfill mode". Underlying preference is preserved — re-enabling backfill restores the saved choice.
+- `handleImport` gates the outreach trigger on `outreachEnabled && !backfillMode` (belt-and-suspenders against the disabled Switch).
+
+#### Verification
+
+- `bun run typecheck` clean.
+- `bun run build` clean.
+- UX confirmation (visible disabled state, label swap, won rows landing in Clients tab) deferred to Step 8 dev-server walk — the Clients tab itself doesn't exist yet (Step 6).
 
 ### 2026-05-18 — green-energiai step 3: AI mapper teaches itself the energy schema
 **Tags:** [green-energiai] [frontend] [ai]
