@@ -1388,3 +1388,56 @@ Prior session also added `scripts/inject-wrangler-routes.mjs` + post-build step 
 
 ### Manual follow-up (user)
 - **Rotate `CLOUDFLARE_API_TOKEN`.** Prior session's chat transcript leaked the live token value (scope: `Zone.SSL & Certificates:Edit` on `majix.ai`). CF dashboard → My Profile → API Tokens → trash that row → create replacement with same scope → `wrangler secret put CLOUDFLARE_API_TOKEN`.
+
+---
+
+## 2026-05-18 — `/features` rebuild + `/preview` rebuild plan
+
+Session lead: Opus 4.7 (1M context, caveman mode), parallel marketing-research + codebase-exploration subagents.
+
+### Shipped
+
+- **`/features` page completely rebuilt** as Linear/Attio-style narrative with numbered chapters (`01 Capture · 02 Convert · 03 Scale`) wrapping 7 feature blocks, comparison table, verticals strip, integrations grid, FAQ, reseller CTA. Commit `81a35ac`.
+- New directory `src/components/marketing/features/` w/ 17 files (11 components + 7 mocks + 1 data module). Each mock is an HTML-rendered mini UI (command center, follow-up sequence, lead scoring, inbox, calendar, analytics, white-label tenants) inside a browser-chrome `ProductMockFrame`.
+- Closes ISSUES line 64 (`/features content — duplicate of landing`) and ISSUES line 181 (decide `/features` content).
+- Typecheck clean. **Not yet browser-verified** — flagged for next session.
+
+### Research
+
+Marketing-research subagent visited Attio, Linear, Vercel, Framer, HubSpot, Close, Copper. Key adoptions:
+
+- Numbered chapter system (Linear `1.0/2.0/3.0`, Attio `[01]–[04]`).
+- Display type at `text-7xl` / `text-[5.25rem]` for hero.
+- Browser-chrome product mock frame (Attio pattern, but HTML-rendered to scale w/ Tailwind themes + zero asset weight).
+- Asymmetric primary/secondary CTAs, no sticky bottom bar.
+- Restraint: hero has dual CTA but page doesn't beg — 3 CTA repeats max across page.
+
+Explicitly NOT adopted:
+
+- Dark-mode default (Linear/Framer/Vercel) — kept light-mode aurora for brand consistency w/ landing.
+- Customer logo bar + testimonial pull-quote — slots ready but content needs user input (real client names).
+- Hero tabbed product canvas — would duplicate effort against `/preview` which already exists as the live demo.
+
+### Decisions made (don't re-litigate)
+
+1. HTML-rendered mocks > screenshots for `/features`. Pros: dark-mode scales, no stale captures. Cons: not the actual product. Mitigation: mocks share exact `oklch` palette + card styles w/ CRM.
+2. `/features` keeps light-mode + aurora — brand consistency w/ landing wins over premium dark-mode pattern.
+3. Comparison table labels = generic ("Generic CRM" / "White-label rivals") instead of naming HubSpot/Pipedrive/GoHighLevel. Less legal risk + ages better. User may opt back into named comparison.
+
+### Next session — `/preview` rich rebuild
+
+Plan + context in `docs/handoffs/2026-05-18-features-preview-rebuild.md`. Summary:
+
+- Split `src/routes/preview.tsx` (1077 LOC) into per-module views under `src/components/preview/`.
+- Build 9 of 13 sidebar modules as static-rich demos (Leads, Messages, Campaigns, Workflows, Calendar, Email Marketing, Revenue, Reputation, AI Advisor, Analytics).
+- Keep Billing + Settings as `PlaceholderView` w/ honest "Sign up to access" copy.
+- Fix listed `/preview` bugs (lines 386, 919–925, 938 of this file).
+- Extend tour across new modules (~8-10 steps).
+- Browser-verify both `/features` + `/preview` at 375 / 768 / 1280.
+
+### Open follow-ups for user
+
+- [ ] Provide 5–8 real customer logos for `/features` above-the-fold logo bar.
+- [ ] Provide one testimonial pull-quote (sentence + name + role + company) for `/features`.
+- [ ] Decide whether comparison-table competitor labels should name HubSpot / Pipedrive / GoHighLevel explicitly.
+- [ ] Browser-verify `/features` before claiming live-tested.
