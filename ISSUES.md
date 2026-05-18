@@ -1490,3 +1490,26 @@ Plan + context in `docs/handoffs/2026-05-18-features-preview-rebuild.md`. Summar
 - [ ] Provide one testimonial pull-quote (sentence + name + role + company) for `/features`.
 - [ ] Decide whether comparison-table competitor labels should name HubSpot / Pipedrive / GoHighLevel explicitly.
 - [ ] Browser-verify `/features` before claiming live-tested.
+
+---
+
+## 2026-05-18 — DomainHealthPanel TXT-value fix
+
+Closes the "Real bug surfaced" block in the 2026-05-17 CF e2e section above.
+
+### Shipped
+
+- **`src/components/crm/DomainHealthPanel.tsx:690-708`** now renders both ownership-verification and SSL DCV TXT records via the existing `RecordRow` + `CopyField` components (same pattern `RedirectGuideDialog` already used). One row per record, each with copyable Name + Value fields, badge for record type, and a one-line "add this at the customer's DNS" note.
+- Old behavior: panel printed `ownershipVerification.name` inside an inline `<code>` and listed SSL DCV records as a count only. CF returns the `.value` fields in both cases, but the UI discarded them — meaning a customer hitting a stuck-issuing hostname couldn't read the TXT values they needed to enter at their DNS host.
+- New behavior: panel surfaces every value verbatim, one-click copy. Two cases (single ownership TXT + N SSL DCV TXTs) both handled.
+
+Commit `2444041`. `bun run typecheck` clean. `bun run build` clean (Worker bundle builds).
+
+### Not browser-verified this pass
+
+Render-only swap, low risk (`RecordRow`+`CopyField` already production-tested by `RedirectGuideDialog`, data shape `{ name, value }` already confirmed by last session's monkey-patched-`fetch` payload capture). Next time the CF e2e smoke is re-run (or on deploy), the panel will exercise both rows with real CF data; user can capture a screenshot then if pixel evidence is wanted before close.
+
+### Manual follow-up (user)
+
+- Push when ready — local `main` now 4 commits ahead of `origin/main`.
+- Smoke user cleanup still pending: `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or specific `userId` `516e90e0-b537-4506-90bd-134dc5d5cb81`).
