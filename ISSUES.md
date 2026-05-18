@@ -1239,4 +1239,99 @@ CLI printed `Success! Project genesisxsx removed`. Re-listed projects in scope `
 
 - `src/routes/api/public/hooks/run-workflows.ts:4` JSDoc still says *"Vercel Cron sends GET with Authorization: Bearer $CRON_SECRET"*. The Bearer-auth code path still works (cron driver is now Supabase `pg_cron`, which uses `x-cron-secret`, but the GET+Bearer branch is harmless), comment is stale. One-line edit when next touching the file.
 - `.gitignore` still has `.vercel/` + `.vercel` entries. Harmless; leave in place in case someone re-runs `vercel link` by mistake.
+
+---
+
+## 2026-05-18 EditClientWhiteLabelDialog CF wire — auth + shared helpers
+
+Latent bug from 2026-05-17 midnight handoff (line ~1161). `EditClientWhiteLabelDialog.handleSave` called `provisionCustomHostnameFn`/`tearDownCustomHostnameFn` directly. `requireSupabaseAuth` middleware rejected with 401 before the 503 "CF not configured" path could fire, so the graceful-degrade `toast.warning` never reached operators on un-configured workers.
+
+### Fix
+
+| File | Change |
+|---|---|
+| `src/lib/cf-saas-errors.ts` | New shared util. Exports `isNotConfigured(err)` (503 `Response` check) + `describeError(err)` (Response/Error/string render). |
+| `src/components/crm/EditClientWhiteLabelDialog.tsx` | `const provisionCf = useAuthedServerFn(provisionCustomHostnameFn)` + `tearDownCf = useAuthedServerFn(tearDownCustomHostnameFn)`. `handleSave` calls `provisionCf({...})` / `tearDownCf({...})` instead of the raw fns. Dropped local `isNotConfigured`/`describeError` — imported from `@/lib/cf-saas-errors`. |
+| `src/components/crm/CustomDomainsPanel.tsx` | Same import swap — dropped local helpers, imported from `@/lib/cf-saas-errors`. Closes the duplication note from the 2026-05-17 midnight pass. |
+
+### Verification
+
+- `bun run typecheck` — clean.
+- No runtime walk: reseller dialog needs `is_reseller=true` org + child client (same blocker as line 1217). Code wire matches the `CustomDomainsPanel` reference impl exactly.
 - `CLAUDE.md` host migration history paragraph still accurate post-deletion — no edit.
+
+---
+
+## 2026-05-18 Polish pass — 10 small fixes via parallel subagents
+
+Parent dispatched 10 parallel subagents against the open audit nits. 6 landed code edits, 3 were already closed in earlier commits (audit stale), 1 couldn't pin the real culprit.
+
+### Shipped
+
+| File | Change | Audit ref |
+|---|---|---|
+| `src/routes/__root.tsx` | `NotFoundComponent` document.title `"Page not found — Majix"` → `"404 — Majix"`. Imperative override stays because `notFoundComponent` is inlined on the root route and can't carry its own `head()`. | Audit continuation `/about` 404 title |
+| `src/components/marketing/MarketingHeader.tsx` | Both desktop + mobile nav `<Link>` className gain `aria-[current=page]:text-foreground aria-[current=page]:font-semibold`. `activeProps={{ "aria-current": "page" }}` was already wired — just had no visual style. | Audit continuation top-nav `aria-current` |
+| `src/components/marketing/PricingCards.tsx` | `"All prices in USD."` disclaimer (`text-xs text-muted-foreground`) under both the CRM Plans and White-Label Plans section headers. `tabular-nums` already present on price spans. | Audit continuation `/pricing` no currency |
+| `src/routes/preview.tsx:661` | Dropped `.toLowerCase()` on `{label}` in the `PlaceholderView` upsell copy. `navItems` already carry proper display names ("AI Advisor", "Leads", etc.), so "Sign up to unlock ai advisor" → "Sign up to unlock AI Advisor". Auto-fixed two pre-existing prettier errors elsewhere in the file in passing. | Audit continuation `/preview` upsell module Title Case |
+| `src/components/crm/CommandBar.tsx` | Wrapped Send `<Button>` in a local `<TooltipProvider delayDuration={150}>` + `<Tooltip><TooltipTrigger asChild><span tabIndex={disabled ? 0 : -1}>...</span></TooltipTrigger></Tooltip>`. Tooltip copy is state-aware: "Type a command to send" (empty input), "Sending command..." (processing), "Send command" (ready). Added `aria-label="Send command"` to the Button. The `<span>` wrapper is the standard workaround for the documented "disabled button doesn't fire mouseenter" gotcha. | Gated CRM audit command-bar disabled-state hint |
+| `src/routes/api/public/hooks/run-workflows.ts` | Stale "Vercel Cron sends GET..." JSDoc replaced with accurate current wiring: Supabase pg_cron POSTs once a minute (cites the schedule migration) using `x-cron-secret` from `vault.decrypted_secrets`. Note that `Authorization: Bearer $CRON_SECRET` is still accepted for legacy callers. | CF migration loose-ends list |
+
+### Already closed (audit stale — no-op)
+
+| Item | Status | Where the fix actually landed |
+|---|---|---|
+| `/unsubscribe` page title falls back to landing title on error state | Already fixed | `src/routes/unsubscribe.tsx` already carries `head: () => ({ meta: [{ title: "Unsubscribe — Majix" }] })` at the route level, so it applies to every render branch. |
+| Footer dead `<span>` "About" / "Careers" | Already fixed | `src/components/marketing/MarketingFooter.tsx` Company column already trimmed to `Contact` + phone. Zero `About`/`Careers` matches in the marketing tree. |
+| `/leads` AddLead success toast missing | Already fixed | `src/components/crm/AddLeadDialog.tsx:124` already calls `toast.success(\`Lead "${form.name}" added!\`)` on success. The audit was likely masked by an `Auto-outreach skipped` toast firing immediately after when auto-outreach was enabled — different toast, same visual region. |
+
+### Not landed — needs a follow-up
+
+- **Onboarding wizard `aria-describedby` Radix warning.** Audit pointed at `OnboardingWizard` + `ProductTour` as the culprits, but on inspection both are clean: `OnboardingWizard.tsx` has `<DialogDescription>` on every `<DialogContent>` (L93-96, L170-172), and `ProductTour.tsx` doesn't use Radix `Dialog` at all (plain `createPortal` + `<div role="dialog">`). The real Radix `<DialogContent>` instances missing a description are: `src/components/ui/command.tsx` (`CommandDialog`, currently zero importers — dead), `src/components/crm/AddLeadDialog.tsx`, `src/components/energy/EnergyTablePage.tsx`, `src/routes/_app.academy.tsx`, `src/routes/_app.academy.$courseId.tsx`, `src/routes/_app.contact-submissions.tsx`. None of those open on `/dashboard` load, so either the audit captured the warning on a different route or there's a globally-mounted dialog I haven't pinned. Next session: re-capture the warning with the Radix stack trace from the browser console to identify the exact source before the fix.
+
+### Skipped from this pass
+
+- `/campaigns/analytics` is a verbatim duplicate of `/campaigns`. Decision required (kill the route or build a real analytics view) — needs product call, not a polish edit.
+- OG social card asset (1200×630 PNG) — pure design task.
+
+### Verification
+
+- `bun run typecheck` — clean.
+- `bunx eslint <all touched files>` — clean except 1 pre-existing `react-hooks/exhaustive-deps` warning on `preview.tsx:226` (`tourSteps` array memoization), unrelated to this pass.
+- No browser walk this pass — all six edits are either a `<title>` swap, Tailwind class addition, copy fix, or JSDoc. Audit-driven, visible review on next dev-server boot.
+
+
+---
+
+## 2026-05-18 CF wire post-verify fixes — 503 detection + JSX crash + AlertDialog
+
+Ran an end-to-end browser walk on `CustomDomainsPanel` + `DomainHealthPanel` (the wire from commit `b91dae3`) after the helper extraction. The walk surfaced three real bugs — all fixed in this pass.
+
+### Findings from the walk
+
+1. **`isNotConfigured` never fires on the client.** The helper checked `err instanceof Response && err.status === 503`, but TanStack Start serializes only `Error` objects across the wire — thrown `Response` instances are caught by the framework and surfaced as a generic `HTTPError` envelope with HTTP 500. Verified by direct probe of the `/_serverFn/...` endpoint: response body was `{"status":500,"unhandled":true,"message":"HTTPError"}` even though the handler `throw new Response("CF for SaaS not configured", { status: 503 })` was reached. Net effect: the warning-toast degrade-gracefully path was unreachable; the user saw the green success toast even when CF was unset and `cf_hostname_id` never persisted.
+2. **`DomainHealthPanel` hard-crashed the settings page** when a verified hostname existed without a CF snapshot — JSX guard `snapshot && snapshot.sslValidationRecords.length > 0` blew up on undefined `sslValidationRecords`. Whole settings route fell into the root error boundary.
+3. **`handleRemove` still used `window.confirm`** — inconsistent with the `ConfirmProvider` migration shipped in `871a49b` for every other destructive action in the app.
+
+### Fix
+
+| File | Change |
+|---|---|
+| `src/functions/custom-hostnames.functions.ts` | Replaced every `throw new Response(msg, { status })` with `throw new Error(msg)`. Added `notConfiguredError()` factory + exported `CF_NOT_CONFIGURED_MESSAGE` constant (wire contract). Message strings preserved verbatim so the existing UI fallbacks still render meaningful text. |
+| `src/lib/cf-saas-errors.ts` | `isNotConfigured` now matches by `Error.message.includes(CF_NOT_CONFIGURED_MESSAGE)` instead of `instanceof Response`. `describeError` falls back to the message string. Block comment explains the TanStack Start serialization rule so the next person doesn't reintroduce the `Response` pattern. |
+| `src/components/crm/DomainHealthPanel.tsx` | Catch block switched to the shared helper. SSL DCV JSX guard fixed: `(snapshot?.sslValidationRecords?.length ?? 0) > 0` — render is null-safe even if the server fn ever returns a snapshot with the field undefined. |
+| `src/components/crm/CustomDomainsPanel.tsx` | `handleRemove` now calls `await confirm({ title, description, confirmLabel, destructive: true })` from `useConfirm()` — matches the pattern used by `PlatformAdminPanel`, `OrgFeaturesPanel`, etc. Native `window.confirm` removed. |
+
+### Verification
+
+End-to-end browser walk via `agent-browser` subagent (session `cdp-reverify-late`, headed Chromium, smoke owner user against dev `:8080`). All three bugs confirmed gone:
+
+- Add `reverify-test-2.example.com` → green "Hostname added" toast + amber warning "Hostname added, but Cloudflare for SaaS isn't configured on this worker yet — customer DNS won't resolve until that's done." No rogue green "Cloudflare custom hostname provisioned" toast.
+- Click Remove → AlertDialog modal (title, description, red destructive "Remove hostname" button, Cancel). Confirm → "Hostname removed" toast, row gone.
+- Forced a verified row via service-role SQL → settings page rendered without crash. `DomainHealthPanel` per-row "Cloudflare for SaaS" sub-row showed the outline "CF not configured" badge.
+
+Also: `bun run typecheck` and `bunx eslint` clean on touched files.
+
+### Pre-existing gap (NOT fixed this pass)
+
+`src/integrations/supabase/auth-middleware.ts` still throws `new Response(...)` for 401/403 paths. Same TanStack-Start-doesn't-serialize-Response issue: an unauthenticated request reaches the framework's 500 wrapper instead of the intended 401. In practice `useAuthedServerFn` always attaches a Bearer header before the call, so the unauth path is dead under normal flow — but it means any future "what happens if the token expired mid-call" handling is currently impossible because the client can't see the 401 status. Track for the auth-middleware-rewrite work, not part of this cluster.

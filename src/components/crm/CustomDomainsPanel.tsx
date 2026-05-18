@@ -20,27 +20,14 @@ import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useConfirm } from "@/hooks/useConfirm";
 import { CustomDomainAuditLog } from "@/components/crm/CustomDomainAuditLog";
 import { DomainHealthPanel } from "@/components/crm/DomainHealthPanel";
 import {
   provisionCustomHostnameFn,
   tearDownCustomHostnameFn,
 } from "@/functions/custom-hostnames.functions";
-
-// Server fns surface "CF for SaaS not configured" as a 503 Response — server
-// fn errors come back as Response instances on the client. Detect by status
-// so we can degrade gracefully without a string match. Mirrors the pattern in
-// EditClientWhiteLabelDialog; extract to shared util once both call sites are
-// stable and the verify session has finished walking the dialog.
-function isNotConfigured(err: unknown): boolean {
-  return err instanceof Response && err.status === 503;
-}
-
-function describeError(err: unknown): string {
-  if (err instanceof Response) return `${err.status} ${err.statusText}`.trim();
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
+import { isNotConfigured, describeError } from "@/lib/cf-saas-errors";
 
 // Fire-and-forget audit logger. Failures here must never block the user action,
 // so we just log them to the console for ops.
@@ -147,6 +134,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   const isOwner = role?.role === "owner";
   const provisionCf = useAuthedServerFn(provisionCustomHostnameFn);
   const tearDownCf = useAuthedServerFn(tearDownCustomHostnameFn);
+  const { confirm } = useConfirm();
   const [rows, setRows] = useState<DomainRow[]>([]);
   const [owners, setOwners] = useState<OwnerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -558,12 +546,13 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   };
 
   const handleRemove = async (row: DomainRow) => {
-    if (
-      !confirm(
-        `Remove ${row.hostname}? Visitors won't be able to reach the CRM via this hostname anymore.`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: `Remove ${row.hostname}?`,
+      description: "Visitors won't be able to reach the CRM via this hostname anymore.",
+      confirmLabel: "Remove hostname",
+      destructive: true,
+    });
+    if (!ok) return;
     setBusyId(row.id);
     cancelledRef.current[row.id] = true;
     clearTimer(row.id);

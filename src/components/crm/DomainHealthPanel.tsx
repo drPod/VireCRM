@@ -33,6 +33,7 @@ import {
   pollCustomHostnameStatusFn,
   type CustomHostnameSnapshot,
 } from "@/functions/custom-hostnames.functions";
+import { isNotConfigured, describeError } from "@/lib/cf-saas-errors";
 
 import { REQUIRED_CNAME_TARGET } from "@/lib/dns-check";
 
@@ -628,18 +629,12 @@ function CfHostnameStatus({
         setState(classifyCfStatus(result).kind);
       }
     } catch (err) {
-      if (err instanceof Response && err.status === 503) {
+      if (isNotConfigured(err)) {
         setState("unconfigured");
         setErrorMsg("Cloudflare for SaaS not configured on this worker.");
       } else {
         setState("error");
-        const msg =
-          err instanceof Response
-            ? `${err.status} ${err.statusText}`.trim()
-            : err instanceof Error
-              ? err.message
-              : String(err);
-        setErrorMsg(msg || "Cloudflare poll failed");
+        setErrorMsg(describeError(err) || "Cloudflare poll failed");
       }
     } finally {
       setLoading(false);
@@ -698,10 +693,10 @@ function CfHostnameStatus({
           <code className="text-foreground">{snapshot.ownershipVerification.name}</code>
         </p>
       )}
-      {snapshot && snapshot.sslValidationRecords.length > 0 && (
+      {(snapshot?.sslValidationRecords?.length ?? 0) > 0 && (
         <p className="text-[11px] text-muted-foreground">
-          SSL DCV TXT pending ({snapshot.sslValidationRecords.length} record
-          {snapshot.sslValidationRecords.length === 1 ? "" : "s"}) at customer DNS.
+          SSL DCV TXT pending ({snapshot!.sslValidationRecords.length} record
+          {snapshot!.sslValidationRecords.length === 1 ? "" : "s"}) at customer DNS.
         </p>
       )}
     </div>

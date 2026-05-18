@@ -89,8 +89,17 @@ function readCfEnv(): { token: string; zoneId: string } | null {
   return { token, zoneId };
 }
 
-function notConfiguredResponse(): Response {
-  return new Response("CF for SaaS not configured", { status: 503 });
+// TanStack Start serializes thrown Error.message + Error.name across the wire
+// but turns thrown Response into a generic 500 "HTTPError" envelope on the
+// client — so we use a discriminator on Error instead. The exact message
+// string is the wire contract; the matching detector lives in
+// `src/lib/cf-saas-errors.ts`.
+export const CF_NOT_CONFIGURED_MESSAGE = "CF for SaaS not configured";
+
+function notConfiguredError(): Error {
+  const err = new Error(CF_NOT_CONFIGURED_MESSAGE);
+  err.name = "CfNotConfiguredError";
+  return err;
 }
 
 async function cfFetch<T>(
@@ -109,9 +118,7 @@ async function cfFetch<T>(
   // CF returns JSON for both 2xx and 4xx — only network failures throw above.
   const json = (await res.json().catch(() => null)) as CfApiEnvelope<T> | null;
   if (!json) {
-    throw new Response(`Cloudflare API returned non-JSON (status ${res.status})`, {
-      status: 502,
-    });
+    throw new Error(`Cloudflare API returned non-JSON (status ${res.status})`);
   }
   return json;
 }
@@ -146,7 +153,7 @@ async function assertOrgMembership(userId: string, organizationId: string): Prom
     .eq("user_id", userId)
     .maybeSingle();
   if (!profile || profile.organization_id !== organizationId) {
-    throw new Response("Forbidden", { status: 403 });
+    throw new Error("Forbidden");
   }
 }
 
@@ -198,13 +205,13 @@ async function persistCfHostnameId(
       .from("org_custom_domains")
       .update({ cf_hostname_id: cfHostnameId })
       .eq("id", storage.id);
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) throw new Error(error.message);
   } else {
     const { error } = await supabaseAdmin
       .from("organizations")
       .update({ cf_hostname_id: cfHostnameId })
       .eq("id", storage.id);
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) throw new Error(error.message);
   }
 }
 
@@ -238,15 +245,14 @@ export const provisionCustomHostnameFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof provisionSchema>) => provisionSchema.parse(input))
   .handler(async ({ data, context }): Promise<CustomHostnameSnapshot> => {
     const env = readCfEnv();
-    if (!env) throw notConfiguredResponse();
+    if (!env) throw notConfiguredError();
 
     await assertOrgMembership(context.userId, data.organizationId);
 
     const storage = await locateStorage(data.organizationId, data.hostname);
     if (!storage) {
-      throw new Response(
+      throw new Error(
         "No matching custom-domain row for this org+hostname — save the domain first.",
-        { status: 404 },
       );
     }
 
@@ -275,7 +281,7 @@ export const provisionCustomHostnameFn = createServerFn({ method: "POST" })
     );
     if (!created.success) {
       const msg = created.errors?.[0]?.message ?? "Cloudflare rejected the request";
-      throw new Response(msg, { status: 502 });
+      throw new Error(msg);
     }
 
     await persistCfHostnameId(storage, created.result.id);
@@ -312,7 +318,7 @@ export const pollCustomHostnameStatusFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof lookupSchema>) => lookupSchema.parse(input))
   .handler(async ({ data, context }): Promise<CustomHostnameSnapshot | null> => {
     const env = readCfEnv();
-    if (!env) throw notConfiguredResponse();
+    if (!env) throw notConfiguredError();
 
     await assertOrgMembership(context.userId, data.organizationId);
 
@@ -336,7 +342,7 @@ export const pollCustomHostnameStatusFn = createServerFn({ method: "POST" })
         return null;
       }
       const msg = poll.errors?.[0]?.message ?? "Cloudflare poll failed";
-      throw new Response(msg, { status: 502 });
+      throw new Error(msg);
     }
     return snapshotFromCf(poll.result);
   });
@@ -351,7 +357,7 @@ export const tearDownCustomHostnameFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof lookupSchema>) => lookupSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const env = readCfEnv();
-    if (!env) throw notConfiguredResponse();
+    if (!env) throw notConfiguredError();
 
     await assertOrgMembership(context.userId, data.organizationId);
 
@@ -369,7 +375,7 @@ export const tearDownCustomHostnameFn = createServerFn({ method: "POST" })
     // 1436 (not found) is fine — already gone on CF side.
     if (!del.success && del.errors?.[0]?.code !== 1436) {
       const msg = del.errors?.[0]?.message ?? "Cloudflare teardown failed";
-      throw new Response(msg, { status: 502 });
+      throw new Error(msg);
     }
 
     await persistCfHostnameId(storage, null);
