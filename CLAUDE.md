@@ -11,7 +11,7 @@ If you change a core invariant in this file (reseller-features-first-class, cont
 
 ## ISSUES.md is non-negotiable
 
-Every session, before any other work: read `ISSUES.md` `## Open`. It contains: outstanding push, secrets the user owes, Phase 2 Lovable-cleanup follow-ups, bugs found-not-fixed (file:line), verification debts, product-call out-of-scope items.
+Every session, before any other work: read `ISSUES.md` `## Open`. It contains: secrets/DNS the user owes, Phase 2 Lovable-cleanup follow-ups, bugs found-not-fixed (file:line), verification debts, product-call out-of-scope items. Transient categories (push-pending, in-flight audits) appear/vanish as work lands — read the live file.
 
 Every finding (bug discovered, audit result, schema gap) and every fix (commit landed, cron applied, route wired): append a section under `## Recent` using the template in `ISSUES.md` "How to append". Strike-through resolved items in `## Recent`; delete from `## Open`.
 

@@ -43,10 +43,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Onboarding wizard `aria-describedby` Radix warning** — re-capture w/ Radix stack trace from browser console next session. Candidates: `command.tsx` (`CommandDialog`, dead), `AddLeadDialog.tsx`, `EnergyTablePage.tsx`, `_app.academy.tsx`, `_app.academy.$courseId.tsx`, `_app.contact-submissions.tsx`.
 - [ ] **Reputation banner copy** missing from `VIEW_BANNER_COPY` for `reputation` view in `/preview`. Falls through to default fallback.
 
-### Cron audit (in-flight)
-
-- [ ] **Audit remaining `cron.job` rows**: `dispatch-followups`, `contact-followup-reminders`, `dispatch-sequences`, `purge-audit-log`, `calculate-payouts`. Lovable-era migrations against dead hosts likely. Pattern: `20260517220000_schedule_send_pending_welcomes_cron.sql`.
-
 ### Verification / QA debts
 
 - [ ] **Browser-verify `/features`** at 375/768/1280. Only 1280 verified for `/preview` rich rebuild.
@@ -117,6 +113,10 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 
 ### 2026-05-18 — cron 24h health smoke
 
+#### Shipped
+
+- Deleted `## Open → Cron audit (in-flight)`. Premise ("Lovable-era migrations against dead hosts likely") disproved by smoke + migration content review (`supabase/migrations/20260517230000_schedule_remaining_phase1_crons.sql` points all 6 remaining crons at `genesisxsx.darsh-pod.workers.dev`, not Lovable).
+
 #### Found
 
 - 9/9 `cron.job` rows active. `pg_cron` `status='succeeded'` = 100% across 8 sub-monthly jobs in last 24h: drain-workflow-queue 1440, send-pending-welcomes 1213, email-queue-process 1207, dispatch-sequences 1207, classify-contact-submissions 269, dispatch-followups 80, contact-followup-reminders 20, purge-audit-log 1. `calculate-payouts` (jobid=10, `0 2 1 * *`) 0 rows last 24h, expected — last fire 2026-05-01.
@@ -129,6 +129,7 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 - `cron.job_run_details` 24h GROUP BY jobname: 0 failed across all.
 - `net._http_response` 24h GROUP BY status_code: `{200: 1504, 404: 38}`.
 - `net._http_response` 24h GROUP BY hour WHERE status<>200: single bucket `17:00 UTC`.
+- Migration audit: `ls supabase/migrations/*cron*.sql` → 4 cron migrations, all reference current Worker hostname.
 
 #### Manual follow-up (user)
 

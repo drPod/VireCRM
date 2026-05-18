@@ -24,7 +24,7 @@ Reseller path = core product. **Never strip "reseller-only" code in audits** —
 
 ## ISSUES.md protocol (non-negotiable)
 
-**At session start:** read `ISSUES.md` `## Open`. Lists: push pending, secrets/DNS the user owes, Phase 2 Lovable cleanup follow-ups, bugs found-not-fixed (file:line), verification debts, out-of-scope product calls.
+**At session start:** read `ISSUES.md` `## Open`. Lists: secrets/DNS the user owes, Phase 2 Lovable cleanup follow-ups, bugs found-not-fixed (file:line), verification debts, out-of-scope product calls. Transient categories (push-pending, in-flight audits) appear/vanish as work lands — read the live file.
 
 **During work:**
 - Found bug → append entry to `## Recent` (template in `ISSUES.md` "How to append"). Add to `## Open` "Bugs found, not fixed" if not fixing this session.
