@@ -11,9 +11,26 @@ type State =
   | { kind: "submitting" }
   | { kind: "done" };
 
+const TITLE_BY_KIND: Record<State["kind"], string> = {
+  loading: "Verifying unsubscribe — Majix",
+  ready: "Unsubscribe — Majix",
+  submitting: "Unsubscribing — Majix",
+  done: "Unsubscribed — Majix",
+  already: "Already unsubscribed — Majix",
+  invalid: "Invalid unsubscribe link — Majix",
+};
+
 function UnsubscribePage() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const prev = document.title;
+    document.title = TITLE_BY_KIND[state.kind];
+    return () => {
+      document.title = prev;
+    };
+  }, [state.kind]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

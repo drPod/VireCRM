@@ -313,7 +313,7 @@ All gated routes correctly 302 → `/login?redirect=<path>`. Verified for `/dash
 
 - [ ] Restore `SUPABASE_SERVICE_ROLE_KEY` in local `.env` (likely all server-side flows broken w/o it)
 - [ ] Fix `/checkout/return` lying-on-failure UI (see finding #2)
-- [ ] Add `<title>` to `/unsubscribe` error state
+- [x] Add `<title>` to `/unsubscribe` error state — fixed: `unsubscribe.tsx` now drives `document.title` via `useEffect([state.kind])` with a per-state map (loading / ready / submitting / done / already / invalid). TanStack `head` static title preserved for SSR/initial paint.
 - [ ] Disable email-confirm in dev Supabase project OR add `seedConfirmedUser` dev fn so audits can bootstrap
 - [ ] Audit every `process.env.SUPABASE_SERVICE_ROLE_KEY` site for graceful degradation (currently throws 500, no fallback message to user)
 - [ ] Once auth unblocked: re-run audit, cover `_app.*` routes (~50)
@@ -330,10 +330,10 @@ All gated routes correctly 302 → `/login?redirect=<path>`. Verified for `/dash
 - [x] **OG image:** gpt-engineer scaffolding URL → swapped to `https://genesisx.space/genesis-logo.png`
 
 ### Open (visual / a11y)
-- [ ] **Mobile menu drawer:** no backdrop scrim — page content visible beneath drawer, breaks modal illusion
-- [ ] **Mobile drawer "Sign In":** plain text vs `Start Free Trial` button — inconsistent affordance
-- [ ] **Top nav "Home"** has no active state when on `/`
-- [ ] **30% off promo:** no expiry date — weakens urgency, looks placeholder. Decide: ends date, or "first 100 customers"
+- [x] ~~**Mobile menu drawer:** no backdrop scrim~~ — already covered by Radix `SheetOverlay` (rendered inside `SheetPortal` in `src/components/ui/sheet.tsx`). Audit entry was stale.
+- [x] ~~**Mobile drawer "Sign In":** plain text vs `Start Free Trial` button~~ — already a `<Button variant="outline">` in `MarketingHeader.tsx` (mobile drawer block). Audit entry was stale.
+- [x] **Top nav "Home"** has no active state when on `/` — fixed in `7fb5d44` via `aria-[current=page]:text-foreground aria-[current=page]:font-semibold` on desktop + mobile nav links.
+- [x] **30% off promo:** no expiry date — fixed: copy now reads "first 100 customers only" (banner desktop variant + aria-label). Mobile variant left as-is for space.
 
 ### Open (build / deploy)
 - [ ] **Production build serving Vite HMR artifacts** — console shows `[vite] hot updated`, `connection lost` chatter. Deployed bundle may be dev build, not `vite build` output. Verify deploy pipeline.
@@ -1335,3 +1335,31 @@ Also: `bun run typecheck` and `bunx eslint` clean on touched files.
 ### Pre-existing gap (NOT fixed this pass)
 
 `src/integrations/supabase/auth-middleware.ts` still throws `new Response(...)` for 401/403 paths. Same TanStack-Start-doesn't-serialize-Response issue: an unauthenticated request reaches the framework's 500 wrapper instead of the intended 401. In practice `useAuthedServerFn` always attaches a Bearer header before the call, so the unauth path is dead under normal flow — but it means any future "what happens if the token expired mid-call" handling is currently impossible because the client can't see the 401 status. Track for the auth-middleware-rewrite work, not part of this cluster.
+
+---
+
+## 2026-05-18 Easy-wins sweep — promo expiry + unsubscribe per-state title + stale audit cleanup
+
+Knocked out the "quick wins" section of the 2026-05-17 landing audit. Two real fixes, three stale entries closed, one follow-up surfaced.
+
+### Real fixes
+| File | Change |
+|---|---|
+| `src/components/marketing/PromoBanner.tsx` | Desktop banner copy + Link `aria-label` changed from "limited time launch promo" / "30% off everything" to "first 100 customers only" / "30% off everything for the first 100 customers". Mobile variant unchanged (space-constrained — only shows "30% OFF EVERYTHING" + CTA). `PROMO_DISCOUNT` and `applyPromoDiscount` untouched. |
+| `src/routes/unsubscribe.tsx` | `document.title` now driven by `useEffect([state.kind])` using a `TITLE_BY_KIND` map (verifying / ready / submitting / done / already / invalid each get distinct titles). TanStack `head` static title preserved for SSR/initial paint. Cleanup restores prior title on unmount. Mirrors the pattern from `__root.tsx` `NotFoundComponent`. |
+
+### Stale audit entries closed (no code change, just verified already-fixed)
+- L333 mobile drawer backdrop — Radix `SheetOverlay` is already rendered inside `SheetPortal` (see `src/components/ui/sheet.tsx:62`). The drawer always had a scrim.
+- L334 mobile drawer "Sign In" affordance — already a `<Button variant="outline">` in `MarketingHeader.tsx` mobile block (lines 89-93). Audit caught a state that no longer existed.
+- L335 Home `/` active state — fixed in `7fb5d44` via `aria-[current=page]:text-foreground aria-[current=page]:font-semibold` on both desktop + mobile nav links. Marked stale audit entry as closed.
+
+### Follow-up surfaced (NOT fixed this pass)
+- **Promo enforcement.** The new "first 100 customers only" copy is currently a marketing claim with zero code enforcement — `PROMO_DISCOUNT` is applied unconditionally in `applyPromoDiscount`. To make the claim real, gate it via a Stripe coupon `max_redemptions=100` (preferred — Stripe enforces atomically) or a server-side counter on the checkout flow. Until then the copy is aspirational. Track as a Phase 1 follow-up.
+
+### Skipped — needs browser-verify, not blind-fix
+- L315 `/checkout/return` "lying on failure" — current `checkout.return.tsx` has a 15-attempt poll + amber "activation pending" timeout state + retry/support buttons. Code looks correct on read. Original audit predates that fix. Real verification needs a Stripe checkout dry-run with a deliberately failing webhook, not a code edit.
+
+### Verification
+- `bun run typecheck` clean.
+- `bunx eslint` clean on touched files (1 pre-existing `react-refresh/only-export-components` warning on `PromoBanner.tsx:40` — fires because the file exports both `PromoBanner` component and the `PROMO_DISCOUNT` / `applyPromoDiscount` helpers; unrelated to this pass).
+- Browser walk pending — will dispatch agent-browser session against `bun run dev` to render-check the promo banner copy + Home active state + unsubscribe title swap on invalid token.

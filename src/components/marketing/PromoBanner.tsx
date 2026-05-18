@@ -10,7 +10,7 @@ export function PromoBanner() {
     <div className="bg-gradient-to-r from-primary via-[oklch(0.65_0.18_290)] to-[oklch(0.65_0.16_320)] text-white">
       <Link
         to="/pricing"
-        aria-label="View pricing — 30% off everything"
+        aria-label="View pricing — 30% off everything for the first 100 customers"
         className="mx-auto flex max-w-6xl items-center justify-center gap-2 px-6 py-2 text-center text-xs font-medium sm:text-sm"
       >
         <Sparkles className="h-3.5 w-3.5 shrink-0" />
@@ -18,7 +18,7 @@ export function PromoBanner() {
           <span className="font-bold">30% OFF EVERYTHING</span>
           <span className="hidden sm:inline">
             {" "}
-            — limited time launch promo. Discount applied automatically at checkout.
+            — first 100 customers only. Discount applied automatically at checkout.
           </span>
         </span>
         <span className="underline-offset-2 hover:underline whitespace-nowrap">
