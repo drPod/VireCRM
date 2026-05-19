@@ -16,11 +16,19 @@
  * mail flow shouldn't change just because they pointed a subdomain at us.
  */
 
+// Stable across customers — change here if the SaaS fallback hostname moves.
+// During the majix.ai → virecrm.com parallel cutover both
+// `customers.majix.ai` AND `customers.virecrm.com` are active CF for SaaS
+// fallback hostnames; customers can CNAME at either and onboarding will
+// succeed. `VITE_CF_FALLBACK_HOSTNAME` overrides the default below, so the
+// runtime target can be flipped without a code change once the cutover
+// completes. `REQUIRED_CNAME_TARGET_ALT` is exported for UIs that want to
+// surface both options (e.g. onboarding picker).
 export const REQUIRED_CNAME_TARGET =
-  // Stable across customers — change here if the SaaS fallback hostname moves.
-  // Worker route on `customers.majix.ai/*` (see wrangler.jsonc).
   (import.meta.env.VITE_CF_FALLBACK_HOSTNAME as string | undefined) ??
   "customers.majix.ai";
+
+export const REQUIRED_CNAME_TARGET_ALT = "customers.virecrm.com";
 
 export type DnsType = "A" | "AAAA" | "TXT" | "MX" | "CNAME";
 
