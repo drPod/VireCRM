@@ -43,7 +43,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 - [ ] **Auth middleware uses `throw new Response()`** — TanStack Start doesn't serialize Response; 401/403 paths wrap as 500. `src/integrations/supabase/auth-middleware.ts:13,22,28,32,37,55,59`. Currently dead path (Bearer always attached) but blocks future "token expired mid-call" handling.
 - [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally to all displayed prices. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
-- [ ] **Onboarding wizard `aria-describedby` Radix warning** — re-capture w/ Radix stack trace from browser console next session. Candidates: `command.tsx` (`CommandDialog`, dead), `AddLeadDialog.tsx`, `EnergyTablePage.tsx`, `_app.academy.tsx`, `_app.academy.$courseId.tsx`, `_app.contact-submissions.tsx`.
 
 ### Verification / QA debts
 
@@ -122,6 +121,14 @@ Picked up after spot-check session (`cecfd3b`). Re-verified live DB against comm
 
 - `supabase db push --include-all` — applied `20260519120000_handle_new_user_skip_guc.sql` to remote `coynbufhejaeuifpvmvw`. Now recorded in `supabase_migrations.schema_migrations`. Function body unchanged (was `CREATE OR REPLACE`'d in-band by session 5; push idempotent).
 - `src/lib/email/outreach-delivery.ts:76,452` — renamed leftover `channel: "lovable"` → `channel: "platform"` on the built-in fallback path. Union type at line 76 + return value at line 452. No consumers grep `"lovable"` literally (only union members referenced — `dispatchOutreachEmail` and `sendResendEmail` are the actual transports under the hood). `bun run typecheck` clean. Telemetry will now log `platform` for built-in sends; downstream Reports unchanged because none read this field.
+- **Radix `aria-describedby` warning fix — DialogDescription added to all 5 unguarded dialogs.** Grep over `src/**/*.tsx` for `DialogContent` minus `DialogDescription` found exactly 5 real candidates (matches ISSUES.md Open list minus the dead `command.tsx`):
+  - `src/routes/_app.academy.tsx:237` "Create course" — added "Add a new course to the team training library."
+  - `src/routes/_app.academy.$courseId.tsx:248` "Add lesson" — added "Title, video URL, duration, and optional notes for this lesson."
+  - `src/routes/_app.contact-submissions.tsx:452` submission detail — added "Contact form submission with sentiment, priority, and full message body."
+  - `src/components/energy/EnergyTablePage.tsx:261` "Create {entity}" — interpolated description "Add a new {entity} record."
+  - `src/components/crm/AddLeadDialog.tsx:165` "Add New Lead" — added "Create a new lead with contact details, qualification fields, and optional auto-outreach."
+
+  Mechanism: Radix `DialogContent` warns when no element has `aria-describedby`. `DialogDescription` auto-wires its own id into `aria-describedby` on render. `bun run typecheck` clean + `bun run test` 123/123 pass. **Not browser-verified** — relying on Radix's documented behavior + tests; no console-warning repro run.
 
 #### Verification (live DB via `bun:sql`)
 
@@ -177,7 +184,7 @@ Picked up from autonomous-only pile while user-blocked items pending. Verified e
 - Phase 2: Connector OAuth proxy stub at `gateway.ts:41` — still throws `ConnectorNotConfiguredError`. Apollo/Slack/Gmail/Twilio/Sendgrid integrations remain dark.
 - Bugs: Auth middleware `throw new Response()` × 7 sites at `auth-middleware.ts:13,22,28,32,37,55,59` — TanStack Start doesn't serialize Response. Dead path now but blocks future "token expired" handling.
 - Bugs: Promo enforcement — `applyPromoDiscount` still unconditional, banner copy lies. Need Stripe `max_redemptions=100` coupon OR server counter.
-- Bugs: Onboarding wizard `aria-describedby` Radix warning — needs re-capture w/ browser console next session.
+- ~~Bugs: Onboarding wizard `aria-describedby` Radix warning~~ — fixed next session, see entry above.
 
 #### Found (added to `## Open`)
 

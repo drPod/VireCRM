@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -165,6 +166,9 @@ export function AddLeadDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>
+          <DialogDescription>
+            Create a new lead with contact details, qualification fields, and optional auto-outreach.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="grid gap-4 sm:grid-cols-2">

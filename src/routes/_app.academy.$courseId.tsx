@@ -30,6 +30,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -248,6 +249,9 @@ function CourseDetail() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add lesson</DialogTitle>
+                  <DialogDescription>
+                    Title, video URL, duration, and optional notes for this lesson.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3 py-2">
                   <div className="space-y-1.5">

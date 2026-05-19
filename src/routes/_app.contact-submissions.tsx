@@ -33,7 +33,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   BulkApplyTemplateDialog,
   type BulkRecipient,
@@ -463,6 +469,9 @@ function SubmissionDialog({ item, onClose }: { item: Submission | null; onClose:
                   </Badge>
                 )}
               </DialogTitle>
+              <DialogDescription>
+                Contact form submission with sentiment, priority, and full message body.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 text-sm">
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">

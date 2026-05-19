@@ -29,6 +29,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -237,6 +238,9 @@ function AcademyIndex() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create course</DialogTitle>
+                  <DialogDescription>
+                    Add a new course to the team training library.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3 py-2">
                   <div className="space-y-1.5">

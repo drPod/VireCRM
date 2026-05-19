@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -261,6 +262,9 @@ export function EnergyTablePage({ config }: { config: EnergyTableConfig }) {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create {config.title.replace(/s$/, "")}</DialogTitle>
+                <DialogDescription>
+                  Add a new {config.title.replace(/s$/, "").toLowerCase()} record.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-3 py-2">
                 {createFailure && (
