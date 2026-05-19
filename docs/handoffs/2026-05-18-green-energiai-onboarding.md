@@ -1,12 +1,14 @@
 # Handoff — Green EnergiAi (Crystal Cameron) onboarding + energy-broker CRM build-out
 
+> **DOMAIN RENAME 2026-05-19:** brand renamed `Majix` → `VireCRM`, domain `majix.ai` → `virecrm.com`. Parallel cutover live: `greenenergiai.majix.ai` continues to resolve (additive wrangler routes), but Crystal's magic-link recipe below points at the new `greenenergiai.virecrm.com` since she has not yet received it. Both subdomains serve the same white-label theme via the dual-zone `get_org_by_domain` SQL function.
+
 > **PAUSED 2026-05-19.** Discovered Crystal already had an `auth.users` row on the OLD Lovable Supabase project (UUID `7ba2ebfa-…`). The 2026-05-18 session-1 provisioning created a DUPLICATE on the new DB (UUID `b5ae0c3e-…`). The session-2 xlsx import landed 3850 rows with broken column mapping (`name` = company-not-person, `agent_mils` = 505 from wrong column, `email`/`phone`/`title`/`service_address` all empty). Caziah Cameron — the actual org owner on old DB — last signed in to the old project on 2026-05-19 01:05, so the old project is still live and the migration is time-sensitive.
 >
 > **Next session: switch to `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` FIRST.** Migrate old Lovable DB → new fixed DB, then resume this handoff at Step 5 (Crystal onboarding from a clean post-migration state — her old UUID + password preserved, all data carried forward, xlsx already-supplemented for the energy fields the old importer dropped).
 
 **Started:** 2026-05-18 (Opus 4.7 1M, caveman mode)
 **Status:** Steps 0-6 shipped + Step 7 design-only; ALL outputs invalidated by migration discovery 2026-05-19. Resume after migration lands.
-**Tenant:** Green EnergiAi (energy broker, Crystal Cameron CEO) — first real customer tenant on the multi-tenant SaaS. They USE the CRM for their own pipeline. **No sub-resale** — their customers are leads/contacts inside their CRM, not separate tenants of Majix.
+**Tenant:** Green EnergiAi (energy broker, Crystal Cameron CEO) — first real customer tenant on the multi-tenant SaaS. They USE the CRM for their own pipeline. **No sub-resale** — their customers are leads/contacts inside their CRM, not separate tenants of VireCRM.
 **Why this exists:** Crystal sent her 2yr client list (xlsx), only `Customer Name` imported. Schema gap + import-insert bug. She also wants Clients tab + Pricing tab + agent-mils workflow. Multi-step build; one agent will run out of context — handoff makes it resumable.
 
 ---
@@ -18,7 +20,7 @@
 ## Continue here (handoff for next session, 2026-05-18)
 
 **Done in session 1 (commits `30f3a54`, `e0ada67`, `554580a`):**
-- Step 0 — tenant provisioned, `greenenergiai.majix.ai` renders white-label, agent-browser smoke ✓
+- Step 0 — tenant provisioned, `greenenergiai.virecrm.com` renders white-label (`greenenergiai.majix.ai` legacy parallel), agent-browser smoke ✓
 - Step 1 — schema migration `20260518200618_energy_broker_fields.sql` applied, `commission_value` generated column math verified
 - Step 2 — `ImportLeadsDialog.tsx` parses + inserts all energy fields. Typecheck + build clean. Not yet user-walked through dev server.
 
@@ -45,7 +47,7 @@
      -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
      -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
      -H "Content-Type: application/json" \
-     -d '{"type":"magiclink","email":"crystal@greenenergiai.com","options":{"redirect_to":"https://greenenergiai.majix.ai/"}}'
+     -d '{"type":"magiclink","email":"crystal@greenenergiai.com","options":{"redirect_to":"https://greenenergiai.virecrm.com/"}}'
    ```
    That returns the action link. Don't share it with Crystal yet — it's for dev verification.
 3. Open Import dialog, upload `Copy of NGP MASTER LIST - Copy.xlsx` (gitignored at repo root), confirm preview shows ESI/address/mils/cost/dates/title/deal_name columns populated.
@@ -71,7 +73,7 @@
 - **Website:** www.greenenergiAi.com
 - **Business:** Texas energy broker. Resells electricity contracts to commercial customers. Earns commission via **agent mils** added on top of supplier rate.
 - **Data scale:** ~2 years of closed deals on master spreadsheet (xlsx in repo root, gitignored as `Copy of NGP MASTER LIST - Copy.xlsx`). Each row = one customer/contract with ESI meter number(s), service address, supplier, contract dates, rate, mils.
-- **CRM tier:** direct tenant on the SaaS. Free tier = `greenenergiai.majix.ai` subdomain. Can upgrade to custom hostname later via existing CF for SaaS flow. **No reseller layer exists in the product** — Crystal is a customer of Majix, full stop.
+- **CRM tier:** direct tenant on the SaaS. Free tier = `greenenergiai.virecrm.com` subdomain. (`greenenergiai.majix.ai` legacy parallel.) Can upgrade to custom hostname later via existing CF for SaaS flow. **No reseller layer exists in the product** — Crystal is a customer of VireCRM, full stop.
 
 ---
 
@@ -148,7 +150,7 @@ Attachment: `Copy of NGP MASTER LIST - Copy.xlsx` (2.2MB, gitignored).
    commission_value = annual_kwh × contract_years × agent_mils × 0.001
    ```
    Where `contract_years` = years between `contract_start_date` and `contract_end_date`. Implement as PG generated column so it stays in sync.
-5. **Tenant model:** Green EnergiAi is a direct tenant of Majix (`is_reseller=false`, which is the only valid value for real customers right now — the `is_reseller` flag is legacy Lovable scaffold). Free tier = `greenenergiai.majix.ai` subdomain auto-provisioned at signup. Upgrade to custom hostname (e.g. `crm.greenenergiai.com`) later via existing CF for SaaS flow if she wants.
+5. **Tenant model:** Green EnergiAi is a direct tenant of VireCRM (`is_reseller=false`, which is the only valid value for real customers right now — the `is_reseller` flag is legacy Lovable scaffold). Free tier = `greenenergiai.virecrm.com` subdomain auto-provisioned at signup (`greenenergiai.majix.ai` legacy parallel). Upgrade to custom hostname (e.g. `crm.greenenergiai.com`) later via existing CF for SaaS flow if she wants.
 6. **Import path is fix-the-existing dialog**, not write a new one. `ImportLeadsDialog` already parses some energy fields — bug is they're dropped at insert (`src/components/crm/ImportLeadsDialog.tsx:675-686`). Extend the existing component.
 7. **"Stage 1"** in call notes = won (closed). Confirmed by "When you get to stage 1 and the deal is won, then the customer feeds into this new tab." (won → Clients tab.)
 8. **Historical backfill via re-upload toggle.** Add "Import as closed clients" switch in `ImportLeadsDialog` that sets `status=won` instead of `new`. Crystal re-uploads the master list once schema + insert is fixed.
@@ -199,19 +201,19 @@ Format: each item has `[ ]` (pending) → `[~]` (in progress) → `[x]` (done, w
 - [x] Rebranded auto-created org to Green EnergiAi:
   - `organizations.id` = `c31c2a18-f595-499d-9353-f3cd1d9e659b`
   - `name`/`brand_name` → `Green EnergiAi`
-  - `slug` → `greenenergiai` (drives `greenenergiai.majix.ai` subdomain)
+  - `slug` → `greenenergiai` (drives `greenenergiai.virecrm.com` subdomain; `greenenergiai.majix.ai` legacy parallel)
   - `support_email` → `crystal@greenenergiai.com`
   - `is_reseller` → `false` (default; flag is legacy)
   - `custom_domain` → null (upgrade path: `CustomDomainsPanel` later)
   - Brand theme (logo, primary/accent/sidebar colors, favicon, font) → defaults; flagged for Crystal to provide assets.
 - [x] **Skipped welcome-email send.** Provisioned tenant infra only; defer the customer-facing notification to Step 8 once the import + tabs land. Intentional decoupling — no email noise while we're shipping the rest.
-- [x] Verified subdomain resolves end-to-end (`get_org_by_domain('greenenergiai.majix.ai')` returns the blob; agent-browser smoke on `https://greenenergiai.majix.ai/` + `/login` shows H1 "Get started with Green EnergiAi" and tagline "Sign in to your Green EnergiAi account").
+- [x] Verified subdomain resolves end-to-end (`get_org_by_domain('greenenergiai.virecrm.com')` returns the blob; agent-browser smoke on `https://greenenergiai.virecrm.com/` + `/login` shows H1 "Get started with Green EnergiAi" and tagline "Sign in to your Green EnergiAi account"; `greenenergiai.majix.ai` continues to resolve as legacy parallel via the dual-zone RPC).
 - [x] Appended to ISSUES.md `## Recent` (2026-05-18 — green-energiai step 0).
 
 **Findings to thread forward:**
-- Login path is `/login`, NOT `/auth/login` as written in Step 0 verification text — fixed inline above; downstream steps + Step 8 DM should use `https://greenenergiai.majix.ai/login`.
+- Login path is `/login`, NOT `/auth/login` as written in Step 0 verification text — fixed inline above; downstream steps + Step 8 DM should use `https://greenenergiai.virecrm.com/login` (`greenenergiai.majix.ai/login` legacy parallel).
 - White-label theme uses platform defaults until Crystal sends logo + brand colors. Not a code blocker; tracked under "Open questions".
-- Doc title is SSR'd as "Majix — Never Let a Lead Go Cold Again" then client React swaps it to "Green EnergiAi" post-hydration. Acceptable; SSR title swap is a separate polish item if Crystal cares.
+- Doc title is SSR'd as "VireCRM — Never Let a Lead Go Cold Again" then client React swaps it to "Green EnergiAi" post-hydration. Acceptable; SSR title swap is a separate polish item if Crystal cares.
 
 ### Step 1 — Schema migration `[x]` (2026-05-18, migration `20260518200618_energy_broker_fields.sql`)
 
@@ -393,7 +395,7 @@ File: `src/components/crm/ImportLeadsDialog.tsx`
 
 - `pending_welcome_emails` is **not reusable**. Schema is invitation-specific: `reseller_id NOT NULL`, `recipient_email NOT NULL`, `login_url NOT NULL`, fields hard-coded to the reseller-welcome use case. Renewal notifications need lead context (deal_name, supplier, contract_end_date, days-until-expiry, broker contact info) that don't fit.
 - **Need a new `pending_renewal_emails` table** scoped to lead-renewal context: `lead_id FK leads`, `organization_id` (for RLS scoping + brand template lookup), `recipient_email`, `recipient_name`, `deal_name`, `current_supplier`, `contract_end_date`, `days_until_expiry`, plus the same queue plumbing (`send_after`, `sent_at`, `failed_at`, `attempts`, `last_error`).
-- **Need a new Resend template** (`renewal-reminder.tsx` in `src/lib/email/templates/`) — broker-branded with org's logo + colors via the same DomainBranding flow that powers `<slug>.majix.ai`.
+- **Need a new Resend template** (`renewal-reminder.tsx` in `src/lib/email/templates/`) — broker-branded with org's logo + colors via the same DomainBranding flow that powers `<slug>.virecrm.com` (and `<slug>.majix.ai` legacy parallel).
 - **Need a new Worker route** `/api/public/hooks/dispatch-renewal-reminders` that drains the queue (similar to existing `send-pending-welcomes`). Auth via `x-cron-secret` per existing pattern.
 - **pg_cron job:** daily at, say, 09:00 UTC. Two responsibilities — (a) INSERT into `pending_renewal_emails` for any lead where `status='won' AND contract_end_date BETWEEN now() AND now() + interval '90 days' AND NOT EXISTS (SELECT 1 FROM pending_renewal_emails WHERE lead_id = ... AND created_at > now() - interval '90 days')` (dedupe against the trailing 90-day window so we don't spam the same contact daily); (b) POST to the Worker hook to drain the queue.
 
@@ -412,7 +414,7 @@ Estimated 2-3hr of focused work. Independent of Crystal — she gets value from 
 
 ### Step 8 — Crystal does the backfill `[ ]`
 
-- [ ] DM Crystal: tenant ready, login at `https://greenenergiai.majix.ai`, import dialog now has all fields + historical-mode toggle
+- [ ] DM Crystal: tenant ready, login at `https://greenenergiai.virecrm.com` (`greenenergiai.majix.ai` legacy parallel), import dialog now has all fields + historical-mode toggle
 - [ ] Ask her to flip the toggle + re-upload her master list
 - [ ] Verify Clients tab populates with her ~2yr of deals
 - [ ] Confirm `commission_value` shows real numbers (her total earnings to date)
@@ -432,9 +434,9 @@ Whoever lands each step:
 
 ## Open questions (escalate to Darsh)
 
-1. **White-label branding for Green EnergiAi** — logo file, primary/accent colors? v0 = Majix defaults, but she'll want her own. (Visual asset blocker, not code blocker.)
+1. **White-label branding for Green EnergiAi** — logo file, primary/accent colors? v0 = VireCRM defaults, but she'll want her own. (Visual asset blocker, not code blocker.)
 2. **Multi-ESI customers** — does any customer in her sheet have multiple ESIDs? If so, the comma-separated `esi_id text` v1 hack works for display but breaks per-meter analytics. Real fix = `meters` table FK to `leads`. Defer until she asks.
-3. **Custom hostname** vs `greenenergiai.majix.ai` — she's launching on free tier (subdomain) per my read. Confirm.
+3. **Custom hostname** vs `greenenergiai.virecrm.com` (or `greenenergiai.majix.ai` legacy parallel) — she's launching on free tier (subdomain) per my read. Confirm.
 4. **"Total contract value" interpretation** — locked-in as broker commission (mils-based). If Crystal actually means customer-side total spend (`annual_kwh × years × cost_per_kwh`), generated column formula needs to change. Worth confirming on next call.
 
 ---
