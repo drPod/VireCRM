@@ -114,6 +114,24 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-19 — migration spot-check (Caziah energy fields verified)
+**Tags:** [lovable-migration] [supabase] [verification]
+
+Picked up after session-5 commit `d803b95` (live port already ran + committed). Owed verification step: spot-check 10 random Caziah leads for populated energy fields. Done.
+
+#### Verification (live DB, post-port via `bun:sql`)
+
+- **Caziah org `8b8c76ab-…`** — 9,198 leads total. Energy-field counts: `esi_id=4018`, `agent_mils=4018`, `annual_kwh=4018`, `contract_start_date=4018`, `contract_end_date=4018`, `current_supplier=4018`, `service_address=4002`. 4,018 ESI-populated = 982 xlsx UPDATEs + 3,036 xlsx-only INSERTs that carried ESI (the other 773 xlsx inserts had blank Meter Number).
+- **10 random Caziah-ESI sample** all real: mils 0.051–2.000, kWh 4,085–232,944, suppliers (Suez, TXU Energy, Green Mountain, Frontier, Cirro Energy, Agera Energy), contract dates 2016–2026. Zero nulls in sampled rows.
+- **Crystal own-org `188c4869-…`** — 4,793 leads total. `esi_id=0`, `agent_mils=0`, `annual_kwh=1`, contract dates 0, supplier 0, address 0. Confirms session-5 design: xlsx supplement scoped to Caziah org only. Open Q #2 in handoff (does ngp-master apply to Crystal's own tenant?) remains user-blocked.
+- `bash scripts/lint-issues.sh` — OK. Header count 25 → 26.
+
+#### Manual follow-up (user)
+
+- **Apply `20260519120000_handle_new_user_skip_guc.sql` via `supabase db push`.** Function was `CREATE OR REPLACE`'d in-band by session 5 to unblock Phase A; the migration file documents the change but isn't recorded in `supabase_migrations.schema_migrations` yet. `db push` idempotent — safe to run.
+- **Crystal own-org xlsx scope** — decide if ngp-master also applies to her own tenant. If yes, re-run `--phase=F` against `188c4869-…` (script `targetOrg` needs a flag or edit).
+- **Caziah / Crystal sign-in smoke** — both should sign in with old bcrypt passwords. No friction expected; bcrypt rides through.
+
 ### 2026-05-19 — Open-list staleness audit (Phase 2 + bugs)
 **Tags:** [audit] [lovable-remnant] [a11y] [open-list]
 
@@ -290,7 +308,7 @@ Steps 3+4 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. User c
 
 #### Manual follow-up (user)
 
-- **Spot-check 10 Caziah leads** for energy-field population (`agent_mils`, `annual_kwh`, `contract_start_date`, `current_supplier`, `service_address`) where xlsx had data.
+- ~~**Spot-check 10 Caziah leads** for energy-field population~~ — done 2026-05-19 next session, see entry above.
 - **Crystal own-org leads got no xlsx enrichment.** Confirm whether ngp-master xlsx applies only to Caziah's tenant or also her own.
 - **Crystal's own-org slug `crystal-cameron-7ba2ebfa` is ugly.** Per Open Question #3 in handoff, decide rename-now vs rename-later.
 - **Caziah / Crystal sign-in smoke test** on the new DB before Step 6 (freeze old Lovable project). Both should be able to log in with their existing bcrypt passwords.
