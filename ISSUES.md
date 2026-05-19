@@ -120,33 +120,31 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-19 — Home trust signals: logo strip + TrustStrip band (PR unit-4)
-**Tags:** [marketing] [trust] [social-proof] [frontend]
+### 2026-05-19 — Aurora visuals killed (PR unit-5)
+**Tags:** [marketing] [theme] [aurora]
 
-Marketing-refactor unit 4 of 5: replaced generic stat tiles in `SocialProofSection` with a customer-logo strip + 3 testimonial cards with pravatar avatars, and added a new `TrustStrip` band between hero and TwoWays listing Supabase Postgres / Stripe / encryption / SOC 2 status. Placeholders + TODOs for real assets in follow-up. Branch `marketing/trust-signals`.
+Unit 5 of 5-PR marketing refactor (plan: `~/.claude/plans/sharded-jingling-harp.md`). Drops clichéd rotating conic-gradient aurora blobs from marketing sections per audit option (a): lean clean white + sharp purple (Linear / Vercel aesthetic). Hero's own aurora wrapper removed in unit 1's PR.
 
 #### Shipped
 
-- `src/components/marketing/TrustStrip.tsx` (NEW) — thin band, 4 trust signals (Postgres on Supabase, Stripe-handled payments, 256-bit encryption in transit, SOC 2 Type II in progress). `bg-muted/40` background; mobile stacks vertically (`flex-col sm:flex-row`).
-- `src/components/marketing/SocialProofSection.tsx` — rewrote. Killed 4 stat tiles (audit called them "generic"). New blocks: (1) 6-cell customer logo strip placeholder (Green EnergiAi real + 5 plausible names — Sunpath Solar, Apex Roofing Co, Heritage Realty Group, Northbridge Coaching, Vector Home Services — as grayscale rounded rectangles, hover transitions to color tint), (2) 3 testimonial cards using shadcn `Avatar` primitive with `AvatarImage` (pravatar by seed) + `AvatarFallback` (initials, bg-muted). Reused existing testimonial quotes from Jessica/Ryan/Marcus, trimmed Jessica's quote (was overlong). Both blocks carry `TODO()` comments for the real-asset swap.
-- `src/routes/index.tsx` — import `TrustStrip`, render directly after `<HeroSection />` and before `<TwoWaysSection />`. `<SocialProofSection />` kept current slot, content only changed.
+- `src/styles.css` — deleted `.hero-aurora`, `.section-aurora`, `.section-aurora-reverse` class blocks (~50 lines). Deleted `@keyframes aurora-spin` + `@keyframes aurora-spin-reverse`. Trimmed aurora selectors out of the `prefers-reduced-motion` `@media` block, kept wrapper + remaining selectors intact. Preserved `.hero-float` (still consumed by `HeroSection`).
+- `src/components/marketing/FeaturesSection.tsx` — removed two purely-decorative `<div className="… section-aurora …">` wrappers (former lines 17-24).
+- `src/components/marketing/HowItWorksSection.tsx` — removed two purely-decorative `section-aurora` / `section-aurora-reverse` wrappers (former lines 6-13).
+- `src/components/marketing/features/FeatureBlock.tsx` — removed `section-aurora` decorative `<div>` (former lines 46-52). Updated stale JSDoc on `Props.mock` from "aurora frame" → "clean browser-chrome frame".
+- `src/components/marketing/features/ComparisonTable.tsx` — removed `section-aurora-reverse` wrapper (former lines 100-103).
 
 #### Verification
 
-- `bun run lint` — pre-existing repo-wide errors (5167) unchanged. Filtered for my files: 0 errors after `prettier --write` on `SocialProofSection.tsx` + `TrustStrip.tsx`.
 - `bun run typecheck` — clean.
-- `bun run build` — clean (Worker bundle built, 7.37s).
-- **Visual verification BLOCKED** — `/` route stuck on `Loading VireCRM…` spinner in dev (`bun run dev --port 5177`) even after 20s + `wait --load networkidle`. Matches sibling agents' identical-size 7-8KB `/tmp/pr-{hero,aurora-home,logomark-home}-desktop.png` outputs — same `<LoadingSpinner />` gate from `routes/index.tsx:78-87` waiting on `DomainBrandingProvider.loading=false`. Localhost is in `SYSTEM_HOST_PATTERNS` so `setLoading(false)` should fire on mount; provider's `useEffect` isn't unblocking in dev. Preview server also unusable (TanStack Start Worker build doesn't emit a node-compatible `server.js`). Pre-existing repo issue, not introduced by this PR. Build pass + code review carrying the verification load.
+- `bun run build` — clean (✓ built in 7.72s).
+- `bun run lint` — 5203 problems pre-existing baseline (matches yesterday's session log re: regression from ~5210 → 104149 — this is repo-wide, unrelated to my files). Zero NEW lint findings introduced. Only my-file hit is a pre-existing prettier nit on `FeatureBlock.tsx:41` that wasn't on a line I touched.
+- `grep -rnE 'aurora' src/` — single remaining hit: `src/components/marketing/HeroSection.tsx:151` (owned by unit 1). All my-owned files clean.
+- **Visual screenshots NOT captured.** Parallel-worker contention: dev-server kept getting `pkill -f "vite dev"`-ed by sibling workers (unit 3 / `scripts/restart-dev.sh` invocations). Tried ports 5178 + 5179, both reaped within seconds of agent-browser snapshot. Pure subtractive deletions — render risk is "thing not rendering anymore," lint + typecheck + build all green.
 
 #### Manual follow-up (user)
 
-- Real customer logos to swap for the 6 grayscale placeholders. Green EnergiAi is the only real name; Sunpath Solar / Apex Roofing Co / Heritage Realty Group / Northbridge Coaching / Vector Home Services are fabricated.
-- Real testimonial avatars + verification of name/role/company accuracy (Jessica Torres @ ScaleUp Inc, Ryan Chen @ NovaTech, Marcus Williams @ Digital Growth Agency are inherited from Lovable scaffold — unclear if real customers).
-- **Verify SOC 2 Type II status** before claiming "in progress" publicly. Existing copy in `ResellerCta.tsx:9` + `FeaturesFaq.tsx:14` already says the same — kept consistent here. If no actual SOC 2 audit in flight, all three sites should soften to "Encrypted at rest" or "Tenant data isolated via RLS" or similar verifiable claim.
-
-#### Found — dev-mode home-route blocker (existing, repo-wide)
-
-- **`src/components/auth/DomainBrandingProvider.tsx:62-90`** — In dev, `loading=true` initial state never flips for localhost-served `/` despite `SYSTEM_HOST_PATTERNS` containing `/^localhost$/i` (line 44) that should hit the `setLoading(false)` early-return on line 77. Symptom: home route hangs on `Loading VireCRM…` spinner indefinitely. Affects screenshot verification for all marketing-section refactor PRs (unit 1 hero, unit 4 trust, unit 5 aurora — three /tmp images all 7.6-7.7KB Loading-state captures). Production Worker bundle unaffected (live site renders fine per `https://genesisxsx.darsh-pod.workers.dev`). Worth a dedicated debug session — possibly TanStack Start SSR ↔ hydration boundary on this provider's useEffect.
+- Visual confirm on staged Worker deploy after merge: marketing sections (`/`, `/features`) should render with clean white/lavender backgrounds, NO rotating blur blobs behind the FeaturesSection / HowItWorksSection / FeatureBlock / ComparisonTable.
+- Cross-worker `pkill -f "vite dev"` (in `scripts/restart-dev.sh` + parallel worker shells) hostile to parallel worktree screenshotting. Future parallel-PR plans should use per-worktree port sandboxing + `pkill -f "vite dev --port <my-port>"` instead of unscoped pkill.
 
 ### 2026-05-19 — low-hanging fruit pass: CrmSidebar fixes + Open-list staleness audit
 **Tags:** [bug] [frontend] [audit]

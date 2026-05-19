@@ -16,7 +16,7 @@ interface Props {
   tagline: string;
   body: string;
   bullets: Bullet[];
-  /** Right-side product mock rendered inside an aurora frame. */
+  /** Right-side product mock rendered inside a clean browser-chrome frame. */
   mock: ReactNode;
   reverse?: boolean;
   /** Optional anchor-class — adjusts top scroll-margin to clear the sticky nav. */
@@ -43,13 +43,6 @@ export function FeatureBlock({
         className,
       )}
     >
-      <div
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute -top-24 h-[420px] w-[640px] section-aurora opacity-40",
-          reverse ? "left-0 -translate-x-1/4" : "right-0 translate-x-1/4",
-        )}
-      />
       <div className="relative mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-16">
         <div className={cn("space-y-6", reverse && "lg:order-2")}>
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">

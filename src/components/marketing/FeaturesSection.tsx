@@ -14,14 +14,6 @@ import {
 export function FeaturesSection() {
   return (
     <section className="relative overflow-hidden border-t border-border py-20">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 section-aurora opacity-60"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-40 right-0 h-[500px] w-[700px] section-aurora-reverse opacity-50"
-      />
       <div className="relative mx-auto max-w-6xl px-6">
         {/* Pain Points */}
         <div className="mx-auto max-w-3xl text-center">
