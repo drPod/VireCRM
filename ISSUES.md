@@ -12,16 +12,45 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### User action required (secrets / DNS / product calls)
 
+- [ ] **Set `CRON_SECRET` in CF Worker prod env.** Update external scheduler / pg_cron rows to pass `x-cron-secret: $CRON_SECRET` to: `calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`. Otherwise 401 silent.
 - [ ] **Toggle `auth_leaked_password_protection`** in Supabase → Auth → Password protection. Not migration-able.
+- [ ] **Apply `20260517220000_schedule_send_pending_welcomes_cron.sql`** — `supabase db push`. Sibling cron for `classify-contact-submissions` already landed.
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
 - [ ] **CF Workers Builds "Variables and secrets" panel** — manual dashboard check that no `LOVABLE_API_KEY` lingers (runtime `wrangler secret list` doesn't cover build-time). Dashboard → Workers & Pages → genesisxsx → Settings → Variables.
+- [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
+  - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
+  - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
+- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out** — **PAUSED 2026-05-19.** Steps 0-6 shipped on 2026-05-18 (`30f3a54`, `e0ada67`, `554580a`, `4635496`, `4b6f75e`, `1448353`, `6399b7b`, `286cd81`) but invalidated by 2026-05-19 discovery — old Lovable DB still live, Crystal's auth.users row preserved there (`7ba2ebfa-…`), session-1 provisioning created a DUPLICATE on new DB (`b5ae0c3e-…`), session-2 xlsx-import wrote 3850 rows with broken column mapping. **Migration must run FIRST** (`docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`). Resume Crystal onboarding at Step 5 of `docs/handoffs/2026-05-18-green-energiai-onboarding.md` AFTER migration lands — by then her UUID/password/data already on new DB, energy fields already populated from xlsx supplement pass.
+
+### Lovable → fixed-DB data migration
+
+- [ ] **Migrate live data from old Lovable Supabase project to current `coynbufhejaeuifpvmvw` project.** Full plan in `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Strategy = enrich, not replace: old DB is truth for users + lead UUIDs; xlsx is supplement for the energy-broker fields the old importer dropped. User dumped the old project to `og_database/` on 2026-05-19 (gitignored, never push — bcrypt password hashes + PII). Contents:
+  - `genesis_auth_data.sql` (47k) — 23 `auth.users` rows
+  - `genesis_database_schema.sql` (382k) — schema-only
+  - `genesis_database_full.sql` (3.4M) — schema + `COPY public.* FROM stdin` data sections
+  - `genesis_database_full_with_auth.sql` (3.4M) — everything (auth + public)
+  - **Caziah Cameron (`cameroncaziah@gmail.com`) last signed in on the OLD project at 2026-05-19 01:05** — the old project is still live for at least one user. Migration window is short; cut over before a stale-DB writes get lost.
+  - **Crystal Cameron (`crystal@greenenergiai.com`) already exists on the OLD project** with `auth.users.id = 7ba2ebfa-f30e-449a-866e-085c5940c1d4` confirmed 2026-04-23 16:37. The 2026-05-18 session-1 provisioning created a DUPLICATE on the new DB with `id = b5ae0c3e-1655-48d5-b211-a9fd55aaafea`. Decide before DM-ing her: either (a) delete the new-DB Crystal and port the old-DB row over (preserves UUID, keeps any historical references) or (b) keep the new-DB Crystal and write off the old account.
+  - Real-looking accounts in old DB: 4 `@greenenergiai.com` staff (crystal, erica, shelby, mleaverton), 2 founder addresses (`ethansereti`, `esereti22`), `cameroncaziah`, plus 6 other gmail/personal addresses (`alexanderjakari`, `caziahbankss`, `davioncarr60`, `info.solace05`, `jesaira.lifosjoe12`, `paparusse02`, `primeframem`). Plus 5 test/audit users to skip.
+  - Plan TBD: write a one-shot migration script that connects to BOTH projects, transforms old → new schema where shapes diverged (e.g. the energy_broker_fields migration `20260518200618_*` added columns the old DB didn't have), inserts via service-role on new project. Auth-user import via Supabase Admin API (`POST /auth/v1/admin/users` with `password_hash` to preserve bcrypt). Then freeze old project + redirect any lingering DNS.
+
 ### Phase 2 — Lovable cleanup follow-ups
 
-- [ ] **Connector OAuth proxy** — replace `src/lib/connectors/gateway.ts` stub (currently throws `ConnectorNotConfiguredError(503)` at line 41). Nango or hand-rolled. Apollo/Slack/Gmail/Twilio/Sendgrid integrations dark until done.
+- [ ] **Connector OAuth proxy** — replace `src/lib/connectors/gateway.ts` stub (currently throws `ConnectorNotConfiguredError(503)`). Nango or hand-rolled. Apollo/Slack/Gmail/Twilio/Sendgrid integrations dark until done.
+- [ ] **Email send path still hits Lovable.** `src/lib/email/send.ts:36`, `src/lib/email/dispatch-outreach.ts`, `src/lib/admin-quote-email.functions.ts:99` POST to `/lovable/email/transactional/send` (dead). Either keep route as Resend SDK shim or rewrite callers direct.
+- [ ] **Customer-domain onboarding still points DNS at LOVABLE.** `src/components/crm/CustomerDomainOnboardingDialog.tsx:15,71-90,145` + `src/components/crm/DomainHealthPanel.tsx:33-34,344,435-449` — A-record `185.158.133.1`, `_lovable` TXT. Update to CF Workers target + `_majix` token (migration `20260517170000_rebrand_verification_token_prefix.sql`).
+- [ ] **`@lovable.dev/cloud-auth-js`** — social signin (Google/Apple/Microsoft) still routes through it via `src/integrations/lovable/index.ts`. Callers: `BrandedSignup.tsx`, `login.tsx`, `signup.tsx`, `r.$resellerSlug.signup.tsx`. Migrate to Supabase native OAuth providers.
+- [ ] **`ResendSettingsCard.tsx:4` + `resend.functions.ts:4,18,212`** — runtime sentinel `KEY_SENTINEL = "__lovable_connector__"` gates per-org Resend key flow; Phase 1 went direct SDK, likely dead.
 
 ### Bugs found, not fixed
 
+- [ ] **`_app.admin.tsx` lines 770, 797, 1821, 1829, 1837, 2058, 2070** — 7 `window.confirm`/`window.prompt` sites for destructive ops. Port to shadcn `AlertDialog` (pattern at same file 2213+).
+- [ ] **`AddLeadDialog.tsx:160-329`** — every `<label>` bare (no `htmlFor`), every `<input>` lacks `id`/`name`/`autoComplete`. Primary lead-entry form inaccessible to SR + password managers.
+- [ ] **`PipelineView.tsx:286-320`** — drag-and-drop only. No keyboard alternative. Pipeline unreachable via keyboard.
+- [ ] **Auth middleware uses `throw new Response()`** — TanStack Start doesn't serialize Response; 401/403 paths wrap as 500. `src/integrations/supabase/auth-middleware.ts`. Currently dead path (Bearer always attached) but blocks future "token expired mid-call" handling.
+- [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
+- [ ] **Onboarding wizard `aria-describedby` Radix warning** — re-capture w/ Radix stack trace from browser console next session. Candidates: `command.tsx` (`CommandDialog`, dead), `AddLeadDialog.tsx`, `EnergyTablePage.tsx`, `_app.academy.tsx`, `_app.academy.$courseId.tsx`, `_app.contact-submissions.tsx`.
 
 ### Verification / QA debts
 
@@ -91,563 +120,33 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — Split _app.admin.tsx into per-panel components
-**Tags:** [audit] [frontend]
+### 2026-05-19 — Shared Logo component for marketing (PR unit-2)
+**Tags:** [marketing] [branding] [logo] [frontend]
 
-#### Shipped
-- `src/routes/_app.admin.tsx` — reduced 2729 → 147 lines (route shell + AdminConsole tabs only)
-- `src/components/admin/FinancialsPanel.tsx` (376 lines) — extracted financials tab; inline StatCard (Unit 6 owns shared one); replaced local formatMoney with `@/lib/money`
-- `src/components/admin/OrganizationsPanel.tsx` (501 lines) — orgs tab + inline OrgBillingDetails; consumes admin-utils helpers
-- `src/components/admin/UsersPanel.tsx` (123 lines) — users tab; pre-existing `(r: any)` cast on :37 preserved per mechanical-split rule
-- `src/components/admin/ContactSubmissionsPanel.tsx` (1275 lines) — submissions tab + SubmissionPaymentHistory + SubmissionInvoicePanel + SuggestionSignals + suggestPlanForSubmission/suggestAmount
-- `src/components/admin/TemplateAuditPanel.tsx` (216 lines) — template audit tab
-- `src/types/admin.ts` — shared admin types (AdminOrgRow, OrgBillingSnapshot, AdminProfileRow, AdminSubmissionRow, PlatformInvoiceRow, PaymentHistoryResult, FinancialOverview, TemplateAuditRow)
-- `src/lib/admin-utils.ts` — `formatPlanPrice`, `planBadgeVariant`, `subStatusVariant`
-
-#### Verification
-- typecheck — `bun run typecheck` clean
-- tests — `bun run test` 119/119 pass
-- build — `bun run build` succeeds (6.67s)
-- lint — only error in changed files is pre-existing `any` cast in UsersPanel:37, preserved per pure-mechanical-split rule
-
-### 2026-05-21 — Config + auth centralization (Phase A + B)
-**Tags:** [lovable-migration] [audit]
-
-#### Shipped
-- `src/config/domains.ts` — all domain/email constants (PLATFORM_DOMAIN, NOTIFY_DOMAIN, MAJIX_AI_DOMAIN, SENDER_DOMAIN, FROM_DOMAIN, SITE_NAME, LOGO_URL, OG_CARD_URL)
-- `src/config/hosts.ts` — SYSTEM_HOST_PATTERNS (full 11-pattern set), isSystemHost(), PLATFORM_HOSTS
-- `src/lib/crypto.ts` — shared generateToken() (was duplicated 6×)
-- `src/lib/auth-helpers.ts` — assertOrgMember + assertOwner (were duplicated across 6 function files)
-- `src/config/support.ts` — added SUPPORT_PHONE + SUPPORT_PHONE_E164; SUPPORT_EMAIL → darsh.pod@gmail.com
-- Updated 20+ files: all local constants/helpers replaced with imports from the above
-- Bug fixed: GlobalErrorBoundary had 8-pattern subset (missing .workers.dev, app/customers/notify virecrm hosts); now imports shared 11-pattern set
-- `src/functions/domain-health.functions.ts:77` — User-Agent now uses PLATFORM_DOMAIN
-- `src/lib/email-templates/contact-acknowledgment.tsx`, `credit-low-balance.tsx` — SITE_NAME + fallback URLs now use shared constants
-
-#### Verification
-- `bun run typecheck` → 0 new errors (3 pre-existing Stripe `mode` prop errors in PricingCards + _app.billing unrelated to this work)
-
-### 2026-05-21 — Remove reseller CRM management routes
-**Tags:** [reseller] [frontend] [lovable-migration]
-
-#### Shipped
-- Deleted `src/routes/_app.clients.tsx`, `_app.clients.payouts.tsx`, `_app.clients.plans.tsx`, `_app.payouts.tsx`
-- `EditClientWhiteLabelDialog` component preserved (white-label feature)
-- Removed `Link to="/payouts"` button + unused `Wallet` import from `_app.revenue.tsx`
-- Cleaned all deleted route references from `src/routeTree.gen.ts` (imports, declarations, interfaces, union types)
-- `bun run typecheck` → zero errors
-
-### 2026-05-21 — Delete reseller components
-**Tags:** [reseller] [frontend] [lovable-migration]
-
-#### Shipped
-- Deleted `src/components/marketing/BrandedSignup.tsx`, `src/components/marketing/features/ResellerCta.tsx`, `src/components/crm/CommissionRulesDialog.tsx`
-- Removed all import sites and JSX usages: `index.tsx` (BrandedSignup conditional render), `features.tsx` (ResellerCta block)
-- `_app.payouts.tsx` was already deleted by a parallel unit; no action needed
-- Updated stale comment in `useCustomDomainGuard.ts`
-- Commit: `618d0d1`
-
-### 2026-05-21 — Remove is_reseller toggle from WhiteLabelSettings
-**Tags:** [reseller] [frontend] [lovable-migration]
-
-#### Shipped
-- `src/components/crm/WhiteLabelSettings.tsx` — removed `is_reseller?` from `OrgWithDomain` type, dropped `initialIsReseller`/`isReseller`/`togglingReseller` state, deleted `handleToggleReseller` handler, removed reseller-mode Switch UI block + storefront-URL reveal block, scrubbed "reseller storefront"/"reseller landing page" from help text, removed unused imports (`Switch`, `Globe`, `Sparkles`, `Copy`, `CheckCircle2`). Commit `359dfd1`.
-
-#### Verification
-- `bun run typecheck` → exit 0, zero errors.
-- No reseller references remain in the file (`grep` confirmed).
-
-### 2026-05-21 — Stripe live account wired end-to-end
-**Tags:** [stripe] [secrets] [pricing]
-
-User created new Stripe account `acct_…51TYVK6`, pasted live keys in chat (`pk_live_…` + `sk_live_…`). Replaced prior dormant Stripe account `51TNoG1` in `.env.production`. **Action item:** rotate the `sk_live_` key in Stripe dashboard once setup is settled — pasted in chat = persisted in conversation logs.
-
-#### Wired
-| What | Where | Value / id |
-|---|---|---|
-| Publishable key (frontend) | `.env.production` `VITE_PAYMENTS_CLIENT_TOKEN` | `pk_live_51TYVK6…` |
-| Secret key (server) | `.env` `STRIPE_LIVE_API_KEY` | `sk_live_51TYVK6…` |
-| Secret key (Supabase Edge Fns) | `supabase secrets set STRIPE_LIVE_API_KEY` | same as above |
-| Webhook endpoint | Stripe → `https://coynbufhejaeuifpvmvw.supabase.co/functions/v1/payments-webhook` | `we_1TZVqt7klyZ9sPrQUALwcH2w`, 11 events (checkout.session.completed, customer.subscription.{created,updated,deleted}, invoice.{finalized,sent,updated,voided,marked_uncollectible,payment_succeeded,payment_failed}) |
-| Webhook secret | `supabase secrets set PAYMENTS_LIVE_WEBHOOK_SECRET` | `whsec_lffBCTrb…` |
-| Stripe MCP server | `~/.claude.json` project block | HTTP transport at `https://mcp.stripe.com/` |
-
-#### Products + prices (live mode, 5 monthly recurring)
-| lookup_key | Price id | Product id | Amount |
-|---|---|---|---|
-| `crm_starter_monthly` | `price_1TZVsQ7klyZ9sPrQ0i2NdYDD` | `prod_UYd8aAOSJbAwGI` | $97/mo |
-| `crm_growth_monthly` | `price_1TZVsU7klyZ9sPrQ4aUx4hEo` | `prod_UYd8aXkb37fTcr` | $197/mo |
-| `crm_pro_monthly` | `price_1TZVsX7klyZ9sPrQGXHdKokZ` | `prod_UYd8GtX2zTTkeJ` | $297/mo |
-| `lease_starter_monthly` | `price_1TZVsa7klyZ9sPrQfAatsKcG` | `prod_UYd8W9lE51pahP` | $249/mo |
-| `lease_pro_monthly` | `price_1TZVsd7klyZ9sPrQYxwOFhzi` | `prod_UYd8AEjIb0K4du` | $849/mo |
-
-Amounts mirror `src/components/marketing/PricingCards.tsx` `crmTiers` + `whiteLabelTiers`. `Custom CRM`, `Full Ownership`, `Custom Enterprise` tiers route to `/contact` and intentionally have no Stripe price.
-
-#### Known gaps (not blocking — flagged for follow-up)
-- **`.env.development` `pk_test_*` is from a DIFFERENT abandoned Stripe account (`51TNmcQ`).** Local dev mode → checkout will misbehave because the price lookup_keys don't exist in that test account. To fix: enable test mode on the new `51TYVK6` account, create matching test-mode products + prices (Stripe test↔live sync isn't automatic), copy that account's `pk_test_*` into `.env.development`. **Punt until local-dev checkout is actually needed.**
-- **`supabase/functions/_shared/stripe.ts` CORS allow-list still lists `.virecrm.com` / `virecrm.com`.** Domain history was majix.ai → virecrm.com — both are referenced across the repo (220 hits, 20 files). CORS list is current as long as the live brand is `virecrm.com`. If the brand pivots again, update both `ALLOWED_ORIGIN_SUFFIXES` and the fallback `Access-Control-Allow-Origin`.
-- **Stripe Connect webhook NOT created.** The webhook above is platform-only. Once Connect is enabled on the account, create a second webhook with `connect=true` (same URL, same events) so reseller payouts/invoices flow into `client_stripe_accounts` + `submission_stripe_customers`.
-- **Promo removed (already shipped pre-session):** commits `27eb0ef` `1460897` `73d0581` `8e309e8` ripped out 30% launch promo from UI, create-checkout, payments-webhook, and tests. No Stripe coupon to manage. Earlier "Promo enforcement" follow-up in ISSUES.md is moot.
-
-#### Verification
-- All 5 lookup_keys resolve via `GET /v1/prices?lookup_keys[]=…`, `active=true`, `livemode=true`.
-- Webhook endpoint `status=enabled`, `livemode=true`, 11 events subscribed.
-- `supabase secrets list` confirms both `STRIPE_LIVE_API_KEY` + `PAYMENTS_LIVE_WEBHOOK_SECRET` are set (digests visible).
-- End-to-end checkout NOT yet smoke-tested (would require real card + real charge). Recommended next step: enable test mode in the new account, create matching test-mode prices, run a test card through `/pricing` → checkout → return flow before pointing real customers at it.
-
-#### Manual follow-ups (user)
-- [ ] **Rotate `sk_live_51TYVK6…`** in Stripe dashboard → Developers → API keys. The key was pasted in chat and is in conversation logs. After rotation, update `.env` `STRIPE_LIVE_API_KEY` and re-run `supabase secrets set STRIPE_LIVE_API_KEY=<new>`.
-- [ ] **Smoke a $1 test product + a real card** before launch. Suggested flow: temporary $1 product in live mode → checkout from a logged-in test account → verify `subscriptions` row inserts via the webhook → cancel from Stripe dashboard → archive the $1 product.
-- [ ] **Set Stripe statement descriptor + business profile** in the new account (Settings → Public details). Affects what shows up on customer card statements.
-- [ ] **Set `STRIPE_LIVE_API_KEY` + `PAYMENTS_LIVE_WEBHOOK_SECRET` on Cloudflare Worker** ONLY if a route handler under `src/routes/api/**` ever calls Stripe directly. As of this session, all Stripe calls live in Supabase Edge Functions, so the Worker doesn't need these — verified via grep on `src/` (`STRIPE_LIVE_API_KEY` zero hits in `src/`). Skip unless a future route handler imports Stripe.
-
-### 2026-05-21 — Crystal sign-in confirmed; markdown cleanup
-**Tags:** [crystal] [auth] [docs]
-
-#### Verification
-- `POST /auth/v1/token` with temp pw `hSS1eLMQitFgJfdR` → `invalid_credentials` — confirms she changed her password.
-- Admin API `GET /auth/v1/admin/users/7ba2ebfa-…` → `last_sign_in_at=2026-05-20T22:51:19Z`, `must_change_password=null`. Forced PW change flow ran end-to-end in production.
-- `greenenergiai.virecrm.com` → org `188c4869-…` "Green EnergiAi", Crystal is `owner`, 4,793 leads. URL sent to Crystal is correct.
-- Org slug confirmed `greenenergiai` (not `crystal-cameron-7ba2ebfa` as earlier session entries noted — slug was renamed before Crystal's first sign-in).
-
-#### Shipped
-- `README.md` — deleted "Temporary credentials" section (Crystal rotated pw, temp pw dead).
-- `ISSUES.md ## Open` — removed stale Crystal onboarding + Phase G + slug-rename items (all resolved). Freeze old Lovable project item updated: Crystal confirmed, Caziah still pending.
-- `ISSUES.md ## Recent` — struck through: DM Crystal follow-ups (×2), "pending deploy" note, GCP test-user add (GCP now Production).
-
-### 2026-05-20 — GCP OAuth → Production + legal pages rewrite
-**Tags:** [auth] [google-oauth] [legal]
-
-#### Shipped
-- `/privacy` + `/terms` fully rewritten with substantive legal content. Operator: Darsh Poddar (individual). Legal contact: `darsh.pod@gmail.com`. Privacy policy adds explicit Google Sign-In data section (GCP requirement), names all sub-processors (Supabase, Stripe, Resend, Cloudflare), GDPR/CCPA user rights. Terms covers acceptable use, data ownership, termination, liability cap, Texas governing law. Commits `9bdba55`, `91af9b9`.
-- `TermsCheckbox.tsx` — added `/privacy` link (was missing); renamed "No-Refund Policy" → "Refund Policy"; dropped inaccurate "all payments are final" inline summary.
-- GCP OAuth app published to **Production**. Any email can now sign in via Google (no longer restricted to test-user allowlist).
-
-### 2026-05-20 — Fix promo enforcement + ESLint scope explosion
-**Tags:** [bug] [frontend] [supabase]
-
-#### Shipped
-- `supabase/functions/create-checkout/index.ts` — added server-side subscription count gate before applying `launch30` coupon. Counts `subscriptions` where `environment='live'` and `status IN ('active','trialing')`; skips coupon if `>= 100`. `max_redemptions` on the Stripe coupon object was not viable (Stripe coupons are immutable post-creation; existing `launch30` in prod has no cap). Service-role client scoped to the promo check only.
-- `eslint.config.js` — added `.claude` and `.agents` to `ignores`. These directories (worktrees + compiled bundles + skill scripts) were not excluded; scanning them inflated error count from ~5.2k to 104k. Back to 5257 baseline.
-- ~~`## Open` "Promo enforcement"~~ — resolved.
-
-#### Verification
-- `bun run typecheck` clean.
-- `bun run lint` returns 5257 errors (5218 + 39 warnings) — matches pre-explosion baseline.
-
-### 2026-05-20 — Crystal pre-launch: branding, subscription, navbar
-**Tags:** [crystal] [frontend] [supabase] [auth]
-
-#### Shipped
-- DB `subscriptions` — inserted manual `environment=manual, status=active` row for Crystal (`user_id=7ba2ebfa-f30e-449a-866e-085c5940c1d4`). Without this she'd hit `/billing?required=1` immediately after forced password change. No subscription row existed for Green EnergiAi org.
-- DB `organizations` `188c4869-8bc4-438e-b746-c8f28e2932d2` — corrected branding from Lovable defaults: `primary_color=#10CCB7` (was `#b410b7` magenta), `accent_color=#334C40`, `sidebar_color=#0A2A1A`, `button_color=#10CCB7`, `logo_url` set to Green EnergiAi Wix CDN logo. Colors sourced from live greenenergiai.com via subagent browser research.
-- `src/components/crm/CrmSidebar.tsx:174` — `/pipeline` nav label changed from hardcoded `"Pricing"` to `template.terminology.pipeline` (energy = "Energy Pipeline"). Icon swapped `DollarSign` → `TrendingUp`. Eliminates collision with `/energy/pricing` "Pricing" entry — Crystal would have seen two identical "Pricing" links. Commit `91d3dec`.
-
-#### Found
-- `src/routes/_app.dashboard.tsx:461` — "Total Leads" metric label hardcoded, doesn't use `template.terminology.leadPlural` ("Prospects" for energy). Low priority — cosmetic.
-- GCP OAuth consent screen test users: no programmatic path — API deprecated Jan 2026, IAP API disabled on project. Must add `crystal@greenenergiai.com` via console manually.
-
-#### Verification
-- `bun run typecheck` clean after sidebar change.
-- DB queries confirmed: 4,793 leads in org, `must_change_password=true` set, `onboarding_completed_at` and `tour_completed_at` both set (no wizard/tour fires on login).
-- Crystal login flow: forced PW change → dashboard → no billing bounce → energy sidebar unlocked.
-
-#### Manual follow-up (user)
-- ~~Add `crystal@greenenergiai.com` to GCP OAuth test users~~ — resolved 2026-05-21; GCP OAuth app moved to Production.
-
-### 2026-05-20 — Fix auth + subscription middleware: throw new Response() → throw new Error()
-**Tags:** [bug] [auth] [supabase]
-
-#### Shipped
-- `src/integrations/supabase/auth-middleware.ts` — replaced all 7 `throw new Response(...)` calls with `throw new Error(...)`. Messages preserved ("Unauthorized: …" prefix matches `isAuthError`'s `/unauthor/i` regex). Also dropped stale "auto-generated" comment at line 1.
-- `src/integrations/supabase/subscription-middleware.ts` — replaced 4 `throw new Response(...)` calls with `throw new Error(...)`. 503 DB-error paths: "Subscription check failed. Please try again." 402 gate: "Subscription required. … Please visit /billing." Status codes lost were meaningless — TanStack Start was wrapping them all as 500 anyway.
-- ~~`## Open` "Auth middleware uses `throw new Response()`"~~ — resolved.
-
-#### Verification
-- `bun run typecheck` clean.
-
-### 2026-05-20 — CRON_SECRET set + stale migration item closed
-**Tags:** [cf-saas] [supabase]
-
-#### Shipped
-- `wrangler secret put CRON_SECRET` — uploaded to prod Worker `genesisxsx`. Random base64-32 value generated + uploaded. External schedulers / pg_cron callers must pass `x-cron-secret: $CRON_SECRET` header to `calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`.
-- ~~`Apply 20260517220000_schedule_send_pending_welcomes_cron.sql`~~ — already applied to both local + remote (`supabase migration list` showed both columns populated). Removed from Open.
-
-#### Verification
-- `wrangler secret put` exited 0: "✨ Success! Uploaded secret CRON_SECRET"
-- `supabase migration list` output confirmed `20260517220000` in Local + Remote columns.
-
-### 2026-05-20 — Forced password-change flow + Security settings tab
-**Tags:** [auth] [frontend] [crystal]
-
-#### Shipped
-- `src/components/auth/ChangePasswordForm.tsx` (NEW) — shared form: `PasswordInput` x2, `PasswordStrengthMeter` gated at score ≥ 2, clears `must_change_password` flag in same `updateUser` call.
-- `src/routes/change-password.tsx` (NEW) — full-page `/change-password?forced=1` route outside `/_app`; amber banner + no escape when forced; session guard; `onSuccess` → `/dashboard`.
-- `src/routes/_app.tsx:205-211` — `must_change_password` gate `useEffect` fires before billing check; redirects to `/change-password?forced=1` when flag set.
-- `src/routes/_app.settings.tsx` — new Security tab (third position, Lock icon) → `SecuritySettings` card.
-- `src/components/crm/SecuritySettings.tsx` (NEW) — settings card wrapping `ChangePasswordForm`; toast + form reset on success, no redirect.
-- `src/routes/reset-password.tsx` — added `PasswordStrengthMeter`, score ≥ 2 gate, third requirement item, clears `must_change_password` on success. Commit `6e76f84`.
-
-#### Verification
-- `bun run typecheck` clean.
-- ~~Manual flow pending deploy: Crystal signs in with temp pw → gate fires → `/change-password?forced=1` → sets pw → dashboard → no more redirect.~~ Verified 2026-05-21 — Crystal signed in 2026-05-20 22:51 UTC, `must_change_password` cleared, flow confirmed end-to-end.
-
-#### Manual follow-up (user)
-- ~~Push + deploy to production.~~ Done.
-- ~~DM Crystal temp pw (`hSS1eLMQitFgJfdR`) after deploy confirms.~~ Done — she signed in + rotated pw 2026-05-20 22:51 UTC.
-- ~~After Crystal signs in + resets pw, delete "Temporary credentials" section from `README.md`.~~ Done.
-
-### 2026-05-20 — Retire majix.ai: 308 redirect + full virecrm.com cleanup
-**Tags:** [virecrm] [rebrand] [cf-saas] [docs]
-
-#### Shipped
-- `src/server.ts` — 308-redirect handler: all `*.majix.ai` requests redirect to virecrm.com equivalents before reaching TanStack Start.
-- `wrangler.jsonc` — comments updated; majix.ai routes kept for redirect to fire.
-- `src/config/support.ts` — SUPPORT_EMAIL flipped to `support@virecrm.com`.
-- `supabase/functions/_shared/stripe.ts` — removed `.majix.ai`/`majix.ai` from CORS allow-list; fallback origin flipped to `https://virecrm.com`.
-- `src/lib/resend.ts` — removed stale notify.majix.ai cutover comment.
-- `src/components/auth/DomainBrandingProvider.tsx` + `GlobalErrorBoundary.tsx` — removed 5 majix.ai regex entries from SYSTEM_HOST_PATTERNS.
-- `src/lib/dns-check.ts` — default CNAME target flipped to `customers.virecrm.com`; removed `REQUIRED_CNAME_TARGET_ALT`; TXT lookup renamed `_majix.` → `_virecrm.`.
-- `supabase/migrations/20260520100000_rename_verification_token_prefix.sql` — token default flipped `majix-verify-` → `virecrm-verify-`; existing rows backfilled.
-- 5 UI files (`CustomerDomainOnboardingDialog`, `DomainHealthPanel`, `EditClientWhiteLabelDialog`, `CustomDomainsPanel`, `_app.dns-check.tsx`) — TXT label prefix `_majix` → `_virecrm`.
-- 8 files — localStorage + custom event keys renamed `majix:*`/`majix.*` → `virecrm:*`/`virecrm.*`.
-- `supabase/migrations/20260520110000_get_org_by_domain_virecrm_only.sql` — dropped majix.ai subdomain branch from `get_org_by_domain()`.
-- `CLAUDE.md`, `AGENTS.md`, `README.md`, `docs/custom-domains/cf-for-saas-setup.md` — removed all parallel-cutover language; single-zone (virecrm.com) narrative.
-
-#### Verification
-- `bun run typecheck` clean across all units.
-- `supabase db push` applied both new migrations.
-- E2E: curl `Host: app.majix.ai` → 308 `https://app.virecrm.com` (Unit 1 worktree).
-
-#### Manual follow-up (user)
-- Push all unit PRs and merge. After merge and redeploy, smoke curl `https://app.majix.ai/` to confirm 308 fires at production edge.
-- `wrangler secret put CLOUDFLARE_ZONE_ID` = `bef363938825376aef7db07f57c3f04b` (virecrm.com zone) to flip the runtime CF for SaaS provisioning to virecrm zone.
-- Worker API Token: dashboard → My Profile → API Tokens → find Worker token → Edit → Zone Resources → add `virecrm.com`.
-- Extend `CLOUDFLARE_API_TOKEN` scope to include virecrm.com zone (dashboard only).
-
-### 2026-05-20 — Phase G validation + compositeAddress() literal-NULL cleanup
-**Tags:** [lovable-migration] [supabase] [bug] [crystal] [caziah]
-
-Continuation session: revalidated Phase G state end-to-end, then closed out the `compositeAddress()` carry-over bug flagged in the prior session. Scope was bigger than first noted — 16 was the count of address-less rows, not bad-token rows. Real impact: 2,606 Crystal + 2,047 Caziah = **4,653 rows** with literal `"NULL, NULL"` tokens.
-
-#### Found
-
-- **`compositeAddress()` literal-"NULL" scope much wider than initial estimate.** Prior session's "16 rows" referred to rows where the composite came out fully empty (NULL service_address). The actual `service_address ILIKE '%NULL%'` query returns **2,606 Crystal + 2,047 Caziah = 4,653 rows** with embedded `NULL, NULL` runs. Pre-existing in Phase F path; Phase G inherited because both phases share `compositeAddress()` and `readXlsxRows()`.
+Marketing surface refactor unit 2/5 (plan: `.claude/plans/sharded-jingling-harp.md`). Reconciled the conflicting logomarks — auth pages were already on the lucide `Terminal` icon in a rounded `bg-primary` square; marketing header + footer were inlining a gradient `M` box. Both surfaces now render a single shared `<Logo>` component.
 
 #### Shipped
 
-- **`scripts/migrate-lovable-to-fixed.ts:546` — fixed `compositeAddress()` filter.** Replaced `.filter(Boolean)` with `.filter((s) => s !== "" && s.toUpperCase() !== "NULL")`. Future migration runs skip literal `"NULL"` string-cells alongside empty cells. Comment explains the xlsx-source quirk.
-- **Live DB retro-clean** — one transaction, `SET LOCAL request.jwt.claim.role = 'service_role'`, regex strips: `,\s*NULL\s*(?=,|$)` global (mid/trailing) then `^NULL\s*,\s*` (leading) then trim, then NULLIF empty. 2,047 Caziah + 2,606 Crystal rows updated. Post-fix `ILIKE '%NULL%'` count = 0 across both orgs. Spot-checks: Paradise leads now `2111 Taylor St., Dallas, 75211` (was `…, NULL, NULL, Dallas, 75211`), Wings Pizza, Children's Learning Center — all clean.
-- ~~`## Recent` 2026-05-20 Phase G "Manual follow-up: compositeAddress() literal-NULL cleanup"~~ — resolved.
-
-#### Verification (live DB via `bun:sql`)
-
-- **Phase G state re-confirmed:** Crystal own-org `188c4869-…` = 4,793 total, 4,789 xlsx_supplement + 2 xlsx_import (Paradise) + 2 NULL source (manual). Energy field coverage on xlsx-derived rows: 4,791 ESI + 4,791 supplier + 4,791 kwh + 4,791 mils + 4,791 contract dates. Status × source distribution intact (won=1693, lost=493, new=2603 for xlsx_supplement; won=2 for xlsx_import; contacted=2 for NULL). Paradise UUIDs + deal_value=$2,000,000 + closed_at all preserved. `joe smho` + `ethan` manual leads untouched.
-- **Downstream FKs:** 0 messages / 0 tasks / 0 appointments referencing Crystal-org lead_ids. UUID stability did not need to hold — moot but verified.
-- **Cleanup post-state:** Crystal `has_addr=4775`, `null_addr=18`, `bad=0`. Caziah `has_addr=4002`, `null_addr=5193`, `bad=0`. No row got nulled out by the cleanup (every row had at least street_no/street_name surviving).
-- `bun run typecheck` — clean.
-- `bash scripts/lint-issues.sh` — OK (post-edit).
-
-#### Manual follow-up (user)
-
-- **Push ahead-of-origin commits** when ready. `git push` gated on user per CLAUDE.md shared-state rule.
-- ~~**DM Crystal her temp pw** (`hSS1eLMQitFgJfdR`) — pending from prior session.~~ Done — Crystal signed in + rotated pw 2026-05-20 22:51 UTC.
-
-### 2026-05-20 — Google OAuth setup (GCP + Supabase)
-**Tags:** [auth] [supabase] [google-oauth]
-
-#### Found
-
-- **Supabase Auth Google provider disabled.** `external_google_enabled=false`, `external_google_client_id=null`, `external_google_secret=null`. UI already wired at 4 call sites (`src/routes/login.tsx:176`, `src/routes/signup.tsx:163`, `src/components/marketing/BrandedSignup.tsx:118`, `src/routes/r.$resellerSlug.signup.tsx:174`). Blocked only on GCP credentials.
-- **`site_url=https://app.majix.ai` stale.** `uri_allow_list` majix-only — virecrm domains not in allow list. Will update in same Supabase Management API call as Google credentials.
-- **`/privacy` + `/terms` pages missing.** Google Auth Platform consent screen (Branding tab) requires real URLs for these before OAuth app can be published to Production. While app stays in Testing mode, only emails listed under Audience → Test users can sign in. Ticket filed in `## Open`.
-- **GCP Authorized JavaScript origins cannot use wildcards.** Per-tenant `<slug>.virecrm.com` origins cannot be listed individually. Not needed — Google only validates the `redirect_uri` (which points to Supabase, not tenant domains). Supabase `uri_allow_list` supports wildcards and handles the bounce back to tenant subdomains.
-
-#### Shipped
-
-- Supabase Auth: `external_google_enabled=true`, client_id + secret set via Management API PATCH.
-- `site_url` updated to `https://app.virecrm.com`. `uri_allow_list` extended with `https://virecrm.com/**` + `https://*.virecrm.com/**` (majix wildcards kept for parallel cutover).
-- GCP credentials stored in `.env` (server-side reference only — not `VITE_*`, not in bundle).
+- `src/components/Logo.tsx` (new) — wraps `Terminal` from `lucide-react` in a `bg-primary`/`text-primary-foreground` rounded square. Three sizes (`sm`/`md`/`lg`) via a lookup table; default `md` matches the marketing header treatment, `lg` matches the auth-page treatment at `src/routes/login.tsx:205-210`. `aria-hidden` (decorative, paired with wordmark text). `TODO()` comment marks auth-page retrofit as deferred (visual no-op, separate pass).
+- `src/components/marketing/MarketingHeader.tsx:32-35` — replaced inlined `M` gradient `<span>` with `<Logo />`. Wordmark `<span>` lost `text-gradient-primary` class → solid `text-foreground`.
+- `src/components/marketing/MarketingFooter.tsx:12-15` — same surgery, same wordmark cleanup.
 
 #### Verification
 
-- Smoke test: Google sign-in on `localhost:8080` — OAuth redirect → Google consent → Supabase callback → `/dashboard`. Confirmed 2026-05-20.
-- `handle_new_user` trigger auto-provisioned org (`darsh-test-bc97cbd6`) + 1 lead. Both cleaned up post-smoke via Admin API delete.
-
-#### Manual follow-up (user)
-
-- ~~Create `/privacy` + `/terms` routes before publishing GCP OAuth consent screen past Testing mode.~~ **Done 2026-05-20** — pages fully rewritten (commits `9bdba55`, `91af9b9`); GCP OAuth app published to Production.
-
-### 2026-05-20 — Phase G: Crystal own-org xlsx enrichment (destructive REPLACE)
-**Tags:** [lovable-migration] [supabase] [crystal] [xlsx]
-
-User picked Option A from prior session ("enrich Crystal own-org with xlsx, 4,791 UPDATEs"). Probe overturned the UPDATE-only premise — Lovable importer wrote 4,791 stubs with NULL on every discriminating column (esi_id, supplier, kwh, agent_mils, contract dates, address). Only `name` was kept, and 784 distinct Customer Names had multi-row dupes (Daymark = 166 each side). No row-discriminator survived → 1:1 mapping unrecoverable. Pivoted to DELETE-then-INSERT with 2-lead preservation hatch.
-
-#### Found
-
-- **Lovable xlsx importer dropped every energy column.** 4,791 Crystal-org stubs created in one batch (all share `created_at=2026-04-27T18:15:51.299Z` to the millisecond — no row index, no created_at ordering, no `lovable_legacy_id` column). xlsx side has 1,750 distinct Customer Names, 784 with row dupes (top: Daymark 166, Meadowlark 96, JacRy 66, Tropical Trails 44). Plain `UPDATE WHERE name = X` would collapse 166 Daymark leads to one xlsx row's energy data and lose 165 unique meter+supplier+kwh rows.
-- **2 human-touched stubs.** Both named "Paradise Fruits and Vegetables LLC" (UUIDs `540cc3d7-…` + `306787e6-…`). `deal_value_cents=$2,000,000` + `closed_at` + `status=won` set 2026-05-15. Real human edits — must preserve UUID + non-energy fields.
-- **xlsx Sale Status enum:** 6 distinct values (Meter Check 2604, Approved 1453, Lost 484, Completed 240, Declined 9, Objection 1). `leads.status` is `text`, used values site-wide: `new`, `won`, `lost`, `contacted`. Mapping landed in `mapSaleStatus()`: Approved/Completed → won; Lost/Declined → lost; Meter Check/Objection/null → new.
-- **Zero downstream FK rows in Crystal own-org.** All 15 lead_id-referencing tables (messages, tasks, replies, lead_assignees, lead_shares, outreach_sequence_enrollments, conversations, appointments, workflow_runs, commission_earnings, etc.) returned 0 for `organization_id = 188c4869-…`. UUID change on DELETE+INSERT was safe.
-
-#### Shipped
-
-- **`scripts/migrate-lovable-to-fixed.ts` — added Phase G** (`phaseG_crystalOwnOrgEnrich`). Hard-coded to `188c4869-8bc4-438e-b746-c8f28e2932d2`. Logic: (1) read 4,791 xlsx rows; (2) find touched stubs (`updated_at > created_at + 1s` filter); (3) for each touched lead, consume first xlsx row of matching name (lower-trim), UPDATE via COALESCE so human-set status/deal_value/closed_at survive; (4) DELETE all remaining xlsx_import stubs in that org; (5) INSERT remaining 4,789 xlsx rows with full energy fields + `source='xlsx_supplement'` + `status` mapped from xlsx Sale Status. Phase NOT part of `--phase=ALL` (destructive — explicit `--phase=G` required).
-- **`XlsxRow` extended** with `customer_name` + `sale_status` (`readXlsxRows()` already-parsed cells, no extra xlsx read pass).
-- **`mapSaleStatus()`** added — verified xlsx distinct value list 2026-05-20 (script comment cites it). Falls back to `"new"` on unknown values.
-- **Live run executed.** 2 UPDATE + 4,789 DELETE + 4,789 INSERT in three transactions, each with `SET LOCAL request.jwt.claim.role = 'service_role'` (mirrors Phase F pattern — bypasses RLS + lead-template triggers).
-- ~~`## Open` follow-up: "Crystal own-org xlsx scope" decision~~ — resolved (struck through; deleted from `## Open`).
-
-#### Verification (live DB via `bun:sql`)
-
-- Crystal own-org `188c4869-…` leads: **4,793 total** = 4,789 `xlsx_supplement` (fresh) + 2 `xlsx_import` (preserved Paradise) + 2 `source IS NULL` (preserved manual: `joe smho`, `ethan`).
-- Energy field coverage: `esi_id=4791`, `current_supplier=4791`, `annual_kwh=4791`, `agent_mils=4791`, `contract_start_date=4791`, `contract_end_date=4791`, `service_address=4775` (16 xlsx rows had no composite address), `title=4516`.
-- Status × source distribution: xlsx_supplement → won=1693, lost=493, new=2603 (xlsx total 4789). xlsx_import (preserved) → won=2. NULL source (manual) → contacted=2. Sale Status mapping arithmetic checks out: Approved(1453)+Completed(240)=1693 won; Lost(484)+Declined(9)=493 lost; Meter Check(2604)+Objection(1)-2 consumed-for-Paradise=2603 new.
-- Preserved Paradise touched leads: both UUIDs intact, `deal_value_cents=$2,000,000` + `closed_at` preserved, `status=won` preserved, now enriched with `esi_id`, `current_supplier=Green Mountain`, `annual_kwh` from their respective consumed xlsx rows (indices 4105, 4106).
-- Random xlsx_supplement sample: "Cowtown Materials" with ESI, Suez supplier, 88,797 kWh, 0.998 mils, 2023-06-01 contract start, full Dallas service address — full xlsx column carry-through.
-- `bun run typecheck` clean.
-- `bash scripts/lint-issues.sh` — OK.
-
-#### Manual follow-up (user)
-
-- ~~**Cosmetic carry-over bug in `compositeAddress()`** (pre-existing in phase F, not introduced this session): xlsx address columns containing literal string `"NULL"` (e.g. `address_2="NULL"`) survive the `filter(Boolean)` step and produce service_address strings like `"426 N. Kealy St, NULL, NULL, Lewisville, 75057"`. ~16 rows affected in Crystal org. Filed for later cleanup pass — strip literal "NULL"/"null" tokens in `compositeAddress`.~~ — **resolved 2026-05-20 (see top of `## Recent`).** Scope was 2,606 Crystal + 2,047 Caziah = 4,653 rows, not 16. Fix landed in code + retro-cleaned in DB.
-- **Crystal's own-org tenant now has the same energy-broker dataset as Caziah's.** Two orgs hold the same xlsx data. If consolidation decision is "merge into greenenergiai", these 4,791 will need dedup against Caziah's 5,386 xlsx_import + 3,809 xlsx_supplement leads — likely heavy ESI overlap. Defer until consolidation call lands.
-
-### 2026-05-20 — Lovable migration: JSONB double-encode bug + Crystal temp pw
-**Tags:** [lovable-migration] [supabase] [auth] [bug]
-
-User asked for a temp pw for Crystal. Admin API returned `500 "Database error loading user"` on her UUID, but worked on the smoke user. Dug in — found a wider bug in the live-port script that touched every ported `jsonb` field.
-
-#### Found
-
-- **JSONB columns double-encoded on insert.** Migration script parsed `auth.users`, `auth.identities`, and `public.*` `jsonb` values from the dump as TEXT, then bound them as TS strings via `bun:sql`'s positional params. Postgres' implicit `text → jsonb` cast on the value side stores the text *as a JSON string* (`jsonb_typeof(col) = 'string'`) instead of parsing it as an object. Generated columns like `auth.identities.email` (`lower(identity_data->>'email')`) silently resolve to NULL because `->>'email'` on a string-typed JSONB returns NULL. GoTrue's admin endpoint then joins identities + reads `email` → 500 on rows missing it.
-- Affected: **15** `auth.identities.identity_data`, **14** `auth.users.raw_user_meta_data`, **14** `auth.users.raw_app_meta_data`, **2** `public.organizations.auto_invoice_template`. Every ported user except the 1 already-native `darsh.pod@gmail.com` smoke. Scan across all `public`+`auth` jsonb columns post-fix: 0 remaining.
-
-#### Shipped
-
-- **Live data fix on prod DB** — `UPDATE … SET col = (col #>> '{}')::jsonb WHERE jsonb_typeof(col)='string'` across the four affected columns. Generated `auth.identities.email` re-derives automatically post-fix.
-- **Migration script root-cause fix** — `scripts/migrate-lovable-to-fixed.ts` now introspects `data_type='jsonb'` per-table via `getJsonbCols()` and wraps placeholders as `($N::text)::jsonb` for jsonb columns. Forces Postgres to parse text as JSON value, not wrap it as a JSON string. Re-runs of any phase against any table no longer double-encode. Touched: `phaseA_authUsers` (users + identities) + `upsertRows` (public.*). `bun run typecheck` clean.
-- **Crystal temp password minted.** UUID `7ba2ebfa-f30e-449a-866e-085c5940c1d4`, pw written to `README.md` "Temporary credentials" section + `must_change_password=true` flagged in `user_metadata`. (User explicitly chose this over the password-reset-email route; private repo + transient section.)
-- **Sign-in smoke test passed.** `POST /auth/v1/token?grant_type=password` with the new pw returns HTTP 200 + access_token + `must_change_password` flag. Bcrypt round-trip end-to-end verified. **Closes the previously-owed Crystal sign-in smoke item.**
-
-#### Verification
-
-- `auth.users` + `auth.identities`: 16 + 17 rows healthy. `jsonb_typeof()` returns `object` for all metadata columns. `auth.identities.email` populated for all 17.
-- `GET /auth/v1/admin/users/{crystal_uuid}` returns 200 (previously 500).
-- `GET /auth/v1/admin/users?per_page=20&page=1` returns 200 (previously 500 on page>=2 — the broken Crystal identity row was poisoning the list query).
-- `POST /token` sign-in with `crystal@greenenergiai.com` + temp pw → 200 + valid JWT.
-- `bash scripts/lint-issues.sh` — OK.
-
-#### Manual follow-up (user)
-
-- **Crystal's sign-in must trigger pw-reset flow.** Client login should read `user_metadata.must_change_password` post-auth and redirect to `/_app/account/password`. Not verified — flag for client-side audit next session if Crystal reports getting in without a reset prompt.
-- **DM Crystal the temp pw.** Then delete the "Temporary credentials" section from `README.md` once she has signed in + rotated.
-- **Bcrypt-port verification for the 3 other staff bcrypt rows** (`mleaverton`, `erica`, `shelby`) still nominally owed but mechanism = same as Crystal. If a sign-in is asserted to fail, mint a temp pw via the same admin-PUT path and investigate.
-
-### 2026-05-20 — Resend cutover to notify.virecrm.com complete
-**Tags:** [resend] [virecrm] [rebrand] [email]
-
-Pending item #4 from prior summary. Resend DNS verification (~24h external) completed: `GET /domains` shows `notify.virecrm.com` `status: verified`. Flipped all canonical sender constants in code + sent a live test.
-
-#### Shipped
-
-- **`SENDER_DOMAIN` + `FROM_DOMAIN` constants** flipped `"notify.majix.ai"` → `"notify.virecrm.com"` in 6 files:
-  - `src/routes/api/email/transactional/send.ts:11,15`
-  - `src/routes/api/notify-low-balance.ts:18,19`
-  - `src/routes/api/public/hooks/contact-followup-reminders.ts:17,18`
-  - `src/routes/api/public/contact.ts:18,19`
-  - `src/routes/hooks/send-pending-welcomes.ts:9,10`
-  - `src/lib/email/dispatch-outreach.ts:25,26`
-- **`src/routes/api/email/queue/process.ts:243`** fallback unsubscribe-URL host flipped (`?? "notify.majix.ai"` → `?? "notify.virecrm.com"`).
-- **`src/components/crm/ResendSettingsCard.tsx`** placeholder + docstring updated (`noreply@notify.majix.ai` → `noreply@notify.virecrm.com`).
-- **`src/lib/resend.ts:80`** docstring reframed — `notify.virecrm.com` now canonical; `notify.majix.ai` flagged as legacy parallel-cutover.
-- **`CLAUDE.md:76`** + **`AGENTS.md:115`** hostname-table rows updated (status: pending → live, sender-constants note added).
-- 6 files + 3 doc files = 9 file edits.
-
-#### Verification
-
-- `bun run typecheck` clean.
-- `grep -nE "notify\.majix\.ai" src/**` returns only the intentional parallel-cutover docstring at `src/lib/resend.ts:80` — all code-level constants flipped.
-- **Live test send via Resend API** (`POST /emails`, `from: VireCRM <noreply@notify.virecrm.com>`, `to: darsh.pod@gmail.com`): returned id `d56dc7a3-5b59-4bff-91e1-db88a02a3a6d`, `GET /emails/{id}` later reported `last_event: "delivered"`.
-- **Note:** Test was via raw Resend API (not via the flipped code constants), since the constant changes only take effect post-deploy. Live deploy will be a separate verification step.
-
-#### Manual follow-up (user)
-
-- After next Worker deploy, verify a real transactional flow (e.g. trigger a welcome email or contact-form follow-up) lands with `From: noreply@notify.virecrm.com`.
-
-### 2026-05-20 — Supabase Auth site_url + redirect allow-list flipped to virecrm.com
-**Tags:** [supabase] [auth] [virecrm] [rebrand]
-
-Pending item #3 from prior summary. Supabase Management API `PATCH /v1/projects/{ref}/config/auth` via `SUPABASE_ACCESS_TOKEN`. No dashboard click needed.
-
-#### Shipped
-
-- **`site_url`** flipped `https://app.majix.ai` → `https://app.virecrm.com`. This is the default redirect target for sign-up flows that don't pass an explicit `redirect_to`; email-template default callbacks pick this up too.
-- **`uri_allow_list`** rewritten to:
-  - `https://app.virecrm.com/**` (new canonical CRM landing + Supabase Auth callbacks)
-  - `https://virecrm.com/**` (marketing apex)
-  - `https://www.virecrm.com/**` (marketing www peer)
-  - `https://*.virecrm.com/**` (per-tenant white-label subdomains)
-  - `https://app.majix.ai/**`, `https://majix.ai/**`, `https://*.majix.ai/**` — kept for parallel cutover (until ~2026-08-17 per CLAUDE.md hostname plan)
-  - `http://localhost:8080/**` — kept for local dev
-- Used `/**` glob form only (matches sub-paths) — mirrors existing majix.ai entry pattern, which has been working since rebrand cutover. Bare-domain entries omitted as redundant.
-
-#### Verification
-
-- Re-read `/config/auth` returned exactly the patched shape.
-- No re-deploy needed — config is read at runtime by Supabase Auth.
-
-#### Manual follow-up (user)
-
-- After Crystal + Caziah sign-in smoke (post-migration), validate that a virecrm.com OAuth callback (e.g. `https://greenenergiai.virecrm.com/auth/callback`) actually completes a round-trip. Magic link → click → land on subdomain expected.
-
-### 2026-05-20 — CF for SaaS enabled on virecrm.com (autonomous unblock)
-**Tags:** [cf-saas] [virecrm] [rebrand] [unblock]
-
-Prior session blocked: "CF for SaaS dashboard config on virecrm.com zone — blocked on MCP token-scope ceiling." Both plugin OAuth + wrangler OAuth confirmed insufficient (10000 / 9109 / 1000 errors on `/zones/{id}/custom_hostnames/*` + `/dns_records` despite advertised `#ssl:edit` / `ssl_certs:write`). Wrangler scopes are Workers-related; plugin OAuth scopes are account-read-heavy. Neither carries Zone-level Cert-Manager / Custom-Hostnames / DNS edit.
-
-User minted a Custom API Token (`claude-code-virecrm-saas`) with `Zone.SSL and Certificates: Edit`, `Zone.DNS: Edit`, `Zone.Zone Settings: Edit`, `Zone.Zone: Read`, `Zone.Workers Routes: Edit` scoped to virecrm.com + majix.ai. Stored as `CLOUDFLARE_API_TOKEN_ADMIN` in local `.env` (gitignored). Token verify returned `status: active`.
-
-#### Shipped (via direct CF API curl)
-
-- **`PUT /zones/bef363938825376aef7db07f57c3f04b/custom_hostnames/fallback_origin`** body `{"origin":"customers.virecrm.com"}` — returned 200, `status: initializing` → `status: active` in <1s (single poll). CF for SaaS now live on the virecrm.com zone.
-- Pre-existing DNS already correct: `customers.virecrm.com` CNAME → `virecrm.com`, proxied (mirrors `customers.majix.ai` → `majix.ai` proxied pattern). No DNS change needed.
-- Worker route `customers.virecrm.com/*` already present in `wrangler.jsonc:48` (zone_name = "virecrm.com"). No code change needed.
-
-#### Verification
-
-- `GET .../custom_hostnames/fallback_origin` on virecrm.com — `origin=customers.virecrm.com, status=active, created_at=2026-05-20T15:01:45Z`.
-- `GET .../custom_hostnames/fallback_origin` on majix.ai (reference) — same shape, `status=active`.
-- `curl -sI https://customers.virecrm.com/` — `HTTP/2 200`, `server: cloudflare`, `cf-ray: 9fec389c9a95766c-SEA`.
-- `curl -sI https://customers.majix.ai/` (reference) — same shape, also 200.
-- Token scope verified via `/user/tokens/verify` → `status: active`.
-
-#### Manual follow-up (user)
-
-- **Extend the Worker `CLOUDFLARE_API_TOKEN` secret's zone resources** to include `virecrm.com`. That secret is what `src/functions/custom-hostnames.functions.ts` uses at RUNTIME to provision tenant custom hostnames; without virecrm.com in its zone scope, premium-tier tenants on the virecrm.com side can't onboard a custom domain. Dashboard → My Profile → API Tokens → find the Worker token → Edit → Zone Resources → add `virecrm.com`. No code change required.
-- **Mint `CLOUDFLARE_LEGACY_ZONE_ID` Worker secret** = `a5a3f9d70f46387b2f3933dbb5c68cde` (majix.ai zone). Plus decide whether to flip `CLOUDFLARE_ZONE_ID` to `bef363938825376aef7db07f57c3f04b` (virecrm.com). The flip requires code edits in `src/functions/custom-hostnames.functions.ts` + `src/functions/domain-health.functions.ts` so they read both zones. Pin decision in `docs/custom-domains/cf-for-saas-setup.md` before flipping.
-
-### 2026-05-19 — post-migration verify + skip_guc migration registered
-**Tags:** [lovable-migration] [supabase] [verification]
-
-Picked up after spot-check session (`cecfd3b`). Re-verified live DB against commit claims + pushed the one local-only migration left from session 5.
-
-#### Shipped
-
-- `supabase db push --include-all` — applied `20260519120000_handle_new_user_skip_guc.sql` to remote `coynbufhejaeuifpvmvw`. Now recorded in `supabase_migrations.schema_migrations`. Function body unchanged (was `CREATE OR REPLACE`'d in-band by session 5; push idempotent).
-- `src/lib/email/outreach-delivery.ts:76,452` — renamed leftover `channel: "lovable"` → `channel: "platform"` on the built-in fallback path. Union type at line 76 + return value at line 452. No consumers grep `"lovable"` literally (only union members referenced — `dispatchOutreachEmail` and `sendResendEmail` are the actual transports under the hood). `bun run typecheck` clean. Telemetry will now log `platform` for built-in sends; downstream Reports unchanged because none read this field.
-- **Radix `aria-describedby` warning fix — DialogDescription added to all 5 unguarded dialogs.** Grep over `src/**/*.tsx` for `DialogContent` minus `DialogDescription` found exactly 5 real candidates (matches ISSUES.md Open list minus the dead `command.tsx`):
-  - `src/routes/_app.academy.tsx:237` "Create course" — added "Add a new course to the team training library."
-  - `src/routes/_app.academy.$courseId.tsx:248` "Add lesson" — added "Title, video URL, duration, and optional notes for this lesson."
-  - `src/routes/_app.contact-submissions.tsx:452` submission detail — added "Contact form submission with sentiment, priority, and full message body."
-  - `src/components/energy/EnergyTablePage.tsx:261` "Create {entity}" — interpolated description "Add a new {entity} record."
-  - `src/components/crm/AddLeadDialog.tsx:165` "Add New Lead" — added "Create a new lead with contact details, qualification fields, and optional auto-outreach."
-
-  Mechanism: Radix `DialogContent` warns when no element has `aria-describedby`. `DialogDescription` auto-wires its own id into `aria-describedby` on render. `bun run typecheck` clean + `bun run test` 123/123 pass. **Not browser-verified** — relying on Radix's documented behavior + tests; no console-warning repro run.
-
-#### Verification (live DB via `bun:sql`)
-
-- Counts match: 16 `auth.users` (14 ported + Darsh + smoke), 17 `auth.identities`, 13,992 `leads` (9,198 Caziah + 4,793 Crystal + 1 Darsh test).
-- Caziah org `8b8c76ab-08de-4fd1-a703-b06138078181` energy fields: `esi_id=4018`, `agent_mils=4018`, `annual_kwh=4018`, `current_supplier=4018`, `contract_start_date=4018`, `service_address=4002`. Matches commit `cecfd3b` exactly.
-- Crystal own-org `188c4869-…` energy fields: all zero except `annual_kwh=1`. Confirms xlsx scoping unchanged.
-- Bcrypt port clean: 7 of 16 users have `^\$2[aby]\$` hash, 9 have `NULL encrypted_password` — verified against `og_database/genesis_auth_data.sql`, those 9 are all `"provider": "google"` OAuth users with `encrypted_password=NULL` in the dump too. No password loss.
-- `pg_get_functiondef('public.handle_new_user'::regproc)` includes `current_setting('app.skip_auto_provision', true) = 'on'` short-circuit. Trigger live.
-- `supabase migration list` — `20260519120000` now in both Local + Remote columns.
-- `bash scripts/lint-issues.sh` — OK.
-
-#### Manual follow-up (user)
-
-- Sign-in smoke remains user-owed: Crystal (`crystal@greenenergiai.com`, bcrypt) + bcrypt staff (mleaverton, erica, shelby). Caziah signs in via Google OAuth (no password to test). No code action.
-- ~~Crystal own-org xlsx scope decision (item from prior session) still open.~~ Resolved 2026-05-20 via Phase G — see session entry above.
-- Push when ready — branch now 2 ahead of origin (`d803b95` + `cecfd3b`).
-
-### 2026-05-19 — migration spot-check (Caziah energy fields verified)
-**Tags:** [lovable-migration] [supabase] [verification]
-
-Picked up after session-5 commit `d803b95` (live port already ran + committed). Owed verification step: spot-check 10 random Caziah leads for populated energy fields. Done.
-
-#### Verification (live DB, post-port via `bun:sql`)
-
-- **Caziah org `8b8c76ab-…`** — 9,198 leads total. Energy-field counts: `esi_id=4018`, `agent_mils=4018`, `annual_kwh=4018`, `contract_start_date=4018`, `contract_end_date=4018`, `current_supplier=4018`, `service_address=4002`. 4,018 ESI-populated = 982 xlsx UPDATEs + 3,036 xlsx-only INSERTs that carried ESI (the other 773 xlsx inserts had blank Meter Number).
-- **10 random Caziah-ESI sample** all real: mils 0.051–2.000, kWh 4,085–232,944, suppliers (Suez, TXU Energy, Green Mountain, Frontier, Cirro Energy, Agera Energy), contract dates 2016–2026. Zero nulls in sampled rows.
-- **Crystal own-org `188c4869-…`** — 4,793 leads total. `esi_id=0`, `agent_mils=0`, `annual_kwh=1`, contract dates 0, supplier 0, address 0. Confirms session-5 design: xlsx supplement scoped to Caziah org only. Open Q #2 in handoff (does ngp-master apply to Crystal's own tenant?) remains user-blocked.
-- `bash scripts/lint-issues.sh` — OK. Header count 25 → 26.
-
-#### Manual follow-up (user)
-
-- ~~**Apply `20260519120000_handle_new_user_skip_guc.sql` via `supabase db push`.**~~ Done next session, see entry above.
-- ~~**Crystal own-org xlsx scope** — decide if ngp-master also applies to her own tenant. If yes, re-run `--phase=F` against `188c4869-…` (script `targetOrg` needs a flag or edit).~~ Resolved 2026-05-20 via Phase G (DELETE+INSERT path, not phase F re-run).
-- **Caziah / Crystal sign-in smoke** — both should sign in with old bcrypt passwords. No friction expected; bcrypt rides through.
-
-### 2026-05-19 — Open-list staleness audit (Phase 2 + bugs)
-**Tags:** [audit] [lovable-remnant] [a11y] [open-list]
-
-Picked up from autonomous-only pile while user-blocked items pending. Verified each `## Open` bullet against current source. **7 items pruned** as fixed by prior unlogged work; **4 real items remain.**
-
-#### Pruned (verified fixed in current `src/`)
-
-- `_app.admin.tsx` window.confirm/prompt — `grep -n 'window\.(confirm|prompt|alert)' src/` returns zero hits across whole tree.
-- `AddLeadDialog.tsx` a11y — every `<label>` has `htmlFor={fid(...)}`, every `<input>` has matching `id` + `name` + appropriate `autoComplete` (`name`, `organization`, `email`, `tel`). Uses React `useId()` for collision-free IDs.
-- `PipelineView.tsx` keyboard alt for drag-drop — `DropdownMenu` "Move to stage" wired with `aria-label`, focus-visible ring, `group-focus-within` reveal. Lines 328-357. Keyboard path exists.
-- Phase 2 — email send path Lovable refs at `src/lib/email/send.ts:36`, `src/lib/email/dispatch-outreach.ts`, `src/lib/admin-quote-email.functions.ts:99` — POSTs to `/lovable/email/transactional/send` gone. None of those three files contain `lovable` (case-insensitive) anymore.
-- Phase 2 — custom-domain onboarding DNS Lovable refs at `CustomerDomainOnboardingDialog.tsx` + `DomainHealthPanel.tsx` — no more `185.158.133.1` or `_lovable` strings; rebrand to CF Workers target + `_majix` TXT prefix already landed.
-- Phase 2 — `@lovable.dev/cloud-auth-js` social signin — `src/integrations/lovable/index.ts` MISSING entirely; zero importers of `@lovable.dev/cloud-auth-js` or `@/integrations/lovable` across `src/`. Migration to Supabase native OAuth complete.
-- Phase 2 — `ResendSettingsCard.tsx:4` sentinel — `KEY_SENTINEL` renamed to `__platform_managed__` at `src/functions/resend.functions.ts:21`; `ResendSettingsCard` no longer references it at all. Phase 1 direct-SDK shift complete.
-
-#### Real items kept in `## Open`
-
-- Phase 2: Connector OAuth proxy stub at `gateway.ts:41` — still throws `ConnectorNotConfiguredError`. Apollo/Slack/Gmail/Twilio/Sendgrid integrations remain dark.
-- Bugs: Auth middleware `throw new Response()` × 7 sites at `auth-middleware.ts:13,22,28,32,37,55,59` — TanStack Start doesn't serialize Response. Dead path now but blocks future "token expired" handling.
-- Bugs: Promo enforcement — `applyPromoDiscount` still unconditional, banner copy lies. Need Stripe `max_redemptions=100` coupon OR server counter.
-- ~~Bugs: Onboarding wizard `aria-describedby` Radix warning~~ — fixed next session, see entry above.
-
-#### Found (added to `## Open`)
-
-- Legacy `"lovable"` channel label still leaks in `src/lib/email/outreach-delivery.ts:76,452` — built-in fallback returns `channel: "lovable"` even though Resend powers it. Cosmetic, not blocking; added to Phase 2 list. All other `lovable` substring hits across `src/` are migration-history comments/docstrings (`src/lib/resend.ts:5-6`, `src/lib/sendgrid.ts:6`, `src/functions/test-email.functions.ts:9` etc.) — leave as-is, useful historical context.
-
-#### Verification
-
-- `bash scripts/lint-issues.sh` — OK.
-- Pre-edit header count 23, post-edit 24.
-
-#### Manual follow-up (user)
-
-- None new from this audit; all prior pending items remain (push, CF for SaaS, secrets, Supabase Auth URLs, Resend send).
-
-### 2026-05-19 — live-browser smoke on virecrm.com cutover (JS-runtime / DomainBrandingProvider verify)
-**Tags:** [rebrand] [smoke] [domain-branding] [lovable-remnant]
-
-Picked up handoff item 5 from prior session ("rebrand cutover partial" entry below). HTTP smoke already green; missing piece = JS-runtime / React-mount / brand-resolve check. Dispatched headless `agent-browser` subagent (session `virecrm-smoke`, closed cleanly at end, other three sessions left untouched).
-
-#### Verified
-
-- `https://virecrm.com/` — 200, title `VireCRM — Never Let a Lead Go Cold Again`, React mounts clean, console clean, default VireCRM marketing (apex peer — expected).
-- `https://www.virecrm.com/` — 200, same bundle, same outcome (www peer — expected).
-- `https://app.virecrm.com/` — 200, React mounts clean, console clean. Reserved label → `get_org_by_domain` returns NULL → marketing fallback. Per-spec but see "Found" #3.
-- `https://smoke-test-user-516e90e0.virecrm.com/` — 200, React mounts clean, console clean. **Body brand RESOLVED** — heading reads "Get started with Smoke Test User's CRM", branded signup card with org logo + tenant copy. Confirms `DomainBrandingProvider` path-2 (slug match on `<label>.virecrm.com`) wired end-to-end through `get_org_by_domain` RPC.
-
-VERDICT: **all-green** for the JS-runtime / brand-resolve question that the handoff flagged. Smoke item 5 closed except for the Resend test-send leg (mutates external state, requires user nod — left untouched).
-
-#### Found (3 minor follow-ups, none blocking)
-
-1. **`support@majix.ai` constant survived Unit 20 sweep.** `src/config/support.ts:9` — single source of truth, still `support@majix.ai`. Cascades to ~11 user-facing surfaces: `routes/refund-policy.tsx`, `routes/privacy.tsx`, `routes/terms.tsx`, `routes/contact.tsx`, `routes/pricing.tsx`, `components/marketing/BusinessEmailBanner.tsx`, `components/marketing/ContactForm.tsx`, `components/onboarding/ProductTour.tsx:342`, `components/GlobalErrorBoundary.tsx`, `lib/email-templates/contact-inquiry.tsx`, `lib/email-templates/contact-followup-reminder.tsx`. NOT fixed unilaterally — `support@virecrm.com` inbox provisioning status unclear during parallel cutover (notify.virecrm.com itself pending Resend DNS verify per "## Open" item). User call: rebrand the constant now (forwarder must exist by then) OR keep `majix.ai` until 90d cutover (~2026-08-17), batch with the 308 flip.
-2. **Tenant subdomain `<title>` did not flip to org brand.** Subagent saw default `VireCRM — Never Let a Lead Go Cold Again` on the `smoke-test-user-516e90e0` subdomain. `DomainBrandingProvider.tsx:117-125` IS wired to set `document.title = branding.brand_name`, but early-returns if `branding.brand_name` is null/empty. Most likely cause: smoke-test-user org's `brand_name` column is NULL in DB — data gap on the smoke fixture, not a code defect. Real-tenant verify will surface this when a real org's brand_name is set. Logged for awareness; no code action.
-3. **`app.virecrm.com` renders marketing landing, not a login surface.** Per-spec (reserved label → marketing fallback) but a user landing here cold sees no obvious "sign in" affordance beyond the nav link. Possible product follow-up: route `app.virecrm.com/` → `/login` redirect instead of marketing. Surface for product call, not bug.
-4. **Stale screenshot artifact** at `/tmp/virecrm-tenant-smoke.png` (tenant brand screenshot from subagent). Disposable.
-
-#### Verification
-
-- Subagent ran via `agent-browser` CLI; no MCP fallback needed.
-- `agent-browser session list` post-close confirms `virecrm-smoke` gone, `pr-pricing` + `cf-onboarding` + `migration-supabase` (other agents' sessions) intact.
-- Pre-edit header count: 22 `### 2026-` headers. Post-edit: 23. `bash scripts/lint-issues.sh` (run end-of-session).
-
-#### Pending handoff items (unchanged from prior session)
-
-1. Push `7a25aeb` + `5ea0798` (2 commits ahead). Blocked on user nod ("push" command).
-2. CF for SaaS dashboard config on `virecrm.com` zone — blocked on MCP token extension OR shell-out via existing `CLOUDFLARE_API_TOKEN` Worker secret w/ zone resources extended. Either route = user dashboard action.
-3. Mint `CLOUDFLARE_LEGACY_ZONE_ID` Worker secret = `a5a3f9d70f46387b2f3933dbb5c68cde`. `wrangler secret put` mutates shared state — user nod.
-4. Supabase Auth redirect URLs on project `coynbufhejaeuifpvmvw` — dashboard click-through. User-only.
-5. Resend transactional test send from `notify.virecrm.com` (once DNS verified). External-state mutation. User-triggered.
+- `bunx eslint <three files>` — clean (0 errors after prettier autofix on `Logo.tsx`).
+- `bun run typecheck` — clean (no output).
+- `bun run build` — succeeds (`✓ built in 6.87s`).
+- `bun run lint` repo-wide still hits the same ~5206-error baseline noted in the prior 2026-05-19 session — none of those errors originate in the touched files. Pre-existing, out of scope.
+- Visual evidence (`/tmp/pr-logomark-*.png`):
+  - `pr-logomark-login-desktop.png` — confirms header now renders the terminal `>_` mark next to "VireCRM" (matching the centred auth-page `Terminal` mark below). Wordmark is solid color, no gradient.
+  - `pr-logomark-home-desktop.png` + others — marketing routes stuck on the existing `useDomainBranding` loading branch in dev mode (Supabase RPC stalls without prod env). That loading state already renders a `Terminal` icon in a rounded square via `routes/index.tsx:80-85`, so the unified mark is visible there too. Unrelated to this PR — env-stall is environmental noise.
+
+#### Out of scope (per plan)
+
+- Auth-page Terminal usages (`login.tsx`, `signup.tsx`, `reset-password.tsx`) — already use the same treatment; retrofit to `<Logo size="lg" />` would be a visual no-op, deferred.
+- Favicon / OG image — binary asset rebrand pass.
+- Brand rename Majix↔VireCRM — its own initiative.
+- `text-gradient-primary` CSS class definition — still used by `CrmSidebar`, `preview.tsx`, etc. Only removed from JSX call sites in the two owned marketing files.
 
 ### 2026-05-19 — low-hanging fruit pass: CrmSidebar fixes + Open-list staleness audit
 **Tags:** [bug] [frontend] [audit]
@@ -679,94 +178,10 @@ Two real bug fixes in `CrmSidebar.tsx`. Audit pass over `## Open` "Bugs found" +
 
 - Repo-wide lint count jumped from ~5210 to 104149. Investigate next session — likely a config change or plugin update cascading; not from this work.
 
-### 2026-05-19 — rebrand cutover partial: DNS + dual-zone SQL + CF tooling docs landed (handoff to next session)
-**Tags:** [rebrand] [cf-saas] [supabase] [handoff]
-
-Partial cutover landed this session via Cloudflare API MCP + supabase CLI. Stopping here to keep main-context lean before handoff.
-
-#### Shipped this session
-
-- **DNS records on `virecrm.com` zone confirmed live + serving.** Verified via Cloudflare API (`mcp__plugin_cloudflare_cloudflare-api__execute` → `/zones/.../dns_records`): apex AAAA `100::`, four CNAMEs (`www`, `app`, `customers`, `*` all → `virecrm.com`, all proxied). Resend trio (`MX send.notify.virecrm.com` → `feedback-smtp.us-east-1.amazonses.com`, DKIM TXT on `resend._domainkey.notify.virecrm.com`, SPF TXT `v=spf1 include:amazonses.com ~all` on `send.notify.virecrm.com`). Earlier `dig` runs returning empty were stale resolver cache, not actual missing records.
-- **HTTP smoke green from public.** `virecrm.com`, `www.virecrm.com`, `app.virecrm.com`, `<slug>.virecrm.com` all return HTTP 200 with `<title>VireCRM — Never Let a Lead Go Cold Again</title>`. Worker bundle attached to all virecrm.com routes via CF Workers Builds — last main-branch build `b4f0cbc8` (commit `6026322`) and `98a7124e` (commit `ea7a9e3`, my Unit 20 push) both succeeded.
-- **Supabase dual-zone migration `20260519100844_get_org_by_domain_virecrm.sql` PUSHED to remote** (`supabase db push --linked --include-all`). Verified with `SELECT get_org_by_domain('smoke-test-user-516e90e0.virecrm.com')` AND `.majix.ai` — both return the same tenant blob. Dual-zone resolver works end-to-end.
-- **CF tooling docs (commit `7a25aeb`, NOT pushed yet).** CLAUDE.md + AGENTS.md + README.md updated with which CF skill / MCP server to invoke for which task (routing table format). Replaces the broken `cloudflare-docs` MCP ref with `cloudflare:cloudflare` skill where applicable. Per `git log origin/main..main`: 1 unpushed commit ready when user is.
-- **Zone IDs captured for next-session reference:**
-  - `virecrm.com` → `bef363938825376aef7db07f57c3f04b`
-  - `majix.ai` → `a5a3f9d70f46387b2f3933dbb5c68cde`
-
-#### Found / decided / parked
-
-- **MCP token-scope ceiling.** The `cloudflare@cloudflare` plugin's OAuth-issued token only carries `#zone:read` / `#zone_settings:edit` / `#waf:read` / `#logs:read`. **No `#ssl:edit`** — so `/zones/{id}/custom_hostnames*` endpoints return `10000: Authentication error`. CF for SaaS API work (provision, list, fallback origin) is not reachable through this MCP. Two options for next session: (a) extend the existing `CLOUDFLARE_API_TOKEN` Worker secret's zone resources to include `virecrm.com` and shell-out via `curl` against the API, (b) dashboard-click steps 5+ from the runbook.
-- **`CLOUDFLARE_ZONE_ID` Worker secret untouched.** Currently set to the majix.ai zone (legacy). DO NOT flip to virecrm.com without first updating the code that reads it (`src/functions/custom-hostnames.functions.ts` + `src/functions/domain-health.functions.ts`) to also accept `CLOUDFLARE_LEGACY_ZONE_ID`. Flip-without-code-update would break any existing customer custom-hostname provisioning. Both zones currently have 0 custom hostnames (per MCP attempt, errored on auth but the count check happened pre-error), so the actual risk is theoretical — but flag remains.
-- **`greenenergiai.virecrm.com` resolves null.** The greenenergiai org was deleted on the new DB during 2026-05-19 session-3 cleanup (`c31c2a18-…` org dropped pending old-DB→new-DB migration). Dual-zone resolver returns NULL because the tenant doesn't exist, not because the resolver is broken (smoke-test-user slug resolves fine on both zones — proves resolver works). Will populate again when `scripts/migrate-lovable-to-fixed.ts` runs (separate work track, blocked on user-provided `DATABASE_URL`).
-
-#### Pending — pick up here next session
-
-1. **Push `7a25aeb`** (CF tooling docs) to remote. One-liner: `git push origin main`. Will trigger a fresh CF Workers Build but no behavior change.
-2. **CF for SaaS dashboard config on `virecrm.com` zone.** Either (a) MCP token-extend route — go to Cloudflare → My Profile → API Tokens → edit the OAuth-issued plugin token → add `SSL and Certificates: Edit` permission scoped to both zones, then re-auth the MCP. OR (b) use the existing `CLOUDFLARE_API_TOKEN` Worker secret (already scoped for SSL/Certs on majix.ai) — extend its zone resources to include `virecrm.com` and hit the API directly. Then: enable CF for SaaS on the zone, set `customers.virecrm.com` as the fallback origin, wait for status **Active**.
-3. **Mint `CLOUDFLARE_LEGACY_ZONE_ID` Worker secret** = `a5a3f9d70f46387b2f3933dbb5c68cde` (majix.ai). Also re-evaluate whether to flip `CLOUDFLARE_ZONE_ID` to `bef363938825376aef7db07f57c3f04b` (virecrm.com) and update the Worker code that consumes both. Pin the decision in `docs/custom-domains/cf-for-saas-setup.md` before flipping.
-4. **Supabase Auth redirect URLs.** Dashboard → project `coynbufhejaeuifpvmvw` → Authentication → URL Configuration → Redirect URLs → add `https://virecrm.com`, `https://virecrm.com/**`, `https://www.virecrm.com`, `https://www.virecrm.com/**`, `https://app.virecrm.com`, `https://app.virecrm.com/**`, `https://*.virecrm.com`, `https://*.virecrm.com/**`. Keep majix.ai entries (parallel cutover). Consider flipping **Site URL** to `https://app.virecrm.com`.
-5. **Live browser smoke per Unit 20 table** — apex / www / app / slug on both zones, DevTools console clean, Resend test send. Already covered by HTTP 200 + title check from CLI; missing the JS-runtime / DomainBrandingProvider verify and an actual transactional email send.
-
-#### Verification
-
-- `git log origin/main..main` — 1 commit ahead (`7a25aeb`).
-- `bun run typecheck` + `bun run build` + `bash scripts/lint-issues.sh` — all clean.
-- Public HTTP smoke: 200 OK on apex / www / app / slug on virecrm.com. Resend records auth-resolve. Worker is the right one (CF Workers Builds main-branch deploys green).
-- Dual-zone RPC smoke: `get_org_by_domain('<real-slug>.virecrm.com')` returns blob, `.majix.ai` returns same blob, reserved-label hosts return null.
-
-#### Handoff context for next session
-
-- **Cloudflare plugin** (`cloudflare@cloudflare`) installed + authed. Use the routing table in CLAUDE.md "Cloudflare tooling" — pick the right MCP / skill before exploring. `mcp__plugin_cloudflare_cloudflare-api__*` works for DNS / zones / settings; **does NOT work for custom_hostnames** (`#ssl:edit` missing) — see "MCP token-scope ceiling" above.
-- **Account ID for CF API calls:** `060435e1bb68c9c846e32b71ee1d4670` (pre-set as `accountId` in MCP). **Worker ID:** `eaf104a2bf08448e80c8e13a91296955` (`genesisxsx`). Already set as active in the builds MCP.
-- **Dirty working tree pre-session.** `src/components/crm/CrmSidebar.tsx` was unstaged when I started this session; user committed it as `6026322` mid-session along with `7dde16b` (migration script). Both pushed before my Unit 20 commit. Working tree should be clean at end of this session aside from `01-home-desktop.png` (untracked screenshot, user-owned).
-
-### 2026-05-19 — Lovable→fixed-DB migration: live production port (Steps 3+4)
-**Tags:** [lovable-migration] [supabase] [auth] [data-port]
-
-Steps 3+4 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. User chose to skip the preview-branch dry-run (cost-conscious; idempotent script). Production port ran directly against `coynbufhejaeuifpvmvw` via Session pooler. Three permission walls hit + worked around; one schema fixup applied; one NOT-NULL fallback added.
-
-#### Shipped
-
-- **Migration `20260519120000_handle_new_user_skip_guc.sql`** — adds `app.skip_auto_provision` GUC check to `handle_new_user` trigger function. `postgres` can't `DISABLE TRIGGER on_auth_user_created` on `auth.users` (Supabase reserves ownership to `supabase_auth_admin` + blocks `GRANT supabase_auth_admin TO postgres`), so the workaround is to short-circuit inside the trigger body. Default OFF — normal signup flow unchanged.
-- **`scripts/migrate-lovable-to-fixed.ts` updates** —
-  - Phase A switched from `ALTER TABLE … DISABLE TRIGGER` to `SET LOCAL app.skip_auto_provision = 'on'` + `SET LOCAL request.jwt.claim.role = 'service_role'` inside the transaction.
-  - Phase C added custom-role remap: `seed_builtin_roles_for_org` trigger seeds new UUIDs per org on Phase B INSERT, so dump `user_roles.custom_role_id` FKs to non-existent rows. Lookup by `(organization_id, name)` against live `custom_roles` replaces every old UUID.
-  - `upsertRows()` now wraps each chunk in `sql.begin` + `SET LOCAL request.jwt.claim.role = 'service_role'` — bypasses `enforce_custom_domain_entitlement` and any other `auth.role() = 'service_role'`-gated trigger.
-  - Phase F UPDATE/INSERT loop similarly wrapped in `sql.begin` with the same SET LOCAL.
-  - Phase F INSERT path falls back `name = r.name ?? r.company ?? r.email ?? "Unknown"` — `leads.name` is NOT NULL but xlsx commercial-account rows often arrive with only company + email.
-- **`.env`** — DB password rotated as part of the run. New password lives in `SUPABASE_DB_PASSWORD` + `SUPABASE_DB_URL` (transaction pooler 6543) + `SUPABASE_DB_URL_DIRECT` (direct 5432) + `DATABASE_URL` (session pooler 5432, what the migration script reads). `.env` confirmed gitignored.
-
-#### Found (resolved in-flight)
-
-- ~~Phase A off-by-one (14 eligible vs documented 13)~~ — documentation was wrong, not the script. There are TWO `qa-*` emails in the dump (qa-invitee, qa-test) + ONE `qa2-*` (qa2-vireon), not three `qa-*`. Regex `/^qa\d*[-_@]/i` matches all three. Filter result is correct: 4 audit + 2 qa- + 1 qa2- + 1 e2etest + 1 testcrm = 9 skipped, 14 kept.
-- The "6 personal Gmails" count from the prior session's `## Open` was wrong — there are actually **10** personal Gmails kept by the filter (alexanderjakari, cameroncaziah, caziahbankss, davioncarr60, esereti22, ethansereti, info.solace05, jesaira.lifosjoe12, paparusse02, primeframem). User chose to port all 10.
-
-#### Verification (live counts, post-port)
-
-- `auth.users` = 16 total (14 ported + 2 pre-existing dev/test).
-- `auth.identities` = 17 (15 ported + 2 pre-existing).
-- `organizations` (whitelisted) = 2. Slugs: `greenenergiai` (override applied to Caziah's `8b8c76ab-…`), `crystal-cameron-7ba2ebfa` (Crystal's own `188c4869-…`, slug carried from dump).
-- `user_roles` (whitelisted orgs) = 10, every `custom_role_id` remapped to new builtin role UUIDs.
-- `profiles` (whitelisted orgs) = 10.
-- `leads` total ported = **13,991** = 9,198 Caziah org (5,389 dump + 3,809 xlsx INSERT) + 4,793 Crystal own org (dump only).
-- xlsx supplement accounted = 982 ESI-matched UPDATEs + 3,809 new INSERTs = **4,791** (matches xlsx data-row count exactly — 654 trailing blanks correctly skipped).
-- `bun run typecheck` clean.
-
-#### Manual follow-up (user)
-
-- ~~**Spot-check 10 Caziah leads** for energy-field population~~ — done 2026-05-19 next session, see entry above.
-- ~~**Crystal own-org leads got no xlsx enrichment.** Confirm whether ngp-master xlsx applies only to Caziah's tenant or also her own.~~ Resolved 2026-05-20 via Phase G.
-- **Crystal's own-org slug `crystal-cameron-7ba2ebfa` is ugly.** Per Open Question #3 in handoff, decide rename-now vs rename-later.
-- **Caziah / Crystal sign-in smoke test** on the new DB before Step 6 (freeze old Lovable project). Both should be able to log in with their existing bcrypt passwords.
-- ~~Provide `DATABASE_URL`~~ — done (new rotated password in `.env`).
-- ~~Decide org consolidation~~ — user said "no bruh those are two separate organizations", port keeps both.
-- ~~Recheck Phase A skip math~~ — math was already correct, documentation was off.
-
 ### 2026-05-19 — Lovable→fixed-DB migration script (Step 2 of handoff)
 **Tags:** [lovable-migration] [supabase]
 
-Step 2 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Script written + dry-run-validated against parsed dumps. NOT yet run against live DB (Step 3 = branch dry-run, blocked on `DATABASE_URL`). **Superseded 2026-05-19 by the live-port entry above** — leaving the original session-4 record intact for archive.
+Step 2 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Script written + dry-run-validated against parsed dumps. NOT yet run against live DB (Step 3 = branch dry-run, blocked on `DATABASE_URL`).
 
 #### Shipped
 

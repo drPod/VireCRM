@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Logo } from "@/components/Logo";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 
 export function MarketingFooter() {
@@ -10,10 +11,8 @@ export function MarketingFooter() {
         <div className="grid gap-8 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)] transition-[box-shadow,transform] duration-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.7)] hover:scale-110">
-                M
-              </span>
-              <span className="text-lg font-bold text-gradient-primary">VireCRM</span>
+              <Logo />
+              <span className="text-lg font-bold text-foreground">VireCRM</span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
               The AI CRM that follows up for you, so your team can close.
