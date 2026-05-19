@@ -15,6 +15,6 @@ export const EMAIL_CAMPAIGNS: EmailCampaign[] = [
   { id: "E-503", subject: "Reseller demo Thursday — limited seats", list: "Solar resellers", recipients: 184, status: "Sent", openRate: 66, clickRate: 18.1, sentAt: "May 9" },
   { id: "E-504", subject: "Quick question about your 2026 plan", list: "Insurance · churned 30+d", recipients: 412, status: "Scheduled", openRate: 0, clickRate: 0, sentAt: "May 20" },
   { id: "E-505", subject: "[Last chance] Q2 logistics renewal offer", list: "Logistics · MRR <12mo", recipients: 348, status: "Sent", openRate: 47, clickRate: 9.6, sentAt: "May 6" },
-  { id: "E-506", subject: "Welcome to Majix — let's get you set up", list: "New signups · all", recipients: 87, status: "Sent", openRate: 91, clickRate: 73.2, sentAt: "May 14" },
+  { id: "E-506", subject: "Welcome to VireCRM — let's get you set up", list: "New signups · all", recipients: 87, status: "Sent", openRate: 91, clickRate: 73.2, sentAt: "May 14" },
   { id: "E-507", subject: "Gym owners — new auto-renewal flow", list: "Gym · all", recipients: 612, status: "Draft", openRate: 0, clickRate: 0, sentAt: "—" },
 ];

@@ -15,6 +15,8 @@ const SYSTEM_HOST_PATTERNS = [
   /^127\.0\.0\.1$/i,
   /^majix\.ai$/i,
   /^www\.majix\.ai$/i,
+  /^virecrm\.com$/i,
+  /^www\.virecrm\.com$/i,
 ];
 
 function isSystemHost(hostname: string): boolean {

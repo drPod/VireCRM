@@ -24,7 +24,7 @@ export function AdvisorView() {
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-foreground">Majix AI Advisor</h2>
+              <h2 className="text-xl font-bold text-foreground">VireCRM AI Advisor</h2>
               <Badge variant="outline" className="border-primary/40 bg-primary/10 text-[10px] text-primary">
                 Claude · grounded on your data
               </Badge>
