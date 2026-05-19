@@ -4,13 +4,15 @@ Routing index for AI agents (Claude Code, Cursor, Aider, OpenAI Codex, Copilot, 
 
 ## What product is
 
-**Multi-tenant CRM SaaS.** Customers sign up directly with Majix. Every row in `organizations` = direct end-tenant of Majix. **No reseller layer** — nobody resells the CRM. **Not single-tenant. Not SaaS for one company.**
+**Multi-tenant CRM SaaS.** Customers sign up directly with VireCRM. Every row in `organizations` = direct end-tenant of VireCRM. **No reseller layer** — nobody resells CRM. **Not single-tenant. Not SaaS for one company.**
+
+Brand = `virecrm.com` (legacy `majix.ai` parallel during cutover, 308 redirect after 90d ~2026-08-17).
 
 Two tiers per tenant:
-- **Free:** auto-provisioned `<slug>.majix.ai` subdomain at signup.
-- **Premium:** own custom hostname (e.g. `crm.acmecorp.com`) via Cloudflare for SaaS — tenants CNAME to `customers.majix.ai`.
+- **Free:** auto-provisioned `<slug>.virecrm.com` subdomain at signup.
+- **Premium:** own custom hostname (e.g. `crm.acmecorp.com`) via Cloudflare for SaaS — tenants CNAME to `customers.virecrm.com`.
 
-Each tenant: own user pool, own data, own theme (logo, colors, copy), own billing with Majix.
+Each tenant: own user pool, own data, own theme (logo, colors, copy), own billing with VireCRM.
 
 ### `og_database/` — legacy Lovable Supabase dumps (gitignored, never push)
 
@@ -92,23 +94,25 @@ Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices/project
 
 Hostname plan live 2026-05-18 — all five tiers deployed + smoke-verified (200 OK + UI renders).
 
-- `majix.ai` + `www.majix.ai` — Public marketing (landing, pricing, `/features`, signup CTA). Both serve the same Worker bundle, no redirect between them.
-- `app.majix.ai` — Central CRM landing + Supabase Auth callbacks + Majix platform admin (operator surface — manages tenants). All auth redirect URLs configured here.
-- `<slug>.majix.ai` — Per-tenant white-label CRM (free tier). Wildcard Worker route + wildcard Advanced cert (`majix.ai` + `*.majix.ai`).
-- `<custom>.acmecorp.com` — Per-tenant white-label CRM (premium tier) via existing CF for SaaS flow (CNAME → `customers.majix.ai`).
-- `customers.majix.ai` — CF for SaaS fallback. Infra-only, never user-visible. If hit directly, serves default Majix marketing.
-- `notify.majix.ai` — Resend transactional email sender (`noreply@notify.majix.ai`). Verified.
+**Parallel cutover (until ~2026-08-17):** `majix.ai`, `www.majix.ai`, `app.majix.ai`, `customers.majix.ai`, `notify.majix.ai`, `*.majix.ai` continue resolving via additive `wrangler.jsonc` routes. New canonical = `virecrm.com`. After 90d, `majix.ai` zones 308 → `virecrm.com` equivalents.
+
+- `virecrm.com` + `www.virecrm.com` — Public marketing (landing, pricing, `/features`, signup CTA). Both serve same Worker bundle, no redirect between them.
+- `app.virecrm.com` — Central CRM landing + Supabase Auth callbacks + VireCRM platform admin (operator surface — manages tenants). All auth redirect URLs configured here.
+- `<slug>.virecrm.com` — Per-tenant white-label CRM (free tier). Wildcard Worker route + wildcard Advanced cert (`virecrm.com` + `*.virecrm.com`).
+- `<custom>.acmecorp.com` — Per-tenant white-label CRM (premium tier) via existing CF for SaaS flow (CNAME → `customers.virecrm.com`).
+- `customers.virecrm.com` — CF for SaaS fallback. Infra-only, never user-visible. If hit directly, serves default VireCRM marketing.
+- `notify.virecrm.com` — Resend transactional email sender (pending). Pending Resend DNS verification (~24h external user action). `notify.majix.ai` STILL active legacy verified domain — outbound currently `noreply@notify.majix.ai` until `notify.virecrm.com` verifies.
 - `genesisxsx.darsh-pod.workers.dev` — Worker subdomain, dev/preview escape hatch.
 
 Reserved subdomain labels (never tenant slugs, blocked at both DB + client): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in `get_org_by_domain` migration (`20260518020000_…`) + `DomainBrandingProvider.SYSTEM_HOST_PATTERNS`.
 
 Tenant theming pipeline:
 1. `DomainBrandingProvider` reads `window.location.hostname` client-side.
-2. If host matches a system pattern, skip RPC + render default Majix theme.
-3. Otherwise call `get_org_by_domain(host)` — RPC tries verified custom hostname (`org_custom_domains` join), then `<label>.majix.ai` slug match. Returns `json` blob or NULL.
-4. If a blob is returned, the provider applies CSS variables for primary/secondary/accent/sidebar/button color, plus favicon, font, document title.
+2. If host matches system pattern, skip RPC + render default VireCRM theme.
+3. Otherwise call `get_org_by_domain(host)` — RPC tries verified custom hostname (`org_custom_domains` join), then `<label>.virecrm.com` slug match (legacy `<label>.majix.ai` accepted same path during parallel cutover). Returns `json` blob or NULL.
+4. If blob returned, provider applies CSS variables for primary/secondary/accent/sidebar/button color, plus favicon, font, document title.
 
-The marketing surface and the CRM surface share routes — hostname does not change which file renders, only which UI it returns. Marketing pages (`/`, `/pricing`, `/features`, `/contact`, `/signup`) are tenant-theme-aware via `useDomainBranding()`, so hitting `acme.majix.ai/` shows Acme-branded marketing, not generic Majix marketing.
+Marketing surface + CRM surface share routes — hostname does not change which file renders, only which UI it returns. Marketing pages (`/`, `/pricing`, `/features`, `/contact`, `/signup`) are tenant-theme-aware via `useDomainBranding()`, so hitting `acme.virecrm.com/` shows Acme-branded marketing, not generic VireCRM marketing.
 
 ## Verify before claiming done
 

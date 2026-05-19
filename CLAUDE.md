@@ -43,16 +43,16 @@ Full migration plan + Crystal duplicate-account note in `ISSUES.md ## Open` "Lov
 
 ## What this product is (business model)
 
-**Multi-tenant CRM SaaS.** Customers sign up directly with Majix. Each customer = one tenant org. Every tenant gets a white-labeled CRM instance:
+**Multi-tenant CRM SaaS.** Customers sign up directly with VireCRM. Each customer = one tenant org. Every tenant gets a white-labeled CRM instance:
 
-- **Free tier:** auto-provisioned `<slug>.majix.ai` subdomain (every tenant at signup).
+- **Free tier:** auto-provisioned `<slug>.virecrm.com` subdomain (every tenant at signup).
 - **Premium tier:** own custom hostname (e.g. `crm.acmecorp.com`) via Cloudflare for SaaS.
 
-**No reseller layer.** Nobody resells the CRM. Every row in `organizations` = direct end-tenant of Majix. (Examples: Green EnergiAi is a tenant — they sell energy contracts to their own customers, but those customers don't get CRM accounts. They're just contacts/leads inside Green EnergiAi's CRM data.)
+**No reseller layer.** Nobody resells the CRM. Every row in `organizations` = direct end-tenant of VireCRM. (Examples: Green EnergiAi is a tenant — they sell energy contracts to their own customers, but those customers don't get CRM accounts. They're just contacts/leads inside Green EnergiAi's CRM data.)
 
-- Brand = `majix.ai`. Domain at IONOS, DNS on Cloudflare.
-- Tenant gets: own user pool, own data, own theme (logo, colors, copy), own billing relationship with Majix.
-- Routing: custom hostnames CNAME at `customers.majix.ai`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup via `get_org_by_domain` → renders white-labeled UI.
+- Brand = `virecrm.com` (legacy `majix.ai` parallel during cutover, eventual 308 redirect after 90d). Domain at IONOS, DNS on Cloudflare.
+- Tenant gets: own user pool, own data, own theme (logo, colors, copy), own billing relationship with VireCRM.
+- Routing: custom hostnames CNAME at `customers.virecrm.com`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup via `get_org_by_domain` → renders white-labeled UI.
 
 ### Legacy "reseller" code in repo — don't strip in audits
 
@@ -64,24 +64,26 @@ If an audit suggests killing "reseller-only" code, **don't unilaterally delete**
 
 ### Hostname plan (live 2026-05-18 — all five tiers deployed + smoke-verified)
 
+**Parallel cutover (until ~2026-08-17):** `majix.ai`, `www.majix.ai`, `app.majix.ai`, `customers.majix.ai`, `notify.majix.ai`, `*.majix.ai` continue resolving via additive `wrangler.jsonc` routes. New canonical = `virecrm.com`. After 90d (~2026-08-17), `majix.ai` zones 308 → `virecrm.com` equivalents.
+
 | Hostname | Role | Notes |
 |---|---|---|
-| `majix.ai` + `www.majix.ai` | Public marketing — landing, pricing, `/features`, `/contact`, signup CTA | Both serve the same Worker bundle. `www` does NOT 308 to apex — they're treated as peers. The marketing routes live alongside the CRM in `src/routes/*`; hostname does not change which route renders, only which UI surface the route returns. |
-| `app.majix.ai` | Central CRM landing + Supabase Auth callbacks + Majix platform admin | All Supabase Auth redirect URLs land here. Tenants without a slug yet (or who came in via the `/r/<reseller>/signup` flow before pick) end up here. |
-| `<slug>.majix.ai` | Per-tenant white-label CRM (free tier) | Wildcard Worker route + wildcard Advanced cert. Theme/brand resolved by `get_org_by_domain` path 2 (slug match). |
-| `<custom>.acmecorp.com` | Per-tenant white-label CRM (premium tier) | Tenants CNAME their record to `customers.majix.ai`. CF for SaaS handles cert + routing. Theme resolved by `get_org_by_domain` path 1 (`org_custom_domains.hostname` match). |
-| `customers.majix.ai` | CF for SaaS fallback — infrastructure only | Never user-visible. If hit directly, falls through to default Majix marketing — acceptable. |
-| `notify.majix.ai` | Resend transactional email sender | SPF + DKIM verified. Outbound: `noreply@notify.majix.ai`. |
+| `virecrm.com` + `www.virecrm.com` | Public marketing — landing, pricing, `/features`, `/contact`, signup CTA | Both serve the same Worker bundle. `www` does NOT 308 to apex — treated as peers. Marketing routes live alongside CRM in `src/routes/*`; hostname does not change which route renders, only which UI surface route returns. |
+| `app.virecrm.com` | Central CRM landing + Supabase Auth callbacks + VireCRM platform admin | All Supabase Auth redirect URLs land here. Tenants without slug yet (or came in via `/r/<reseller>/signup` flow before pick) end up here. |
+| `<slug>.virecrm.com` | Per-tenant white-label CRM (free tier) | Wildcard Worker route + wildcard Advanced cert. Theme/brand resolved by `get_org_by_domain` path 2 (slug match). |
+| `<custom>.acmecorp.com` | Per-tenant white-label CRM (premium tier) | Tenants CNAME their record to `customers.virecrm.com`. CF for SaaS handles cert + routing. Theme resolved by `get_org_by_domain` path 1 (`org_custom_domains.hostname` match). |
+| `customers.virecrm.com` | CF for SaaS fallback — infrastructure only | Never user-visible. If hit directly, falls through to default VireCRM marketing — acceptable. |
+| `notify.virecrm.com` | Resend transactional email sender (pending) | Pending Resend DNS verification (~24h external action by user). `notify.majix.ai` STILL active (legacy verified domain) — outbound currently `noreply@notify.majix.ai` until `notify.virecrm.com` verifies. |
 
-Routes are defined in `wrangler.jsonc`. The `*.majix.ai/*` wildcard does NOT match the apex (Cloudflare requires a non-empty label), so `majix.ai/*` needs its own explicit row. More-specific rows (`app`, `www`, `customers`) take precedence over the wildcard at the edge.
+Routes defined in `wrangler.jsonc`. `*.virecrm.com/*` wildcard does NOT match apex (Cloudflare requires non-empty label), so `virecrm.com/*` needs own explicit row. More-specific rows (`app`, `www`, `customers`) take precedence over wildcard at edge. Legacy `*.majix.ai/*` + apex + sub-rows remain in additive parallel until 308 cutover.
 
-Reserved subdomain labels (never tenant slugs, blocked at both DB and client layers): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in:
-- `get_org_by_domain` (migration `20260518020000_get_org_by_domain_majix_subdomain.sql`) — returns NULL early when the label is reserved
-- `DomainBrandingProvider.SYSTEM_HOST_PATTERNS` — short-circuits the RPC call client-side
+Reserved subdomain labels (never tenant slugs, blocked at both DB + client layers): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in:
+- `get_org_by_domain` (migration `20260518020000_get_org_by_domain_majix_subdomain.sql`) — returns NULL early when label is reserved
+- `DomainBrandingProvider.SYSTEM_HOST_PATTERNS` — short-circuits RPC call client-side
 
-Tenant theming: `DomainBrandingProvider` reads `window.location.hostname`, skips the lookup for system hosts, otherwise calls `get_org_by_domain(host)`. The RPC has two paths: (1) verified custom hostname via `org_custom_domains` join, (2) slug match for `<label>.majix.ai`. Both return a `json` blob with `id`, `slug`, `brand_name`, `logo_url`, `favicon_url`, `font_family`, `primary_color`, `secondary_color`, `accent_color`, `sidebar_color`, `button_color`, `is_reseller`, `support_email`, `verified`. Majix subdomains always return `verified=true` (we own the parent zone + wildcard cert).
+Tenant theming: `DomainBrandingProvider` reads `window.location.hostname`, skips lookup for system hosts, otherwise calls `get_org_by_domain(host)`. RPC has two paths: (1) verified custom hostname via `org_custom_domains` join, (2) slug match for `<label>.virecrm.com` (legacy `<label>.majix.ai` accepted same path during parallel cutover). Both return `json` blob with `id`, `slug`, `brand_name`, `logo_url`, `favicon_url`, `font_family`, `primary_color`, `secondary_color`, `accent_color`, `sidebar_color`, `button_color`, `is_reseller`, `support_email`, `verified`. VireCRM subdomains always return `verified=true` (own parent zone + wildcard cert).
 
-Reseller-named code (per "Legacy 'reseller' code" above) — don't unilaterally strip. White-label + custom-hostname features ARE the core premium product even though no resellers exist; the rest is dormant Lovable scaffold pending an explicit cleanup pass.
+Reseller-named code (per "Legacy 'reseller' code" above) — don't unilaterally strip. White-label + custom-hostname features ARE core premium product even though no resellers exist; rest is dormant Lovable scaffold pending explicit cleanup pass.
 
 Prefer Supabase CLI (`supabase ...`) over MCP `mcp__plugin_supabase_supabase__*` tools — CLI authenticated via `SUPABASE_ACCESS_TOKEN` in `~/.zshrc`, costs no extra context tokens.
 
