@@ -114,6 +114,31 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-19 — post-migration verify + skip_guc migration registered
+**Tags:** [lovable-migration] [supabase] [verification]
+
+Picked up after spot-check session (`cecfd3b`). Re-verified live DB against commit claims + pushed the one local-only migration left from session 5.
+
+#### Shipped
+
+- `supabase db push --include-all` — applied `20260519120000_handle_new_user_skip_guc.sql` to remote `coynbufhejaeuifpvmvw`. Now recorded in `supabase_migrations.schema_migrations`. Function body unchanged (was `CREATE OR REPLACE`'d in-band by session 5; push idempotent).
+
+#### Verification (live DB via `bun:sql`)
+
+- Counts match: 16 `auth.users` (14 ported + Darsh + smoke), 17 `auth.identities`, 13,992 `leads` (9,198 Caziah + 4,793 Crystal + 1 Darsh test).
+- Caziah org `8b8c76ab-08de-4fd1-a703-b06138078181` energy fields: `esi_id=4018`, `agent_mils=4018`, `annual_kwh=4018`, `current_supplier=4018`, `contract_start_date=4018`, `service_address=4002`. Matches commit `cecfd3b` exactly.
+- Crystal own-org `188c4869-…` energy fields: all zero except `annual_kwh=1`. Confirms xlsx scoping unchanged.
+- Bcrypt port clean: 7 of 16 users have `^\$2[aby]\$` hash, 9 have `NULL encrypted_password` — verified against `og_database/genesis_auth_data.sql`, those 9 are all `"provider": "google"` OAuth users with `encrypted_password=NULL` in the dump too. No password loss.
+- `pg_get_functiondef('public.handle_new_user'::regproc)` includes `current_setting('app.skip_auto_provision', true) = 'on'` short-circuit. Trigger live.
+- `supabase migration list` — `20260519120000` now in both Local + Remote columns.
+- `bash scripts/lint-issues.sh` — OK.
+
+#### Manual follow-up (user)
+
+- Sign-in smoke remains user-owed: Crystal (`crystal@greenenergiai.com`, bcrypt) + bcrypt staff (mleaverton, erica, shelby). Caziah signs in via Google OAuth (no password to test). No code action.
+- Crystal own-org xlsx scope decision (item from prior session) still open.
+- Push when ready — branch now 2 ahead of origin (`d803b95` + `cecfd3b`).
+
 ### 2026-05-19 — migration spot-check (Caziah energy fields verified)
 **Tags:** [lovable-migration] [supabase] [verification]
 
@@ -128,7 +153,7 @@ Picked up after session-5 commit `d803b95` (live port already ran + committed). 
 
 #### Manual follow-up (user)
 
-- **Apply `20260519120000_handle_new_user_skip_guc.sql` via `supabase db push`.** Function was `CREATE OR REPLACE`'d in-band by session 5 to unblock Phase A; the migration file documents the change but isn't recorded in `supabase_migrations.schema_migrations` yet. `db push` idempotent — safe to run.
+- ~~**Apply `20260519120000_handle_new_user_skip_guc.sql` via `supabase db push`.**~~ Done next session, see entry above.
 - **Crystal own-org xlsx scope** — decide if ngp-master also applies to her own tenant. If yes, re-run `--phase=F` against `188c4869-…` (script `targetOrg` needs a flag or edit).
 - **Caziah / Crystal sign-in smoke** — both should sign in with old bcrypt passwords. No friction expected; bcrypt rides through.
 
