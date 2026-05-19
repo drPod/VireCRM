@@ -34,21 +34,21 @@ export const Route = createFileRoute("/login")({
   },
   head: () => ({
     meta: [
-      { title: "Sign In — Majix" },
+      { title: "Sign In — VireCRM" },
       {
         name: "description",
         content:
-          "Sign in to your Majix CRM workspace to manage leads, track pipeline, and run AI-powered outreach campaigns.",
+          "Sign in to your VireCRM CRM workspace to manage leads, track pipeline, and run AI-powered outreach campaigns.",
       },
-      { property: "og:title", content: "Sign In — Majix" },
+      { property: "og:title", content: "Sign In — VireCRM" },
       {
         property: "og:description",
         content:
-          "Sign in to your Majix CRM workspace to manage leads, pipeline, and AI outreach.",
+          "Sign in to your VireCRM CRM workspace to manage leads, pipeline, and AI outreach.",
       },
-      { property: "og:url", content: "https://majix.ai/login" },
+      { property: "og:url", content: "https://virecrm.com/login" },
     ],
-    links: [{ rel: "canonical", href: "https://majix.ai/login" }],
+    links: [{ rel: "canonical", href: "https://virecrm.com/login" }],
   }),
 });
 
@@ -96,7 +96,7 @@ function LoginPage() {
     void handle();
   }, [returnTo]);
 
-  const brandName = branding?.brand_name || "Majix";
+  const brandName = branding?.brand_name || "VireCRM";
   const accentColor = branding?.primary_color;
 
   const validate = () => {
