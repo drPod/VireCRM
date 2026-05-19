@@ -59,7 +59,7 @@ export function useStripeCheckout() {
         <DialogHeader>
           <DialogTitle>Complete your purchase</DialogTitle>
           <DialogDescription>
-            Review the Majix Terms &amp; Conditions before payment.
+            Review the VireCRM Terms &amp; Conditions before payment.
           </DialogDescription>
         </DialogHeader>
         {options && (

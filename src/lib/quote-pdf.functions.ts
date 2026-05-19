@@ -223,7 +223,7 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
     // ---- Differentiators ----
     if (differentiators.length > 0) {
       y -= 10;
-      drawHeading("What Separates Majix From Other CRMs");
+      drawHeading("What Separates VireCRM From Other CRMs");
       for (const d of differentiators) {
         const titleLines = wrapText(d.title, sansBold, 11, PAGE_W - MARGIN * 2 - 14);
         const bodyLines = wrapText(d.body, sans, 10, PAGE_W - MARGIN * 2 - 14);
@@ -261,7 +261,7 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
     // ---- Footer on every page ----
     const pages = pdf.getPages();
     pages.forEach((p, idx) => {
-      p.drawText(`Majix  •  ${quote.quote_number}  •  Page ${idx + 1} of ${pages.length}`, {
+      p.drawText(`VireCRM  •  ${quote.quote_number}  •  Page ${idx + 1} of ${pages.length}`, {
         x: MARGIN,
         y: 24,
         size: 8,
