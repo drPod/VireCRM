@@ -17,7 +17,7 @@ type AdminClient = SupabaseClient<any, any, any, any, any>;
 
 const SENDER_DOMAIN = "notify.majix.ai";
 const FROM_DOMAIN = "notify.majix.ai";
-const FROM_DISPLAY_NAME = "Majix Contact Form";
+const FROM_DISPLAY_NAME = "VireCRM Contact Form";
 
 /**
  * Test mode — when CONTACT_TEST_MODE=true, every contact submission is
@@ -463,7 +463,7 @@ async function sendVisitorAcknowledgment(args: {
     unsubscribeToken = stored?.token ?? unsubscribeToken;
   }
 
-  const pricingUrl = origin ? `${origin}/pricing` : "https://majix.ai/pricing";
+  const pricingUrl = origin ? `${origin}/pricing` : "https://virecrm.com/pricing";
   const ackData = {
     name: visitorName,
     message: visitorMessage,

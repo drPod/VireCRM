@@ -94,7 +94,7 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
       requestOrigin ||
       process.env.SITE_URL ||
       process.env.PUBLISHED_URL ||
-      "https://majix.ai";
+      "https://virecrm.com";
 
     const sendRes = await fetch(`${origin}/api/email/transactional/send`, {
       method: "POST",
@@ -118,7 +118,7 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
           pdfUrl: signed.signedUrl,
           paymentLinkUrl: quote.payment_link_url,
           notes: quote.notes,
-          senderName: "Majix",
+          senderName: "VireCRM",
         },
       }),
     });

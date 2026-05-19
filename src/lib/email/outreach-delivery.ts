@@ -8,11 +8,11 @@ import { template as outreachTemplate } from "@/lib/email-templates/outreach-ema
 import { sendResendEmail } from "@/lib/resend";
 import { sendSendgridEmail } from "@/lib/sendgrid";
 
-// Majix platform defaults — used when an org hasn't configured its own
+// VireCRM platform defaults — used when an org hasn't configured its own
 // brand assets. Replies are routed to the business inbox so leads can hit
 // "reply" and reach a real person.
-const GENESIS_DEFAULT_REPLY_TO = "support@majix.ai";
-const GENESIS_DEFAULT_LOGO_URL = "https://majix.ai/genesis-logo.png";
+const GENESIS_DEFAULT_REPLY_TO = "support@virecrm.com";
+const GENESIS_DEFAULT_LOGO_URL = "https://virecrm.com/genesis-logo.png";
 
 type ConnectorProvider = "gmail" | "microsoft_outlook";
 
@@ -259,7 +259,7 @@ export async function deliverOutreachEmail(
   rawInput: DeliverOutreachEmailInput,
 ): Promise<DeliverOutreachEmailResult> {
   // Normalize: if the org didn't set a logo or reply-to, fall back to the
-  // Majix brand defaults so every outreach email arrives with a logo in
+  // VireCRM brand defaults so every outreach email arrives with a logo in
   // the header and a real business inbox the recipient can reply to.
   const input: DeliverOutreachEmailInput = {
     ...rawInput,

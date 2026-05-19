@@ -5,7 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 
 // Configuration baked in at scaffold time
-const SITE_NAME = "Majix";
+const SITE_NAME = "VireCRM";
 // SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
 // It MUST match the subdomain verified with Resend. NEVER use the root domain.
 const SENDER_DOMAIN = "notify.majix.ai";
