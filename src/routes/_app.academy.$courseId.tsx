@@ -56,7 +56,7 @@ interface Course {
 export const Route = createFileRoute("/_app/academy/$courseId")({
   component: CourseDetail,
   head: () => ({
-    meta: [{ title: "Academy — Majix" }],
+    meta: [{ title: "Academy — VireCRM" }],
   }),
 });
 

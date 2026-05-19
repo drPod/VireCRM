@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_app/settings")({
   validateSearch: settingsSearchSchema,
   head: () => ({
     meta: [
-      { title: "Majix — Settings" },
+      { title: "VireCRM — Settings" },
       { name: "description", content: "Organization, team, and white-label settings" },
     ],
   }),

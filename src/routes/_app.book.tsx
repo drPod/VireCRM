@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_app/book")({
   errorComponent: (props) => <RouteError {...props} label="Couldn't load clients" />,
   head: () => ({
     meta: [
-      { title: "Clients — Majix" },
+      { title: "Clients — VireCRM" },
       {
         name: "description",
         content: "Closed deals — your book of business sorted by renewal date.",

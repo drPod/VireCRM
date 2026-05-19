@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_app/funnels")({
   component: FunnelsPage,
   head: () => ({
     meta: [
-      { title: "Majix — Funnels & Sites" },
+      { title: "VireCRM — Funnels & Sites" },
       {
         name: "description",
         content: "Build high-converting funnels and websites with drag-and-drop pages.",

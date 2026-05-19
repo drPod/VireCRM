@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_app/reputation")({
   component: ReputationPage,
   head: () => ({
     meta: [
-      { title: "Majix — Reputation" },
+      { title: "VireCRM — Reputation" },
       { name: "description", content: "Request reviews from happy customers" },
     ],
   }),
@@ -67,7 +67,7 @@ function ReputationPage() {
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  const brandName = organization?.brand_name || organization?.name || "Majix";
+  const brandName = organization?.brand_name || organization?.name || "VireCRM";
   const senderName = profile?.full_name?.split(" ")[0] || undefined;
 
   useEffect(() => {

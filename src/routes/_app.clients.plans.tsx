@@ -41,7 +41,7 @@ export const Route = createFileRoute("/_app/clients/plans")({
   component: PlansPage,
   head: () => ({
     meta: [
-      { title: "Plans — Majix" },
+      { title: "Plans — VireCRM" },
       { name: "description", content: "Define white-labeled plans you sell to your clients" },
     ],
   }),

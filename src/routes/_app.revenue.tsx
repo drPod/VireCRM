@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_app/revenue")({
   errorComponent: (props) => <RouteError {...props} label="Couldn't load revenue data" />,
   head: () => ({
     meta: [
-      { title: "Revenue & Finance — Majix" },
+      { title: "Revenue & Finance — VireCRM" },
       {
         name: "description",
         content: "Track MRR, ARR, profit & loss, and team commission payouts across your CRM.",

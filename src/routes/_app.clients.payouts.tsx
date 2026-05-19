@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_app/clients/payouts")({
   component: PayoutsPage,
   head: () => ({
     meta: [
-      { title: "Payouts — Majix" },
+      { title: "Payouts — VireCRM" },
       { name: "description", content: "View your reseller commission payouts" },
     ],
   }),
