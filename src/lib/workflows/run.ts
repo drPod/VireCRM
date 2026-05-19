@@ -424,7 +424,7 @@ async function executeNode(
         templateData: {
           subject: filledSubject,
           body: filledBody,
-          brandName: org?.brand_name || org?.name || "Majix",
+          brandName: org?.brand_name || org?.name || "VireCRM",
           logoUrl: org?.logo_url || undefined,
           accentColor: org?.primary_color || undefined,
           fontFamily: org?.font_family || undefined,

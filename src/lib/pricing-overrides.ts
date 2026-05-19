@@ -70,6 +70,7 @@ export function saveOverrides(map: PriceOverrideMap): void {
   if (!isBrowser()) return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    // TODO(rebrand): rename event in a follow-up — must change emitter + listener atomically.
     window.dispatchEvent(new CustomEvent("majix:pricing-overrides-changed"));
   } catch {
     // Ignore quota / privacy errors — overrides simply won't persist.
@@ -79,6 +80,7 @@ export function saveOverrides(map: PriceOverrideMap): void {
 export function clearOverrides(): void {
   if (!isBrowser()) return;
   window.localStorage.removeItem(STORAGE_KEY);
+  // TODO(rebrand): rename event in a follow-up — must change emitter + listener atomically.
   window.dispatchEvent(new CustomEvent("majix:pricing-overrides-changed"));
 }
 
