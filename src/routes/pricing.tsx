@@ -11,20 +11,20 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing — Majix CRM" },
+      { title: "Pricing — VireCRM" },
       {
         name: "description",
         content:
           "Done-for-you CRM plans from $97/mo or white-label plans to resell under your brand.",
       },
-      { property: "og:title", content: "Majix Pricing — Plans That Fit Your Business" },
+      { property: "og:title", content: "VireCRM Pricing — Plans That Fit Your Business" },
       {
         property: "og:description",
         content: "CRM plans from $97/mo. White-label from $249/mo. Custom builds from $10K.",
       },
-      { property: "og:url", content: "https://majix.ai/pricing" },
+      { property: "og:url", content: "https://virecrm.com/pricing" },
     ],
-    links: [{ rel: "canonical", href: "https://majix.ai/pricing" }],
+    links: [{ rel: "canonical", href: "https://virecrm.com/pricing" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -77,7 +77,7 @@ export const Route = createFileRoute("/pricing")({
               name: "How do I reach you?",
               acceptedAnswer: {
                 "@type": "Answer",
-                text: "Call or text us at +1 (940) 365-6600 or email support@majix.ai. We typically reply within one business day.",
+                text: "Call or text us at +1 (940) 365-6600 or email support@virecrm.com. We typically reply within one business day.",
               },
             },
           ],
@@ -88,10 +88,10 @@ export const Route = createFileRoute("/pricing")({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "LocalBusiness",
-          name: "Majix",
-          url: "https://majix.ai/pricing",
+          name: "VireCRM",
+          url: "https://virecrm.com/pricing",
           telephone: "+1-940-365-6600",
-          email: "support@majix.ai",
+          email: "support@virecrm.com",
           priceRange: "$97-$10000",
         }),
       },

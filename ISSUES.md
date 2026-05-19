@@ -127,6 +127,15 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-19 — rebrand unit 8: marketing top routes Majix→VireCRM, majix.ai→virecrm.com
+**Tags:** [rebrand] [marketing] [seo]
+
+#### Shipped
+
+- `src/routes/index.tsx`, `src/routes/pricing.tsx`, `src/routes/features.tsx`, `src/routes/contact.tsx` — one-way brand swap: meta titles, OG title/url, canonical link, schema.org JSON-LD (`name`, `url`, `email`), inline JSX brand text, `support@majix.ai` → `support@virecrm.com`. Loading splash text on landing.
+- typecheck + tests + scoped lint (4 files) all green. Project-wide lint has 5174 pre-existing errors unrelated to this unit.
+- Branch `rebrand/unit-8-marketing-top`, opened PR against `main`.
+
 ### 2026-05-19 — rebrand unit 4: stripe edge fn CORS allowlist adds virecrm.com
 **Tags:** [rebrand] [stripe] [cf-saas]
 
