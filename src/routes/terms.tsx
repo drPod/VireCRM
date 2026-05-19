@@ -8,20 +8,20 @@ export const Route = createFileRoute("/terms")({
   component: TermsPage,
   head: () => ({
     meta: [
-      { title: "Terms & Conditions — Majix CRM" },
+      { title: "Terms & Conditions — VireCRM" },
       {
         name: "description",
         content:
-          "Majix CRM Software Terms & Conditions Agreement governing your use of the platform.",
+          "VireCRM Software Terms & Conditions Agreement governing your use of the platform.",
       },
-      { property: "og:title", content: "Terms & Conditions — Majix" },
+      { property: "og:title", content: "Terms & Conditions — VireCRM" },
       {
         property: "og:description",
-        content: "Terms governing your use of the Majix CRM platform.",
+        content: "Terms governing your use of the VireCRM platform.",
       },
-      { property: "og:url", content: "https://majix.ai/terms" },
+      { property: "og:url", content: "https://virecrm.com/terms" },
     ],
-    links: [{ rel: "canonical", href: "https://majix.ai/terms" }],
+    links: [{ rel: "canonical", href: "https://virecrm.com/terms" }],
   }),
 });
 
@@ -33,7 +33,7 @@ function TermsPage() {
       <main className="flex-1 pt-12 pb-16">
         <div className="mx-auto max-w-3xl px-6">
           <h1 className="text-3xl font-bold text-foreground">
-            Majix CRM Software Terms &amp; Conditions Agreement
+            VireCRM Software Terms &amp; Conditions Agreement
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">Effective Date: April 22, 2026</p>
 
@@ -41,16 +41,16 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">1. Acceptance of Terms</h2>
               <p className="mt-2">
-                By accessing or using the Majix CRM platform (&ldquo;Service&rdquo;), you agree
-                to be bound by this Agreement. If you do not agree to these Terms &amp; Conditions,
-                you may not use the Service.
+                By accessing or using the VireCRM platform (&ldquo;Service&rdquo;), you agree to be
+                bound by this Agreement. If you do not agree to these Terms &amp; Conditions, you
+                may not use the Service.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">2. Description of Service</h2>
               <p className="mt-2">
-                Majix provides a customer relationship management (CRM) platform designed to
+                VireCRM provides a customer relationship management (CRM) platform designed to
                 assist with lead management, automation, communication workflows, and related
                 business operations.
               </p>
@@ -68,7 +68,7 @@ function TermsPage() {
                 The Service is provided on an &ldquo;as-is&rdquo; and &ldquo;as-available&rdquo;
                 basis without warranties of any kind, whether express or implied.
               </p>
-              <p className="mt-2">Majix does not guarantee that the Service will be:</p>
+              <p className="mt-2">VireCRM does not guarantee that the Service will be:</p>
               <ul className="mt-2 list-disc pl-6 space-y-1">
                 <li>Uninterrupted</li>
                 <li>Error-free</li>
@@ -86,11 +86,11 @@ function TermsPage() {
                 You acknowledge that software may contain bugs, errors, or unexpected behavior.
               </p>
               <p className="mt-2">
-                Majix shall not be held liable for any damages, losses, or issues arising from
+                VireCRM shall not be held liable for any damages, losses, or issues arising from
                 such bugs or errors.
               </p>
               <p className="mt-2">
-                However, Majix agrees to make commercially reasonable efforts to investigate and
+                However, VireCRM agrees to make commercially reasonable efforts to investigate and
                 fix reported issues within a reasonable timeframe.
               </p>
             </section>
@@ -98,7 +98,7 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">5. Limitation of Liability</h2>
               <p className="mt-2">
-                To the fullest extent permitted by law, Majix shall not be liable for any
+                To the fullest extent permitted by law, VireCRM shall not be liable for any
                 indirect, incidental, special, consequential, or punitive damages, including but not
                 limited to:
               </p>
@@ -110,8 +110,8 @@ function TermsPage() {
                 <li>Loss of business opportunities</li>
               </ul>
               <p className="mt-2">
-                In all cases, Majix&apos;s total liability shall not exceed the amount paid by
-                you for the Service within the thirty (30) days prior to the claim.
+                In all cases, VireCRM&apos;s total liability shall not exceed the amount paid by you
+                for the Service within the thirty (30) days prior to the claim.
               </p>
             </section>
 
@@ -127,7 +127,7 @@ function TermsPage() {
                 </li>
               </ul>
               <p className="mt-2">
-                Majix is not responsible for user misuse, user error, or improper implementation.
+                VireCRM is not responsible for user misuse, user error, or improper implementation.
               </p>
             </section>
 
@@ -136,7 +136,7 @@ function TermsPage() {
                 7. Payments &amp; No Refund Policy
               </h2>
               <p className="mt-2">
-                All payments made to Majix are final and non-refundable, unless otherwise
+                All payments made to VireCRM are final and non-refundable, unless otherwise
                 explicitly agreed to in writing.
               </p>
               <p className="mt-2">
@@ -152,7 +152,7 @@ function TermsPage() {
                 </li>
               </ul>
               <p className="mt-2">
-                Majix will make reasonable efforts to fix issues, but technical problems do not
+                VireCRM will make reasonable efforts to fix issues, but technical problems do not
                 qualify for refunds.
               </p>
               <p className="mt-2">
@@ -163,10 +163,10 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">8. Data &amp; Privacy</h2>
               <p className="mt-2">
-                While Majix implements reasonable security measures, you acknowledge that no
+                While VireCRM implements reasonable security measures, you acknowledge that no
                 system is completely secure.
               </p>
-              <p className="mt-2">Majix is not responsible for:</p>
+              <p className="mt-2">VireCRM is not responsible for:</p>
               <ul className="mt-2 list-disc pl-6 space-y-1">
                 <li>Data loss</li>
                 <li>Unauthorized access caused by user negligence</li>
@@ -180,7 +180,7 @@ function TermsPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">9. Service Availability</h2>
               <p className="mt-2">
-                Majix does not guarantee continuous or uninterrupted access to the Service.
+                VireCRM does not guarantee continuous or uninterrupted access to the Service.
                 Downtime may occur due to:
               </p>
               <ul className="mt-2 list-disc pl-6 space-y-1">
@@ -190,14 +190,14 @@ function TermsPage() {
                 <li>External or unforeseen circumstances</li>
               </ul>
               <p className="mt-2">
-                Majix shall not be held liable for any losses resulting from downtime.
+                VireCRM shall not be held liable for any losses resulting from downtime.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">10. Indemnification</h2>
               <p className="mt-2">
-                You agree to indemnify, defend, and hold harmless Majix, its owners, affiliates,
+                You agree to indemnify, defend, and hold harmless VireCRM, its owners, affiliates,
                 and partners from any claims, damages, liabilities, or legal disputes arising from:
               </p>
               <ul className="mt-2 list-disc pl-6 space-y-1">
@@ -212,7 +212,7 @@ function TermsPage() {
                 11. Modifications to Agreement
               </h2>
               <p className="mt-2">
-                Majix reserves the right to update or modify these Terms at any time. Continued
+                VireCRM reserves the right to update or modify these Terms at any time. Continued
                 use of the Service after changes constitutes acceptance of the updated Terms.
               </p>
             </section>
@@ -237,7 +237,7 @@ function TermsPage() {
                 </a>
               </p>
               <p className="mt-2">
-                Majix will make reasonable efforts to respond in a timely manner.
+                VireCRM will make reasonable efforts to respond in a timely manner.
               </p>
             </section>
           </div>
