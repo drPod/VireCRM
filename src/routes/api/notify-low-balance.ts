@@ -17,7 +17,7 @@ type AdminClient = SupabaseClient<any, any, any, any, any>;
 
 const SENDER_DOMAIN = "notify.majix.ai";
 const FROM_DOMAIN = "notify.majix.ai";
-const FROM_DISPLAY_NAME = "Majix Billing";
+const FROM_DISPLAY_NAME = "VireCRM Billing";
 
 const BodySchema = z.object({
   organizationId: z.string().uuid(),
@@ -146,7 +146,7 @@ export const Route = createFileRoute("/api/notify-low-balance")({
         const billingUrl = (() => {
           const origin = request.headers.get("origin");
           if (origin) return `${origin}/billing`;
-          return "https://majix.ai/billing";
+          return "https://virecrm.com/billing";
         })();
 
         const templateData = {

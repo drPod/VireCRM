@@ -77,7 +77,7 @@ export async function verifyResendConnection(): Promise<
 }
 
 export interface ResendSendOpts {
-  /** Verified sender address, e.g. `noreply@notify.majix.ai`. */
+  /** Verified Resend sender address (currently `noreply@notify.majix.ai`; planned `noreply@notify.virecrm.com` after DNS verify). */
   from: string;
   /** Single recipient (we don't expose batching here — outreach is 1:1). */
   to: string;

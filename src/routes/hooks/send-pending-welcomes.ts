@@ -5,7 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 
 // Match the constants used by the transactional send route.
-const SITE_NAME = "Majix";
+const SITE_NAME = "VireCRM";
 const SENDER_DOMAIN = "notify.majix.ai";
 const FROM_DOMAIN = "notify.majix.ai";
 
