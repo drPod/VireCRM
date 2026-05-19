@@ -43,7 +43,7 @@ export function TermsCheckbox({
           rel="noopener noreferrer"
           className="font-medium text-primary hover:underline"
         >
-          Majix Terms &amp; Conditions
+          VireCRM Terms &amp; Conditions
         </Link>{" "}
         and acknowledge the{" "}
         <Link

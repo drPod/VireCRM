@@ -23,21 +23,21 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
   head: () => ({
     meta: [
-      { title: "Start Free Trial — Majix" },
+      { title: "Start Free Trial — VireCRM" },
       {
         name: "description",
         content:
-          "Create your Majix account and start automating sales in minutes with AI-powered lead scoring, outreach, and follow-ups.",
+          "Create your VireCRM account and start automating sales in minutes with AI-powered lead scoring, outreach, and follow-ups.",
       },
-      { property: "og:title", content: "Start Your Free Trial — Majix" },
+      { property: "og:title", content: "Start Your Free Trial — VireCRM" },
       {
         property: "og:description",
         content:
-          "Create your Majix account and start automating sales with AI-powered lead scoring and outreach.",
+          "Create your VireCRM account and start automating sales with AI-powered lead scoring and outreach.",
       },
-      { property: "og:url", content: "https://majix.ai/signup" },
+      { property: "og:url", content: "https://virecrm.com/signup" },
     ],
-    links: [{ rel: "canonical", href: "https://majix.ai/signup" }],
+    links: [{ rel: "canonical", href: "https://virecrm.com/signup" }],
   }),
 });
 

@@ -12,12 +12,12 @@ type State =
   | { kind: "done" };
 
 const TITLE_BY_KIND: Record<State["kind"], string> = {
-  loading: "Verifying unsubscribe — Majix",
-  ready: "Unsubscribe — Majix",
-  submitting: "Unsubscribing — Majix",
-  done: "Unsubscribed — Majix",
-  already: "Already unsubscribed — Majix",
-  invalid: "Invalid unsubscribe link — Majix",
+  loading: "Verifying unsubscribe — VireCRM",
+  ready: "Unsubscribe — VireCRM",
+  submitting: "Unsubscribing — VireCRM",
+  done: "Unsubscribed — VireCRM",
+  already: "Already unsubscribed — VireCRM",
+  invalid: "Invalid unsubscribe link — VireCRM",
 };
 
 function UnsubscribePage() {
@@ -163,6 +163,6 @@ function UnsubscribePage() {
 export const Route = createFileRoute("/unsubscribe")({
   component: UnsubscribePage,
   head: () => ({
-    meta: [{ title: "Unsubscribe — Majix" }],
+    meta: [{ title: "Unsubscribe — VireCRM" }],
   }),
 });

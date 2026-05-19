@@ -18,7 +18,7 @@ export const Route = createFileRoute("/payment-status")({
   }),
   head: () => ({
     meta: [
-      { title: "Payment status — Majix" },
+      { title: "Payment status — VireCRM" },
       {
         name: "description",
         content: "Verify your Stripe checkout and subscription state in real time.",

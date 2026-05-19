@@ -11,10 +11,10 @@ export const Route = createFileRoute("/confirm-email")({
   component: ConfirmEmailPage,
   head: () => ({
     meta: [
-      { title: "Check Your Email — Majix" },
+      { title: "Check Your Email — VireCRM" },
       {
         name: "description",
-        content: "Confirm your email address to activate your Majix account",
+        content: "Confirm your email address to activate your VireCRM account",
       },
     ],
   }),
