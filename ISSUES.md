@@ -127,6 +127,39 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-19 — Lovable→fixed-DB migration script (Step 2 of handoff)
+**Tags:** [lovable-migration] [supabase]
+
+Step 2 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Script written + dry-run-validated against parsed dumps. NOT yet run against live DB (Step 3 = branch dry-run, blocked on `DATABASE_URL`).
+
+#### Shipped
+
+- `scripts/migrate-lovable-to-fixed.ts` (new, ~430 lines). Bun-runnable. Uses `bun:sql` (built into Bun ≥1.3; no new dep). Phases A (auth.users + auth.identities), B (organizations w/ slug override), C (user_roles + profiles), D (leads), F (xlsx supplement). Phase E (other public tables) deferred until evidence demands it. Flags: `--dry`, `--phase=` (default `ALL`). Idempotent via `INSERT … ON CONFLICT (id) DO UPDATE` (A–D) + `COALESCE(${new}, existing)` merge (F UPDATE branch). Schema diff handled by `information_schema.columns` lookup intersected against COPY-block columns — drops unknown old-DB columns automatically. `handle_new_user` trigger `DISABLE`'d inside Phase A so it can't auto-provision duplicate orgs; re-enabled in `finally`.
+
+#### Found
+
+- **UUID typo carried in earlier session-3 entries.** Crystal's old `auth.users.id` is `7ba2ebfa-f30e-449a-866e-085c5940c1d4` (verified in the dump). The suffix `9d24-4231-…` belongs to `ethansereti@gmail.com`. Script reads the correct UUID straight out of the dump; handoff corrected in same session.
+- **Crystal owns TWO orgs in the old DB**, not one. Caziah's `8b8c76ab-…` (5389 leads, "Caziah Cameron's Organization") AND her own `188c4869-…` (4793 leads). Both whitelisted for port. Total leads to migrate: **10,182** (handoff previously implied ~5389). Open product call for the user: consolidate into one tenant under `greenenergiai.majix.ai`, or keep both?
+- **xlsx has 5446 rows but only 4791 non-empty data rows** — 654 trailing blanks. Confirmed via raw `header:1` extract. Script's enrich loop iterates 4791.
+- **`qa2-vireon@example.com` initially slipped through** the filter (regex `/^qa-/` didn't match `qa2-`). Skip-pattern widened to `/^qa\d*[-_@]/i`.
+
+#### Verification
+
+- `bun run typecheck` clean.
+- Stub-URL dry-run (no DB writes) confirms parsing + filtering work end-to-end:
+  - Phase A: 14 of 23 dumped auth.users eligible (9 skipped). Documented filter expects 4 audit + 3 qa-* + 1 qa2-* + 1 e2etest + 1 testcrm = 10. Off-by-one — **recheck Phase A skip math at Step 3.**
+  - Phase B: 2 of 16 dumped orgs whitelisted.
+  - Phase C: 10 user_roles + 10 profiles.
+  - Phase D: 10,182 of 10,188 dumped leads on whitelisted orgs.
+  - Phase F: 4791 xlsx rows ready to apply.
+- Live-DB dry-run NOT yet attempted — needs `DATABASE_URL`.
+
+#### Manual follow-up (user)
+
+- **Provide `DATABASE_URL`** for the new project (`coynbufhejaeuifpvmvw`). Get it from Supabase Dashboard → Settings → Database → Connection string → "Session pooler" (port 5432) or "Direct connection" (also 5432 via `db.<ref>.supabase.co`). Do NOT use the transaction pooler (port 6543) — script needs `DISABLE TRIGGER` semantics the transaction pooler strips.
+- **Decide org consolidation** post-migration: merge Caziah's `8b8c76ab-…` and Crystal's `188c4869-…` into one tenant under `greenenergiai.majix.ai`, or leave them as two?
+- **Recheck Phase A skip math at Step 3** — eligible reported as 14, documented filter expects 13. One email pattern likely missing from `SKIP_EMAIL_PATTERNS`.
+
 ### 2026-05-19 — rebrand unit 8: marketing top routes Majix→VireCRM, majix.ai→virecrm.com
 **Tags:** [rebrand] [marketing] [seo]
 

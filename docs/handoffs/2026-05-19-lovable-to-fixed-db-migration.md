@@ -88,20 +88,53 @@ Format: each item `[ ]` (pending) → `[~]` (in progress) → `[x]` (done, with 
 - [x] Deleted Crystal's duplicate auth.users row (id `b5ae0c3e-…`) via Admin API → HTTP 200.
 - [x] Verified post-delete: `leads=0, orgs=0, users=0, crystals=0` (where queries scoped to the session-1 UUIDs + `email='crystal@greenenergiai.com'`). Email is now free for Step 2's auth port to insert with old UUID `7ba2ebfa-…`.
 
-### Step 2 — Write the migration script `[ ]`  ← **START HERE NEXT SESSION**
+### Step 2 — Write the migration script `[~]` (script written 2026-05-19 session 4, awaiting live DB run)
+
+**Findings from session 4 (correct prior data here):**
+
+- **UUID typo in prior handoff lines.** Crystal's old `auth.users.id` is `7ba2ebfa-f30e-449a-866e-085c5940c1d4` (verified in the dump). Earlier session-3 entries wrote `7ba2ebfa-9d24-4231-ba25-ea463f30587c`; that suffix `9d24-4231-…` is actually `ethansereti@gmail.com`'s UUID. Script uses the correct one (which lives in the dump itself, not hard-coded).
+- **Crystal owns a SECOND org in the old DB** that this handoff missed. Old DB has both `8b8c76ab-08de-4fd1-a703-b06138078181` (Caziah's, 5389 leads, "Caziah Cameron's Organization") **and** `188c4869-8bc4-438e-b746-c8f28e2932d2` (Crystal's own org, 4793 leads). Both are real production data. Script whitelists **both** orgs for port. **Open question for user:** consolidate the two orgs into one tenant post-migration, or leave Crystal with her own + member-of-Caziah's?
+- **xlsx has 5446 sheet rows but only 4791 non-empty data rows** — 654 trailing blanks. Script's enrich pass operates on 4791. Confirmed via raw `header:1` extract.
+- **`qa\d*-` accounts** — old DB has `qa2-vireon@example.com` plus the three `qa-*`. Skip-pattern widened from `/^qa-/` to `/^qa\d*[-_@]/` to catch both.
+- Two demo orgs in dump that are NOT whitelisted: `6e87b377-…` (testcrm seed, 4 leads) and `4e0a3989-…` (ethansereti, 1 lead). Script drops them.
+
 
 File: `scripts/migrate-lovable-to-fixed.ts`. Bun-runnable. Reads dump files + xlsx, writes to new DB via `@supabase/supabase-js` service-role client. **No connection to old project — that data is frozen in the dump files.**
 
-- [ ] Load new-DB env (`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`) from `.env`. No `OLD_*` vars needed.
-- [ ] Parse `og_database/genesis_auth_data.sql` — extract `auth.users` INSERTs. Filter out test/audit accounts (`qa-*@example.com`, `audit+*@example.com`, `e2etest*`, `testcrm@example.com`). Use a simple line-by-line scanner — INSERT statements are one-per-line in the dump.
-- [ ] Parse `og_database/genesis_database_full.sql` — `COPY <table> ("col1", "col2", …) FROM stdin;` then rows until `\.`. Build a small streaming parser that yields `{ table, columns, rows }` per block. Strip empty blocks early.
-- [ ] **Phase A — auth.users.** For each old auth.users row (filter out test/audit accounts), call `POST /auth/v1/admin/users` on new project with same `id`, `email`, `password_hash` (key field, see note below), `email_confirmed_at`, `raw_user_meta_data`, `raw_app_meta_data`. Note: Supabase Admin API accepts `password_hash` for bcrypt-prefixed hashes (`$2a$10$…` in the dump). Re-runs are safe — Admin API returns 422 on existing email; treat as success. Verified the dump format with `head -3 og_database/genesis_auth_data.sql` — bcrypt hashes are present and use bcrypt prefix `$2a$10$`.
-- [ ] **Phase B — organizations.** Port old `organizations` rows verbatim, mapping schema diff (new DB may have columns old doesn't, vice versa — `ALTER TABLE` not in scope, just `INSERT … ON CONFLICT (id) DO UPDATE`). For Crystal's org: rename slug from `caziah-cameron-66e0f158` to `greenenergiai` to match the `greenenergiai.majix.ai` subdomain (already in `wrangler.jsonc`). Set `is_reseller=false` (legacy flag, dormant).
-- [ ] **Phase C — user_roles / profiles.** Port org-membership tables. Caziah = owner. Crystal + Erica + Shelby + Mleaverton = members.
-- [ ] **Phase D — leads.** Port `public.leads` for Crystal's org (`8b8c76ab-…`) verbatim. UUIDs preserved. New-DB-only columns (`service_address`, `esi_id`, `title`, `deal_name`, `contract_start_date`, `cost_per_kwh`, `agent_mils`) get NULL.
-- [ ] **Phase E — other-table data.** Walk every `COPY public.* FROM stdin` block in `genesis_database_full.sql`. For each non-empty block: read schema diff, transform if needed, INSERT with ON CONFLICT DO NOTHING.
-- [ ] **Phase F — xlsx supplement.** Parse `Copy of NGP MASTER LIST - Copy.xlsx` via SheetJS. For each row: build energy-field patch (ESI strip-backticks, `Unit Uplift` → agent_mils, `EAC AQ` → annual_kwh, dates parsed, address composite). Match against new-DB leads on `esi_id` (preferred) or `(contact_person + customer_email)`. If matched: UPDATE the energy fields on the existing row. If unmatched: INSERT new lead with `status='won'`, `source='xlsx_supplement'`.
-- [ ] **Idempotency check.** Re-run end-to-end against a freshly-cleaned new DB twice. Same final state.
+- [x] **File written:** `scripts/migrate-lovable-to-fixed.ts`. Bun-runnable. Uses `bun:sql` (built into Bun 1.3) for direct Postgres connection — needs **`DATABASE_URL`** (Supabase session pooler or direct connection from Dashboard → Settings → Database). No new dep added; `xlsx` was already in `package.json`.
+- [x] Load new-DB env (`DATABASE_URL`) from process env. Service-role key/URL not needed because the script writes directly via Postgres (auth.users included — `handle_new_user` trigger is `DISABLE TRIGGER`'d during Phase A so it doesn't auto-provision duplicate orgs, then re-enabled in `finally`).
+- [x] Parse `og_database/genesis_auth_data.sql` — `parseAuthInserts()` is a line-by-line scanner that handles `INSERT INTO auth.users (cols) VALUES (vals) ON CONFLICT (id) DO NOTHING;` and the matching `auth.identities` shape. Single-quote escape (`''`) handled. NULL token vs `'NULL'` string handled.
+- [x] Parse `og_database/genesis_database_full.sql` — `parseCopyBlocks()` finds every `COPY "public"."tbl" ("c1","c2",…) FROM stdin;` block and reads rows until `\.`. Tab-separated, `\N` = NULL, PG COPY backslash escapes decoded.
+- [x] **Phase A — auth.users + auth.identities.** Direct insert into `auth.users` / `auth.identities` (NOT Admin API — `bun:sql` connection is the only client). `ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created` wraps the phase so `handle_new_user` can't auto-provision duplicate orgs; `ENABLE TRIGGER` runs in `finally` so a mid-phase crash still re-enables it. Bcrypt hashes ride through verbatim in the `encrypted_password` column. ON CONFLICT (id) DO UPDATE on every column → idempotent. Dry-run counts (verified): 14 eligible / 23 dumped / 9 skipped (qa/audit/e2e/testcrm).
+- [x] **Phase B — organizations.** Whitelist `ALLOWED_ORG_IDS` = `{8b8c76ab, 188c4869}`. Slug override map renames `8b8c76ab` → `greenenergiai`. `is_reseller=f` forced (legacy flag, dormant per CLAUDE.md). Schema diff handled by `rowsToObjects()` which intersects dump columns with `information_schema.columns` from the live new DB and drops unknowns. Dry-run: 2 of 16 dumped orgs port.
+- [x] **Phase C — user_roles + profiles.** Eligible row = both `organization_id IN ALLOWED_ORG_IDS` AND `user_id IN eligible-auth-user-ids`. Dry-run: 10 each.
+- [x] **Phase D — leads.** Whitelist by `organization_id`. Schema-diff: old DB cols missing in new (none observed) dropped; new-DB-only cols (`service_address`, `esi_id`, `title`, `deal_name`, `contract_start_date`, `cost_per_kwh`, `agent_mils`) get NULL via SQL default behavior. Chunked at 500 rows per `INSERT … VALUES (…), (…), … ON CONFLICT (id) DO UPDATE`. Dry-run: 10,182 of 10,188 dumped rows port (the 6 dropped belong to the 2 demo orgs we're filtering out).
+- [ ] **Phase E — other-table data.** **DEFERRED.** Handoff calls Crystal's `contract_requests` empty and we haven't found evidence that the whitelisted orgs populate any of the other 82 tables non-trivially. Re-evaluate after Phase D lands on the branch — if a follow-up audit finds populated rows tied to these orgs, add them. Until then, the script skips Phase E entirely.
+- [x] **Phase F — xlsx supplement.** Parser at `readXlsxRows()`. ESI = `Meter Number` with surrounding backticks stripped. `Unit Uplift` → `agent_mils`, `EAC AQ` → `annual_kwh`, `Start Date`/`End Date` parsed (Excel serial + ISO + native Date). Service address = composite of `address_1`/`address_2`/`street_no`/`street_name`/`city`/`state`/`postcode`. Match against new-DB leads (scoped to Caziah's org `8b8c76ab`) on `esi_id` first, then `(name + email)` lowercased fallback. UPDATE uses `COALESCE(${new}, existing)` so xlsx never overwrites a non-null field with a null. Unmatched rows → INSERT with `status='won'`, `source='xlsx_supplement'`. Dry-run: 4791 xlsx rows ready to apply.
+- [ ] **Idempotency check.** Pending Step 3 branch dry-run.
+
+### How to run the script
+
+```
+# Get DATABASE_URL from Supabase Dashboard → Settings → Database → Connection string
+# → "Session pooler" or "Direct connection" (NOT the transaction pooler — we need
+# DISABLE TRIGGER + SET LOCAL semantics that the transaction pooler strips).
+
+export DATABASE_URL='postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres'
+
+# Dry-run: parses dumps, counts what would happen, makes zero writes.
+bun scripts/migrate-lovable-to-fixed.ts --dry
+
+# Selective phase. Default --phase=ALL = A,B,C,D,F.
+bun scripts/migrate-lovable-to-fixed.ts --phase=A
+bun scripts/migrate-lovable-to-fixed.ts --phase=A,B,C,D
+bun scripts/migrate-lovable-to-fixed.ts --phase=F
+
+# Full run.
+bun scripts/migrate-lovable-to-fixed.ts
+```
+
+Re-runs are safe — every INSERT uses `ON CONFLICT (id) DO UPDATE` (Phase A-D) or COALESCE-merge (Phase F UPDATE branch).
 
 ### Step 3 — Dry run on a Supabase branch `[ ]`
 
