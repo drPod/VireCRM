@@ -127,6 +127,21 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-19 — rebrand unit 4: stripe edge fn CORS allowlist adds virecrm.com
+**Tags:** [rebrand] [stripe] [cf-saas]
+
+Parallel-cutover rebrand (Majix → VireCRM). Additive only — both zones live during transition.
+
+#### Shipped
+
+- `supabase/functions/_shared/stripe.ts:84-90` — `ALLOWED_ORIGIN_SUFFIXES` now contains `.virecrm.com` + `virecrm.com` alongside existing `.majix.ai` + `majix.ai` (+ `.workers.dev`, `localhost`). 6 entries total. ACAO fallback on line 106 left as `https://majix.ai` per unit spec — separate cutover concern.
+
+#### Verification
+
+- `bun run typecheck` clean.
+- `bun run test` — 123/123 pass.
+- `bun run lint` — 5170 pre-existing errors repo-wide; 6 pre-existing in `stripe.ts` (lines 36, 109, 119-124). Edit at lines 84-90 introduces zero new lint findings. Out of unit scope.
+
 ### 2026-05-19 — rebrand unit 2: get_org_by_domain dual-zone (majix.ai + virecrm.com)
 **Tags:** [rebrand] [supabase] [cf-saas]
 

@@ -84,6 +84,8 @@ export async function verifyWebhook(
 const ALLOWED_ORIGIN_SUFFIXES = [
   ".majix.ai",
   "majix.ai",
+  ".virecrm.com",
+  "virecrm.com",
   ".workers.dev",
   "localhost",
 ];
