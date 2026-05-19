@@ -120,33 +120,34 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-19 — Shared Logo component for marketing (PR unit-2)
-**Tags:** [marketing] [branding] [logo] [frontend]
+### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
+**Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
-Marketing surface refactor unit 2/5 (plan: `.claude/plans/sharded-jingling-harp.md`). Reconciled the conflicting logomarks — auth pages were already on the lucide `Terminal` icon in a rounded `bg-primary` square; marketing header + footer were inlining a gradient `M` box. Both surfaces now render a single shared `<Logo>` component.
+Part of the 5-unit marketing refactor (sharded-jingling-harp plan). Unit-3 owns pricing trim + WhiteLabel kill per the audit decision: "Have the worker pick. and get rid of the whitelabel thing entirely - that's really stupid".
 
 #### Shipped
 
-- `src/components/Logo.tsx` (new) — wraps `Terminal` from `lucide-react` in a `bg-primary`/`text-primary-foreground` rounded square. Three sizes (`sm`/`md`/`lg`) via a lookup table; default `md` matches the marketing header treatment, `lg` matches the auth-page treatment at `src/routes/login.tsx:205-210`. `aria-hidden` (decorative, paired with wordmark text). `TODO()` comment marks auth-page retrofit as deferred (visual no-op, separate pass).
-- `src/components/marketing/MarketingHeader.tsx:32-35` — replaced inlined `M` gradient `<span>` with `<Logo />`. Wordmark `<span>` lost `text-gradient-primary` class → solid `text-foreground`.
-- `src/components/marketing/MarketingFooter.tsx:12-15` — same surgery, same wordmark cleanup.
+- `src/components/marketing/PricingCards.tsx` — deleted the `whiteLabelTiers` array entirely (4 reseller-leaning tiers: Lease Starter $249/mo, Lease Pro $849/mo, Full Ownership $7K one-time, Custom Enterprise $14K+). Deleted the in-component WhiteLabel section render block + divider. Trimmed `crmTiers` 4 → 3 + Talk-to-Sales card: kept Starter ($97), Growth ($197, highlighted), Pro ($297). Replaced the legacy Custom CRM "$Custom/quote" tier with a `{ name: "Custom", price: "Let's talk", cta: "Talk to sales", ctaLink: "/contact", ctaVariant: "outline", excludeFromPromo: true, isOwnership: true }` card. Switched `tier.cta === "Contact Us"` invoice-hint check to `tier.ctaLink === "/contact"` so the Talk-to-Sales card still shows "Invoiced after a discovery call". Dropped now-unused `Building2` lucide import.
+- `src/routes/pricing.tsx` — updated meta description, og:description, JSON-LD `FAQPage` (3 questions instead of 6 — dropped white-label-difference / white-label-meaning / upgrade-to-white-label / Custom-CRM-build $10K; kept setup-fees / Custom-plan / contact). Updated JSON-LD `LocalBusiness.priceRange` from `$97-$10000` to `$97-$297`. Updated H1 subhead from "Just need a CRM? We'll build and run it for you. Want to resell it? Go white-label." to "We'll build, host, and run your CRM. Pick a plan or talk to sales for a custom build." Updated FAQ list to match the JSON-LD (3 + bespoke-invoice-rationale Q + contact Q = 5 total). Updated bottom-strip header "Talk to a human about Custom CRM or Full Ownership" → "Talk to a human about a Custom build".
+- `src/components/marketing/PricingCards.test.ts` — rewrote to consume only `crmTiers`. Old tests asserted "Custom CRM, Full Ownership, Custom Enterprise" excluded; new tests assert "Custom" excluded. Old test for "Custom Enterprise priced at $14,000+" deleted (tier no longer exists). Structural Stripe-coupon guard test updated: now asserts `ctaLink === "/contact"` instead of `cta === "Contact Us"` (both excluded tiers route via ctaLink not CTA text).
+- `src/routes/_app.billing.tsx` — removed `whiteLabelTiers` from import + the two spread sites (`findTierByPriceId` + `InlinePlans` allTiers list). CRM billing portal now only surfaces `crmTiers` for plan-switch — which matches the killed-pricing-section reality (no lease tiers exist anymore).
+- `src/components/crm/PriceConsistencyCheck.tsx` — removed `whiteLabelTiers` from import + the tier-list spread. Narrowed `CheckRow.group` from `"CRM" | "White-Label"` to `"CRM"` only.
+- `src/lib/pricing-overrides.ts` — kept `lease_starter_monthly` + `lease_pro_monthly` in `STALE_OVERRIDE_KEYS` (Set used to purge localStorage entries on load) with an explanatory comment so any in-browser override written before the tiers got killed gets cleaned up. Updated JSDoc on the file to mention only `crmTiers` (not `whiteLabelTiers`).
+- `src/components/marketing/ContactForm.tsx` — trimmed `projectType` dropdown: dropped "White-label / reseller", "Full ownership / source code", "Custom Enterprise" — kept "Custom CRM build", "Custom integration", "Something else". Trimmed `budget` dropdown: dropped "$14,000 — Custom Enterprise" tier-tied option; added "Under $5,000" + "$5,000 – $14,000" replacements to span the same range without the killed-tier reference.
 
 #### Verification
 
-- `bunx eslint <three files>` — clean (0 errors after prettier autofix on `Logo.tsx`).
-- `bun run typecheck` — clean (no output).
-- `bun run build` — succeeds (`✓ built in 6.87s`).
-- `bun run lint` repo-wide still hits the same ~5206-error baseline noted in the prior 2026-05-19 session — none of those errors originate in the touched files. Pre-existing, out of scope.
-- Visual evidence (`/tmp/pr-logomark-*.png`):
-  - `pr-logomark-login-desktop.png` — confirms header now renders the terminal `>_` mark next to "VireCRM" (matching the centred auth-page `Terminal` mark below). Wordmark is solid color, no gradient.
-  - `pr-logomark-home-desktop.png` + others — marketing routes stuck on the existing `useDomainBranding` loading branch in dev mode (Supabase RPC stalls without prod env). That loading state already renders a `Terminal` icon in a rounded square via `routes/index.tsx:80-85`, so the unified mark is visible there too. Unrelated to this PR — env-stall is environmental noise.
+- `bun run typecheck` — clean.
+- `bun run test` — 122/122 pass (PricingCards.test.ts rewrite included).
+- `bun run build` — 7.12s, no errors.
+- `bun run lint` — pre-existing baseline ~5202 errors (none introduced by this work; per-file scope shows 1 pre-existing prettier nit in `_app.billing.tsx:413` on untouched JSX, 1 pre-existing react-refresh warning on `PricingCards.tsx:32` export pattern).
+- **Screenshot verification blocked:** dev + wrangler + prod (genesisxsx.darsh-pod.workers.dev/pricing) all SSR an empty `<!--$--><!--/$-->` Suspense boundary; `PricingCards` only mounts after client hydration. agent-browser (headless + headed) and browser-use both fail to hydrate the marketing pricing route in this project — `document.querySelectorAll("h3").length === 0` on both my changes and the unmodified base commit. Pre-existing project quirk (likely AuthProvider/Suspense SSR fallthrough). Visual verification will need a real-browser pass after deploy. Curl of dev SSR confirmed the head-meta + 3 JSON-LD blocks rendered cleanly with the new copy.
+- SSR text verification via `curl http://localhost:5176/pricing | grep`: confirms `"Done-for-you CRM plans from $97/mo. Custom builds available — talk to sales."` meta description, `priceRange: "$97-$297"`, FAQPage has exactly 3 questions (setup-fees / Custom-plan / contact), no `white-label` strings present.
 
-#### Out of scope (per plan)
+#### Manual follow-up (user)
 
-- Auth-page Terminal usages (`login.tsx`, `signup.tsx`, `reset-password.tsx`) — already use the same treatment; retrofit to `<Logo size="lg" />` would be a visual no-op, deferred.
-- Favicon / OG image — binary asset rebrand pass.
-- Brand rename Majix↔VireCRM — its own initiative.
-- `text-gradient-primary` CSS class definition — still used by `CrmSidebar`, `preview.tsx`, etc. Only removed from JSX call sites in the two owned marketing files.
+- **Stripe dashboard tier cleanup.** The killed lease tiers (`lease_starter_monthly`, `lease_pro_monthly`) still exist as Stripe price/product objects. Worker can't archive these via API without scope. Action: open Stripe Dashboard → Products → archive the lease products (or set them inactive) so any stale checkout-link bookmark stops resolving. Same for the legacy "Custom CRM" / "Full Ownership" / "Custom Enterprise" line items if they were ever provisioned.
+- **`PROJECT_TYPES` zod enum in `src/routes/api/public/contact.ts:42`** still accepts `"white-label" | "full-ownership" | "enterprise"`. Left alone this PR so in-flight form submissions (browser-cached) don't 400. Tighten in a follow-up after a transition window (~30 days).
 
 ### 2026-05-19 — low-hanging fruit pass: CrmSidebar fixes + Open-list staleness audit
 **Tags:** [bug] [frontend] [audit]

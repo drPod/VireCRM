@@ -14,13 +14,12 @@ export const Route = createFileRoute("/pricing")({
       { title: "Pricing — VireCRM" },
       {
         name: "description",
-        content:
-          "Done-for-you CRM plans from $97/mo or white-label plans to resell under your brand.",
+        content: "Done-for-you CRM plans from $97/mo. Custom builds available — talk to sales.",
       },
       { property: "og:title", content: "VireCRM Pricing — Plans That Fit Your Business" },
       {
         property: "og:description",
-        content: "CRM plans from $97/mo. White-label from $249/mo. Custom builds from $10K.",
+        content: "CRM plans from $97/mo. Custom builds — talk to sales.",
       },
       { property: "og:url", content: "https://virecrm.com/pricing" },
     ],
@@ -34,14 +33,6 @@ export const Route = createFileRoute("/pricing")({
           mainEntity: [
             {
               "@type": "Question",
-              name: "What's the difference between CRM plans and white-label plans?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "CRM plans are for businesses that just want a CRM to manage their own sales. White-label plans let you resell the CRM under your own brand to your clients.",
-              },
-            },
-            {
-              "@type": "Question",
               name: "What are the setup fees?",
               acceptedAnswer: {
                 "@type": "Answer",
@@ -50,26 +41,10 @@ export const Route = createFileRoute("/pricing")({
             },
             {
               "@type": "Question",
-              name: "What does white-label mean?",
+              name: "What's the Custom plan?",
               acceptedAnswer: {
                 "@type": "Answer",
-                text: "Your logo, your colors, your domain, your brand. Your clients will never know it's built by us. White-label plans include full rebranding.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "Can I upgrade from a CRM plan to white-label?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Yes! Contact us and we'll help you transition. We'll credit a portion of your existing payments toward the upgrade.",
-              },
-            },
-            {
-              "@type": "Question",
-              name: "What's the Custom CRM build?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "A fully bespoke system starting at $10K — tailored workflows, unique dashboards, and integrations built specifically for your business.",
+                text: "A bespoke engagement — tailored workflows, dedicated migration, and white-glove onboarding built specifically for your business. Pricing scoped after a short discovery call.",
               },
             },
             {
@@ -77,7 +52,7 @@ export const Route = createFileRoute("/pricing")({
               name: "How do I reach you?",
               acceptedAnswer: {
                 "@type": "Answer",
-                text: "Call or text us at +1 (540) 244-1130 or email darsh.pod@gmail.com. We typically reply within one business day.",
+                text: "Call or text us at +1 (940) 365-6600 or email support@virecrm.com. We typically reply within one business day.",
               },
             },
           ],
@@ -90,9 +65,9 @@ export const Route = createFileRoute("/pricing")({
           "@type": "LocalBusiness",
           name: "VireCRM",
           url: "https://virecrm.com/pricing",
-          telephone: "+1-540-244-1130",
-          email: "darsh.pod@gmail.com",
-          priceRange: "$97-$10000",
+          telephone: "+1-940-365-6600",
+          email: "support@virecrm.com",
+          priceRange: "$97-$297",
         }),
       },
     ],
@@ -110,7 +85,7 @@ function PricingPage() {
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h1 className="text-4xl font-bold text-foreground">Plans That Fit Your Business</h1>
             <p className="mt-3 text-lg text-muted-foreground">
-              Just need a CRM? We'll build and run it for you. Want to resell it? Go white-label.
+              We'll build, host, and run your CRM. Pick a plan or talk to sales for a custom build.
             </p>
           </div>
 
@@ -124,28 +99,16 @@ function PricingPage() {
             <div className="space-y-4">
               {[
                 {
-                  q: "What's the difference between CRM plans and white-label plans?",
-                  a: "CRM plans are for businesses that just want a CRM to manage their own sales. White-label plans let you resell the CRM under your own brand to your clients.",
-                },
-                {
                   q: "What are the setup fees?",
                   a: "Setup fees cover custom configuration, onboarding, and initial data migration. They're invoiced separately after a discovery call — not charged at checkout.",
                 },
                 {
-                  q: "What does white-label mean?",
-                  a: "Your logo, your colors, your domain, your brand. Your clients will never know it's built by us. White-label plans include full rebranding.",
+                  q: "What's the Custom plan?",
+                  a: "A bespoke engagement — tailored workflows, dedicated migration, and white-glove onboarding built specifically for your business. Pricing scoped after a short discovery call.",
                 },
                 {
-                  q: "Can I upgrade from a CRM plan to white-label?",
-                  a: "Yes! Contact us and we'll help you transition. We'll credit a portion of your existing payments toward the upgrade.",
-                },
-                {
-                  q: "What's the Custom CRM build?",
-                  a: "A fully bespoke system starting at $10K — tailored workflows, unique dashboards, and integrations built specifically for your business. Contact us to discuss your needs.",
-                },
-                {
-                  q: "Why are Custom CRM and Full Ownership invoiced after a call instead of using Stripe checkout?",
-                  a: "These tiers are bespoke engagements, not fixed SaaS subscriptions. Before we charge anything, we run a short discovery call to confirm scope (workflows, integrations, source-code handoff, ownership terms), agree on the final price, and prepare a written statement of work. Once that's signed, we send a secure Stripe invoice — so you only pay for exactly what was scoped, with a paper trail. Charging $7K+ through a public self-serve button without that conversation would be the suspicious move; an invoice tied to a signed SOW is the standard, safe way to do high-ticket custom work.",
+                  q: "Why is the Custom plan invoiced after a call instead of using Stripe checkout?",
+                  a: "Bespoke engagements aren't fixed SaaS subscriptions. Before we charge anything, we run a short discovery call to confirm scope (workflows, integrations, migration plan), agree on the final price, and prepare a written statement of work. Once that's signed, we send a secure Stripe invoice — so you only pay for exactly what was scoped, with a paper trail.",
                 },
                 {
                   q: "How do I reach you?",
@@ -153,10 +116,10 @@ function PricingPage() {
                     <>
                       Call or text us at{" "}
                       <a
-                        href="tel:+15402441130"
+                        href="tel:+19403656600"
                         className="font-medium text-primary hover:underline"
                       >
-                        +1 (540) 244-1130
+                        +1 (940) 365-6600
                       </a>{" "}
                       or email{" "}
                       <a href={SUPPORT_MAILTO} className="font-medium text-primary hover:underline">
@@ -181,17 +144,17 @@ function PricingPage() {
       <section className="border-t border-border bg-card/30 py-12">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-xl font-bold text-foreground">
-            Talk to a human about Custom CRM or Full Ownership
+            Talk to a human about a Custom build
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Skip the form — call, text, or email us directly to book a discovery call.
           </p>
           <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <a
-              href="tel:+15402441130"
+              href="tel:+19403656600"
               className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-5 py-2.5 text-sm font-medium text-foreground hover:bg-primary/20 transition-colors"
             >
-              <Phone className="h-4 w-4" aria-hidden="true" /> +1 (540) 244-1130
+              <Phone className="h-4 w-4" aria-hidden="true" /> +1 (940) 365-6600
             </a>
             <a
               href={SUPPORT_MAILTO}

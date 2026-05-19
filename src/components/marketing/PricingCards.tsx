@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, ArrowRight, Sparkles, Crown, Building2, Monitor, Key, Info } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, Crown, Monitor, Key, Info } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useNavigate } from "@tanstack/react-router";
@@ -97,118 +97,24 @@ export const crmTiers: PricingTier[] = [
     ctaVariant: "command",
   },
   {
-    name: "Custom CRM",
-    price: "Custom",
-    period: "quote",
-    description:
-      "A fully bespoke CRM — tailored workflows, advanced automations, unique dashboards, and integrations built around your business.",
-    badge: "Premium",
+    name: "Custom",
+    price: "Let's talk",
+    period: "",
+    description: "Custom builds, dedicated migration, white-glove onboarding.",
+    badge: "Talk to sales",
     isOwnership: true,
     ctaLink: "/contact",
     features: [
-      { text: "Fully customized system", included: true },
-      { text: "Tailored workflows", included: true },
-      { text: "Advanced automations", included: true },
-      { text: "Unique dashboards", included: true },
-      { text: "Business-specific integrations", included: true },
-      { text: "Dedicated onboarding", included: true },
-      { text: "Architecture consulting", included: true },
-      { text: "Ongoing maintenance options", included: true },
-    ],
-    cta: "Contact Us",
-    ctaVariant: "outline",
-  },
-];
-
-// White-label tiers (leasing + ownership for resellers)
-export const whiteLabelTiers: PricingTier[] = [
-  {
-    name: "Lease — Starter",
-    price: "$249",
-    period: "/month",
-    description:
-      "White-label VireCRM leased to your business. Full branding, your domain, your clients.",
-    stripePriceId: "lease_starter_monthly",
-    features: [
-      { text: "White-label branding", included: true },
-      { text: "Custom domain", included: true },
-      { text: "Up to 2,000 leads", included: true },
-      { text: "Pipeline management", included: true },
-      { text: "Email outreach", included: true },
-      { text: "AI lead scoring", included: true },
-      { text: "AI reply classification", included: true },
-      { text: "AI message generation", included: false },
-      { text: "Auto follow-ups", included: false },
-      { text: "Full source code", included: false },
-    ],
-    cta: "Start Lease",
-    ctaVariant: "outline",
-  },
-  {
-    name: "Lease — Professional",
-    price: "$849",
-    period: "/month",
-    description: "Full-featured white-label CRM with all AI agents. Scale your sales operation.",
-    badge: "Most Popular",
-    highlighted: true,
-    stripePriceId: "lease_pro_monthly",
-    features: [
-      { text: "White-label branding", included: true },
-      { text: "Custom domain", included: true },
-      { text: "Up to 25,000 leads", included: true },
-      { text: "Pipeline management", included: true },
-      { text: "Email + SMS outreach", included: true },
-      { text: "AI lead scoring", included: true },
-      { text: "AI reply classification", included: true },
-      { text: "AI message generation", included: true },
-      { text: "Auto follow-ups", included: true },
-      { text: "AI scheduling agent", included: true },
-    ],
-    cta: "Start Lease",
-    ctaVariant: "command",
-  },
-  {
-    name: "Full Ownership",
-    price: "$7,000",
-    period: "one-time",
-    description:
-      "Own the entire VireCRM platform outright. Your code, your servers, your business — forever.",
-    badge: "Best Value",
-    isOwnership: true,
-    ctaLink: "/contact",
-    features: [
-      { text: "White-label branding", included: true },
-      { text: "Custom domain", included: true },
-      { text: "Unlimited leads", included: true },
-      { text: "All AI agents included", included: true },
-      { text: "Full source code ownership", included: true },
-      { text: "Email + SMS + calls", included: true },
-      { text: "Auto follow-ups", included: true },
-      { text: "AI scheduling agent", included: true },
-    ],
-    cta: "Contact Us",
-    ctaVariant: "outline",
-  },
-  {
-    name: "Custom Enterprise",
-    price: "$14,000+",
-    period: "one-time",
-    description:
-      "Starting at $14,000 one-time — full ownership plus custom features built for your specific business needs and workflows.",
-    badge: "Tailored",
-    isOwnership: true,
-    ctaLink: "/contact",
-    features: [
-      { text: "Everything in Full Ownership", included: true },
-      { text: "Custom feature development", included: true },
-      { text: "Bespoke AI agent workflows", included: true },
+      { text: "Everything in Pro", included: true },
+      { text: "Bespoke workflows", included: true },
       { text: "Custom integrations", included: true },
-      { text: "Dedicated onboarding", included: true },
-      { text: "Priority support", included: true },
+      { text: "Dedicated migration", included: true },
+      { text: "White-glove onboarding", included: true },
       { text: "Architecture consulting", included: true },
+      { text: "Priority support", included: true },
       { text: "Ongoing maintenance options", included: true },
     ],
-    cta: "Contact Us",
+    cta: "Talk to sales",
     ctaVariant: "outline",
   },
 ];
@@ -229,10 +135,11 @@ function TierCard({
   useEffect(() => {
     const sync = () => setDisplayedPrice(getDisplayedPrice(tier.stripePriceId, tier.price));
     sync();
-    window.addEventListener("virecrm:pricing-overrides-changed", sync);
+    // TODO(rebrand): rename event in a follow-up — must change emitter + this listener atomically.
+    window.addEventListener("majix:pricing-overrides-changed", sync);
     window.addEventListener("storage", sync);
     return () => {
-      window.removeEventListener("virecrm:pricing-overrides-changed", sync);
+      window.removeEventListener("majix:pricing-overrides-changed", sync);
       window.removeEventListener("storage", sync);
     };
   }, [tier.stripePriceId, tier.price]);
@@ -278,7 +185,7 @@ function TierCard({
         {tier.setupFee && (
           <p className="mt-1 text-xs font-medium text-primary/80">{tier.setupFee}</p>
         )}
-        {tier.ctaLink && (
+        {tier.ctaLink === "/contact" && (
           <p className="mt-2 text-[11px] font-medium text-muted-foreground/80">
             Invoiced after a discovery call — never charged at checkout.
           </p>
@@ -287,7 +194,7 @@ function TierCard({
       </div>
 
       {tier.ctaLink ? (
-        // "Contact Us" / ownership tiers route to the in-site contact form
+        // Talk-to-sales / contact-us tiers route to the in-site contact form
         // so prospects stay on the site and email us instead of being kicked
         // out to the phone dialer.
         <Button asChild variant={tier.ctaVariant} className="w-full gap-2" size="sm">
@@ -365,34 +272,6 @@ export function PricingCards() {
         </div>
         <div className="grid gap-6 lg:grid-cols-4">
           {crmTiers.map((tier) => (
-            <TierCard key={tier.name} tier={tier} onCheckout={handleCheckout} />
-          ))}
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          or
-        </span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      {/* White-Label Plans — for resellers */}
-      <div>
-        <div className="mb-8 text-center">
-          <Badge variant="secondary" className="mb-3 gap-1.5 text-sm px-4 py-1">
-            <Building2 className="h-4 w-4" /> White-Label
-          </Badge>
-          <h2 className="text-2xl font-bold text-foreground">White-Label Plans</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Resell the CRM under your own brand. Your logo, your domain, your clients.
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">All prices in USD.</p>
-        </div>
-        <div className="grid gap-6 lg:grid-cols-4">
-          {whiteLabelTiers.map((tier) => (
             <TierCard key={tier.name} tier={tier} onCheckout={handleCheckout} />
           ))}
         </div>

@@ -27,7 +27,7 @@ import { CreditLedgerTimeline } from "@/components/crm/CreditLedgerTimeline";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
-import { crmTiers, whiteLabelTiers, type PricingTier } from "@/components/marketing/PricingCards";
+import { crmTiers, type PricingTier } from "@/components/marketing/PricingCards";
 import { Check, X } from "lucide-react";
 import {
   AlertDialog,
@@ -82,7 +82,7 @@ function estimateProration(args: {
 }
 
 function findTierByPriceId(priceId: string): PricingTier | undefined {
-  return [...crmTiers, ...whiteLabelTiers].find((t) => t.stripePriceId === priceId);
+  return crmTiers.find((t) => t.stripePriceId === priceId);
 }
 
 function InlinePlans({
@@ -92,7 +92,7 @@ function InlinePlans({
   onSelect: (tier: PricingTier) => void;
   currentPriceId?: string;
 }) {
-  const allTiers = [...crmTiers, ...whiteLabelTiers].filter((t) => t.stripePriceId);
+  const allTiers = crmTiers.filter((t) => t.stripePriceId);
   const currentTier = currentPriceId
     ? allTiers.find((t) => t.stripePriceId === currentPriceId)
     : undefined;
