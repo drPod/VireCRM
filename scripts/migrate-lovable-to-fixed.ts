@@ -7,16 +7,19 @@
  * energy-broker fields the old importer dropped.
  *
  * Strategy = enrich, not replace. UUIDs preserved. Bcrypt hashes ported via
- * direct insert into auth.users. Trigger on_auth_user_created disabled during
- * the auth port so handle_new_user doesn't create duplicate orgs.
+ * direct insert into auth.users. handle_new_user trigger short-circuits via
+ * the `app.skip_auto_provision` GUC (added in migration
+ * 20260519120000_handle_new_user_skip_guc.sql) so we don't disable the trigger
+ * directly — postgres doesn't own auth.users (supabase_auth_admin does) and
+ * Supabase blocks granting that role to postgres.
  *
  * Usage:
  *   DATABASE_URL=postgresql://... bun scripts/migrate-lovable-to-fixed.ts [--phase=ALL|A|B|C|D|F] [--dry]
  *
  * DATABASE_URL must be a session-pooler or direct connection to the new
- * Supabase project (NOT the transaction pooler — we need SET LOCAL + ALTER
- * TABLE DISABLE TRIGGER). Get it from Dashboard → Settings → Database →
- * Connection string → "Session pooler" or "Direct connection".
+ * Supabase project (NOT the transaction pooler — we need SET LOCAL). Get
+ * it from Dashboard → Settings → Database → Connection string → "Session
+ * pooler" or "Direct connection".
  *
  * Full plan: docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md
  */
@@ -243,9 +246,14 @@ async function phaseA_authUsers(dump: AuthInserts) {
   }
 
   await sql.begin(async (tx) => {
-    // Disable handle_new_user trigger so it doesn't auto-provision a duplicate
-    // org per ported user. We're porting orgs/profiles/roles separately.
-    await tx.unsafe(`ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created`);
+    // Short-circuit handle_new_user via GUC so it doesn't auto-provision a
+    // duplicate org per ported user. We port orgs/profiles/roles separately.
+    // Postgres doesn't own auth.users (supabase_auth_admin does), so we can't
+    // DISABLE TRIGGER. The GUC check was added in migration
+    // 20260519120000_handle_new_user_skip_guc.sql.
+    await tx.unsafe(`SET LOCAL app.skip_auto_provision = 'on'`);
+    // Pose as service_role so RLS + service-role-gated triggers allow writes.
+    await tx.unsafe(`SET LOCAL request.jwt.claim.role = 'service_role'`);
 
     try {
       const liveAuthUsers = await tx`
@@ -309,7 +317,7 @@ async function phaseA_authUsers(dump: AuthInserts) {
       }
       console.log(`  auth.identities: ${identInserted} inserted/upserted`);
     } finally {
-      await tx.unsafe(`ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created`);
+      // SET LOCAL auto-reverts at transaction commit/rollback — nothing to undo.
     }
   });
 }
@@ -351,6 +359,33 @@ async function phaseC_userRolesAndProfiles(blocks: Map<string, CopyBlock>) {
     authUsers.filter((u) => !isSkippedEmail(u.email)).map((u) => u.id),
   );
 
+  // Build old_custom_role_id → role_name map from the dump. The new DB's
+  // seed_builtin_roles_for_org trigger created fresh custom_roles per
+  // Phase-B-upserted org with new UUIDs, so user_roles.custom_role_id from
+  // the dump won't FK match. Remap by (organization_id, name).
+  const oldRoleToName = new Map<string, string>(); // old_role_id → name
+  const crBlock = blocks.get("custom_roles");
+  if (crBlock) {
+    const idIdx = crBlock.columns.indexOf("id");
+    const nameIdx = crBlock.columns.indexOf("name");
+    for (const r of crBlock.rows) {
+      if (idIdx >= 0 && nameIdx >= 0 && r[idIdx] && r[nameIdx]) {
+        oldRoleToName.set(r[idIdx]!, r[nameIdx]!);
+      }
+    }
+  }
+
+  // (org_id, name) → new custom_role_id, fetched live (only if not dry).
+  const newRoleByKey = new Map<string, string>();
+  if (!dryRun) {
+    const orgIds = [...ALLOWED_ORG_IDS];
+    const live = await sql<Array<{ id: string; organization_id: string; name: string }>>`
+      SELECT id, organization_id, name FROM public.custom_roles
+      WHERE organization_id IN ${sql(orgIds)}
+    `;
+    for (const r of live) newRoleByKey.set(`${r.organization_id}|${r.name}`, r.id);
+  }
+
   for (const table of ["user_roles", "profiles"] as const) {
     const block = blocks.get(table);
     if (!block) { console.log(`  ${table}: no COPY block`); continue; }
@@ -370,6 +405,27 @@ async function phaseC_userRolesAndProfiles(blocks: Map<string, CopyBlock>) {
     }
 
     const objs = await rowsToObjects(table, { columns: block.columns, rows: dumpedEligible });
+
+    if (table === "user_roles") {
+      let remapped = 0;
+      let cleared = 0;
+      for (const o of objs) {
+        const oldRoleId = o["custom_role_id"];
+        if (!oldRoleId) continue;
+        const orgId = o["organization_id"];
+        const name = oldRoleToName.get(oldRoleId);
+        const newId = name && orgId ? newRoleByKey.get(`${orgId}|${name}`) : undefined;
+        if (newId) {
+          o["custom_role_id"] = newId;
+          remapped++;
+        } else {
+          o["custom_role_id"] = null;
+          cleared++;
+        }
+      }
+      console.log(`  user_roles: custom_role_id remapped=${remapped} cleared=${cleared}`);
+    }
+
     await upsertRows(table, objs);
     console.log(`  ${table}: ${objs.length} upserted`);
   }
@@ -507,40 +563,46 @@ async function phaseF_xlsxSupplement() {
 
   let updated = 0;
   let inserted = 0;
-  for (const r of rows) {
-    let matched: Lead | undefined;
-    if (r.esi && byEsi.has(r.esi)) matched = byEsi.get(r.esi);
-    else if (r.name && r.email) matched = byNameEmail.get(`${r.name.toLowerCase()}|${r.email.toLowerCase()}`);
+  await sql.begin(async (tx) => {
+    await tx.unsafe(`SET LOCAL request.jwt.claim.role = 'service_role'`);
+    for (const r of rows) {
+      let matched: Lead | undefined;
+      if (r.esi && byEsi.has(r.esi)) matched = byEsi.get(r.esi);
+      else if (r.name && r.email) matched = byNameEmail.get(`${r.name.toLowerCase()}|${r.email.toLowerCase()}`);
 
-    if (matched) {
-      await sql`
-        UPDATE public.leads SET
-          esi_id = COALESCE(${r.esi}, esi_id),
-          title = COALESCE(${r.title}, title),
-          service_address = COALESCE(${r.service_address}, service_address),
-          current_supplier = COALESCE(${r.current_supplier}, current_supplier),
-          annual_kwh = COALESCE(${r.annual_kwh}, annual_kwh),
-          agent_mils = COALESCE(${r.agent_mils}, agent_mils),
-          contract_start_date = COALESCE(${r.contract_start_date}::date, contract_start_date),
-          contract_end_date = COALESCE(${r.contract_end_date}::date, contract_end_date),
-          updated_at = now()
-        WHERE id = ${matched.id}
-      `;
-      updated++;
-    } else if (r.name || r.company || r.email) {
-      await sql`
-        INSERT INTO public.leads
-          (organization_id, name, email, phone, company, status, source,
-           esi_id, title, service_address, current_supplier,
-           annual_kwh, agent_mils, contract_start_date, contract_end_date)
-        VALUES
-          (${targetOrg}, ${r.name}, ${r.email}, ${r.phone}, ${r.company}, 'won', 'xlsx_supplement',
-           ${r.esi}, ${r.title}, ${r.service_address}, ${r.current_supplier},
-           ${r.annual_kwh}, ${r.agent_mils}, ${r.contract_start_date}::date, ${r.contract_end_date}::date)
-      `;
-      inserted++;
+      if (matched) {
+        await tx`
+          UPDATE public.leads SET
+            esi_id = COALESCE(${r.esi}, esi_id),
+            title = COALESCE(${r.title}, title),
+            service_address = COALESCE(${r.service_address}, service_address),
+            current_supplier = COALESCE(${r.current_supplier}, current_supplier),
+            annual_kwh = COALESCE(${r.annual_kwh}, annual_kwh),
+            agent_mils = COALESCE(${r.agent_mils}, agent_mils),
+            contract_start_date = COALESCE(${r.contract_start_date}::date, contract_start_date),
+            contract_end_date = COALESCE(${r.contract_end_date}::date, contract_end_date),
+            updated_at = now()
+          WHERE id = ${matched.id}
+        `;
+        updated++;
+      } else if (r.name || r.company || r.email) {
+        // leads.name is NOT NULL. xlsx rows often have only company+email
+        // (commercial accounts). Fall back so the row is portable.
+        const leadName = r.name ?? r.company ?? r.email ?? "Unknown";
+        await tx`
+          INSERT INTO public.leads
+            (organization_id, name, email, phone, company, status, source,
+             esi_id, title, service_address, current_supplier,
+             annual_kwh, agent_mils, contract_start_date, contract_end_date)
+          VALUES
+            (${targetOrg}, ${leadName}, ${r.email}, ${r.phone}, ${r.company}, 'won', 'xlsx_supplement',
+             ${r.esi}, ${r.title}, ${r.service_address}, ${r.current_supplier},
+             ${r.annual_kwh}, ${r.agent_mils}, ${r.contract_start_date}::date, ${r.contract_end_date}::date)
+        `;
+        inserted++;
+      }
     }
-  }
+  });
   console.log(`  xlsx: ${updated} leads updated, ${inserted} new leads inserted`);
 }
 
@@ -570,7 +632,14 @@ async function upsertRows(table: string, rows: Record<string, string | null>[], 
     }
     const stmt = `INSERT INTO public.${q(table)} (${colList}) VALUES ${valuesSql.join(", ")}
                   ON CONFLICT (id) DO UPDATE SET ${updateClause}`;
-    await sql.unsafe(stmt, params);
+    // Wrap each chunk in a transaction so SET LOCAL request.jwt.claim.role
+    // = 'service_role' applies — bypasses RLS + service-role-gated triggers
+    // (e.g. enforce_custom_domain_entitlement, leads_enforce_industry_template
+    // etc.) that check auth.role() before allowing the write.
+    await sql.begin(async (tx) => {
+      await tx.unsafe(`SET LOCAL request.jwt.claim.role = 'service_role'`);
+      await tx.unsafe(stmt, params);
+    });
   }
 }
 

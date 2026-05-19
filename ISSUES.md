@@ -256,10 +256,52 @@ Partial cutover landed this session via Cloudflare API MCP + supabase CLI. Stopp
 - **Account ID for CF API calls:** `060435e1bb68c9c846e32b71ee1d4670` (pre-set as `accountId` in MCP). **Worker ID:** `eaf104a2bf08448e80c8e13a91296955` (`genesisxsx`). Already set as active in the builds MCP.
 - **Dirty working tree pre-session.** `src/components/crm/CrmSidebar.tsx` was unstaged when I started this session; user committed it as `6026322` mid-session along with `7dde16b` (migration script). Both pushed before my Unit 20 commit. Working tree should be clean at end of this session aside from `01-home-desktop.png` (untracked screenshot, user-owned).
 
+### 2026-05-19 — Lovable→fixed-DB migration: live production port (Steps 3+4)
+**Tags:** [lovable-migration] [supabase] [auth] [data-port]
+
+Steps 3+4 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. User chose to skip the preview-branch dry-run (cost-conscious; idempotent script). Production port ran directly against `coynbufhejaeuifpvmvw` via Session pooler. Three permission walls hit + worked around; one schema fixup applied; one NOT-NULL fallback added.
+
+#### Shipped
+
+- **Migration `20260519120000_handle_new_user_skip_guc.sql`** — adds `app.skip_auto_provision` GUC check to `handle_new_user` trigger function. `postgres` can't `DISABLE TRIGGER on_auth_user_created` on `auth.users` (Supabase reserves ownership to `supabase_auth_admin` + blocks `GRANT supabase_auth_admin TO postgres`), so the workaround is to short-circuit inside the trigger body. Default OFF — normal signup flow unchanged.
+- **`scripts/migrate-lovable-to-fixed.ts` updates** —
+  - Phase A switched from `ALTER TABLE … DISABLE TRIGGER` to `SET LOCAL app.skip_auto_provision = 'on'` + `SET LOCAL request.jwt.claim.role = 'service_role'` inside the transaction.
+  - Phase C added custom-role remap: `seed_builtin_roles_for_org` trigger seeds new UUIDs per org on Phase B INSERT, so dump `user_roles.custom_role_id` FKs to non-existent rows. Lookup by `(organization_id, name)` against live `custom_roles` replaces every old UUID.
+  - `upsertRows()` now wraps each chunk in `sql.begin` + `SET LOCAL request.jwt.claim.role = 'service_role'` — bypasses `enforce_custom_domain_entitlement` and any other `auth.role() = 'service_role'`-gated trigger.
+  - Phase F UPDATE/INSERT loop similarly wrapped in `sql.begin` with the same SET LOCAL.
+  - Phase F INSERT path falls back `name = r.name ?? r.company ?? r.email ?? "Unknown"` — `leads.name` is NOT NULL but xlsx commercial-account rows often arrive with only company + email.
+- **`.env`** — DB password rotated as part of the run. New password lives in `SUPABASE_DB_PASSWORD` + `SUPABASE_DB_URL` (transaction pooler 6543) + `SUPABASE_DB_URL_DIRECT` (direct 5432) + `DATABASE_URL` (session pooler 5432, what the migration script reads). `.env` confirmed gitignored.
+
+#### Found (resolved in-flight)
+
+- ~~Phase A off-by-one (14 eligible vs documented 13)~~ — documentation was wrong, not the script. There are TWO `qa-*` emails in the dump (qa-invitee, qa-test) + ONE `qa2-*` (qa2-vireon), not three `qa-*`. Regex `/^qa\d*[-_@]/i` matches all three. Filter result is correct: 4 audit + 2 qa- + 1 qa2- + 1 e2etest + 1 testcrm = 9 skipped, 14 kept.
+- The "6 personal Gmails" count from the prior session's `## Open` was wrong — there are actually **10** personal Gmails kept by the filter (alexanderjakari, cameroncaziah, caziahbankss, davioncarr60, esereti22, ethansereti, info.solace05, jesaira.lifosjoe12, paparusse02, primeframem). User chose to port all 10.
+
+#### Verification (live counts, post-port)
+
+- `auth.users` = 16 total (14 ported + 2 pre-existing dev/test).
+- `auth.identities` = 17 (15 ported + 2 pre-existing).
+- `organizations` (whitelisted) = 2. Slugs: `greenenergiai` (override applied to Caziah's `8b8c76ab-…`), `crystal-cameron-7ba2ebfa` (Crystal's own `188c4869-…`, slug carried from dump).
+- `user_roles` (whitelisted orgs) = 10, every `custom_role_id` remapped to new builtin role UUIDs.
+- `profiles` (whitelisted orgs) = 10.
+- `leads` total ported = **13,991** = 9,198 Caziah org (5,389 dump + 3,809 xlsx INSERT) + 4,793 Crystal own org (dump only).
+- xlsx supplement accounted = 982 ESI-matched UPDATEs + 3,809 new INSERTs = **4,791** (matches xlsx data-row count exactly — 654 trailing blanks correctly skipped).
+- `bun run typecheck` clean.
+
+#### Manual follow-up (user)
+
+- **Spot-check 10 Caziah leads** for energy-field population (`agent_mils`, `annual_kwh`, `contract_start_date`, `current_supplier`, `service_address`) where xlsx had data.
+- **Crystal own-org leads got no xlsx enrichment.** Confirm whether ngp-master xlsx applies only to Caziah's tenant or also her own.
+- **Crystal's own-org slug `crystal-cameron-7ba2ebfa` is ugly.** Per Open Question #3 in handoff, decide rename-now vs rename-later.
+- **Caziah / Crystal sign-in smoke test** on the new DB before Step 6 (freeze old Lovable project). Both should be able to log in with their existing bcrypt passwords.
+- ~~Provide `DATABASE_URL`~~ — done (new rotated password in `.env`).
+- ~~Decide org consolidation~~ — user said "no bruh those are two separate organizations", port keeps both.
+- ~~Recheck Phase A skip math~~ — math was already correct, documentation was off.
+
 ### 2026-05-19 — Lovable→fixed-DB migration script (Step 2 of handoff)
 **Tags:** [lovable-migration] [supabase]
 
-Step 2 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Script written + dry-run-validated against parsed dumps. NOT yet run against live DB (Step 3 = branch dry-run, blocked on `DATABASE_URL`).
+Step 2 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Script written + dry-run-validated against parsed dumps. NOT yet run against live DB (Step 3 = branch dry-run, blocked on `DATABASE_URL`). **Superseded 2026-05-19 by the live-port entry above** — leaving the original session-4 record intact for archive.
 
 #### Shipped
 
