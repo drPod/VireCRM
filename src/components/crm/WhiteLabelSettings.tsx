@@ -549,7 +549,7 @@ export function WhiteLabelSettings() {
             className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Appended to outbound emails sent through Majix. Leave blank to use the default
+            Appended to outbound emails sent through VireCRM. Leave blank to use the default
             sign-off ("— {brandName || "Your brand"}").
           </p>
         </div>
@@ -575,7 +575,7 @@ export function WhiteLabelSettings() {
           />
           <p className="mt-2 text-xs text-muted-foreground">
             Used as the <strong className="text-foreground">Reply-To</strong> on outreach emails
-            sent through Majix, and as the support address on your branded error screens. When a
+            sent through VireCRM, and as the support address on your branded error screens. When a
             lead hits Reply, the message lands in this inbox. To also send <em>from</em> your own
             domain, connect SendGrid under Integrations.
           </p>
