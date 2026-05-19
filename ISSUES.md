@@ -150,6 +150,48 @@ Two real bug fixes in `CrmSidebar.tsx`. Audit pass over `## Open` "Bugs found" +
 
 - Repo-wide lint count jumped from ~5210 to 104149. Investigate next session — likely a config change or plugin update cascading; not from this work.
 
+### 2026-05-19 — rebrand cutover partial: DNS + dual-zone SQL + CF tooling docs landed (handoff to next session)
+**Tags:** [rebrand] [cf-saas] [supabase] [handoff]
+
+Partial cutover landed this session via Cloudflare API MCP + supabase CLI. Stopping here to keep main-context lean before handoff.
+
+#### Shipped this session
+
+- **DNS records on `virecrm.com` zone confirmed live + serving.** Verified via Cloudflare API (`mcp__plugin_cloudflare_cloudflare-api__execute` → `/zones/.../dns_records`): apex AAAA `100::`, four CNAMEs (`www`, `app`, `customers`, `*` all → `virecrm.com`, all proxied). Resend trio (`MX send.notify.virecrm.com` → `feedback-smtp.us-east-1.amazonses.com`, DKIM TXT on `resend._domainkey.notify.virecrm.com`, SPF TXT `v=spf1 include:amazonses.com ~all` on `send.notify.virecrm.com`). Earlier `dig` runs returning empty were stale resolver cache, not actual missing records.
+- **HTTP smoke green from public.** `virecrm.com`, `www.virecrm.com`, `app.virecrm.com`, `<slug>.virecrm.com` all return HTTP 200 with `<title>VireCRM — Never Let a Lead Go Cold Again</title>`. Worker bundle attached to all virecrm.com routes via CF Workers Builds — last main-branch build `b4f0cbc8` (commit `6026322`) and `98a7124e` (commit `ea7a9e3`, my Unit 20 push) both succeeded.
+- **Supabase dual-zone migration `20260519100844_get_org_by_domain_virecrm.sql` PUSHED to remote** (`supabase db push --linked --include-all`). Verified with `SELECT get_org_by_domain('smoke-test-user-516e90e0.virecrm.com')` AND `.majix.ai` — both return the same tenant blob. Dual-zone resolver works end-to-end.
+- **CF tooling docs (commit `7a25aeb`, NOT pushed yet).** CLAUDE.md + AGENTS.md + README.md updated with which CF skill / MCP server to invoke for which task (routing table format). Replaces the broken `cloudflare-docs` MCP ref with `cloudflare:cloudflare` skill where applicable. Per `git log origin/main..main`: 1 unpushed commit ready when user is.
+- **Zone IDs captured for next-session reference:**
+  - `virecrm.com` → `bef363938825376aef7db07f57c3f04b`
+  - `majix.ai` → `a5a3f9d70f46387b2f3933dbb5c68cde`
+
+#### Found / decided / parked
+
+- **MCP token-scope ceiling.** The `cloudflare@cloudflare` plugin's OAuth-issued token only carries `#zone:read` / `#zone_settings:edit` / `#waf:read` / `#logs:read`. **No `#ssl:edit`** — so `/zones/{id}/custom_hostnames*` endpoints return `10000: Authentication error`. CF for SaaS API work (provision, list, fallback origin) is not reachable through this MCP. Two options for next session: (a) extend the existing `CLOUDFLARE_API_TOKEN` Worker secret's zone resources to include `virecrm.com` and shell-out via `curl` against the API, (b) dashboard-click steps 5+ from the runbook.
+- **`CLOUDFLARE_ZONE_ID` Worker secret untouched.** Currently set to the majix.ai zone (legacy). DO NOT flip to virecrm.com without first updating the code that reads it (`src/functions/custom-hostnames.functions.ts` + `src/functions/domain-health.functions.ts`) to also accept `CLOUDFLARE_LEGACY_ZONE_ID`. Flip-without-code-update would break any existing customer custom-hostname provisioning. Both zones currently have 0 custom hostnames (per MCP attempt, errored on auth but the count check happened pre-error), so the actual risk is theoretical — but flag remains.
+- **`greenenergiai.virecrm.com` resolves null.** The greenenergiai org was deleted on the new DB during 2026-05-19 session-3 cleanup (`c31c2a18-…` org dropped pending old-DB→new-DB migration). Dual-zone resolver returns NULL because the tenant doesn't exist, not because the resolver is broken (smoke-test-user slug resolves fine on both zones — proves resolver works). Will populate again when `scripts/migrate-lovable-to-fixed.ts` runs (separate work track, blocked on user-provided `DATABASE_URL`).
+
+#### Pending — pick up here next session
+
+1. **Push `7a25aeb`** (CF tooling docs) to remote. One-liner: `git push origin main`. Will trigger a fresh CF Workers Build but no behavior change.
+2. **CF for SaaS dashboard config on `virecrm.com` zone.** Either (a) MCP token-extend route — go to Cloudflare → My Profile → API Tokens → edit the OAuth-issued plugin token → add `SSL and Certificates: Edit` permission scoped to both zones, then re-auth the MCP. OR (b) use the existing `CLOUDFLARE_API_TOKEN` Worker secret (already scoped for SSL/Certs on majix.ai) — extend its zone resources to include `virecrm.com` and hit the API directly. Then: enable CF for SaaS on the zone, set `customers.virecrm.com` as the fallback origin, wait for status **Active**.
+3. **Mint `CLOUDFLARE_LEGACY_ZONE_ID` Worker secret** = `a5a3f9d70f46387b2f3933dbb5c68cde` (majix.ai). Also re-evaluate whether to flip `CLOUDFLARE_ZONE_ID` to `bef363938825376aef7db07f57c3f04b` (virecrm.com) and update the Worker code that consumes both. Pin the decision in `docs/custom-domains/cf-for-saas-setup.md` before flipping.
+4. **Supabase Auth redirect URLs.** Dashboard → project `coynbufhejaeuifpvmvw` → Authentication → URL Configuration → Redirect URLs → add `https://virecrm.com`, `https://virecrm.com/**`, `https://www.virecrm.com`, `https://www.virecrm.com/**`, `https://app.virecrm.com`, `https://app.virecrm.com/**`, `https://*.virecrm.com`, `https://*.virecrm.com/**`. Keep majix.ai entries (parallel cutover). Consider flipping **Site URL** to `https://app.virecrm.com`.
+5. **Live browser smoke per Unit 20 table** — apex / www / app / slug on both zones, DevTools console clean, Resend test send. Already covered by HTTP 200 + title check from CLI; missing the JS-runtime / DomainBrandingProvider verify and an actual transactional email send.
+
+#### Verification
+
+- `git log origin/main..main` — 1 commit ahead (`7a25aeb`).
+- `bun run typecheck` + `bun run build` + `bash scripts/lint-issues.sh` — all clean.
+- Public HTTP smoke: 200 OK on apex / www / app / slug on virecrm.com. Resend records auth-resolve. Worker is the right one (CF Workers Builds main-branch deploys green).
+- Dual-zone RPC smoke: `get_org_by_domain('<real-slug>.virecrm.com')` returns blob, `.majix.ai` returns same blob, reserved-label hosts return null.
+
+#### Handoff context for next session
+
+- **Cloudflare plugin** (`cloudflare@cloudflare`) installed + authed. Use the routing table in CLAUDE.md "Cloudflare tooling" — pick the right MCP / skill before exploring. `mcp__plugin_cloudflare_cloudflare-api__*` works for DNS / zones / settings; **does NOT work for custom_hostnames** (`#ssl:edit` missing) — see "MCP token-scope ceiling" above.
+- **Account ID for CF API calls:** `060435e1bb68c9c846e32b71ee1d4670` (pre-set as `accountId` in MCP). **Worker ID:** `eaf104a2bf08448e80c8e13a91296955` (`genesisxsx`). Already set as active in the builds MCP.
+- **Dirty working tree pre-session.** `src/components/crm/CrmSidebar.tsx` was unstaged when I started this session; user committed it as `6026322` mid-session along with `7dde16b` (migration script). Both pushed before my Unit 20 commit. Working tree should be clean at end of this session aside from `01-home-desktop.png` (untracked screenshot, user-owned).
+
 ### 2026-05-19 — Lovable→fixed-DB migration script (Step 2 of handoff)
 **Tags:** [lovable-migration] [supabase]
 
