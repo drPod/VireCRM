@@ -37,19 +37,13 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### Phase 2 — Lovable cleanup follow-ups
 
-- [ ] **Connector OAuth proxy** — replace `src/lib/connectors/gateway.ts` stub (currently throws `ConnectorNotConfiguredError(503)`). Nango or hand-rolled. Apollo/Slack/Gmail/Twilio/Sendgrid integrations dark until done.
-- [ ] **Email send path still hits Lovable.** `src/lib/email/send.ts:36`, `src/lib/email/dispatch-outreach.ts`, `src/lib/admin-quote-email.functions.ts:99` POST to `/lovable/email/transactional/send` (dead). Either keep route as Resend SDK shim or rewrite callers direct.
-- [ ] **Customer-domain onboarding still points DNS at LOVABLE.** `src/components/crm/CustomerDomainOnboardingDialog.tsx:15,71-90,145` + `src/components/crm/DomainHealthPanel.tsx:33-34,344,435-449` — A-record `185.158.133.1`, `_lovable` TXT. Update to CF Workers target + `_majix` token (migration `20260517170000_rebrand_verification_token_prefix.sql`).
-- [ ] **`@lovable.dev/cloud-auth-js`** — social signin (Google/Apple/Microsoft) still routes through it via `src/integrations/lovable/index.ts`. Callers: `BrandedSignup.tsx`, `login.tsx`, `signup.tsx`, `r.$resellerSlug.signup.tsx`. Migrate to Supabase native OAuth providers.
-- [ ] **`ResendSettingsCard.tsx:4` + `resend.functions.ts:4,18,212`** — runtime sentinel `KEY_SENTINEL = "__lovable_connector__"` gates per-org Resend key flow; Phase 1 went direct SDK, likely dead.
+- [ ] **Connector OAuth proxy** — replace `src/lib/connectors/gateway.ts` stub (currently throws `ConnectorNotConfiguredError(503)` at line 41). Nango or hand-rolled. Apollo/Slack/Gmail/Twilio/Sendgrid integrations dark until done.
+- [ ] **Legacy `"lovable"` channel label leaks into outreach telemetry.** `src/lib/email/outreach-delivery.ts:76,452` — built-in fallback returns `channel: "lovable"` even though Lovable infra is gone (Resend under hood). Rename to `"resend"` or `"platform"`; update telemetry/Reports that read it. Cosmetic, not blocking.
 
 ### Bugs found, not fixed
 
-- [ ] **`_app.admin.tsx` lines 770, 797, 1821, 1829, 1837, 2058, 2070** — 7 `window.confirm`/`window.prompt` sites for destructive ops. Port to shadcn `AlertDialog` (pattern at same file 2213+).
-- [ ] **`AddLeadDialog.tsx:160-329`** — every `<label>` bare (no `htmlFor`), every `<input>` lacks `id`/`name`/`autoComplete`. Primary lead-entry form inaccessible to SR + password managers.
-- [ ] **`PipelineView.tsx:286-320`** — drag-and-drop only. No keyboard alternative. Pipeline unreachable via keyboard.
-- [ ] **Auth middleware uses `throw new Response()`** — TanStack Start doesn't serialize Response; 401/403 paths wrap as 500. `src/integrations/supabase/auth-middleware.ts`. Currently dead path (Bearer always attached) but blocks future "token expired mid-call" handling.
-- [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
+- [ ] **Auth middleware uses `throw new Response()`** — TanStack Start doesn't serialize Response; 401/403 paths wrap as 500. `src/integrations/supabase/auth-middleware.ts:13,22,28,32,37,55,59`. Currently dead path (Bearer always attached) but blocks future "token expired mid-call" handling.
+- [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally to all displayed prices. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
 - [ ] **Onboarding wizard `aria-describedby` Radix warning** — re-capture w/ Radix stack trace from browser console next session. Candidates: `command.tsx` (`CommandDialog`, dead), `AddLeadDialog.tsx`, `EnergyTablePage.tsx`, `_app.academy.tsx`, `_app.academy.$courseId.tsx`, `_app.contact-submissions.tsx`.
 
 ### Verification / QA debts
@@ -119,6 +113,76 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-19 — Open-list staleness audit (Phase 2 + bugs)
+**Tags:** [audit] [lovable-remnant] [a11y] [open-list]
+
+Picked up from autonomous-only pile while user-blocked items pending. Verified each `## Open` bullet against current source. **7 items pruned** as fixed by prior unlogged work; **4 real items remain.**
+
+#### Pruned (verified fixed in current `src/`)
+
+- `_app.admin.tsx` window.confirm/prompt — `grep -n 'window\.(confirm|prompt|alert)' src/` returns zero hits across whole tree.
+- `AddLeadDialog.tsx` a11y — every `<label>` has `htmlFor={fid(...)}`, every `<input>` has matching `id` + `name` + appropriate `autoComplete` (`name`, `organization`, `email`, `tel`). Uses React `useId()` for collision-free IDs.
+- `PipelineView.tsx` keyboard alt for drag-drop — `DropdownMenu` "Move to stage" wired with `aria-label`, focus-visible ring, `group-focus-within` reveal. Lines 328-357. Keyboard path exists.
+- Phase 2 — email send path Lovable refs at `src/lib/email/send.ts:36`, `src/lib/email/dispatch-outreach.ts`, `src/lib/admin-quote-email.functions.ts:99` — POSTs to `/lovable/email/transactional/send` gone. None of those three files contain `lovable` (case-insensitive) anymore.
+- Phase 2 — custom-domain onboarding DNS Lovable refs at `CustomerDomainOnboardingDialog.tsx` + `DomainHealthPanel.tsx` — no more `185.158.133.1` or `_lovable` strings; rebrand to CF Workers target + `_majix` TXT prefix already landed.
+- Phase 2 — `@lovable.dev/cloud-auth-js` social signin — `src/integrations/lovable/index.ts` MISSING entirely; zero importers of `@lovable.dev/cloud-auth-js` or `@/integrations/lovable` across `src/`. Migration to Supabase native OAuth complete.
+- Phase 2 — `ResendSettingsCard.tsx:4` sentinel — `KEY_SENTINEL` renamed to `__platform_managed__` at `src/functions/resend.functions.ts:21`; `ResendSettingsCard` no longer references it at all. Phase 1 direct-SDK shift complete.
+
+#### Real items kept in `## Open`
+
+- Phase 2: Connector OAuth proxy stub at `gateway.ts:41` — still throws `ConnectorNotConfiguredError`. Apollo/Slack/Gmail/Twilio/Sendgrid integrations remain dark.
+- Bugs: Auth middleware `throw new Response()` × 7 sites at `auth-middleware.ts:13,22,28,32,37,55,59` — TanStack Start doesn't serialize Response. Dead path now but blocks future "token expired" handling.
+- Bugs: Promo enforcement — `applyPromoDiscount` still unconditional, banner copy lies. Need Stripe `max_redemptions=100` coupon OR server counter.
+- Bugs: Onboarding wizard `aria-describedby` Radix warning — needs re-capture w/ browser console next session.
+
+#### Found (added to `## Open`)
+
+- Legacy `"lovable"` channel label still leaks in `src/lib/email/outreach-delivery.ts:76,452` — built-in fallback returns `channel: "lovable"` even though Resend powers it. Cosmetic, not blocking; added to Phase 2 list. All other `lovable` substring hits across `src/` are migration-history comments/docstrings (`src/lib/resend.ts:5-6`, `src/lib/sendgrid.ts:6`, `src/functions/test-email.functions.ts:9` etc.) — leave as-is, useful historical context.
+
+#### Verification
+
+- `bash scripts/lint-issues.sh` — OK.
+- Pre-edit header count 23, post-edit 24.
+
+#### Manual follow-up (user)
+
+- None new from this audit; all prior pending items remain (push, CF for SaaS, secrets, Supabase Auth URLs, Resend send).
+
+### 2026-05-19 — live-browser smoke on virecrm.com cutover (JS-runtime / DomainBrandingProvider verify)
+**Tags:** [rebrand] [smoke] [domain-branding] [lovable-remnant]
+
+Picked up handoff item 5 from prior session ("rebrand cutover partial" entry below). HTTP smoke already green; missing piece = JS-runtime / React-mount / brand-resolve check. Dispatched headless `agent-browser` subagent (session `virecrm-smoke`, closed cleanly at end, other three sessions left untouched).
+
+#### Verified
+
+- `https://virecrm.com/` — 200, title `VireCRM — Never Let a Lead Go Cold Again`, React mounts clean, console clean, default VireCRM marketing (apex peer — expected).
+- `https://www.virecrm.com/` — 200, same bundle, same outcome (www peer — expected).
+- `https://app.virecrm.com/` — 200, React mounts clean, console clean. Reserved label → `get_org_by_domain` returns NULL → marketing fallback. Per-spec but see "Found" #3.
+- `https://smoke-test-user-516e90e0.virecrm.com/` — 200, React mounts clean, console clean. **Body brand RESOLVED** — heading reads "Get started with Smoke Test User's CRM", branded signup card with org logo + tenant copy. Confirms `DomainBrandingProvider` path-2 (slug match on `<label>.virecrm.com`) wired end-to-end through `get_org_by_domain` RPC.
+
+VERDICT: **all-green** for the JS-runtime / brand-resolve question that the handoff flagged. Smoke item 5 closed except for the Resend test-send leg (mutates external state, requires user nod — left untouched).
+
+#### Found (3 minor follow-ups, none blocking)
+
+1. **`support@majix.ai` constant survived Unit 20 sweep.** `src/config/support.ts:9` — single source of truth, still `support@majix.ai`. Cascades to ~11 user-facing surfaces: `routes/refund-policy.tsx`, `routes/privacy.tsx`, `routes/terms.tsx`, `routes/contact.tsx`, `routes/pricing.tsx`, `components/marketing/BusinessEmailBanner.tsx`, `components/marketing/ContactForm.tsx`, `components/onboarding/ProductTour.tsx:342`, `components/GlobalErrorBoundary.tsx`, `lib/email-templates/contact-inquiry.tsx`, `lib/email-templates/contact-followup-reminder.tsx`. NOT fixed unilaterally — `support@virecrm.com` inbox provisioning status unclear during parallel cutover (notify.virecrm.com itself pending Resend DNS verify per "## Open" item). User call: rebrand the constant now (forwarder must exist by then) OR keep `majix.ai` until 90d cutover (~2026-08-17), batch with the 308 flip.
+2. **Tenant subdomain `<title>` did not flip to org brand.** Subagent saw default `VireCRM — Never Let a Lead Go Cold Again` on the `smoke-test-user-516e90e0` subdomain. `DomainBrandingProvider.tsx:117-125` IS wired to set `document.title = branding.brand_name`, but early-returns if `branding.brand_name` is null/empty. Most likely cause: smoke-test-user org's `brand_name` column is NULL in DB — data gap on the smoke fixture, not a code defect. Real-tenant verify will surface this when a real org's brand_name is set. Logged for awareness; no code action.
+3. **`app.virecrm.com` renders marketing landing, not a login surface.** Per-spec (reserved label → marketing fallback) but a user landing here cold sees no obvious "sign in" affordance beyond the nav link. Possible product follow-up: route `app.virecrm.com/` → `/login` redirect instead of marketing. Surface for product call, not bug.
+4. **Stale screenshot artifact** at `/tmp/virecrm-tenant-smoke.png` (tenant brand screenshot from subagent). Disposable.
+
+#### Verification
+
+- Subagent ran via `agent-browser` CLI; no MCP fallback needed.
+- `agent-browser session list` post-close confirms `virecrm-smoke` gone, `pr-pricing` + `cf-onboarding` + `migration-supabase` (other agents' sessions) intact.
+- Pre-edit header count: 22 `### 2026-` headers. Post-edit: 23. `bash scripts/lint-issues.sh` (run end-of-session).
+
+#### Pending handoff items (unchanged from prior session)
+
+1. Push `7a25aeb` + `5ea0798` (2 commits ahead). Blocked on user nod ("push" command).
+2. CF for SaaS dashboard config on `virecrm.com` zone — blocked on MCP token extension OR shell-out via existing `CLOUDFLARE_API_TOKEN` Worker secret w/ zone resources extended. Either route = user dashboard action.
+3. Mint `CLOUDFLARE_LEGACY_ZONE_ID` Worker secret = `a5a3f9d70f46387b2f3933dbb5c68cde`. `wrangler secret put` mutates shared state — user nod.
+4. Supabase Auth redirect URLs on project `coynbufhejaeuifpvmvw` — dashboard click-through. User-only.
+5. Resend transactional test send from `notify.virecrm.com` (once DNS verified). External-state mutation. User-triggered.
 
 ### 2026-05-19 — low-hanging fruit pass: CrmSidebar fixes + Open-list staleness audit
 **Tags:** [bug] [frontend] [audit]
