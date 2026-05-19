@@ -11,7 +11,7 @@ import {
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = "Majix";
+const SITE_NAME = "VireCRM";
 
 interface ClientWelcomeProps {
   brandName?: string;
@@ -127,7 +127,7 @@ export const template = {
   previewData: {
     brandName: "Acme CRM",
     fullName: "Jane Doe",
-    loginUrl: "https://acme.majix.ai/login",
+    loginUrl: "https://acme.virecrm.com/login",
   },
 } satisfies TemplateEntry;
 

@@ -12,7 +12,7 @@ import {
 import type { TemplateEntry } from "./registry";
 import { SUPPORT_EMAIL } from "@/config/support";
 
-const SITE_NAME = "Majix";
+const SITE_NAME = "VireCRM";
 const OWNER_INBOX = SUPPORT_EMAIL;
 
 interface ContactFollowupReminderProps {
