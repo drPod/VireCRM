@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -98,7 +98,6 @@ export function CrmSidebar() {
   // we surface industry-specific modules + relabel "Leads" using that
   // template's terminology so the sidebar feels native instead of generic.
   const template = getTemplate(organization?.industry_template);
-  const enabledModules = organization?.enabled_modules ?? template.defaultModules;
 
   // Close mobile drawer on Escape
   useEffect(() => {
@@ -110,14 +109,20 @@ export function CrmSidebar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
-  // Lock body scroll when drawer is open
+  // Lock body scroll when drawer is open. Snapshot the original overflow once
+  // on mount — recapturing per render risks stranding `hidden` if another
+  // component (Radix Dialog, etc.) toggled overflow between drawer open/close.
+  const originalOverflowRef = useRef<string>("");
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const original = document.body.style.overflow;
-    if (mobileOpen) document.body.style.overflow = "hidden";
+    originalOverflowRef.current = document.body.style.overflow;
     return () => {
-      document.body.style.overflow = original;
+      document.body.style.overflow = originalOverflowRef.current;
     };
+  }, []);
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.style.overflow = mobileOpen ? "hidden" : originalOverflowRef.current;
   }, [mobileOpen]);
 
   // All five vertical sections render regardless of the org's active template.
@@ -159,9 +164,6 @@ export function CrmSidebar() {
     },
     { to: "/gym", icon: Dumbbell, label: "Member Health", industry: "gym" },
   ];
-
-  // Suppress unused-warning — kept on the auth context for future opt-in modules.
-  void enabledModules;
 
   const sections: NavSection[] = [
     {

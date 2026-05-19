@@ -41,23 +41,16 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Email send path still hits Lovable.** `src/lib/email/send.ts:36`, `src/lib/email/dispatch-outreach.ts`, `src/lib/admin-quote-email.functions.ts:99` POST to `/lovable/email/transactional/send` (dead). Either keep route as Resend SDK shim or rewrite callers direct.
 - [ ] **Customer-domain onboarding still points DNS at LOVABLE.** `src/components/crm/CustomerDomainOnboardingDialog.tsx:15,71-90,145` + `src/components/crm/DomainHealthPanel.tsx:33-34,344,435-449` — A-record `185.158.133.1`, `_lovable` TXT. Update to CF Workers target + `_majix` token (migration `20260517170000_rebrand_verification_token_prefix.sql`).
 - [ ] **`@lovable.dev/cloud-auth-js`** — social signin (Google/Apple/Microsoft) still routes through it via `src/integrations/lovable/index.ts`. Callers: `BrandedSignup.tsx`, `login.tsx`, `signup.tsx`, `r.$resellerSlug.signup.tsx`. Migrate to Supabase native OAuth providers.
-- [ ] **`VerifiedExplainer.tsx:50`** — copy "We asked the Lovable Connector Gateway…" references stubbed gateway. Rewrite.
 - [ ] **`ResendSettingsCard.tsx:4` + `resend.functions.ts:4,18,212`** — runtime sentinel `KEY_SENTINEL = "__lovable_connector__"` gates per-org Resend key flow; Phase 1 went direct SDK, likely dead.
-- [ ] **`admin-quote-email.functions.ts:97`** — fallback origin hardcoded `https://genesisxsx.lovable.app`. Update to `https://majix.ai`.
-- [ ] **`contact-acknowledgment` template** — fallback pricing URL is `https://genesisx.space/pricing` when no `origin` header. Update to `https://majix.ai/pricing`.
 
 ### Bugs found, not fixed
 
 - [ ] **`_app.admin.tsx` lines 770, 797, 1821, 1829, 1837, 2058, 2070** — 7 `window.confirm`/`window.prompt` sites for destructive ops. Port to shadcn `AlertDialog` (pattern at same file 2213+).
 - [ ] **`AddLeadDialog.tsx:160-329`** — every `<label>` bare (no `htmlFor`), every `<input>` lacks `id`/`name`/`autoComplete`. Primary lead-entry form inaccessible to SR + password managers.
 - [ ] **`PipelineView.tsx:286-320`** — drag-and-drop only. No keyboard alternative. Pipeline unreachable via keyboard.
-- [ ] **`CrmSidebar.tsx:113-120`** — body-scroll lock effect snapshots `document.body.style.overflow` per render; route change while drawer open can strand `overflow: hidden`. Snapshot on mount only.
-- [ ] **`CrmSidebar.tsx:163`** — `void enabledModules;` makes feature-flag module gating non-functional.
-- [ ] **`_app.admin.tsx:1340,1354,1888`** — admin invoice email subjects/signatures hardcode "Genesis" / "— Ethan, Genesis". Should be majix branding.
 - [ ] **Auth middleware uses `throw new Response()`** — TanStack Start doesn't serialize Response; 401/403 paths wrap as 500. `src/integrations/supabase/auth-middleware.ts`. Currently dead path (Bearer always attached) but blocks future "token expired mid-call" handling.
 - [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
 - [ ] **Onboarding wizard `aria-describedby` Radix warning** — re-capture w/ Radix stack trace from browser console next session. Candidates: `command.tsx` (`CommandDialog`, dead), `AddLeadDialog.tsx`, `EnergyTablePage.tsx`, `_app.academy.tsx`, `_app.academy.$courseId.tsx`, `_app.contact-submissions.tsx`.
-- [ ] **Reputation banner copy** missing from `VIEW_BANNER_COPY` for `reputation` view in `/preview`. Falls through to default fallback.
 
 ### Verification / QA debts
 
@@ -126,6 +119,36 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-19 — low-hanging fruit pass: CrmSidebar fixes + Open-list staleness audit
+**Tags:** [bug] [frontend] [audit]
+
+Two real bug fixes in `CrmSidebar.tsx`. Audit pass over `## Open` "Bugs found" + "Phase 2 cleanup" subsections — 5 items already fixed by earlier rebrand units / earlier sessions; pruned from Open.
+
+#### Shipped
+
+- `src/components/crm/CrmSidebar.tsx:101` — removed dead `const enabledModules = organization?.enabled_modules ?? template.defaultModules;` pull, and the matching `void enabledModules;` at line 163. The data flow is intact via `useAuth().organization.enabled_modules` — sidebar just wasn't consuming it. Actual gating (mapping nav items → module keys) is product work, not a bugfix. Reframing original ISSUES.md finding: gating isn't "broken," it was never implemented; the void was masking dead code.
+- `src/components/crm/CrmSidebar.tsx:113-126` — body-scroll lock now snapshots `document.body.style.overflow` ONCE on mount via a `useRef`, not per render. Separate effect toggles `hidden` ↔ snapshot on `mobileOpen` change. Prevents stranding `overflow: hidden` if another component (Radix Dialog, etc.) toggles overflow between drawer open/close. Imported `useRef` from react.
+
+#### Audit — items pruned from `## Open` as stale
+
+- **`VerifiedExplainer.tsx:50`** — Lovable mention already removed; current copy reads "We refreshed your stored {providerLabel} token…". No Lovable references in the file (`grep -n Lovable`).
+- **`admin-quote-email.functions.ts:97`** — fallback origin already `"https://virecrm.com"` (shipped in PR #11 / unit-7 commit `3e5650d`).
+- **`contact-acknowledgment` template** — fallback pricing URL already `https://majix.ai/pricing` (original `genesisx.space` issue fixed earlier). Brand-name swap to VireCRM is separate rebrand work, not a bug.
+- **`_app.admin.tsx:1340,1354,1888`** — already rebranded: line 1343 = `"VireCRM — Invoice for your ${project_type}"`, line 1357 = `"— Ethan, VireCRM"`, line 1897 = `"VireCRM — ${project_type}"`. No "Genesis" strings remain.
+- **Reputation banner copy missing** — entry exists in `PreviewViewBanner.tsx:51-54` (`simulated` + `disabled` both populated). Not falling through to default fallback.
+
+#### Verification
+
+- `bun run typecheck` — clean.
+- `bun run test` — 123/123 pass.
+- `npx eslint src/components/crm/CrmSidebar.tsx` — 1 pre-existing prettier error on line 295 (untouched code). Zero new lint findings introduced.
+- Repo-wide `bun run lint` reports 104149 errors — far above the ~5210 baseline ISSUES.md last logged. Pre-existing config regression unrelated to this edit; out of scope for this pass. **Flag for follow-up.**
+- File diff inspected — `useRef` import added, body-scroll effect rewritten as snapshot-on-mount + toggle-on-state, dead `enabledModules` pull + `void` line removed.
+
+#### Manual follow-up (user)
+
+- Repo-wide lint count jumped from ~5210 to 104149. Investigate next session — likely a config change or plugin update cascading; not from this work.
 
 ### 2026-05-19 — Lovable→fixed-DB migration script (Step 2 of handoff)
 **Tags:** [lovable-migration] [supabase]
