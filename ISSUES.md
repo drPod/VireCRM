@@ -38,7 +38,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 ### Phase 2 — Lovable cleanup follow-ups
 
 - [ ] **Connector OAuth proxy** — replace `src/lib/connectors/gateway.ts` stub (currently throws `ConnectorNotConfiguredError(503)` at line 41). Nango or hand-rolled. Apollo/Slack/Gmail/Twilio/Sendgrid integrations dark until done.
-- [ ] **Legacy `"lovable"` channel label leaks into outreach telemetry.** `src/lib/email/outreach-delivery.ts:76,452` — built-in fallback returns `channel: "lovable"` even though Lovable infra is gone (Resend under hood). Rename to `"resend"` or `"platform"`; update telemetry/Reports that read it. Cosmetic, not blocking.
 
 ### Bugs found, not fixed
 
@@ -122,6 +121,7 @@ Picked up after spot-check session (`cecfd3b`). Re-verified live DB against comm
 #### Shipped
 
 - `supabase db push --include-all` — applied `20260519120000_handle_new_user_skip_guc.sql` to remote `coynbufhejaeuifpvmvw`. Now recorded in `supabase_migrations.schema_migrations`. Function body unchanged (was `CREATE OR REPLACE`'d in-band by session 5; push idempotent).
+- `src/lib/email/outreach-delivery.ts:76,452` — renamed leftover `channel: "lovable"` → `channel: "platform"` on the built-in fallback path. Union type at line 76 + return value at line 452. No consumers grep `"lovable"` literally (only union members referenced — `dispatchOutreachEmail` and `sendResendEmail` are the actual transports under the hood). `bun run typecheck` clean. Telemetry will now log `platform` for built-in sends; downstream Reports unchanged because none read this field.
 
 #### Verification (live DB via `bun:sql`)
 

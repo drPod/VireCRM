@@ -73,7 +73,7 @@ export interface DeliverOutreachEmailInput {
 export type DeliverOutreachEmailResult =
   | {
       success: true;
-      channel: "resend" | "sendgrid" | "gmail" | "microsoft_outlook" | "lovable";
+      channel: "resend" | "sendgrid" | "gmail" | "microsoft_outlook" | "platform";
       label: string;
     }
   | { success: false; reason: string; suppressed?: boolean; creditsExhausted?: boolean };
@@ -449,7 +449,7 @@ export async function deliverOutreachEmail(
   });
 
   if (fallback.success) {
-    return { success: true, channel: "lovable", label: "built-in email" };
+    return { success: true, channel: "platform", label: "built-in email" };
   }
 
   if (fallback.reason === "suppressed") {
