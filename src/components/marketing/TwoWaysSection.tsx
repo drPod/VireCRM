@@ -10,7 +10,7 @@ const customBuildPoints = [
 ];
 
 const doneForYouPoints = [
-  "Live today on your own Majix subdomain",
+  "Live today on your own VireCRM subdomain",
   "Battle-tested playbooks for your industry",
   "Continuous updates, zero maintenance",
   "Upgrade to your own domain anytime",
@@ -26,7 +26,7 @@ export function TwoWaysSection() {
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Two Ways to Run Your Sales System on Majix
+            Two Ways to Run Your Sales System on VireCRM
           </h2>
           <p className="mt-4 text-base text-muted-foreground">
             Build it from scratch with us — or plug straight in. Same CRM, your brand either way.
@@ -82,7 +82,7 @@ export function TwoWaysSection() {
 
             <h3 className="text-2xl font-bold text-foreground">Plug Into Our Proven System</h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              Pick a slug, get <code className="rounded bg-muted px-1 py-0.5 text-xs">you.majix.ai</code>{" "}
+              Pick a slug, get <code className="rounded bg-muted px-1 py-0.5 text-xs">you.virecrm.com</code>{" "}
               in minutes. Your branding, your pricing, our infrastructure.
             </p>
 

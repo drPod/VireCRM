@@ -101,7 +101,7 @@ function ProductMockFrame({ children }: { children: ReactNode }) {
           <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" aria-hidden="true" />
           <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-background/60 px-2 py-0.5 text-[10px] text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-success" />
-            app.majix.ai
+            app.virecrm.com
           </span>
         </div>
         <div className="relative">{children}</div>

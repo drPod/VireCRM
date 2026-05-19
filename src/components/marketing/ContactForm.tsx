@@ -67,6 +67,7 @@ const INITIAL_FORM: FormState = {
   website: "",
 };
 
+// TODO(rebrand): migrate key to virecrm: prefix in a follow-up that reads-old/writes-new for a transition window.
 const DRAFT_KEY = "majix:contact-draft";
 const MESSAGE_MAX = 2000;
 

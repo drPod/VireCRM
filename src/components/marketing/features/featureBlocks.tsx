@@ -44,7 +44,7 @@ export const FEATURES: FeatureSpec[] = [
       </>
     ),
     tagline: "AI ranks every lead the moment activity changes.",
-    body: "Majix scores every contact in real time based on intent signals — opens, replies, pricing views, calendar clicks, dwell time. Hot leads bubble to the top of the queue. Cold ones get auto-nurtured. Your reps wake up with a pre-sorted list of who to chase first, and why.",
+    body: "VireCRM scores every contact in real time based on intent signals — opens, replies, pricing views, calendar clicks, dwell time. Hot leads bubble to the top of the queue. Cold ones get auto-nurtured. Your reps wake up with a pre-sorted list of who to chase first, and why.",
     bullets: [
       {
         title: "Explainable scores",
@@ -68,7 +68,7 @@ export const FEATURES: FeatureSpec[] = [
     icon: MessageSquare,
     title: <>One inbox for every channel your leads use.</>,
     tagline: "Email, SMS, WhatsApp, Instagram DMs — all in one timeline.",
-    body: "Stop juggling four apps. Majix unifies every customer conversation, attaches it to the right contact, and lets your AI draft a reply you can send in one click. Sentiment + reply-intent classification means hot threads never sit unread.",
+    body: "Stop juggling four apps. VireCRM unifies every customer conversation, attaches it to the right contact, and lets your AI draft a reply you can send in one click. Sentiment + reply-intent classification means hot threads never sit unread.",
     bullets: [
       {
         title: "AI-drafted replies",
@@ -92,8 +92,8 @@ export const FEATURES: FeatureSpec[] = [
     eyebrow: "AI command center",
     icon: Terminal,
     title: <>Run your CRM with a single sentence.</>,
-    tagline: "Type what you want done. Majix plans it, runs it, reports back.",
-    body: "The command bar isn't a search box. It's the orchestration layer. Type \"chase the energy leads that went cold last week\" and Majix figures out who matches, drafts a personalized 3-step sequence, schedules sends at the right times, and enrolls them in a workflow — with every step audit-logged and reversible.",
+    tagline: "Type what you want done. VireCRM plans it, runs it, reports back.",
+    body: "The command bar isn't a search box. It's the orchestration layer. Type \"chase the energy leads that went cold last week\" and VireCRM figures out who matches, drafts a personalized 3-step sequence, schedules sends at the right times, and enrolls them in a workflow — with every step audit-logged and reversible.",
     bullets: [
       {
         title: "Plans before it acts",
@@ -117,7 +117,7 @@ export const FEATURES: FeatureSpec[] = [
     icon: Bot,
     title: <>Follow up relentlessly without being annoying.</>,
     tagline: "Multi-channel sequences with AI timing and copy.",
-    body: "Drop a lead into a sequence and Majix handles the cadence — first email in 12 seconds, SMS 24 hours later, hand-off to a rep when the model detects intent. Copy is personalized per lead using their pipeline context, industry, and last-touch history. Reply-detection auto-pauses sequences so you never double-send.",
+    body: "Drop a lead into a sequence and VireCRM handles the cadence — first email in 12 seconds, SMS 24 hours later, hand-off to a rep when the model detects intent. Copy is personalized per lead using their pipeline context, industry, and last-touch history. Reply-detection auto-pauses sequences so you never double-send.",
     bullets: [
       {
         title: "Time-zone aware sending",
@@ -166,7 +166,7 @@ export const FEATURES: FeatureSpec[] = [
     icon: BarChart3,
     title: <>Know what's working before the quarter ends.</>,
     tagline: "Pipeline reports, revenue forecasting, campaign ROI in one place.",
-    body: "Most CRMs ship reports that take a BI consultant to make useful. Majix ships pipeline funnels, revenue trends, campaign ROI, and rep performance dashboards out of the box — wired to live data, exportable, and screenshot-able for board decks. Forecasts use AI conversion probabilities, not naive stage averages.",
+    body: "Most CRMs ship reports that take a BI consultant to make useful. VireCRM ships pipeline funnels, revenue trends, campaign ROI, and rep performance dashboards out of the box — wired to live data, exportable, and screenshot-able for board decks. Forecasts use AI conversion probabilities, not naive stage averages.",
     bullets: [
       {
         title: "Live, not batched",
@@ -189,9 +189,9 @@ export const FEATURES: FeatureSpec[] = [
     chapter: "scale",
     eyebrow: "White-label + reseller",
     icon: Shield,
-    title: <>Resell Majix as your own product.</>,
+    title: <>Resell VireCRM as your own product.</>,
     tagline: "Custom domains, custom theming, custom billing — per tenant.",
-    body: "Most CRMs treat white-label as an afterthought bolted onto an enterprise tier. We built Majix multi-tenant from day one. Each of your customers gets their own custom domain, logo, palette, email templates, and billing relationship with you. We never appear in their UI. You set pricing; we charge you wholesale per active workspace.",
+    body: "Most CRMs treat white-label as an afterthought bolted onto an enterprise tier. We built VireCRM multi-tenant from day one. Each of your customers gets their own custom domain, logo, palette, email templates, and billing relationship with you. We never appear in their UI. You set pricing; we charge you wholesale per active workspace.",
     bullets: [
       {
         title: "Custom domains via Cloudflare for SaaS",
@@ -223,7 +223,7 @@ export const CHAPTERS = [
       </>
     ),
     subtitle:
-      "Most leads die in the gap between landing on your site and reaching a human. Majix closes that gap — instantly.",
+      "Most leads die in the gap between landing on your site and reaching a human. VireCRM closes that gap — instantly.",
   },
   {
     id: "convert",
@@ -251,6 +251,6 @@ export const CHAPTERS = [
       </>
     ),
     subtitle:
-      "Live revenue analytics, AI-driven forecasting, and the white-label layer that turns Majix into your branded product.",
+      "Live revenue analytics, AI-driven forecasting, and the white-label layer that turns VireCRM into your branded product.",
   },
 ] as const;

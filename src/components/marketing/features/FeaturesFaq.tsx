@@ -7,15 +7,15 @@ const FAQS = [
   },
   {
     q: "Do you charge per seat?",
-    a: "No. Every Majix plan includes unlimited seats inside your org. We charge per workspace, per month — so adding users doesn't push you onto the next tier. Resellers get separate pricing per child org with their own seat counts and billing relationships.",
+    a: "No. Every VireCRM plan includes unlimited seats inside your org. We charge per workspace, per month — so adding users doesn't push you onto the next tier. Resellers get separate pricing per child org with their own seat counts and billing relationships.",
   },
   {
     q: "Who owns the data?",
-    a: "You do. Majix is built on Supabase Postgres with row-level security per tenant. You can export everything as CSV or via the API at any time. We never sell or share customer data with third parties. SOC 2 Type II is in progress.",
+    a: "You do. VireCRM is built on Supabase Postgres with row-level security per tenant. You can export everything as CSV or via the API at any time. We never sell or share customer data with third parties. SOC 2 Type II is in progress.",
   },
   {
     q: "Can I really white-label and resell this?",
-    a: "Yes — and that's a first-class feature, not a workaround. Each of your customers gets their own custom domain (we provision SSL via Cloudflare for SaaS), their own theme, logo, and color palette, their own user pool, and their own billing relationship with you. You decide pricing; Majix charges you wholesale per active workspace.",
+    a: "Yes — and that's a first-class feature, not a workaround. Each of your customers gets their own custom domain (we provision SSL via Cloudflare for SaaS), their own theme, logo, and color palette, their own user pool, and their own billing relationship with you. You decide pricing; VireCRM charges you wholesale per active workspace.",
   },
   {
     q: "Is the AI advisor really useful or just hype?",
@@ -27,7 +27,7 @@ const FAQS = [
   },
   {
     q: "How does billing work for resellers and their customers?",
-    a: "You get one Majix invoice per month covering all active customer workspaces. Each customer pays you on a billing schedule and price you control — via Stripe Connect inside your reseller dashboard. We never touch your customer's payment relationship.",
+    a: "You get one VireCRM invoice per month covering all active customer workspaces. Each customer pays you on a billing schedule and price you control — via Stripe Connect inside your reseller dashboard. We never touch your customer's payment relationship.",
   },
   {
     q: "What's your refund policy?",
