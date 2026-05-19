@@ -153,7 +153,7 @@ export function HeroSection() {
           <div className="relative overflow-hidden rounded-2xl border border-border shadow-2xl shadow-primary/15 hero-float">
             <img
               src={heroImage}
-              alt="Majix AI CRM — automated sales pipeline overview"
+              alt="VireCRM — automated sales pipeline overview"
               width={1920}
               height={1080}
               fetchPriority="high"

@@ -3,7 +3,7 @@ import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 
 /**
  * BusinessEmailBanner — slim, always-visible bar at the very top of every
- * public marketing page. Surfaces the official Majix business email so
+ * public marketing page. Surfaces the official VireCRM business email so
  * prospects always know how to reach us, even if they never scroll to the
  * footer or open Contact. Sits ABOVE the PromoBanner.
  */
