@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://majix.ai/sitemap.xml
+Sitemap: https://virecrm.com/sitemap.xml
