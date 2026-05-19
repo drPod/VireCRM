@@ -8,20 +8,20 @@ export const Route = createFileRoute("/refund-policy")({
   component: RefundPolicyPage,
   head: () => ({
     meta: [
-      { title: "Refund Policy — Majix" },
+      { title: "Refund Policy — VireCRM" },
       {
         name: "description",
         content:
-          "Majix's refund policy for subscription plans and purchases, including our 30-day money-back guarantee.",
+          "VireCRM's refund policy for subscription plans and purchases, including our 30-day money-back guarantee.",
       },
-      { property: "og:title", content: "Refund Policy — Majix" },
+      { property: "og:title", content: "Refund Policy — VireCRM" },
       {
         property: "og:description",
-        content: "Majix's refund policy and 30-day money-back guarantee.",
+        content: "VireCRM's refund policy and 30-day money-back guarantee.",
       },
-      { property: "og:url", content: "https://majix.ai/refund-policy" },
+      { property: "og:url", content: "https://virecrm.com/refund-policy" },
     ],
-    links: [{ rel: "canonical", href: "https://majix.ai/refund-policy" }],
+    links: [{ rel: "canonical", href: "https://virecrm.com/refund-policy" }],
   }),
 });
 
@@ -39,7 +39,7 @@ function RefundPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">Overview</h2>
               <p className="mt-2">
-                We want you to be satisfied with Majix. If you're not happy with your purchase, we
+                We want you to be satisfied with VireCRM. If you're not happy with your purchase, we
                 offer a straightforward refund policy as outlined below.
               </p>
             </section>
@@ -47,7 +47,7 @@ function RefundPolicyPage() {
             <section>
               <h2 className="text-lg font-semibold text-foreground">30-Day Money-Back Guarantee</h2>
               <p className="mt-2">
-                If you are unsatisfied with Majix for any reason, you may request a full refund
+                If you are unsatisfied with VireCRM for any reason, you may request a full refund
                 within <strong>30 days</strong> of your initial purchase. This applies to the first
                 payment of new subscriptions only.
               </p>
