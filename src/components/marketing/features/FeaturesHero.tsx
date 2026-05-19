@@ -33,9 +33,9 @@ export function FeaturesHero() {
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          Majix replaces the spreadsheet, the inbox, the calendar, and three half-broken automations
-          with one AI-native CRM — engineered so revenue teams stop chasing leads and start closing
-          them.
+          VireCRM replaces the spreadsheet, the inbox, the calendar, and three half-broken
+          automations with one AI-native CRM — engineered so revenue teams stop chasing leads and
+          start closing them.
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">

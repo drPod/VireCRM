@@ -6,7 +6,7 @@ const HIGHLIGHTS = [
   { icon: Palette, title: "Your brand, top to bottom", body: "Custom logo, palette, copy, and per-tenant theme." },
   { icon: Layers, title: "Unlimited child workspaces", body: "Each customer gets isolated data + their own domain." },
   { icon: Wallet, title: "Bill on your terms", body: "Stripe Connect — you set the price, you keep the margin." },
-  { icon: ShieldCheck, title: "We never touch your customers", body: "Majix branding hidden from end users. SOC 2 in progress." },
+  { icon: ShieldCheck, title: "We never touch your customers", body: "VireCRM branding hidden from end users. SOC 2 in progress." },
 ];
 
 export function ResellerCta() {
@@ -35,7 +35,7 @@ export function ResellerCta() {
                 For agencies + resellers
               </span>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                Sell Majix as <span className="text-gradient-primary [-webkit-text-fill-color:transparent]">your own product.</span>
+                Sell VireCRM as <span className="text-gradient-primary [-webkit-text-fill-color:transparent]">your own product.</span>
               </h2>
               <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
                 White-label the entire CRM. Spin up unlimited customer workspaces on your domains. We
