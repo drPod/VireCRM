@@ -26,11 +26,26 @@
   // entries take priority over the wildcard. CF for SaaS still owns custom hostnames
   // (CNAME → customers.majix.ai); CLOUDFLARE_API_TOKEN + CLOUDFLARE_ZONE_ID secrets
   // power the runtime provisioning. Runbook: docs/custom-domains/cf-for-saas-setup.md.
+  //
+  // Rebrand cutover (Majix → VireCRM, majix.ai → virecrm.com): both zones serve
+  // identically during transition. virecrm.com is the canonical going forward;
+  // majix.ai routes stay live until DNS/auth/email cutover completes and traffic
+  // drains. Same five-tier plan mirrors onto virecrm.com:
+  //   virecrm.com + www.virecrm.com → public marketing
+  //   app.virecrm.com               → central CRM landing + auth callbacks + platform admin
+  //   <slug>.virecrm.com            → per-tenant white-label CRM (wildcard route)
+  //   customers.virecrm.com         → CF for SaaS fallback (infra only)
+  // Wildcard/apex/priority rules apply identically per zone.
   "routes": [
     { "pattern": "majix.ai/*", "zone_name": "majix.ai" },
     { "pattern": "www.majix.ai/*", "zone_name": "majix.ai" },
     { "pattern": "app.majix.ai/*", "zone_name": "majix.ai" },
     { "pattern": "customers.majix.ai/*", "zone_name": "majix.ai" },
-    { "pattern": "*.majix.ai/*", "zone_name": "majix.ai" }
+    { "pattern": "*.majix.ai/*", "zone_name": "majix.ai" },
+    { "pattern": "virecrm.com/*", "zone_name": "virecrm.com" },
+    { "pattern": "www.virecrm.com/*", "zone_name": "virecrm.com" },
+    { "pattern": "app.virecrm.com/*", "zone_name": "virecrm.com" },
+    { "pattern": "customers.virecrm.com/*", "zone_name": "virecrm.com" },
+    { "pattern": "*.virecrm.com/*", "zone_name": "virecrm.com" }
   ]
 }
