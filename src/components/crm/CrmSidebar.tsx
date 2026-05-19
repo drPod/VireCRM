@@ -89,7 +89,7 @@ export function CrmSidebar() {
   const { isAdmin: isPlatformAdmin } = usePlatformAdmin();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const brandName = organization?.brand_name || "Majix";
+  const brandName = organization?.brand_name || "VireCRM";
   const logoUrl = organization?.logo_url;
   const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
   const isOwner = role?.role === "owner";
