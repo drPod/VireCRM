@@ -16,7 +16,7 @@ function NotFoundComponent() {
   // it, so override the title imperatively so 404s don't inherit the landing-page title.
   useEffect(() => {
     const prev = document.title;
-    document.title = "404 — Majix";
+    document.title = "404 — VireCRM";
     return () => {
       document.title = prev;
     };
@@ -47,46 +47,46 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Majix — AI CRM that follows up so your team can close" },
+      { title: "VireCRM — AI CRM that follows up so your team can close" },
       {
         name: "description",
         content:
-          "Majix is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+          "VireCRM is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
       },
       { name: "theme-color", content: "#9333EA" },
-      { property: "og:site_name", content: "Majix" },
+      { property: "og:site_name", content: "VireCRM" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Majix — AI CRM that follows up so your team can close" },
+      { property: "og:title", content: "VireCRM — AI CRM that follows up so your team can close" },
       {
         property: "og:description",
         content:
-          "Majix is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+          "VireCRM is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
       },
-      { name: "twitter:title", content: "Majix — AI CRM that follows up so your team can close" },
+      { name: "twitter:title", content: "VireCRM — AI CRM that follows up so your team can close" },
       {
         name: "twitter:description",
         content:
-          "Majix is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
+          "VireCRM is the AI-powered CRM that follows up, nurtures, and surfaces hot leads for you — so your sales team focuses on closing, not chasing.",
       },
       {
         property: "og:image",
-        content: "https://majix.ai/og-card.png",
+        content: "https://virecrm.com/og-card.png",
       },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       {
         property: "og:image:alt",
-        content: "Majix — AI CRM that follows up so your team can close.",
+        content: "VireCRM — AI CRM that follows up so your team can close.",
       },
       {
         name: "twitter:image",
-        content: "https://majix.ai/og-card.png",
+        content: "https://virecrm.com/og-card.png",
       },
       {
         name: "twitter:image:alt",
-        content: "Majix — AI CRM that follows up so your team can close.",
+        content: "VireCRM — AI CRM that follows up so your team can close.",
       },
     ],
     links: [
@@ -107,15 +107,15 @@ export const Route = createRootRoute({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "Majix",
-          url: "https://majix.ai",
-          logo: "https://majix.ai/genesis-logo.png",
+          name: "VireCRM",
+          url: "https://virecrm.com",
+          logo: "https://virecrm.com/genesis-logo.png",
           sameAs: [],
           contactPoint: {
             "@type": "ContactPoint",
             telephone: "+1-940-365-6600",
             contactType: "customer support",
-            email: "support@majix.ai",
+            email: "support@virecrm.com",
           },
         }),
       },
@@ -124,8 +124,8 @@ export const Route = createRootRoute({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebSite",
-          name: "Majix",
-          url: "https://majix.ai",
+          name: "VireCRM",
+          url: "https://virecrm.com",
         }),
       },
     ],
