@@ -127,6 +127,28 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-19 — rebrand unit 2: get_org_by_domain dual-zone (majix.ai + virecrm.com)
+**Tags:** [rebrand] [supabase] [cf-saas]
+
+Parallel-cutover rebrand work-unit 2 of N (Majix → VireCRM). Goal: keep both parent zones resolving to the same tenant during DNS / cert provisioning on virecrm.com. SQL-only — single new migration that supersedes the prior majix-only definition.
+
+#### Shipped
+
+- `supabase/migrations/20260519100844_get_org_by_domain_virecrm.sql` (new, ~95 lines). `CREATE OR REPLACE FUNCTION public.get_org_by_domain(p_hostname TEXT) RETURNS json` — path 1 (verified custom hostname via `org_custom_domains`) unchanged from `20260518020000_*.sql`; path 2 regex extended from `^[a-z0-9][a-z0-9-]*\.majix\.ai$` to `^[a-z0-9][a-z0-9-]*\.(majix\.ai|virecrm\.com)$`. Reserved-label list (`app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`) unchanged.
+
+#### Verification
+
+- `bun run typecheck` clean.
+- `bun run test` — 123/123 passing.
+- `bun run lint` — 5210 pre-existing errors across `supabase/functions/_shared/*`, `payments-webhook`, `verify-checkout-session`, `vite.config.ts`. Confirmed identical count with my change stashed; none touch the new migration file (SQL not lint-targeted).
+- `grep -nE '(majix\.ai|virecrm\.com)' supabase/migrations/20260519100844_*.sql` — both zones present, including line-65 regex.
+- Regex behaviour spot-check (Node): 9/9 cases pass — accepts `greenenergiai.majix.ai`, `greenenergiai.virecrm.com`; rejects `foo.bar.majix.ai`, `foo.example.com`, apex `majix.ai` / `virecrm.com`, leading-dash labels.
+- Local supabase stack not running (`supabase status` reports missing container) — skipped `supabase db reset` per work-unit carve-out. Migration applies via `CREATE OR REPLACE` so prod-side push is idempotent.
+
+#### Manual follow-up (user)
+
+- After all rebrand units land, push the migration to prod via `supabase db push` (or CI runner). DNS for virecrm.com + wildcard cert tracked under separate rebrand units.
+
 ### 2026-05-19 — discovered old Lovable DB still live; Crystal duplicate; xlsx import has mapping bugs; pivot to migration-first
 **Tags:** [lovable-migration] [supabase] [green-energiai] [security] [docs]
 
