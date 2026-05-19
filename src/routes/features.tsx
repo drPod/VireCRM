@@ -18,21 +18,24 @@ export const Route = createFileRoute("/features")({
   component: FeaturesPage,
   head: () => ({
     meta: [
-      { title: "Features — Majix" },
+      { title: "Features — VireCRM" },
       {
         name: "description",
         content:
-          "Majix is the AI-native CRM your team will actually use — multi-channel inbox, AI lead scoring, command-bar orchestration, booking, analytics, and a first-class white-label reseller layer.",
+          "VireCRM is the AI-native CRM your team will actually use — multi-channel inbox, AI lead scoring, command-bar orchestration, booking, analytics, and a first-class white-label reseller layer.",
       },
-      { property: "og:title", content: "Majix Features — Sales OS, AI-native, white-label ready" },
+      {
+        property: "og:title",
+        content: "VireCRM Features — Sales OS, AI-native, white-label ready",
+      },
       {
         property: "og:description",
         content:
           "AI lead scoring, multi-channel inbox, command-center orchestration, booking + calendar, revenue analytics, and white-label resell — one platform.",
       },
-      { property: "og:url", content: "https://majix.ai/features" },
+      { property: "og:url", content: "https://virecrm.com/features" },
     ],
-    links: [{ rel: "canonical", href: "https://majix.ai/features" }],
+    links: [{ rel: "canonical", href: "https://virecrm.com/features" }],
   }),
 });
 
