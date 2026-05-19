@@ -125,7 +125,7 @@ export const Route = createFileRoute("/_app/dashboard")({
   errorComponent: (props) => <RouteError {...props} label="Couldn't load your dashboard" />,
   head: () => ({
     meta: [
-      { title: "Dashboard — Majix" },
+      { title: "Dashboard — VireCRM" },
       {
         name: "description",
         content: "Your AI-powered command center for sales pipeline, leads, and campaigns.",
@@ -428,7 +428,7 @@ function Dashboard() {
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-foreground">Get your first leads in</h2>
               <p className="mt-1 text-sm text-muted-foreground max-w-lg">
-                Majix needs leads before it can score, message, and convert. Add your first lead
+                VireCRM needs leads before it can score, message, and convert. Add your first lead
                 manually, import a CSV, or let our AI scout build a list for you.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">

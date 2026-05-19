@@ -46,7 +46,7 @@ export const Route = createFileRoute("/_app/payouts")({
   errorComponent: (props) => <RouteError {...props} label="Couldn't load payouts" />,
   head: () => ({
     meta: [
-      { title: "Team Payouts — Majix" },
+      { title: "Team Payouts — VireCRM" },
       {
         name: "description",
         content: "Track and pay out commissions earned by your sales team on closed deals.",

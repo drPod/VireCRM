@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_app/pipeline")({
   errorComponent: (props) => <RouteError {...props} label="Couldn't load pipeline" />,
   head: () => ({
     meta: [
-      { title: "Pricing — Majix" },
+      { title: "Pricing — VireCRM" },
       {
         name: "description",
         content: "Deals in pricing — set supplier rate and agent mils, then mark won.",

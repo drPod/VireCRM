@@ -207,7 +207,7 @@ export const Route = createFileRoute("/_app/billing")({
   }),
   head: () => ({
     meta: [
-      { title: "Billing — Majix" },
+      { title: "Billing — VireCRM" },
       { name: "description", content: "Manage your subscription, plan, and payment method" },
     ],
   }),

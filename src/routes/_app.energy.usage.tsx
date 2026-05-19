@@ -36,6 +36,6 @@ export const Route = createFileRoute("/_app/energy/usage")({
     </IndustryGate>
   ),
   head: () => ({
-    meta: [{ title: "Energy Usage — Majix" }],
+    meta: [{ title: "Energy Usage — VireCRM" }],
   }),
 });

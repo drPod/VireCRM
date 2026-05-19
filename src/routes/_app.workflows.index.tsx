@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_app/workflows/")({
   component: WorkflowsListPage,
   head: () => ({
     meta: [
-      { title: "Majix — Workflows" },
+      { title: "VireCRM — Workflows" },
       { name: "description", content: "Visual workflow automation builder" },
     ],
   }),

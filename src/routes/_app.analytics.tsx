@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_app/analytics")({
   component: AnalyticsPage,
   head: () => ({
     meta: [
-      { title: "Majix — Analytics" },
+      { title: "VireCRM — Analytics" },
       { name: "description", content: "Sales analytics and performance metrics" },
     ],
   }),

@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_app/settings/branding-preview")({
   component: BrandingPreviewPage,
   head: () => ({
     meta: [
-      { title: "Majix — Branding Preview" },
+      { title: "VireCRM — Branding Preview" },
       {
         name: "description",
         content: "Preview your white-label branding before publishing.",

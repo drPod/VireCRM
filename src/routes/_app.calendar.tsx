@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
   head: () => ({
     meta: [
-      { title: "Majix — Calendar" },
+      { title: "VireCRM — Calendar" },
       { name: "description", content: "Appointment booking and calendar management" },
     ],
   }),

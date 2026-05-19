@@ -47,7 +47,7 @@ export const Route = createFileRoute("/_app/expenses")({
   errorComponent: (props) => <RouteError {...props} label="Couldn't load expenses" />,
   head: () => ({
     meta: [
-      { title: "Expenses — Majix" },
+      { title: "Expenses — VireCRM" },
       {
         name: "description",
         content: "Track ads, tools, payroll, and other business costs to see your true profit.",

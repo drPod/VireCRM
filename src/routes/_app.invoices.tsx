@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_app/invoices")({
   component: InvoicesPage,
   head: () => ({
     meta: [
-      { title: "Majix — Invoices" },
+      { title: "VireCRM — Invoices" },
       { name: "description", content: "Send and track custom Stripe invoices to leads" },
     ],
   }),
@@ -463,7 +463,7 @@ function InvoicesPage() {
               <div className="border-b border-border px-5 py-3">
                 <h2 className="font-semibold text-foreground">My subscription payments</h2>
                 <p className="text-xs text-muted-foreground">
-                  Charges for your own Majix plan. To send invoices to leads, use the Lead
+                  Charges for your own VireCRM plan. To send invoices to leads, use the Lead
                   invoices tab.
                 </p>
               </div>

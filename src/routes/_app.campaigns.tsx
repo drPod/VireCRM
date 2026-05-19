@@ -56,7 +56,7 @@ export const Route = createFileRoute("/_app/campaigns")({
   },
   head: () => ({
     meta: [
-      { title: "Majix — Campaigns" },
+      { title: "VireCRM — Campaigns" },
       { name: "description", content: "Manage automated outreach campaigns" },
     ],
   }),
