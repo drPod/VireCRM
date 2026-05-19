@@ -145,16 +145,20 @@ Session 3 attempted to verify the 2026-05-18 Path-A push (dev-server walk → pu
 
 - `.gitignore` — added `og_database/`, `*.sql.dump`, `*.pgdump` so legacy Lovable dumps stay out of git. Commit `d49e67b`.
 - `CLAUDE.md` + `AGENTS.md` — new section under Lovable history pointing at `og_database/` with read-not-cat warning + migration pointer. Commit `d49e67b`.
-- `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` — full migration handoff. Strategy = enrich, not replace; old DB is source-of-truth for users + lead UUIDs, xlsx supplements energy fields. Six-step plan from project-ref recovery → branch dry-run → prod run → Crystal resume → old project freeze. Not yet committed.
-- `docs/handoffs/2026-05-18-green-energiai-onboarding.md` — added PAUSED banner at top pointing at the new migration handoff. Steps 0-6 still listed as shipped but flagged as invalidated until migration lands. Not yet committed.
-- `ISSUES.md` `## Open` updated — green-energiai item now strikes through the "ready to ship" framing and points at migration handoff; new "Lovable → fixed-DB data migration" subsection holds the master plan. Not yet committed.
+- `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` — full migration handoff. Strategy = enrich, not replace; old DB is source-of-truth for users + lead UUIDs (via dump-parse not API since Lovable owns old project — no live access), xlsx supplements energy fields. Six-step plan. Commit `4f839c0`.
+- `docs/handoffs/2026-05-18-green-energiai-onboarding.md` — PAUSED banner at top pointing at the new migration handoff. Commit `4f839c0`.
+- `ISSUES.md` `## Open` updated — green-energiai item points at migration handoff; new "Lovable → fixed-DB data migration" subsection holds the master plan. Commit `4f839c0`.
+- **Step 0 + Step 1 of the migration handoff executed in this session** (no commit — DB-only operation; handoff doc updated to reflect):
+  - Confirmed via `supabase projects list` that Lovable's old project isn't in user's Supabase account → migration parses dumps, not a live API.
+  - Deleted 4791 bad-mapping leads + session-1 Crystal duplicate (`auth.users.id=b5ae0c3e-…`) + her duplicate org (`c31c2a18-…`) + her user_role + profile. `crystal@greenenergiai.com` is now a free email on the new DB so Step 2's auth port can claim it with the old UUID `7ba2ebfa-…`.
 
 #### Verification
 
 - `bash scripts/lint-issues.sh` — clean after every edit.
 - `git status` — `og_database/` no longer listed (gitignored verified via `git check-ignore -v`).
 - Dev server (vite, port 8080) still running in background task `bsl7k5gad` — kill before next session or it'll collide with a fresh `restart-dev.sh`.
-- 3850 bad-mapping rows still sit in new DB at `organization_id='c31c2a18-f595-499d-9353-f3cd1d9e659b'`. **DO NOT push 8 ahead commits** until migration completes — they're functionally valid (typecheck + build clean) but ship Crystal a re-broken import experience and the Crystal duplicate-account problem.
+- New DB Crystal-scoped row counts post-cleanup all zero (`leads=0, orgs=0, users=0, crystals=0`). Ready for Step 2 migration script.
+- **DO NOT push 8 ahead commits** until migration completes — schema-side migrations land fine but the in-app `ImportLeadsDialog` mapping bugs ship Crystal a re-broken experience. Mapping fix is a follow-up after migration.
 
 #### Manual follow-up (user)
 

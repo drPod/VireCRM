@@ -16,8 +16,8 @@ This handoff supersedes the Crystal-onboarding handoff (`docs/handoffs/2026-05-1
 
 ## Context
 
-- **Old Lovable Supabase project:** ref TBD — fetch from `supabase projects list --token "$SUPABASE_ACCESS_TOKEN"` or the Lovable dashboard. Project lives separately from `coynbufhejaeuifpvmvw`.
-- **New current project:** `coynbufhejaeuifpvmvw` (`https://coynbufhejaeuifpvmvw.supabase.co`). This is what `VITE_SUPABASE_URL` points at.
+- **Old Lovable Supabase project:** lives inside Lovable's account, NOT user's. `supabase projects list` (run 2026-05-19 by session 3) doesn't return it. Migration source is the dump files in `og_database/`, NOT a live API connection. No `OLD_SUPABASE_URL` / `OLD_SUPABASE_SERVICE_ROLE_KEY` needed.
+- **New current project:** `coynbufhejaeuifpvmvw` (`https://coynbufhejaeuifpvmvw.supabase.co`). This is what `VITE_SUPABASE_URL` points at. Direct service-role access via `.env` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
 - **Data source:** `og_database/` (gitignored, never commit — bcrypt PII):
   - `genesis_auth_data.sql` — 47k, 23 `auth.users` INSERTs with `password_hash` (use these to preserve UUIDs + passwords)
   - `genesis_database_schema.sql` — 382k, schema-only DDL
@@ -64,35 +64,38 @@ Three layers, in order:
 
 Format: each item `[ ]` (pending) → `[~]` (in progress) → `[x]` (done, with commit sha). Append findings under the item — don't delete past notes.
 
-### Step 0 — Recover old project ref + service-role key `[ ]`
+### Step 0 — Inventory + confirm sources `[x]` (done 2026-05-19, session 3)
 
-- [ ] Get the old Lovable Supabase project ref. Options: (a) `supabase projects list --token "$SUPABASE_ACCESS_TOKEN"`, (b) Supabase dashboard, (c) ask user.
-- [ ] Get the old project's service-role key (Supabase dashboard → Settings → API). Add to `.env.migration` (gitignored, never commit) as `OLD_SUPABASE_URL` + `OLD_SUPABASE_SERVICE_ROLE_KEY`.
-- [ ] Smoke test the connection: `curl -s "$OLD_SUPABASE_URL/auth/v1/admin/users?per_page=1" -H "Authorization: Bearer $OLD_SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $OLD_SUPABASE_SERVICE_ROLE_KEY" | python3 -m json.tool | head -20`. Confirms key + URL.
+- [x] Confirmed old Lovable Supabase project is NOT in user's `supabase projects list` — Lovable owns it. No live API access. Source for migration = `og_database/*.sql` dumps only.
+- [x] Confirmed dumps + xlsx are the only inputs. Targets:
+  - `og_database/genesis_auth_data.sql` — 23 auth.users rows
+  - `og_database/genesis_database_full.sql` — 3.4M, schema + `COPY public.* FROM stdin` data
+  - `og_database/genesis_database_schema.sql` — 382k, schema-only DDL (reference for column shapes)
+  - `Copy of NGP MASTER LIST - Copy.xlsx` — 5446 rows, energy-field supplement
+- [x] Validated old DB structure: Crystal's org id `8b8c76ab-08de-4fd1-a703-b06138078181` ("Caziah Cameron's Organization"), 5389 leads on it, energy fields all NULL on old leads. Crystal's old auth.users.id = `7ba2ebfa-9d24-4231-ba25-ea463f30587c`.
 
-### Step 1 — Clean slate on new DB `[ ]`
+### Step 1 — Clean slate on new DB `[x]` (done 2026-05-19, session 3)
 
-- [ ] Delete the session-1 Crystal + her duplicate org + the 3850 bad-mapping leads. Use Supabase CLI `db query`:
+- [x] Deleted 4791 bad-mapping leads + 1 user_role + 1 profile + 1 org from session-1+session-2 work. SQL:
   ```sql
+  BEGIN;
   DELETE FROM public.leads WHERE organization_id = 'c31c2a18-f595-499d-9353-f3cd1d9e659b';
   DELETE FROM public.user_roles WHERE organization_id = 'c31c2a18-f595-499d-9353-f3cd1d9e659b';
   DELETE FROM public.profiles WHERE user_id = 'b5ae0c3e-1655-48d5-b211-a9fd55aaafea';
   DELETE FROM public.organizations WHERE id = 'c31c2a18-f595-499d-9353-f3cd1d9e659b';
+  COMMIT;
   ```
-- [ ] Delete Crystal's duplicate auth.users row via Admin API:
-  ```bash
-  curl -X DELETE "$SUPABASE_URL/auth/v1/admin/users/b5ae0c3e-1655-48d5-b211-a9fd55aaafea" \
-    -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-    -H "apikey: $SUPABASE_SERVICE_ROLE_KEY"
-  ```
-- [ ] Verify clean: `supabase db query --linked "SELECT count(*) FROM public.leads WHERE organization_id IN (SELECT id FROM public.organizations WHERE slug LIKE 'green%' OR slug LIKE 'caziah%');"` should return 0.
+- [x] Deleted Crystal's duplicate auth.users row (id `b5ae0c3e-…`) via Admin API → HTTP 200.
+- [x] Verified post-delete: `leads=0, orgs=0, users=0, crystals=0` (where queries scoped to the session-1 UUIDs + `email='crystal@greenenergiai.com'`). Email is now free for Step 2's auth port to insert with old UUID `7ba2ebfa-…`.
 
-### Step 2 — Write the migration script `[ ]`
+### Step 2 — Write the migration script `[ ]`  ← **START HERE NEXT SESSION**
 
-File: `scripts/migrate-lovable-to-fixed.ts`. Bun-runnable. Uses `@supabase/supabase-js` against BOTH projects.
+File: `scripts/migrate-lovable-to-fixed.ts`. Bun-runnable. Reads dump files + xlsx, writes to new DB via `@supabase/supabase-js` service-role client. **No connection to old project — that data is frozen in the dump files.**
 
-- [ ] Load `OLD_*` + new (`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`) from env.
-- [ ] **Phase A — auth.users.** For each old `auth.users` row (filter out test/audit accounts), call `POST /auth/v1/admin/users` on new project with same `id`, `email`, `password_hash`, `email_confirmed_at`, `raw_user_meta_data`, `raw_app_meta_data`. Test with `ON CONFLICT` — re-run safe.
+- [ ] Load new-DB env (`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`) from `.env`. No `OLD_*` vars needed.
+- [ ] Parse `og_database/genesis_auth_data.sql` — extract `auth.users` INSERTs. Filter out test/audit accounts (`qa-*@example.com`, `audit+*@example.com`, `e2etest*`, `testcrm@example.com`). Use a simple line-by-line scanner — INSERT statements are one-per-line in the dump.
+- [ ] Parse `og_database/genesis_database_full.sql` — `COPY <table> ("col1", "col2", …) FROM stdin;` then rows until `\.`. Build a small streaming parser that yields `{ table, columns, rows }` per block. Strip empty blocks early.
+- [ ] **Phase A — auth.users.** For each old auth.users row (filter out test/audit accounts), call `POST /auth/v1/admin/users` on new project with same `id`, `email`, `password_hash` (key field, see note below), `email_confirmed_at`, `raw_user_meta_data`, `raw_app_meta_data`. Note: Supabase Admin API accepts `password_hash` for bcrypt-prefixed hashes (`$2a$10$…` in the dump). Re-runs are safe — Admin API returns 422 on existing email; treat as success. Verified the dump format with `head -3 og_database/genesis_auth_data.sql` — bcrypt hashes are present and use bcrypt prefix `$2a$10$`.
 - [ ] **Phase B — organizations.** Port old `organizations` rows verbatim, mapping schema diff (new DB may have columns old doesn't, vice versa — `ALTER TABLE` not in scope, just `INSERT … ON CONFLICT (id) DO UPDATE`). For Crystal's org: rename slug from `caziah-cameron-66e0f158` to `greenenergiai` to match the `greenenergiai.majix.ai` subdomain (already in `wrangler.jsonc`). Set `is_reseller=false` (legacy flag, dormant).
 - [ ] **Phase C — user_roles / profiles.** Port org-membership tables. Caziah = owner. Crystal + Erica + Shelby + Mleaverton = members.
 - [ ] **Phase D — leads.** Port `public.leads` for Crystal's org (`8b8c76ab-…`) verbatim. UUIDs preserved. New-DB-only columns (`service_address`, `esi_id`, `title`, `deal_name`, `contract_start_date`, `cost_per_kwh`, `agent_mils`) get NULL.
