@@ -1,30 +1,40 @@
-import { TrendingUp, Users, Zap, Clock } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const stats = [
-  { icon: TrendingUp, value: "3.2x", label: "More Conversions" },
-  { icon: Users, value: "10K+", label: "Leads Managed" },
-  { icon: Zap, value: "95%", label: "Follow-Ups Automated" },
-  { icon: Clock, value: "< 30s", label: "Avg Response Time" },
+// TODO(): swap placeholders for real customer logos when assets arrive
+const customerLogos = [
+  "Green EnergiAi",
+  "Sunpath Solar",
+  "Apex Roofing Co",
+  "Heritage Realty Group",
+  "Northbridge Coaching",
+  "Vector Home Services",
 ];
 
+// TODO(): swap pravatar URLs + names for real-customer assets
 const testimonials = [
   {
+    seed: "genesis-jessica",
     quote:
-      "We were losing 60% of our leads to slow follow-up. After VireCRM, our close rate tripled because our reps finally talked to leads while they were still hot. The AI doesn't forget, doesn't get tired, and doesn't take weekends off.",
+      "We were losing 60% of our leads to slow follow-up. After VireCRM, our close rate tripled because our reps finally talked to leads while they were still hot.",
     name: "Jessica Torres",
-    title: "VP of Sales, ScaleUp Inc",
+    role: "VP of Sales",
+    company: "ScaleUp Inc",
   },
   {
+    seed: "genesis-ryan",
     quote:
       "This isn't software — it's a follow-up engine that works 24/7. We stopped doing manual follow-ups entirely and our revenue went up 40% in the first quarter.",
     name: "Ryan Chen",
-    title: "Founder, NovaTech",
+    role: "Founder",
+    company: "NovaTech",
   },
   {
+    seed: "genesis-marcus",
     quote:
       "Every lead that comes in gets an instant, personalized response. Our speed-to-lead went from 4 hours to 12 seconds. That alone paid for the entire system.",
     name: "Marcus Williams",
-    title: "CEO, Digital Growth Agency",
+    role: "CEO",
+    company: "Digital Growth Agency",
   },
 ];
 
@@ -32,15 +42,17 @@ export function SocialProofSection() {
   return (
     <section className="py-20">
       <div className="mx-auto max-w-6xl px-6">
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <stat.icon className="h-6 w-6 text-primary" />
-              </div>
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
+        {/* Customer logo strip */}
+        <p className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Trusted by operators in solar, real estate, roofing &amp; coaching
+        </p>
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {customerLogos.map((name) => (
+            <div
+              key={name}
+              className="flex h-14 items-center justify-center rounded-lg bg-muted px-3 grayscale transition-all hover:grayscale-0 hover:bg-primary/10"
+            >
+              <span className="text-center text-sm font-medium text-muted-foreground">{name}</span>
             </div>
           ))}
         </div>
@@ -48,15 +60,28 @@ export function SocialProofSection() {
         {/* Testimonials */}
         <div className="mt-16 grid gap-6 md:grid-cols-3">
           {testimonials.map((t) => (
-            <div key={t.name} className="rounded-xl border border-border bg-card p-6">
-              <p className="text-sm leading-relaxed text-muted-foreground">
+            <figure key={t.name} className="rounded-xl border border-border bg-card p-6">
+              <blockquote className="text-sm leading-relaxed text-muted-foreground">
                 &ldquo;{t.quote}&rdquo;
-              </p>
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                <p className="text-xs text-muted-foreground">{t.title}</p>
-              </div>
-            </div>
+              </blockquote>
+              <figcaption className="mt-4 flex items-center gap-3 border-t border-border pt-4">
+                <Avatar>
+                  <AvatarImage src={`https://i.pravatar.cc/96?u=${t.seed}`} alt="" />
+                  <AvatarFallback>
+                    {t.name
+                      .split(" ")
+                      .map((part) => part[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.role}, {t.company}
+                  </p>
+                </div>
+              </figcaption>
+            </figure>
           ))}
         </div>
       </div>
