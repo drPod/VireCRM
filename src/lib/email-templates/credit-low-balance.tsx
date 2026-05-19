@@ -11,7 +11,7 @@ import {
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = "Majix";
+const SITE_NAME = "VireCRM";
 
 interface CreditLowBalanceProps {
   organizationName?: string;
@@ -29,7 +29,7 @@ const CreditLowBalanceEmail = ({
   autoRechargeEnabled,
 }: CreditLowBalanceProps) => {
   const orgLine = organizationName ? ` for ${organizationName}` : "";
-  const href = billingUrl || "https://majix.ai/billing";
+  const href = billingUrl || "https://virecrm.com/billing";
 
   return (
     <Html lang="en" dir="ltr">
@@ -87,7 +87,7 @@ export const template = {
     organizationName: "Acme Inc.",
     balance: 38,
     threshold: 50,
-    billingUrl: "https://majix.ai/billing",
+    billingUrl: "https://virecrm.com/billing",
     autoRechargeEnabled: false,
   },
 } satisfies TemplateEntry;

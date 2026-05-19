@@ -18,7 +18,7 @@ interface ReauthenticationEmailProps {
 
 export const ReauthenticationEmail = ({
   token,
-  siteName = "Majix",
+  siteName = "VireCRM",
 }: ReauthenticationEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />

@@ -11,7 +11,7 @@ import {
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = "Majix";
+const SITE_NAME = "VireCRM";
 
 interface ClientPasswordResetProps {
   brandName?: string;
@@ -84,7 +84,7 @@ export const template = {
     fullName: "Jane Doe",
     email: "jane@acme.com",
     password: "NewPass-K8z2",
-    loginUrl: "https://acme.majix.ai/login",
+    loginUrl: "https://acme.virecrm.com/login",
   },
 } satisfies TemplateEntry;
 

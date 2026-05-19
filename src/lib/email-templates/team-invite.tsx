@@ -25,8 +25,8 @@ const TeamInviteEmail = ({
   inviterName = "Your team owner",
   organizationName = "their CRM workspace",
   roleLabel = "Team Member",
-  acceptUrl = "https://majix.ai",
-  brandName = "Majix",
+  acceptUrl = "https://virecrm.com",
+  brandName = "VireCRM",
 }: TeamInviteProps) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -70,14 +70,14 @@ const TeamInviteEmail = ({
 export const template = {
   component: TeamInviteEmail,
   subject: (data: Record<string, any>) =>
-    `You've been invited to join ${data?.organizationName ?? "a team"} on ${data?.brandName ?? "Majix"}`,
+    `You've been invited to join ${data?.organizationName ?? "a team"} on ${data?.brandName ?? "VireCRM"}`,
   displayName: "Team invitation",
   previewData: {
     inviterName: "Alex Owner",
     organizationName: "Acme Sales Co.",
     roleLabel: "Sales Rep",
-    acceptUrl: "https://majix.ai/accept-invite?token=sample",
-    brandName: "Majix",
+    acceptUrl: "https://virecrm.com/accept-invite?token=sample",
+    brandName: "VireCRM",
   },
 } satisfies TemplateEntry;
 

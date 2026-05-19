@@ -11,7 +11,7 @@ import {
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = "Majix";
+const SITE_NAME = "VireCRM";
 const REPLY_WINDOW = "within 24 hours";
 
 interface ContactAcknowledgmentProps {
@@ -28,7 +28,7 @@ interface ContactAcknowledgmentProps {
  */
 const ContactAcknowledgmentEmail = ({ name, message, pricingUrl }: ContactAcknowledgmentProps) => {
   const greeting = name ? `Hi ${name},` : "Hi there,";
-  const pricingHref = pricingUrl || "https://majix.ai/pricing";
+  const pricingHref = pricingUrl || "https://virecrm.com/pricing";
 
   return (
     <Html lang="en" dir="ltr">
@@ -88,7 +88,7 @@ export const template = {
   previewData: {
     name: "Jane Smith",
     message: "Looking for a custom CRM with white-label branding for our solar sales team.",
-    pricingUrl: "https://majix.ai/pricing",
+    pricingUrl: "https://virecrm.com/pricing",
   },
 } satisfies TemplateEntry;
 
