@@ -34,7 +34,7 @@ const DomainBrandingContext = createContext<DomainBrandingContextValue>({
 });
 
 // Hosts that are NEVER treated as a reseller's custom domain.
-// Reserved Majix subdomains (app, customers, notify) belong to platform infra,
+// Reserved VireCRM/Majix subdomains (app, customers, notify) belong to platform infra,
 // not tenants — see CLAUDE.md "Hosts" section.
 const SYSTEM_HOST_PATTERNS = [
   /\.lovable\.app$/i,
@@ -48,6 +48,11 @@ const SYSTEM_HOST_PATTERNS = [
   /^app\.majix\.ai$/i,
   /^customers\.majix\.ai$/i,
   /^notify\.majix\.ai$/i,
+  /^virecrm\.com$/i,
+  /^www\.virecrm\.com$/i,
+  /^app\.virecrm\.com$/i,
+  /^customers\.virecrm\.com$/i,
+  /^notify\.virecrm\.com$/i,
 ];
 
 function isSystemHost(hostname: string): boolean {
