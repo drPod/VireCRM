@@ -41,6 +41,10 @@ The Cloudflare zone has a wildcard Advanced Certificate covering `virecrm.com` +
 - Bun 1.2+ (text `bun.lock`, NOT `bun.lockb`)
 - shadcn/ui + Tailwind + Radix primitives
 
+### Agent tooling (Cloudflare)
+
+The `cloudflare@cloudflare` Claude Code plugin is installed in this repo's setup. AI agents working here should invoke the specific skill / MCP server for the task at hand instead of generic exploration or dashboard clicks. Routing table in [CLAUDE.md](./CLAUDE.md) "Cloudflare tooling" + [AGENTS.md](./AGENTS.md) "Cloudflare — which thing to invoke".
+
 ## Quick start
 
 ```bash

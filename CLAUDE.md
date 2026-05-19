@@ -99,7 +99,29 @@ Before writing or modifying any config, lockfile, plugin glue, or framework-spec
 
 Burnt this lesson: pushed a `bun.lockb` binary lockfile to Cloudflare Workers Builds (running bun 1.2.15), which rejected it as "outdated lockfile version" under `--frozen-lockfile`. context7 would have flagged that `bun.lock` text format has been the default since bun 1.2 in two seconds. Don't repeat.
 
+**Cloudflare-specific carve-out.** For CF platform / Workers questions, invoke the `cloudflare:cloudflare` skill (Skill tool) instead of context7. Skill is vendor-authoritative + bundles current API surface. context7 still wins for everything else (TanStack, Supabase JS, Stripe, Resend, Anthropic SDK, etc.).
+
 The global `~/.claude/rules/lookups.md` routing table is the source of truth for *which* tool to use for *which* class of lookup — this section just pins the rule into project context so non-Claude-Code agents see it too.
+
+## Cloudflare tooling — which thing to invoke for which task
+
+`cloudflare@cloudflare` plugin is installed. Don't re-install. Don't dashboard-click work the tools already cover. Use this routing table:
+
+| Task | Invoke |
+|---|---|
+| DNS records on `virecrm.com` / `majix.ai` zones | `mcp__plugin_cloudflare_cloudflare-api__*` |
+| CF for SaaS custom-hostname provision / verify / list | `mcp__plugin_cloudflare_cloudflare-api__*` |
+| Zone settings, rules engine, Page Rules, certs, Advanced cert order | `mcp__plugin_cloudflare_cloudflare-api__*` |
+| Wrangler CLI (deploy, `secret put`, `tail`, `dev`, `kv:*`, etc.) | `cloudflare:wrangler` skill, then shell out `wrangler ...` |
+| Author / review `src/server.ts` or `src/functions/*.functions.ts` | `cloudflare:workers-best-practices` skill |
+| Worker logs + metrics during smoke (filtered, historical) | `mcp__plugin_cloudflare_cloudflare-observability__*` |
+| Workers Builds CI status / build logs after push to `main` | `mcp__plugin_cloudflare_cloudflare-builds__*` |
+| Web Vitals / perf regression diagnosis | `cloudflare:web-perf` skill |
+| General CF platform / API surface lookups | `cloudflare:cloudflare` skill |
+
+CF API + observability + builds MCP servers require one-time `authenticate` (OAuth, opens browser). Re-auth persists across sessions.
+
+Skipped (loaded but not used in this repo): `cloudflare-bindings` MCP (no KV / D1 / R2 / Vectorize / Durable Objects — only Worker routes + secrets), `cloudflare:agents-sdk`, `cloudflare:sandbox-sdk`, `cloudflare:durable-objects`, `cloudflare:cloudflare-email-service` (Resend, not CF Email), `cloudflare:build-mcp`, `cloudflare:build-agent`.
 
 ## Agent skills
 
@@ -109,7 +131,7 @@ Project-scoped agent skills live in `.agents/skills/` (universal, multi-agent) a
 npx -y skills@latest experimental_install
 ```
 
-Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices, projects, upgrade), Resend (`resend`, `react-email`, `email-best-practices`), `web-design-guidelines`. Supabase, shadcn, and Vercel skills come from Claude Code **plugins** (auto-updated) — do NOT duplicate them via `skills add`.
+Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices, projects, upgrade), Resend (`resend`, `react-email`, `email-best-practices`), `web-design-guidelines`. Supabase, shadcn, Vercel, and **Cloudflare** skills come from Claude Code **plugins** (auto-updated) — do NOT duplicate them via `skills add`.
 
 ## Dev server + env
 

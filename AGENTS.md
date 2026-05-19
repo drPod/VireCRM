@@ -68,9 +68,20 @@ Tag glossary + grep recipes + conventions in `docs/issues-archive/README.md`.
 
 **Vibe-coded origin.** Lovable artifact. Trust nothing existing. Verify before claiming working. Log every finding to `ISSUES.md`.
 
-**Lookups: context7 first, training data never.** Before touching `wrangler.jsonc`, `@cloudflare/vite-plugin`, TanStack Start, Supabase JS, Stripe API, Bun lockfile — hit context7. Burnt-lesson: pushed `bun.lockb` binary, CF rejected ("outdated lockfile version"). context7 would've flagged `bun.lock` text default since Bun 1.2. Don't repeat.
+**Lookups: context7 first, training data never.** Before touching `wrangler.jsonc`, `@cloudflare/vite-plugin`, TanStack Start, Supabase JS, Stripe API, Bun lockfile — hit context7. Burnt-lesson: pushed `bun.lockb` binary, CF rejected ("outdated lockfile version"). context7 would've flagged `bun.lock` text default since Bun 1.2. Don't repeat. **CF platform / Workers questions** → invoke `cloudflare:cloudflare` skill instead. Non-CF libs stay on context7.
 
 **Supabase CLI > MCP.** Prefer `supabase ...` CLI over `mcp__plugin_supabase_supabase__*`. CLI auth via `SUPABASE_ACCESS_TOKEN`. No context-token cost.
+
+**Cloudflare — which thing to invoke (plugin already installed):**
+- DNS / zones / CF for SaaS / certs / rules → `mcp__plugin_cloudflare_cloudflare-api__*`
+- `wrangler deploy` / `secret put` / `tail` / `dev` → `cloudflare:wrangler` skill, shell out `wrangler`
+- Worker code review / authoring `src/server.ts` / `src/functions/*.functions.ts` → `cloudflare:workers-best-practices` skill
+- Worker logs + metrics during smoke → `mcp__plugin_cloudflare_cloudflare-observability__*`
+- Workers Builds CI status / build logs after push → `mcp__plugin_cloudflare_cloudflare-builds__*`
+- Web Vitals / perf → `cloudflare:web-perf` skill
+- General platform lookups → `cloudflare:cloudflare` skill
+
+Dashboard clicks last resort. Skipped (loaded but unused here): `cloudflare-bindings` MCP, `cloudflare:agents-sdk`, `cloudflare:sandbox-sdk`, `cloudflare:durable-objects`, `cloudflare:cloudflare-email-service` (Resend, not CF Email), `cloudflare:build-mcp`, `cloudflare:build-agent`.
 
 **Vite env baked at startup.** Edit `.env` → restart dev server. HMR won't pick up env. Stale-env symptom = silent login fail. Use `scripts/restart-dev.sh`.
 
@@ -88,7 +99,7 @@ Project skills pinned in `skills-lock.json`. Reproduce on fresh clone:
 npx -y skills@latest experimental_install
 ```
 
-Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices/projects/upgrade), Resend (`resend`/`react-email`/`email-best-practices`), `web-design-guidelines`. Supabase + shadcn + Vercel ship via Claude Code **plugins** (auto-updated) — don't duplicate via `skills add`.
+Bundled: TanStack Start/Router/Query/Integration, Stripe (best-practices/projects/upgrade), Resend (`resend`/`react-email`/`email-best-practices`), `web-design-guidelines`. Supabase + shadcn + Vercel + **Cloudflare** ship via Claude Code **plugins** (auto-updated) — don't duplicate via `skills add`. CF plugin routing in Core invariants above — invoke the listed skill/MCP for the listed task, not generic exploration.
 
 ## Hosts (don't confuse)
 
