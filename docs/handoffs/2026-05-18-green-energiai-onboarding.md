@@ -1,7 +1,11 @@
 # Handoff — Green EnergiAi (Crystal Cameron) onboarding + energy-broker CRM build-out
 
+> **PAUSED 2026-05-19.** Discovered Crystal already had an `auth.users` row on the OLD Lovable Supabase project (UUID `7ba2ebfa-…`). The 2026-05-18 session-1 provisioning created a DUPLICATE on the new DB (UUID `b5ae0c3e-…`). The session-2 xlsx import landed 3850 rows with broken column mapping (`name` = company-not-person, `agent_mils` = 505 from wrong column, `email`/`phone`/`title`/`service_address` all empty). Caziah Cameron — the actual org owner on old DB — last signed in to the old project on 2026-05-19 01:05, so the old project is still live and the migration is time-sensitive.
+>
+> **Next session: switch to `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` FIRST.** Migrate old Lovable DB → new fixed DB, then resume this handoff at Step 5 (Crystal onboarding from a clean post-migration state — her old UUID + password preserved, all data carried forward, xlsx already-supplemented for the energy fields the old importer dropped).
+
 **Started:** 2026-05-18 (Opus 4.7 1M, caveman mode)
-**Status:** plan written, nothing implemented yet
+**Status:** Steps 0-6 shipped + Step 7 design-only; ALL outputs invalidated by migration discovery 2026-05-19. Resume after migration lands.
 **Tenant:** Green EnergiAi (energy broker, Crystal Cameron CEO) — first real customer tenant on the multi-tenant SaaS. They USE the CRM for their own pipeline. **No sub-resale** — their customers are leads/contacts inside their CRM, not separate tenants of Majix.
 **Why this exists:** Crystal sent her 2yr client list (xlsx), only `Customer Name` imported. Schema gap + import-insert bug. She also wants Clients tab + Pricing tab + agent-mils workflow. Multi-step build; one agent will run out of context — handoff makes it resumable.
 

@@ -21,11 +21,11 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
-- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out.** First real customer tenant on the multi-tenant SaaS. Green EnergiAi is a Texas energy broker — they USE the CRM for their own sales pipeline (no sub-resale; Crystal's customers are leads/contacts inside her CRM, not separate tenants). Full plan + verbatim email + verbatim call notes + ordered steps + skill mapping in `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Critical path: ~~(0) provision tenant `greenenergiai.majix.ai`~~ (done 2026-05-18) → ~~(1) schema migration `20260518200618_energy_broker_fields.sql` adding ESI/address/mils/cost-per-kwh/contract-dates + generated `commission_value` column~~ (done 2026-05-18) → ~~(2) fix `ImportLeadsDialog.tsx` insert (parsed energy fields then dropped them)~~ (done 2026-05-18) → ~~(3) AI mapper prompt update~~ (done 2026-05-18) → ~~(4) historical-backfill toggle~~ (done 2026-05-18) → ~~(5) Pricing tab~~ (done 2026-05-18, `/pipeline`) → ~~(6) Clients tab~~ (done 2026-05-18, `/book`) → (7) renewal cron → (8) DM Crystal magic-link. Crystal's xlsx is gitignored at repo root, do not commit. Next agent: read handoff first, don't re-litigate decisions, append progress to handoff's `## What's done / what's next` section before context fills.
+- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out** — **PAUSED 2026-05-19.** Steps 0-6 shipped on 2026-05-18 (`30f3a54`, `e0ada67`, `554580a`, `4635496`, `4b6f75e`, `1448353`, `6399b7b`, `286cd81`) but invalidated by 2026-05-19 discovery — old Lovable DB still live, Crystal's auth.users row preserved there (`7ba2ebfa-…`), session-1 provisioning created a DUPLICATE on new DB (`b5ae0c3e-…`), session-2 xlsx-import wrote 3850 rows with broken column mapping. **Migration must run FIRST** (`docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`). Resume Crystal onboarding at Step 5 of `docs/handoffs/2026-05-18-green-energiai-onboarding.md` AFTER migration lands — by then her UUID/password/data already on new DB, energy fields already populated from xlsx supplement pass.
 
 ### Lovable → fixed-DB data migration
 
-- [ ] **Migrate live data from old Lovable Supabase project to current `coynbufhejaeuifpvmvw` project.** User dumped the old project to `og_database/` on 2026-05-19 (gitignored, never push — bcrypt password hashes + PII). Contents:
+- [ ] **Migrate live data from old Lovable Supabase project to current `coynbufhejaeuifpvmvw` project.** Full plan in `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Strategy = enrich, not replace: old DB is truth for users + lead UUIDs; xlsx is supplement for the energy-broker fields the old importer dropped. User dumped the old project to `og_database/` on 2026-05-19 (gitignored, never push — bcrypt password hashes + PII). Contents:
   - `genesis_auth_data.sql` (47k) — 23 `auth.users` rows
   - `genesis_database_schema.sql` (382k) — schema-only
   - `genesis_database_full.sql` (3.4M) — schema + `COPY public.* FROM stdin` data sections
@@ -126,6 +126,41 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-19 — discovered old Lovable DB still live; Crystal duplicate; xlsx import has mapping bugs; pivot to migration-first
+**Tags:** [lovable-migration] [supabase] [green-energiai] [security] [docs]
+
+Session 3 attempted to verify the 2026-05-18 Path-A push (dev-server walk → push → PR → DM Crystal). Pre-push verification surfaced enough blockers that we pivoted to a migration-first plan.
+
+#### Found
+
+- **Old Lovable Supabase project is still live for at least one user.** `cameroncaziah@gmail.com` last signed in to the old project at 2026-05-19 01:05 (per `og_database/genesis_auth_data.sql`). Migration window is short — old-DB writes won't reach the new `coynbufhejaeuifpvmvw` project.
+- **Crystal already exists on old Lovable DB** with `auth.users.id = 7ba2ebfa-9d24-4231-ba25-ea463f30587c`, email confirmed 2026-04-23. The 2026-05-18 session-1 provisioning on the new DB created a DUPLICATE with `id = b5ae0c3e-1655-48d5-b211-a9fd55aaafea`. Both rows currently exist, in different projects.
+- **Caziah Cameron, not Crystal, owns the Green EnergiAi org on old DB.** Old org id `8b8c76ab-08de-4fd1-a703-b06138078181`, name "Caziah Cameron's Organization", brand "Caziah's CRM", `is_reseller=t`. Crystal + Erica + Shelby + mleaverton are members under Caziah's org. New DB org structure (Crystal-owned, `c31c2a18-…`) is wrong.
+- **Old DB has 5389 leads on Crystal's org**, source `xlsx_import` from 2026-04-29 — Crystal's previous failed import. CRM-standard fields landed (name/email/phone/company) but energy fields (annual_kwh, current_supplier, contract_end_date) all NULL. Plus duplicates (e.g. CHAD BULLARD × 3 rows).
+- **Session-2 xlsx import on new DB (3850 rows) has critical column-mapping bugs.** `name` is mapped to xlsx's `Customer Name` (company), not `contact_person` (the human). `agent_mils` is mapped to wrong column → 505.000 instead of plausible 0.041. `annual_kwh` is mapped wrong → 480 instead of `EAC AQ` value of 16988. `email`/`phone`/`title`/`service_address`/`cost_per_kwh` all 0/3850 populated. ESI values include literal backticks (`` `10443720…` ``), not stripped. Heuristics + AI mapper prompt don't recognize `customer_email`, `telephone`, `designation`, `address_1`, `Unit Uplift`, `EAC AQ`, `contact_person`.
+- **Local-dev auth flow:** Supabase gotrue strips `localhost:8080` from `redirect_to` even with `uri_allow_list` updated via Management API. Allowlist update persisted but didn't take effect on the generate_link endpoint (cache or default block). Workaround attempted: agent-browser walks the magic-link to prod, reads `localStorage["sb-coynbufhejaeuifpvmvw-auth-token"]`, transplants to localhost — worked once for the session-3 import test. Treat as known dev-friction; longer-term, set `site_url` to a dev-friendly value or document the localStorage transplant.
+
+#### Shipped
+
+- `.gitignore` — added `og_database/`, `*.sql.dump`, `*.pgdump` so legacy Lovable dumps stay out of git. Commit `d49e67b`.
+- `CLAUDE.md` + `AGENTS.md` — new section under Lovable history pointing at `og_database/` with read-not-cat warning + migration pointer. Commit `d49e67b`.
+- `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` — full migration handoff. Strategy = enrich, not replace; old DB is source-of-truth for users + lead UUIDs, xlsx supplements energy fields. Six-step plan from project-ref recovery → branch dry-run → prod run → Crystal resume → old project freeze. Not yet committed.
+- `docs/handoffs/2026-05-18-green-energiai-onboarding.md` — added PAUSED banner at top pointing at the new migration handoff. Steps 0-6 still listed as shipped but flagged as invalidated until migration lands. Not yet committed.
+- `ISSUES.md` `## Open` updated — green-energiai item now strikes through the "ready to ship" framing and points at migration handoff; new "Lovable → fixed-DB data migration" subsection holds the master plan. Not yet committed.
+
+#### Verification
+
+- `bash scripts/lint-issues.sh` — clean after every edit.
+- `git status` — `og_database/` no longer listed (gitignored verified via `git check-ignore -v`).
+- Dev server (vite, port 8080) still running in background task `bsl7k5gad` — kill before next session or it'll collide with a fresh `restart-dev.sh`.
+- 3850 bad-mapping rows still sit in new DB at `organization_id='c31c2a18-f595-499d-9353-f3cd1d9e659b'`. **DO NOT push 8 ahead commits** until migration completes — they're functionally valid (typecheck + build clean) but ship Crystal a re-broken import experience and the Crystal duplicate-account problem.
+
+#### Manual follow-up (user)
+
+- Decide which of the 6 personal-Gmail accounts in old DB (alexanderjakari, davioncarr60, info.solace05, jesaira.lifosjoe12, paparusse02, primeframem) are real customers / staff / testers — filters which accounts get ported. See migration handoff "Open questions" #2.
+- Provide old Lovable Supabase project ref + service-role key (or grant access) for the migration script's `OLD_SUPABASE_URL` + `OLD_SUPABASE_SERVICE_ROLE_KEY` env.
+- Decide org-slug rename (`caziah-cameron-66e0f158` → `greenenergiai`) timing — during migration or after. See migration handoff "Open questions" #3.
 
 ### 2026-05-18 — green-energiai step 7: renewal cron — design analysis (not yet implemented)
 **Tags:** [green-energiai] [supabase] [cron] [design]
