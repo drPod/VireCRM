@@ -33,6 +33,14 @@ Vibe-coded on Lovable — trust no existing code, we're here to fix it.
 
 Host migration history: Vercel was abandoned because the Lovable Vite preset emits a Cloudflare Worker bundle that Vercel can't execute. See ISSUES.md 2026-05-17 Cloudflare migration.
 
+### `og_database/` — legacy Lovable Supabase dumps (gitignored)
+
+User dumped the OLD Lovable Supabase project to `og_database/` on 2026-05-19 as the source-of-truth for the data migration to the current `coynbufhejaeuifpvmvw` project. Four files: `genesis_auth_data.sql`, `genesis_database_schema.sql`, `genesis_database_full.sql`, `genesis_database_full_with_auth.sql`. Folder gitignored — **never commit**. The auth dump contains bcrypt password hashes + PII for 23 users, including real Green EnergiAi staff (crystal, erica, shelby, mleaverton) and `cameroncaziah@gmail.com` who last signed in to the OLD project on 2026-05-19 01:05 (the old project is still live for at least one user — migration is time-sensitive).
+
+**Reading from it is fine** (planning migration, schema diffs, account reconciliation) — `grep`, `head`, `wc -l` ok. **Don't `cat` the full file into context** — auth dump is 47k of bcrypt hashes and full dumps are 3.4M each. Use targeted `grep` or `sed` line ranges.
+
+Full migration plan + Crystal duplicate-account note in `ISSUES.md ## Open` "Lovable → fixed-DB data migration" section.
+
 ## What this product is (business model)
 
 **Multi-tenant CRM SaaS.** Customers sign up directly with Majix. Each customer = one tenant org. Every tenant gets a white-labeled CRM instance:

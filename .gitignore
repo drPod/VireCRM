@@ -68,3 +68,10 @@ supabase/.temp/
 *.xlsx
 *.xls
 *.csv
+
+# Legacy Lovable Supabase dumps (auth.users with bcrypt hashes + PII).
+# Used as reference for the old→new project data migration. NEVER push.
+# See ISSUES.md "Lovable → fixed-DB data migration" Open item.
+og_database/
+*.sql.dump
+*.pgdump

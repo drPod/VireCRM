@@ -12,6 +12,10 @@ Two tiers per tenant:
 
 Each tenant: own user pool, own data, own theme (logo, colors, copy), own billing with Majix.
 
+### `og_database/` — legacy Lovable Supabase dumps (gitignored, never push)
+
+User dumped the OLD Lovable Supabase project to `og_database/` on 2026-05-19 as source-of-truth for the data migration to the current `coynbufhejaeuifpvmvw` project. Four files: auth dump (47k, 23 users, bcrypt hashes + PII), schema dump (382k), two full dumps (3.4M each, schema + COPY data). **Gitignored — never commit.** Use targeted `grep` / `sed` not `cat` (auth dump is bcrypt PII). Real Green EnergiAi staff (crystal, erica, shelby, mleaverton) + Cameron Caziah live in the old DB. **`cameroncaziah@gmail.com` last signed in to the old project on 2026-05-19 01:05 — old project still live for at least one user. Migration is time-sensitive.** Full plan + Crystal duplicate-account note in `ISSUES.md ## Open` "Lovable → fixed-DB data migration" section.
+
 ### Legacy "reseller" code — don't strip in audits
 
 Lovable scaffold left reseller-tier features behind: `is_reseller` org flag, `signup_under_reseller` SQL fn, `reseller_payouts`/`reseller_plans`/`commission_rules`/`commission_earnings` tables, `r/$resellerSlug/signup.tsx` route, `BrandedSignup.tsx`. Not in use today.
