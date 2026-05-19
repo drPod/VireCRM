@@ -107,12 +107,15 @@ next chunk of work is:
 3. Tear-down server function for when the org clears their custom
    domain.
 
-The customer-side flow (CNAME + `_vire.<hostname>` TXT in their
-registrar — `_majix.<hostname>` TXT for the legacy parallel zone) is
-unchanged from what the Onboarding Dialog already documents. New
-customers default to the `virecrm.com` flow; the `majix.ai` flow is
-only used for customers who already pointed their CNAME at
-`customers.majix.ai` before the rename.
+The customer-side flow (CNAME + `_majix.<hostname>` TXT in their
+registrar) is unchanged from what the Onboarding Dialog already
+documents. The `_majix` TXT prefix is the universal org-agnostic
+verification token across both zones — set by migration
+`20260517170000_rebrand_verification_token_prefix.sql` — so customers
+do **not** need to update DNS records during the brand cutover. Only
+the CNAME target differs between flows: new customers point at
+`customers.virecrm.com`, pre-rename customers stay on
+`customers.majix.ai` until they choose to migrate.
 
 ## References
 
