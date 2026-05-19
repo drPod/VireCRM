@@ -13,7 +13,7 @@ export function MarketingFooter() {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)] transition-[box-shadow,transform] duration-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.7)] hover:scale-110">
                 M
               </span>
-              <span className="text-lg font-bold text-gradient-primary">Majix</span>
+              <span className="text-lg font-bold text-gradient-primary">VireCRM</span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
               The AI CRM that follows up for you, so your team can close.
@@ -67,7 +67,7 @@ export function MarketingFooter() {
         </div>
 
         <div className="mt-12 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Majix. All rights reserved.
+          © {new Date().getFullYear()} VireCRM. All rights reserved.
         </div>
       </div>
     </footer>
