@@ -46,7 +46,9 @@ export function EmailMarketingView() {
         <Card className="p-4">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Deliverability</p>
           <p className="mt-1 text-2xl font-bold text-success">99.4%</p>
-          <p className="text-[10px] text-muted-foreground">Resend · majix.ai SPF/DKIM verified</p>
+          <p className="text-[10px] text-muted-foreground">
+            Resend · virecrm.com SPF/DKIM verified
+          </p>
         </Card>
       </div>
 

@@ -174,7 +174,7 @@ export function DashboardView() {
               Ready to plug in your real pipeline?
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Start your free trial and let Majix chase every lead for you, 24/7.
+              Start your free trial and let VireCRM chase every lead for you, 24/7.
             </p>
           </div>
           <div className="flex gap-2">

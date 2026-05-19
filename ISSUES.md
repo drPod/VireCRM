@@ -127,6 +127,29 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-19 — rebrand unit 16: admin/onboarding/preview content → VireCRM
+**Tags:** [rebrand] [ui]
+
+Brand-only swap inside Unit 16 file set (no logic changes). Part of the Majix → VireCRM + `majix.ai` → `virecrm.com` rebrand campaign.
+
+#### Shipped
+
+- `src/components/admin/QuotesPanel.tsx` — three brand-copy hits (white-label tagline, quote-title placeholder, differentiators label) → VireCRM.
+- `src/components/onboarding/ProductTour.tsx` — welcome step title → VireCRM.
+- `src/components/GlobalErrorBoundary.tsx` — `SYSTEM_HOST_PATTERNS` regexes `^majix\.ai$` / `^www\.majix\.ai$` → `^virecrm\.com$` / `^www\.virecrm\.com$` (domain swap, since the boundary needs to skip the support-email RPC for the platform's own marketing host).
+- `src/components/preview/views/AdvisorView.tsx` — heading "Majix AI Advisor" → "VireCRM AI Advisor".
+- `src/components/preview/views/DashboardView.tsx` — trial CTA body copy.
+- `src/components/preview/data/reputation.ts` — three seeded review bodies.
+- `src/components/preview/data/email.ts` — seeded campaign subject "Welcome to Majix…".
+- `src/components/preview/views/EmailMarketingView.tsx` — Resend deliverability caption `majix.ai` → `virecrm.com`; wrapped `<p>` to satisfy prettier line-width budget now that the domain string is longer.
+
+#### Verification
+
+- `bun run typecheck` — clean.
+- `bun run test` — 123/123 pass.
+- `bunx eslint <unit files>` — 32 problems before, 32 after (all pre-existing prettier wrap nits in files I didn't touch the layout of). No new lint regressions.
+- `grep -nE '\bMajix\b' <unit files>` — zero hits.
+
 ### 2026-05-19 — discovered old Lovable DB still live; Crystal duplicate; xlsx import has mapping bugs; pivot to migration-first
 **Tags:** [lovable-migration] [supabase] [green-energiai] [security] [docs]
 
