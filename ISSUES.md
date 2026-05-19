@@ -160,74 +160,71 @@ Step 2 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Script wr
 - **Decide org consolidation** post-migration: merge Caziah's `8b8c76ab-…` and Crystal's `188c4869-…` into one tenant under `greenenergiai.majix.ai`, or leave them as two?
 - **Recheck Phase A skip math at Step 3** — eligible reported as 14, documented filter expects 13. One email pattern likely missing from `SKIP_EMAIL_PATTERNS`.
 
-### 2026-05-19 — rebrand unit 8: marketing top routes Majix→VireCRM, majix.ai→virecrm.com
-**Tags:** [rebrand] [marketing] [seo]
+### 2026-05-19 — rebrand unit 20: merged all 19 rebrand PRs (Majix → VireCRM, majix.ai → virecrm.com, parallel cutover)
+**Tags:** [rebrand] [marketing] [seo] [supabase] [stripe] [cf-saas] [ui] [docs]
 
-#### Shipped
+Closes the rebrand campaign. Prior session split the brand swap into 19 work-units, each shipped as its own PR off the same base commit. This session merged all 19 into `main` with `--no-ff`, resolved the predictable ISSUES.md conflicts (every unit appending its own `## Recent` entry at the same anchor), and corrected two hunks that drifted away from the "additive, parallel cutover" guarantee.
 
-- `src/routes/index.tsx`, `src/routes/pricing.tsx`, `src/routes/features.tsx`, `src/routes/contact.tsx` — one-way brand swap: meta titles, OG title/url, canonical link, schema.org JSON-LD (`name`, `url`, `email`), inline JSX brand text, `support@majix.ai` → `support@virecrm.com`. Loading splash text on landing.
-- typecheck + tests + scoped lint (4 files) all green. Project-wide lint has 5174 pre-existing errors unrelated to this unit.
-- Branch `rebrand/unit-8-marketing-top`, opened PR against `main`.
+Single consolidated entry supersedes the four per-unit Recent entries that the individual PRs had appended (units 2, 4, 8, 16); they are intentionally dropped here so the build log stays scannable.
 
-### 2026-05-19 — rebrand unit 4: stripe edge fn CORS allowlist adds virecrm.com
-**Tags:** [rebrand] [stripe] [cf-saas]
+#### Shipped (by unit)
 
-Parallel-cutover rebrand (Majix → VireCRM). Additive only — both zones live during transition.
+- **Unit 1 — `wrangler.jsonc`.** Additive `virecrm.com` Worker routes alongside existing `majix.ai` rows. PR #3.
+- **Unit 2 — `supabase/migrations/20260519100844_get_org_by_domain_virecrm.sql`.** `CREATE OR REPLACE FUNCTION public.get_org_by_domain(p_hostname TEXT) RETURNS json`; path-2 regex now `^[a-z0-9][a-z0-9-]*\.(majix\.ai|virecrm\.com)$`. Reserved-label list unchanged. PR #5.
+- **Unit 3 — `src/components/auth/DomainBrandingProvider.tsx`.** `SYSTEM_HOST_PATTERNS` extended to recognize virecrm.com hosts as system (skip the per-org RPC lookup). PR #1.
+- **Unit 4 — `supabase/functions/_shared/stripe.ts`.** `ALLOWED_ORIGIN_SUFFIXES` adds `.virecrm.com` / `virecrm.com` (6 entries total). ACAO fallback on line 106 left as `https://majix.ai` — separate cutover concern. PR #4.
+- **Unit 5 — `src/lib/dns-check.ts`.** `VITE_CF_FALLBACK_HOSTNAME` default flips to `customers.virecrm.com`; helper exports the legacy `customers.majix.ai` constant for the onboarding dialog so customers who CNAMEd before the rename keep resolving. PR #2.
+- **Unit 6 — root metadata.** `public/og-card.svg`, `public/robots.txt`, `src/routes/__root.tsx`, `src/routes/sitemap[.]xml.ts` → VireCRM / virecrm.com. PR #6.
+- **Unit 7 — email infra strings.** Resend display names + fallback origin URLs across `src/functions/domain-health.functions.ts`, `src/lib/admin-quote-email.functions.ts`, `src/lib/email/dispatch-outreach.ts`, `src/lib/email/outreach-delivery.ts`, `src/lib/resend.ts`, `src/routes/api/email/transactional/send.ts`, `src/routes/api/notify-low-balance.ts`, `src/routes/api/public/contact.ts`, `src/routes/api/public/hooks/contact-followup-reminders.ts`, `src/routes/hooks/send-pending-welcomes.ts` → `VireCRM <noreply@notify.virecrm.com>` etc. PR #11.
+- **Unit 8 — marketing top routes.** `src/routes/{index,pricing,features,contact}.tsx` — meta titles, OG, canonical, schema.org JSON-LD, inline JSX brand, `support@majix.ai` → `support@virecrm.com`, splash text. PR #8.
+- **Unit 9 — legal routes.** `src/routes/{terms,privacy,refund-policy}.tsx` body copy → VireCRM. PR #9.
+- **Unit 10 — marketing chrome.** `src/components/marketing/{MarketingHeader,MarketingFooter,HeroSection,SocialProofSection,BusinessEmailBanner}.tsx`. PR #7.
+- **Unit 11 — marketing content.** `src/components/marketing/{PricingCards,TwoWaysSection,ContactForm}.tsx` + `src/components/marketing/features/{ComparisonTable,FeatureBlock,FeaturesFaq,FeaturesHero,ResellerCta,featureBlocks}.tsx`. PR #15.
+- **Unit 12 — auth public routes.** `src/routes/{login,signup,accept-invite,confirm-email,reset-password,checkout.return,payment-status,unsubscribe}.tsx` + `src/components/auth/TermsCheckbox.tsx`. PR #10.
+- **Unit 13 — email templates.** All 12 templates under `src/lib/email-templates/`. PR #13.
+- **Unit 14 — `_app.*.tsx` meta titles + admin email signoffs.** 42 route files. PR #16.
+- **Unit 15 — CRM internal components.** `src/components/crm/{BusinessEmailCard,CrmSidebar,EmailTemplatePreviewPanel,IntegrationsSettings,TeamMembers,WhiteLabelSettings}.tsx`. PR #12.
+- **Unit 16 — admin / onboarding / preview.** `src/components/admin/QuotesPanel.tsx`, `src/components/onboarding/ProductTour.tsx`, `src/components/preview/{views,data}/*`. Plus `src/components/GlobalErrorBoundary.tsx` — see flagged-hunk fix below. PR #17.
+- **Unit 17 — lib / hooks / functions.** `src/functions/{appointments,test-email}.functions.ts`, `src/hooks/useStripeCheckout.tsx`, `src/lib/{pricing-overrides,quote-pdf.functions}.ts`, `src/lib/workflows/run.ts`. Carve-out comments preserved on the `majix:`-prefixed localStorage / CustomEvent keys (see below). PR #14.
+- **Unit 18 — top-level docs.** `CLAUDE.md`, `AGENTS.md`, `README.md` brand strings + the live "Hostname plan" table now lists both `<slug>.virecrm.com` (primary) and `<slug>.majix.ai` (legacy parallel). PR #18.
+- **Unit 19 — handoff + cf-for-saas runbook.** `docs/custom-domains/cf-for-saas-setup.md` documents dual-zone fallback origin + `CLOUDFLARE_LEGACY_ZONE_ID` secret; `docs/handoffs/2026-05-18-green-energiai-onboarding.md` updated to point Crystal's magic-link recipe at `greenenergiai.virecrm.com`. PR #19.
 
-#### Shipped
+#### Flagged hunks reviewed at merge time (decisions)
 
-- `supabase/functions/_shared/stripe.ts:84-90` — `ALLOWED_ORIGIN_SUFFIXES` now contains `.virecrm.com` + `virecrm.com` alongside existing `.majix.ai` + `majix.ai` (+ `.workers.dev`, `localhost`). 6 entries total. ACAO fallback on line 106 left as `https://majix.ai` per unit spec — separate cutover concern.
+- **PR #17 (Unit 16) — `src/components/GlobalErrorBoundary.tsx` `SYSTEM_HOST_PATTERNS`.** Original hunk hard-flipped `^majix\.ai$` / `^www\.majix\.ai$` → `^virecrm\.com$` / `^www\.virecrm\.com$`. **Reverted to additive** in commit `bba6038`: keeps both pairs of regexes. Hard-flip would stop the boundary from skipping the per-org support-email RPC for visits to the legacy host during the parallel cutover.
+- **PR #19 (Unit 19) — `docs/custom-domains/cf-for-saas-setup.md` TXT prefix.** Original hunk introduced `_vire.<hostname>` as the new primary verification-token prefix alongside legacy `_majix.<hostname>`. **Reverted to single universal `_majix.<hostname>`** in commit `fb1220b`. The `_majix` prefix is org-agnostic and universal across both zones per migration `20260517170000_rebrand_verification_token_prefix.sql`; introducing a second prefix would force every existing custom-domain tenant to re-publish a TXT record. Only the CNAME target differs between flows (`customers.virecrm.com` for new tenants, `customers.majix.ai` for pre-rename ones).
+- **PR #14 (Unit 17) — `src/lib/pricing-overrides.ts` `STORAGE_KEY` + CustomEvent name.** The unit kept `STORAGE_KEY = "majix.pricing-overrides"` and the `"majix:pricing-overrides-changed"` event name with a `TODO(rebrand)` comment because emitter + listener must change atomically AND old client state living under the legacy key would orphan otherwise. **No action — accepted as-is.** Same rationale applied to `localStorage["majix.autoOutreachEnabled"]` and `localStorage["majix:contact-draft"]`. Documented in the carve-out list below so future rebrand passes don't strip these without an explicit migrate-on-load step.
+
+#### Carve-out list — strings intentionally still `majix` after Unit 20
+
+These are NOT bugs and NOT pending follow-ups. Listed for future audits so nobody flags them as missed work:
+
+- `localStorage["majix.pricing-overrides"]` (`src/lib/pricing-overrides.ts`) + matching `"majix:pricing-overrides-changed"` CustomEvent name. Rename requires atomic emitter+listener change and an old-key migration on load.
+- `localStorage["majix.autoOutreachEnabled"]` (Unit 17, same carve-out reason).
+- `localStorage["majix:contact-draft"]` (same).
+- `supabase/functions/_shared/stripe.ts:106` ACAO fallback `https://majix.ai` — single header value, separate cutover concern; flip after DNS health is green on virecrm.com.
+- DNS-onboarding `_majix.<hostname>` TXT verification token — universal org-agnostic prefix set by migration `20260517170000_rebrand_verification_token_prefix.sql`. **Stays as `_majix` permanently across both zones** so customers never need to re-publish DNS during a brand change.
+- `customers.majix.ai` CF for SaaS fallback origin — kept live alongside `customers.virecrm.com` so pre-rename customer CNAMEs continue to resolve. Retire after every existing tenant migrates their CNAME target.
+- `<slug>.majix.ai` tenant subdomain — Worker wildcard route stays additive; `get_org_by_domain` accepts both zones via regex union.
 
 #### Verification
 
-- `bun run typecheck` clean.
-- `bun run test` — 123/123 pass.
-- `bun run lint` — 5170 pre-existing errors repo-wide; 6 pre-existing in `stripe.ts` (lines 36, 109, 119-124). Edit at lines 84-90 introduces zero new lint findings. Out of unit scope.
-
-### 2026-05-19 — rebrand unit 2: get_org_by_domain dual-zone (majix.ai + virecrm.com)
-**Tags:** [rebrand] [supabase] [cf-saas]
-
-Parallel-cutover rebrand work-unit 2 of N (Majix → VireCRM). Goal: keep both parent zones resolving to the same tenant during DNS / cert provisioning on virecrm.com. SQL-only — single new migration that supersedes the prior majix-only definition.
-
-#### Shipped
-
-- `supabase/migrations/20260519100844_get_org_by_domain_virecrm.sql` (new, ~95 lines). `CREATE OR REPLACE FUNCTION public.get_org_by_domain(p_hostname TEXT) RETURNS json` — path 1 (verified custom hostname via `org_custom_domains`) unchanged from `20260518020000_*.sql`; path 2 regex extended from `^[a-z0-9][a-z0-9-]*\.majix\.ai$` to `^[a-z0-9][a-z0-9-]*\.(majix\.ai|virecrm\.com)$`. Reserved-label list (`app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`) unchanged.
-
-#### Verification
-
-- `bun run typecheck` clean.
-- `bun run test` — 123/123 passing.
-- `bun run lint` — 5210 pre-existing errors across `supabase/functions/_shared/*`, `payments-webhook`, `verify-checkout-session`, `vite.config.ts`. Confirmed identical count with my change stashed; none touch the new migration file (SQL not lint-targeted).
-- `grep -nE '(majix\.ai|virecrm\.com)' supabase/migrations/20260519100844_*.sql` — both zones present, including line-65 regex.
-- Regex behaviour spot-check (Node): 9/9 cases pass — accepts `greenenergiai.majix.ai`, `greenenergiai.virecrm.com`; rejects `foo.bar.majix.ai`, `foo.example.com`, apex `majix.ai` / `virecrm.com`, leading-dash labels.
-- Local supabase stack not running (`supabase status` reports missing container) — skipped `supabase db reset` per work-unit carve-out. Migration applies via `CREATE OR REPLACE` so prod-side push is idempotent.
+- `git log --oneline -25` — 19 `Merge PR #N — unit-M ...` merge commits + 2 fix commits (`bba6038`, `fb1220b`) on `main`. No PRs merged; remote pushes deferred for user review.
+- `bash scripts/lint-issues.sh` — clean.
+- Working tree dirty pre-existing (migration script + Step 2 handoff edits) left untouched — separate work track.
+- `bun run typecheck` + `bun run build` + scoped greps for stray "Majix" / "majix.ai" outside the carve-out list — see "Final verification" section below once run.
 
 #### Manual follow-up (user)
 
-- After all rebrand units land, push the migration to prod via `supabase db push` (or CI runner). DNS for virecrm.com + wildcard cert tracked under separate rebrand units.
-
-### 2026-05-19 — rebrand unit 16: admin/onboarding/preview content → VireCRM
-**Tags:** [rebrand] [ui]
-
-Brand-only swap inside Unit 16 file set (no logic changes). Part of the Majix → VireCRM + `majix.ai` → `virecrm.com` rebrand campaign.
-
-#### Shipped
-
-- `src/components/admin/QuotesPanel.tsx` — three brand-copy hits (white-label tagline, quote-title placeholder, differentiators label) → VireCRM.
-- `src/components/onboarding/ProductTour.tsx` — welcome step title → VireCRM.
-- `src/components/GlobalErrorBoundary.tsx` — `SYSTEM_HOST_PATTERNS` regexes `^majix\.ai$` / `^www\.majix\.ai$` → `^virecrm\.com$` / `^www\.virecrm\.com$` (domain swap, since the boundary needs to skip the support-email RPC for the platform's own marketing host).
-- `src/components/preview/views/AdvisorView.tsx` — heading "Majix AI Advisor" → "VireCRM AI Advisor".
-- `src/components/preview/views/DashboardView.tsx` — trial CTA body copy.
-- `src/components/preview/data/reputation.ts` — three seeded review bodies.
-- `src/components/preview/data/email.ts` — seeded campaign subject "Welcome to Majix…".
-- `src/components/preview/views/EmailMarketingView.tsx` — Resend deliverability caption `majix.ai` → `virecrm.com`; wrapped `<p>` to satisfy prettier line-width budget now that the domain string is longer.
-
-#### Verification
-
-- `bun run typecheck` — clean.
-- `bun run test` — 123/123 pass.
-- `bunx eslint <unit files>` — 32 problems before, 32 after (all pre-existing prettier wrap nits in files I didn't touch the layout of). No new lint regressions.
-- `grep -nE '\bMajix\b' <unit files>` — zero hits.
+- **Push to remote.** Requires explicit go-ahead (`git push origin main`). PRs auto-close on push since their head commits are now ancestors of `main` (or close them manually via `gh pr close <n> --comment "merged via Unit 20"`).
+- **External actions before user-visible cutover** (also tracked in `## Open` "User action required"):
+  - Cloudflare for SaaS — enable on `virecrm.com` zone; create `customers.virecrm.com` proxied CNAME; designate as fallback origin; mint `CLOUDFLARE_LEGACY_ZONE_ID` secret pointing at the `majix.ai` zone (see `docs/custom-domains/cf-for-saas-setup.md`).
+  - Supabase Auth — add `https://virecrm.com`, `https://www.virecrm.com`, `https://app.virecrm.com`, `https://*.virecrm.com` to the redirect-URL allowlist.
+  - Resend — verify `notify.virecrm.com` SPF/DKIM (parallel to existing `notify.majix.ai`).
+  - DNS at IONOS / CF — apex + `www` + `app` + `customers` + `*` wildcard for `virecrm.com`.
+- **Deploy.** `wrangler deploy` once secrets are in.
+- **Smoke per integration plan.** Browse `majix.ai`, `virecrm.com`, `app.virecrm.com/login`, `greenenergiai.{majix.ai,virecrm.com}` and confirm both zones render the same white-label tenant.
+- **Push the dual-zone SQL migration.** `supabase db push` (or CI runner) applies `20260519100844_get_org_by_domain_virecrm.sql`. Already idempotent (`CREATE OR REPLACE`).
 
 ### 2026-05-19 — discovered old Lovable DB still live; Crystal duplicate; xlsx import has mapping bugs; pivot to migration-first
 **Tags:** [lovable-migration] [supabase] [green-energiai] [security] [docs]
