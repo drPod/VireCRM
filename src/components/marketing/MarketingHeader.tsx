@@ -3,7 +3,6 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
-import { PromoBanner } from "@/components/marketing/PromoBanner";
 import { BusinessEmailBanner } from "@/components/marketing/BusinessEmailBanner";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
@@ -26,7 +25,6 @@ export function MarketingHeader() {
     <div className="sticky top-0 z-50 flex flex-col">
       <PaymentTestModeBanner />
       <BusinessEmailBanner />
-      <PromoBanner />
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2.5">
