@@ -4,11 +4,11 @@
  *
  * Domain onboarding flow uses Cloudflare for SaaS: customers CNAME their
  * hostname (e.g. `crm.acmecorp.com`) at our SaaS fallback hostname
- * (`customers.majix.ai`). Cloudflare provisions the TLS cert + routes
+ * (`customers.virecrm.com`). Cloudflare provisions the TLS cert + routes
  * traffic through to our Worker. The checks below verify:
  *
  *   1. The customer's hostname CNAMEs at our fallback origin.
- *   2. The customer added the `_majix.<domain>` TXT we issue (app-level
+ *   2. The customer added the `_virecrm.<domain>` TXT we issue (app-level
  *      org binding — separate from CF's `_cf-custom-hostname` ownership
  *      TXT which CF validates on its side).
  *
@@ -17,18 +17,12 @@
  */
 
 // Stable across customers — change here if the SaaS fallback hostname moves.
-// During the majix.ai → virecrm.com parallel cutover both
-// `customers.majix.ai` AND `customers.virecrm.com` are active CF for SaaS
-// fallback hostnames; customers can CNAME at either and onboarding will
-// succeed. `VITE_CF_FALLBACK_HOSTNAME` overrides the default below, so the
-// runtime target can be flipped without a code change once the cutover
-// completes. `REQUIRED_CNAME_TARGET_ALT` is exported for UIs that want to
-// surface both options (e.g. onboarding picker).
+// `customers.virecrm.com` is the CF for SaaS fallback hostname.
+// `VITE_CF_FALLBACK_HOSTNAME` overrides the default below so the runtime
+// target can be flipped without a code change.
 export const REQUIRED_CNAME_TARGET =
   (import.meta.env.VITE_CF_FALLBACK_HOSTNAME as string | undefined) ??
-  "customers.majix.ai";
-
-export const REQUIRED_CNAME_TARGET_ALT = "customers.virecrm.com";
+  "customers.virecrm.com";
 
 export type DnsType = "A" | "AAAA" | "TXT" | "MX" | "CNAME";
 
@@ -71,7 +65,7 @@ export interface ChecklistResult {
 
 function normalizeCnameAnswer(value: string): string {
   // DNS-over-HTTPS returns CNAME data with a trailing dot, e.g.
-  // "customers.majix.ai.". Strip so comparisons against the configured
+  // "customers.virecrm.com.". Strip so comparisons against the configured
   // target succeed.
   return value.replace(/\.$/, "").toLowerCase();
 }
@@ -82,19 +76,10 @@ export async function runDomainChecklist(
 ): Promise<ChecklistResult> {
   const d = domain.trim().toLowerCase();
   const target = REQUIRED_CNAME_TARGET.toLowerCase();
-  const [
-    cnameRoot,
-    aRoot,
-    txtMajix,
-    mx,
-    txtRoot,
-    dmarc,
-    dkim1,
-    dkim2,
-  ] = await Promise.all([
+  const [cnameRoot, aRoot, txtVirecrm, mx, txtRoot, dmarc, dkim1, dkim2] = await Promise.all([
     lookupDns(d, "CNAME"),
     lookupDns(d, "A"),
-    lookupDns(`_majix.${d}`, "TXT"),
+    lookupDns(`_virecrm.${d}`, "TXT"),
     lookupDns(d, "MX"),
     lookupDns(d, "TXT"),
     lookupDns(`_dmarc.${d}`, "TXT"),
@@ -107,7 +92,7 @@ export async function runDomainChecklist(
   // customer used the apex they'd need an ALIAS/ANAME or a flattening
   // registrar. Surface that as a hint rather than a bare fail.
   const looksLikeApex = d.split(".").length === 2;
-  const tokenMatch = token ? txtMajix.some((r) => r.includes(token)) : txtMajix.length > 0;
+  const tokenMatch = token ? txtVirecrm.some((r) => r.includes(token)) : txtVirecrm.length > 0;
 
   const required: CheckResult[] = [
     {
@@ -125,10 +110,10 @@ export async function runDomainChecklist(
         : undefined,
     },
     {
-      id: "txt-majix",
-      label: `TXT _majix.${d}`,
+      id: "txt-virecrm",
+      label: `TXT _virecrm.${d}`,
       expected: token ?? "(verification token from CRM)",
-      actual: txtMajix,
+      actual: txtVirecrm,
       status: tokenMatch ? "pass" : "fail",
       hint: !token ? "Open the org's white-label settings to grab the token" : undefined,
     },
