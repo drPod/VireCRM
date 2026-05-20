@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { type StripeEnv, createStripeClient, buildCorsHeaders } from "../_shared/stripe.ts";
+import { type StripeEnv, createStripeClient, buildCorsHeaders, safeErrorResponse } from "../_shared/stripe.ts";
 
 serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
@@ -84,24 +84,6 @@ serve(async (req) => {
     const env = (environment || "sandbox") as StripeEnv;
     const stripe = createStripeClient(env);
 
-    // Credit pack top-ups skip the launch promo (one-time top-ups, full price).
-    const isCreditPack = priceId.startsWith("credit_pack_");
-
-    // Ensure the launch promo coupon exists (30% off, forever for subscriptions).
-    const PROMO_COUPON_ID = "launch30";
-    if (!isCreditPack) {
-      try {
-        await stripe.coupons.retrieve(PROMO_COUPON_ID);
-      } catch {
-        await stripe.coupons.create({
-          id: PROMO_COUPON_ID,
-          percent_off: 30,
-          duration: "forever",
-          name: "Launch promo — 30% off",
-        });
-      }
-    }
-
     const prices = await stripe.prices.list({ lookup_keys: [priceId] });
     if (!prices.data.length) {
       return new Response(JSON.stringify({ error: "Price not found" }), {
@@ -122,7 +104,6 @@ serve(async (req) => {
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded",
-      ...(!isCreditPack && { discounts: [{ coupon: PROMO_COUPON_ID }] }),
       return_url:
         returnUrl ||
         `${req.headers.get("origin")}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
@@ -135,9 +116,6 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return safeErrorResponse(error, 500, corsHeaders);
   }
 });
