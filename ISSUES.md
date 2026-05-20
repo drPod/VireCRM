@@ -112,6 +112,32 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-20 — Supabase Auth site_url + redirect allow-list flipped to virecrm.com
+**Tags:** [supabase] [auth] [virecrm] [rebrand]
+
+Pending item #3 from prior summary. Supabase Management API `PATCH /v1/projects/{ref}/config/auth` via `SUPABASE_ACCESS_TOKEN`. No dashboard click needed.
+
+#### Shipped
+
+- **`site_url`** flipped `https://app.majix.ai` → `https://app.virecrm.com`. This is the default redirect target for sign-up flows that don't pass an explicit `redirect_to`; email-template default callbacks pick this up too.
+- **`uri_allow_list`** rewritten to:
+  - `https://app.virecrm.com/**` (new canonical CRM landing + Supabase Auth callbacks)
+  - `https://virecrm.com/**` (marketing apex)
+  - `https://www.virecrm.com/**` (marketing www peer)
+  - `https://*.virecrm.com/**` (per-tenant white-label subdomains)
+  - `https://app.majix.ai/**`, `https://majix.ai/**`, `https://*.majix.ai/**` — kept for parallel cutover (until ~2026-08-17 per CLAUDE.md hostname plan)
+  - `http://localhost:8080/**` — kept for local dev
+- Used `/**` glob form only (matches sub-paths) — mirrors existing majix.ai entry pattern, which has been working since rebrand cutover. Bare-domain entries omitted as redundant.
+
+#### Verification
+
+- Re-read `/config/auth` returned exactly the patched shape.
+- No re-deploy needed — config is read at runtime by Supabase Auth.
+
+#### Manual follow-up (user)
+
+- After Crystal + Caziah sign-in smoke (post-migration), validate that a virecrm.com OAuth callback (e.g. `https://greenenergiai.virecrm.com/auth/callback`) actually completes a round-trip. Magic link → click → land on subdomain expected.
+
 ### 2026-05-20 — CF for SaaS enabled on virecrm.com (autonomous unblock)
 **Tags:** [cf-saas] [virecrm] [rebrand] [unblock]
 
