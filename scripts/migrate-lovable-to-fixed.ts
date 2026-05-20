@@ -43,6 +43,7 @@ const phaseArg = [...args].find((a) => a.startsWith("--phase="))?.split("=")[1] 
 const RUN_PHASES = new Set(
   phaseArg === "ALL" ? ["A", "B", "C", "D", "F"] : phaseArg.split(",").map((s) => s.trim().toUpperCase()),
 );
+// Phase G (Crystal own-org enrichment) is destructive — not part of "ALL". Run via `--phase=G` explicitly.
 
 // ----- Env -----
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -479,6 +480,24 @@ interface XlsxRow {
   agent_mils: number | null;
   contract_start_date: string | null;
   contract_end_date: string | null;
+  customer_name: string | null;
+  sale_status: string | null;
+}
+
+/**
+ * Map xlsx "Sale Status" values to leads.status text values.
+ *   Approved / Completed → "won"
+ *   Lost / Declined     → "lost"
+ *   Meter Check / Objection / null / unknown → "new"
+ * Verified xlsx distinct values (2026-05-20): Meter Check, Approved, Lost,
+ * Completed, Declined, Objection.
+ */
+function mapSaleStatus(v: string | null): "won" | "lost" | "new" {
+  if (!v) return "new";
+  const norm = v.trim().toLowerCase();
+  if (norm === "approved" || norm === "completed") return "won";
+  if (norm === "lost" || norm === "declined") return "lost";
+  return "new";
 }
 
 function parseXlsxDate(v: unknown): string | null {
@@ -545,6 +564,8 @@ function readXlsxRows(): XlsxRow[] {
     agent_mils: num(r["Unit Uplift"]),
     contract_start_date: parseXlsxDate(r["Start Date"]),
     contract_end_date: parseXlsxDate(r["End Date"]),
+    customer_name: r["Customer Name"] ? String(r["Customer Name"]).trim() : null,
+    sale_status: r["Sale Status"] ? String(r["Sale Status"]).trim() : null,
   }));
 }
 
@@ -620,6 +641,150 @@ async function phaseF_xlsxSupplement() {
   console.log(`  xlsx: ${updated} leads updated, ${inserted} new leads inserted`);
 }
 
+// ----- Phase G: Crystal own-org enrichment (destructive REPLACE) -----
+//
+// The Lovable importer wrote 4,791 xlsx_import stubs into Crystal's own org
+// (`188c4869-…`) using only `name` from xlsx "Customer Name" — dropped every
+// energy field (esi_id, supplier, kwh, agent_mils, contract dates, address).
+// xlsx has 1,750 distinct Customer Names but 784 of those appear in multiple
+// rows (e.g. "Daymark Operations LLC" = 166 rows), each row carrying a
+// different Meter Number / EAC / supplier. The stub leads have NO recoverable
+// row-discriminator (all 4,791 share `created_at` to the millisecond, no row
+// index column was preserved). So 1:1 name-based UPDATE cannot recover the
+// per-row distinctness — every Daymark lead would collapse to one xlsx row's
+// energy fields and lose 165 unique rows of data.
+//
+// Solution: DELETE the 4,789 untouched stubs and INSERT fresh from xlsx with
+// full energy fields + Sale Status enum mapping. Preserve the 2 manually-
+// touched stubs (deal_value + closed_at set after import, both named
+// "Paradise Fruits and Vegetables LLC") by consuming 2 xlsx rows of matching
+// name and UPDATEing in place — keeps their UUIDs + the human-set deal_value /
+// closed_at / status, just adds energy fields via COALESCE.
+//
+// Zero downstream FK rows in Crystal org (verified all 15 lead_id-referencing
+// tables: messages, tasks, replies, lead_assignees, lead_shares,
+// outreach_sequence_enrollments, etc. all returned 0 for organization_id =
+// CRYSTAL_OWN_ORG_ID). Lead UUID change is safe.
+const CRYSTAL_OWN_ORG_ID = "188c4869-8bc4-438e-b746-c8f28e2932d2";
+
+async function phaseG_crystalOwnOrgEnrich() {
+  console.log("\n=== Phase G — Crystal own-org enrichment (destructive REPLACE) ===");
+  const rows = readXlsxRows();
+  console.log(`  xlsx: ${rows.length} rows parsed`);
+
+  // 1. Identify touched stubs (human-set fields post-import).
+  const touched = (await sql`
+    SELECT id, name FROM public.leads
+    WHERE organization_id = ${CRYSTAL_OWN_ORG_ID}
+      AND deleted_at IS NULL
+      AND source = 'xlsx_import'
+      AND updated_at > created_at + interval '1 second'
+    ORDER BY created_at, id
+  `) as Array<{ id: string; name: string | null }>;
+  console.log(`  touched stubs to preserve: ${touched.length}`);
+
+  // 2. Match each touched stub to one xlsx row (first by name, lower-trim).
+  //    Mark consumed indices so the INSERT phase skips them.
+  const consumed = new Set<number>();
+  const pairings: Array<{ leadId: string; row: XlsxRow; idx: number }> = [];
+  for (const t of touched) {
+    if (!t.name) continue;
+    const tName = t.name.toLowerCase().trim();
+    const idx = rows.findIndex(
+      (r, i) => !consumed.has(i) && r.customer_name && r.customer_name.toLowerCase().trim() === tName,
+    );
+    if (idx === -1) {
+      console.warn(`  WARN: touched lead ${t.id} (${t.name}) has no remaining xlsx row to consume — will be left as-is`);
+      continue;
+    }
+    consumed.add(idx);
+    pairings.push({ leadId: t.id, row: rows[idx]!, idx });
+  }
+  console.log(`  paired touched leads to xlsx rows: ${pairings.length} (consumed indices: ${[...consumed].join(",")})`);
+
+  // 3. Build INSERT list (all xlsx rows except consumed).
+  const toInsert = rows.filter((_, i) => !consumed.has(i));
+  console.log(`  to INSERT fresh: ${toInsert.length} rows`);
+
+  if (dryRun) {
+    console.log(`  [dry-run] would UPDATE ${pairings.length} touched + DELETE ${4791 - pairings.length} untouched + INSERT ${toInsert.length}`);
+    return;
+  }
+
+  // 4. UPDATE touched (COALESCE so human-set deal_value / closed_at / status stay).
+  await sql.begin(async (tx) => {
+    await tx.unsafe(`SET LOCAL request.jwt.claim.role = 'service_role'`);
+    for (const p of pairings) {
+      const r = p.row;
+      await tx`
+        UPDATE public.leads SET
+          esi_id              = COALESCE(${r.esi},                 esi_id),
+          title               = COALESCE(${r.title},               title),
+          service_address     = COALESCE(${r.service_address},     service_address),
+          current_supplier    = COALESCE(${r.current_supplier},    current_supplier),
+          annual_kwh          = COALESCE(${r.annual_kwh},          annual_kwh),
+          agent_mils          = COALESCE(${r.agent_mils},          agent_mils),
+          contract_start_date = COALESCE(${r.contract_start_date}::date, contract_start_date),
+          contract_end_date   = COALESCE(${r.contract_end_date}::date,   contract_end_date),
+          email               = COALESCE(${r.email},               email),
+          phone               = COALESCE(${r.phone},               phone),
+          updated_at          = now()
+        WHERE id = ${p.leadId}
+      `;
+    }
+  });
+  console.log(`  UPDATE phase: ${pairings.length} touched leads enriched (UUIDs + status + deal_value preserved)`);
+
+  // 5. DELETE remaining untouched xlsx_import stubs.
+  const preserveIds = new Set(pairings.map((p) => p.leadId));
+  const deleted = await sql.begin(async (tx) => {
+    await tx.unsafe(`SET LOCAL request.jwt.claim.role = 'service_role'`);
+    const ids = [...preserveIds];
+    const result = ids.length === 0
+      ? await tx`
+          DELETE FROM public.leads
+          WHERE organization_id = ${CRYSTAL_OWN_ORG_ID}
+            AND deleted_at IS NULL
+            AND source = 'xlsx_import'
+          RETURNING id
+        `
+      : await tx`
+          DELETE FROM public.leads
+          WHERE organization_id = ${CRYSTAL_OWN_ORG_ID}
+            AND deleted_at IS NULL
+            AND source = 'xlsx_import'
+            AND id NOT IN ${tx(ids)}
+          RETURNING id
+        `;
+    return (result as Array<{ id: string }>).length;
+  });
+  console.log(`  DELETE phase: ${deleted} untouched xlsx_import stubs removed`);
+
+  // 6. INSERT fresh xlsx rows with full energy fields + mapped status.
+  let inserted = 0;
+  await sql.begin(async (tx) => {
+    await tx.unsafe(`SET LOCAL request.jwt.claim.role = 'service_role'`);
+    for (const r of toInsert) {
+      const leadName = r.customer_name ?? r.name ?? r.email ?? "Unknown";
+      const status = mapSaleStatus(r.sale_status);
+      await tx`
+        INSERT INTO public.leads
+          (organization_id, name, email, phone, company, status, source,
+           esi_id, title, service_address, current_supplier,
+           annual_kwh, agent_mils, contract_start_date, contract_end_date)
+        VALUES
+          (${CRYSTAL_OWN_ORG_ID}, ${leadName}, ${r.email}, ${r.phone}, ${r.company}, ${status}, 'xlsx_supplement',
+           ${r.esi}, ${r.title}, ${r.service_address}, ${r.current_supplier},
+           ${r.annual_kwh}, ${r.agent_mils}, ${r.contract_start_date}::date, ${r.contract_end_date}::date)
+      `;
+      inserted++;
+    }
+  });
+  console.log(`  INSERT phase: ${inserted} fresh leads created with full energy fields`);
+
+  console.log(`  Phase G summary: ${pairings.length} preserved, ${deleted} deleted, ${inserted} inserted = ${pairings.length + inserted} total xlsx-derived leads (target xlsx rows: ${rows.length})`);
+}
+
 // ----- Generic upsert helper -----
 
 async function upsertRows(table: string, rows: Record<string, string | null>[], chunkSize = 500) {
@@ -678,6 +843,7 @@ async function main() {
   if (RUN_PHASES.has("C")) await phaseC_userRolesAndProfiles(blocks);
   if (RUN_PHASES.has("D")) await phaseD_leads(blocks);
   if (RUN_PHASES.has("F")) await phaseF_xlsxSupplement();
+  if (RUN_PHASES.has("G")) await phaseG_crystalOwnOrgEnrich();
 
   console.log("\nDone.");
   await sql.end();

@@ -112,6 +112,41 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-20 — Phase G: Crystal own-org xlsx enrichment (destructive REPLACE)
+**Tags:** [lovable-migration] [supabase] [crystal] [xlsx]
+
+User picked Option A from prior session ("enrich Crystal own-org with xlsx, 4,791 UPDATEs"). Probe overturned the UPDATE-only premise — Lovable importer wrote 4,791 stubs with NULL on every discriminating column (esi_id, supplier, kwh, agent_mils, contract dates, address). Only `name` was kept, and 784 distinct Customer Names had multi-row dupes (Daymark = 166 each side). No row-discriminator survived → 1:1 mapping unrecoverable. Pivoted to DELETE-then-INSERT with 2-lead preservation hatch.
+
+#### Found
+
+- **Lovable xlsx importer dropped every energy column.** 4,791 Crystal-org stubs created in one batch (all share `created_at=2026-04-27T18:15:51.299Z` to the millisecond — no row index, no created_at ordering, no `lovable_legacy_id` column). xlsx side has 1,750 distinct Customer Names, 784 with row dupes (top: Daymark 166, Meadowlark 96, JacRy 66, Tropical Trails 44). Plain `UPDATE WHERE name = X` would collapse 166 Daymark leads to one xlsx row's energy data and lose 165 unique meter+supplier+kwh rows.
+- **2 human-touched stubs.** Both named "Paradise Fruits and Vegetables LLC" (UUIDs `540cc3d7-…` + `306787e6-…`). `deal_value_cents=$2,000,000` + `closed_at` + `status=won` set 2026-05-15. Real human edits — must preserve UUID + non-energy fields.
+- **xlsx Sale Status enum:** 6 distinct values (Meter Check 2604, Approved 1453, Lost 484, Completed 240, Declined 9, Objection 1). `leads.status` is `text`, used values site-wide: `new`, `won`, `lost`, `contacted`. Mapping landed in `mapSaleStatus()`: Approved/Completed → won; Lost/Declined → lost; Meter Check/Objection/null → new.
+- **Zero downstream FK rows in Crystal own-org.** All 15 lead_id-referencing tables (messages, tasks, replies, lead_assignees, lead_shares, outreach_sequence_enrollments, conversations, appointments, workflow_runs, commission_earnings, etc.) returned 0 for `organization_id = 188c4869-…`. UUID change on DELETE+INSERT was safe.
+
+#### Shipped
+
+- **`scripts/migrate-lovable-to-fixed.ts` — added Phase G** (`phaseG_crystalOwnOrgEnrich`). Hard-coded to `188c4869-8bc4-438e-b746-c8f28e2932d2`. Logic: (1) read 4,791 xlsx rows; (2) find touched stubs (`updated_at > created_at + 1s` filter); (3) for each touched lead, consume first xlsx row of matching name (lower-trim), UPDATE via COALESCE so human-set status/deal_value/closed_at survive; (4) DELETE all remaining xlsx_import stubs in that org; (5) INSERT remaining 4,789 xlsx rows with full energy fields + `source='xlsx_supplement'` + `status` mapped from xlsx Sale Status. Phase NOT part of `--phase=ALL` (destructive — explicit `--phase=G` required).
+- **`XlsxRow` extended** with `customer_name` + `sale_status` (`readXlsxRows()` already-parsed cells, no extra xlsx read pass).
+- **`mapSaleStatus()`** added — verified xlsx distinct value list 2026-05-20 (script comment cites it). Falls back to `"new"` on unknown values.
+- **Live run executed.** 2 UPDATE + 4,789 DELETE + 4,789 INSERT in three transactions, each with `SET LOCAL request.jwt.claim.role = 'service_role'` (mirrors Phase F pattern — bypasses RLS + lead-template triggers).
+- ~~`## Open` follow-up: "Crystal own-org xlsx scope" decision~~ — resolved (struck through; deleted from `## Open`).
+
+#### Verification (live DB via `bun:sql`)
+
+- Crystal own-org `188c4869-…` leads: **4,793 total** = 4,789 `xlsx_supplement` (fresh) + 2 `xlsx_import` (preserved Paradise) + 2 `source IS NULL` (preserved manual: `joe smho`, `ethan`).
+- Energy field coverage: `esi_id=4791`, `current_supplier=4791`, `annual_kwh=4791`, `agent_mils=4791`, `contract_start_date=4791`, `contract_end_date=4791`, `service_address=4775` (16 xlsx rows had no composite address), `title=4516`.
+- Status × source distribution: xlsx_supplement → won=1693, lost=493, new=2603 (xlsx total 4789). xlsx_import (preserved) → won=2. NULL source (manual) → contacted=2. Sale Status mapping arithmetic checks out: Approved(1453)+Completed(240)=1693 won; Lost(484)+Declined(9)=493 lost; Meter Check(2604)+Objection(1)-2 consumed-for-Paradise=2603 new.
+- Preserved Paradise touched leads: both UUIDs intact, `deal_value_cents=$2,000,000` + `closed_at` preserved, `status=won` preserved, now enriched with `esi_id`, `current_supplier=Green Mountain`, `annual_kwh` from their respective consumed xlsx rows (indices 4105, 4106).
+- Random xlsx_supplement sample: "Cowtown Materials" with ESI, Suez supplier, 88,797 kWh, 0.998 mils, 2023-06-01 contract start, full Dallas service address — full xlsx column carry-through.
+- `bun run typecheck` clean.
+- `bash scripts/lint-issues.sh` — OK.
+
+#### Manual follow-up (user)
+
+- **Cosmetic carry-over bug in `compositeAddress()`** (pre-existing in phase F, not introduced this session): xlsx address columns containing literal string `"NULL"` (e.g. `address_2="NULL"`) survive the `filter(Boolean)` step and produce service_address strings like `"426 N. Kealy St, NULL, NULL, Lewisville, 75057"`. ~16 rows affected in Crystal org. Filed for later cleanup pass — strip literal "NULL"/"null" tokens in `compositeAddress`.
+- **Crystal's own-org tenant now has the same energy-broker dataset as Caziah's.** Two orgs hold the same xlsx data. If consolidation decision is "merge into greenenergiai", these 4,791 will need dedup against Caziah's 5,386 xlsx_import + 3,809 xlsx_supplement leads — likely heavy ESI overlap. Defer until consolidation call lands.
+
 ### 2026-05-20 — Lovable migration: JSONB double-encode bug + Crystal temp pw
 **Tags:** [lovable-migration] [supabase] [auth] [bug]
 
@@ -257,7 +292,7 @@ Picked up after spot-check session (`cecfd3b`). Re-verified live DB against comm
 #### Manual follow-up (user)
 
 - Sign-in smoke remains user-owed: Crystal (`crystal@greenenergiai.com`, bcrypt) + bcrypt staff (mleaverton, erica, shelby). Caziah signs in via Google OAuth (no password to test). No code action.
-- Crystal own-org xlsx scope decision (item from prior session) still open.
+- ~~Crystal own-org xlsx scope decision (item from prior session) still open.~~ Resolved 2026-05-20 via Phase G — see session entry above.
 - Push when ready — branch now 2 ahead of origin (`d803b95` + `cecfd3b`).
 
 ### 2026-05-19 — migration spot-check (Caziah energy fields verified)
@@ -275,7 +310,7 @@ Picked up after session-5 commit `d803b95` (live port already ran + committed). 
 #### Manual follow-up (user)
 
 - ~~**Apply `20260519120000_handle_new_user_skip_guc.sql` via `supabase db push`.**~~ Done next session, see entry above.
-- **Crystal own-org xlsx scope** — decide if ngp-master also applies to her own tenant. If yes, re-run `--phase=F` against `188c4869-…` (script `targetOrg` needs a flag or edit).
+- ~~**Crystal own-org xlsx scope** — decide if ngp-master also applies to her own tenant. If yes, re-run `--phase=F` against `188c4869-…` (script `targetOrg` needs a flag or edit).~~ Resolved 2026-05-20 via Phase G (DELETE+INSERT path, not phase F re-run).
 - **Caziah / Crystal sign-in smoke** — both should sign in with old bcrypt passwords. No friction expected; bcrypt rides through.
 
 ### 2026-05-19 — Open-list staleness audit (Phase 2 + bugs)
@@ -455,7 +490,7 @@ Steps 3+4 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. User c
 #### Manual follow-up (user)
 
 - ~~**Spot-check 10 Caziah leads** for energy-field population~~ — done 2026-05-19 next session, see entry above.
-- **Crystal own-org leads got no xlsx enrichment.** Confirm whether ngp-master xlsx applies only to Caziah's tenant or also her own.
+- ~~**Crystal own-org leads got no xlsx enrichment.** Confirm whether ngp-master xlsx applies only to Caziah's tenant or also her own.~~ Resolved 2026-05-20 via Phase G.
 - **Crystal's own-org slug `crystal-cameron-7ba2ebfa` is ugly.** Per Open Question #3 in handoff, decide rename-now vs rename-later.
 - **Caziah / Crystal sign-in smoke test** on the new DB before Step 6 (freeze old Lovable project). Both should be able to log in with their existing bcrypt passwords.
 - ~~Provide `DATABASE_URL`~~ — done (new rotated password in `.env`).
