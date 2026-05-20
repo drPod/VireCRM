@@ -37,7 +37,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### Bugs found, not fixed
 
-- [ ] **Auth middleware uses `throw new Response()`** — TanStack Start doesn't serialize Response; 401/403 paths wrap as 500. `src/integrations/supabase/auth-middleware.ts:13,22,28,32,37,55,59`. Currently dead path (Bearer always attached) but blocks future "token expired mid-call" handling.
 - [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally to all displayed prices. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
 
 ### Verification / QA debts
@@ -107,6 +106,17 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-20 — Fix auth + subscription middleware: throw new Response() → throw new Error()
+**Tags:** [bug] [auth] [supabase]
+
+#### Shipped
+- `src/integrations/supabase/auth-middleware.ts` — replaced all 7 `throw new Response(...)` calls with `throw new Error(...)`. Messages preserved ("Unauthorized: …" prefix matches `isAuthError`'s `/unauthor/i` regex). Also dropped stale "auto-generated" comment at line 1.
+- `src/integrations/supabase/subscription-middleware.ts` — replaced 4 `throw new Response(...)` calls with `throw new Error(...)`. 503 DB-error paths: "Subscription check failed. Please try again." 402 gate: "Subscription required. … Please visit /billing." Status codes lost were meaningless — TanStack Start was wrapping them all as 500 anyway.
+- ~~`## Open` "Auth middleware uses `throw new Response()`"~~ — resolved.
+
+#### Verification
+- `bun run typecheck` clean.
 
 ### 2026-05-20 — CRON_SECRET set + stale migration item closed
 **Tags:** [cf-saas] [supabase]

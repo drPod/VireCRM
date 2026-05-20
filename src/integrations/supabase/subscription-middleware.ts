@@ -40,10 +40,7 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
     if (ownSubResult.error || profileResult.error) {
       // Fail closed — if we can't verify entitlement, deny access. This is
       // safer than letting through on transient DB hiccups.
-      throw new Response(JSON.stringify({ error: "Subscription check failed" }), {
-        status: 503,
-        headers: { "Content-Type": "application/json" },
-      });
+      throw new Error("Subscription check failed. Please try again.");
     }
 
     const now = Date.now();
@@ -63,10 +60,7 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
         .eq("role", "owner");
 
       if (rolesError) {
-        throw new Response(JSON.stringify({ error: "Subscription check failed" }), {
-          status: 503,
-          headers: { "Content-Type": "application/json" },
-        });
+        throw new Error("Subscription check failed. Please try again.");
       }
 
       const ownerIds = (ownerRoles ?? []).map((r) => r.user_id).filter(Boolean);
@@ -78,10 +72,7 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
           .in("status", ACTIVE_STATUSES as unknown as string[]);
 
         if (ownerSubsError) {
-          throw new Response(JSON.stringify({ error: "Subscription check failed" }), {
-            status: 503,
-            headers: { "Content-Type": "application/json" },
-          });
+          throw new Error("Subscription check failed. Please try again.");
         }
 
         hasActive = (ownerSubs ?? []).some(isRowActive);
@@ -89,13 +80,8 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
     }
 
     if (!hasActive) {
-      throw new Response(
-        JSON.stringify({
-          error: "Subscription required",
-          code: "SUBSCRIPTION_REQUIRED",
-          message: "An active subscription is required to use this feature. Please visit /billing.",
-        }),
-        { status: 402, headers: { "Content-Type": "application/json" } },
+      throw new Error(
+        "Subscription required. An active subscription is needed to use this feature. Please visit /billing.",
       );
     }
 
