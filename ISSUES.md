@@ -110,6 +110,26 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-20 — Forced password-change flow + Security settings tab
+**Tags:** [auth] [frontend] [crystal]
+
+#### Shipped
+- `src/components/auth/ChangePasswordForm.tsx` (NEW) — shared form: `PasswordInput` x2, `PasswordStrengthMeter` gated at score ≥ 2, clears `must_change_password` flag in same `updateUser` call.
+- `src/routes/change-password.tsx` (NEW) — full-page `/change-password?forced=1` route outside `/_app`; amber banner + no escape when forced; session guard; `onSuccess` → `/dashboard`.
+- `src/routes/_app.tsx:205-211` — `must_change_password` gate `useEffect` fires before billing check; redirects to `/change-password?forced=1` when flag set.
+- `src/routes/_app.settings.tsx` — new Security tab (third position, Lock icon) → `SecuritySettings` card.
+- `src/components/crm/SecuritySettings.tsx` (NEW) — settings card wrapping `ChangePasswordForm`; toast + form reset on success, no redirect.
+- `src/routes/reset-password.tsx` — added `PasswordStrengthMeter`, score ≥ 2 gate, third requirement item, clears `must_change_password` on success. Commit `6e76f84`.
+
+#### Verification
+- `bun run typecheck` clean.
+- Manual flow pending deploy: Crystal signs in with temp pw → gate fires → `/change-password?forced=1` → sets pw → dashboard → no more redirect.
+
+#### Manual follow-up (user)
+- Push + deploy to production.
+- DM Crystal temp pw (`hSS1eLMQitFgJfdR`) after deploy confirms.
+- After Crystal signs in + resets pw, delete "Temporary credentials" section from `README.md`.
+
 ### 2026-05-20 — Retire majix.ai: 308 redirect + full virecrm.com cleanup
 **Tags:** [virecrm] [rebrand] [cf-saas] [docs]
 
