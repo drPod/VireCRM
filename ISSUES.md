@@ -12,6 +12,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### User action required (secrets / DNS / product calls)
 
+- [ ] **`/privacy` + `/terms` pages at `virecrm.com`.** Required by Google Auth Platform consent screen before publishing OAuth app beyond Testing mode (currently only listed test-user emails can sign in via Google). Placeholder URLs already entered in GCP: `https://virecrm.com/privacy` + `https://virecrm.com/terms`. Pages need real content before flipping GCP publish status → Production.
 - [ ] **Set `CRON_SECRET` in CF Worker prod env.** Update external scheduler / pg_cron rows to pass `x-cron-secret: $CRON_SECRET` to: `calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`. Otherwise 401 silent.
 - [ ] **Toggle `auth_leaked_password_protection`** in Supabase → Auth → Password protection. Not migration-able.
 - [ ] **Apply `20260517220000_schedule_send_pending_welcomes_cron.sql`** — `supabase db push`. Sibling cron for `classify-contact-submissions` already landed.
@@ -112,6 +113,49 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-20 — Phase G validation + compositeAddress() literal-NULL cleanup
+**Tags:** [lovable-migration] [supabase] [bug] [crystal] [caziah]
+
+Continuation session: revalidated Phase G state end-to-end, then closed out the `compositeAddress()` carry-over bug flagged in the prior session. Scope was bigger than first noted — 16 was the count of address-less rows, not bad-token rows. Real impact: 2,606 Crystal + 2,047 Caziah = **4,653 rows** with literal `"NULL, NULL"` tokens.
+
+#### Found
+
+- **`compositeAddress()` literal-"NULL" scope much wider than initial estimate.** Prior session's "16 rows" referred to rows where the composite came out fully empty (NULL service_address). The actual `service_address ILIKE '%NULL%'` query returns **2,606 Crystal + 2,047 Caziah = 4,653 rows** with embedded `NULL, NULL` runs. Pre-existing in Phase F path; Phase G inherited because both phases share `compositeAddress()` and `readXlsxRows()`.
+
+#### Shipped
+
+- **`scripts/migrate-lovable-to-fixed.ts:546` — fixed `compositeAddress()` filter.** Replaced `.filter(Boolean)` with `.filter((s) => s !== "" && s.toUpperCase() !== "NULL")`. Future migration runs skip literal `"NULL"` string-cells alongside empty cells. Comment explains the xlsx-source quirk.
+- **Live DB retro-clean** — one transaction, `SET LOCAL request.jwt.claim.role = 'service_role'`, regex strips: `,\s*NULL\s*(?=,|$)` global (mid/trailing) then `^NULL\s*,\s*` (leading) then trim, then NULLIF empty. 2,047 Caziah + 2,606 Crystal rows updated. Post-fix `ILIKE '%NULL%'` count = 0 across both orgs. Spot-checks: Paradise leads now `2111 Taylor St., Dallas, 75211` (was `…, NULL, NULL, Dallas, 75211`), Wings Pizza, Children's Learning Center — all clean.
+- ~~`## Recent` 2026-05-20 Phase G "Manual follow-up: compositeAddress() literal-NULL cleanup"~~ — resolved.
+
+#### Verification (live DB via `bun:sql`)
+
+- **Phase G state re-confirmed:** Crystal own-org `188c4869-…` = 4,793 total, 4,789 xlsx_supplement + 2 xlsx_import (Paradise) + 2 NULL source (manual). Energy field coverage on xlsx-derived rows: 4,791 ESI + 4,791 supplier + 4,791 kwh + 4,791 mils + 4,791 contract dates. Status × source distribution intact (won=1693, lost=493, new=2603 for xlsx_supplement; won=2 for xlsx_import; contacted=2 for NULL). Paradise UUIDs + deal_value=$2,000,000 + closed_at all preserved. `joe smho` + `ethan` manual leads untouched.
+- **Downstream FKs:** 0 messages / 0 tasks / 0 appointments referencing Crystal-org lead_ids. UUID stability did not need to hold — moot but verified.
+- **Cleanup post-state:** Crystal `has_addr=4775`, `null_addr=18`, `bad=0`. Caziah `has_addr=4002`, `null_addr=5193`, `bad=0`. No row got nulled out by the cleanup (every row had at least street_no/street_name surviving).
+- `bun run typecheck` — clean.
+- `bash scripts/lint-issues.sh` — OK (post-edit).
+
+#### Manual follow-up (user)
+
+- **Push ahead-of-origin commits** when ready. `git push` gated on user per CLAUDE.md shared-state rule.
+- **DM Crystal her temp pw** (`hSS1eLMQitFgJfdR`) — pending from prior session. After she signs in + rotates, delete the "Temporary credentials" section from `README.md`.
+
+### 2026-05-20 — Google OAuth setup (GCP + Supabase)
+**Tags:** [auth] [supabase] [google-oauth]
+
+#### Found
+
+- **Supabase Auth Google provider disabled.** `external_google_enabled=false`, `external_google_client_id=null`, `external_google_secret=null`. UI already wired at 4 call sites (`src/routes/login.tsx:176`, `src/routes/signup.tsx:163`, `src/components/marketing/BrandedSignup.tsx:118`, `src/routes/r.$resellerSlug.signup.tsx:174`). Blocked only on GCP credentials.
+- **`site_url=https://app.majix.ai` stale.** `uri_allow_list` majix-only — virecrm domains not in allow list. Will update in same Supabase Management API call as Google credentials.
+- **`/privacy` + `/terms` pages missing.** Google Auth Platform consent screen (Branding tab) requires real URLs for these before OAuth app can be published to Production. While app stays in Testing mode, only emails listed under Audience → Test users can sign in. Ticket filed in `## Open`.
+- **GCP Authorized JavaScript origins cannot use wildcards.** Per-tenant `<slug>.virecrm.com` origins cannot be listed individually. Not needed — Google only validates the `redirect_uri` (which points to Supabase, not tenant domains). Supabase `uri_allow_list` supports wildcards and handles the bounce back to tenant subdomains.
+
+#### Manual follow-up (user)
+
+- Finish GCP Client creation (Clients → Create Client → Web application → paste Supabase callback URI → copy client_id + secret back).
+- Create `/privacy` + `/terms` routes before publishing OAuth consent screen past Testing mode.
+
 ### 2026-05-20 — Phase G: Crystal own-org xlsx enrichment (destructive REPLACE)
 **Tags:** [lovable-migration] [supabase] [crystal] [xlsx]
 
@@ -144,7 +188,7 @@ User picked Option A from prior session ("enrich Crystal own-org with xlsx, 4,79
 
 #### Manual follow-up (user)
 
-- **Cosmetic carry-over bug in `compositeAddress()`** (pre-existing in phase F, not introduced this session): xlsx address columns containing literal string `"NULL"` (e.g. `address_2="NULL"`) survive the `filter(Boolean)` step and produce service_address strings like `"426 N. Kealy St, NULL, NULL, Lewisville, 75057"`. ~16 rows affected in Crystal org. Filed for later cleanup pass — strip literal "NULL"/"null" tokens in `compositeAddress`.
+- ~~**Cosmetic carry-over bug in `compositeAddress()`** (pre-existing in phase F, not introduced this session): xlsx address columns containing literal string `"NULL"` (e.g. `address_2="NULL"`) survive the `filter(Boolean)` step and produce service_address strings like `"426 N. Kealy St, NULL, NULL, Lewisville, 75057"`. ~16 rows affected in Crystal org. Filed for later cleanup pass — strip literal "NULL"/"null" tokens in `compositeAddress`.~~ — **resolved 2026-05-20 (see top of `## Recent`).** Scope was 2,606 Crystal + 2,047 Caziah = 4,653 rows, not 16. Fix landed in code + retro-cleaned in DB.
 - **Crystal's own-org tenant now has the same energy-broker dataset as Caziah's.** Two orgs hold the same xlsx data. If consolidation decision is "merge into greenenergiai", these 4,791 will need dedup against Caziah's 5,386 xlsx_import + 3,809 xlsx_supplement leads — likely heavy ESI overlap. Defer until consolidation call lands.
 
 ### 2026-05-20 — Lovable migration: JSONB double-encode bug + Crystal temp pw

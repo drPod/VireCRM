@@ -543,7 +543,8 @@ function compositeAddress(r: Record<string, unknown>): string | null {
     r["postcode"],
   ]
     .map((v) => (v == null ? "" : String(v).trim()))
-    .filter(Boolean);
+    // xlsx columns sometimes hold the literal string "NULL" — treat as empty.
+    .filter((s) => s !== "" && s.toUpperCase() !== "NULL");
   return parts.length ? parts.join(", ") : null;
 }
 
