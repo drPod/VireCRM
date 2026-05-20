@@ -45,17 +45,25 @@ export function TermsCheckbox({
         >
           VireCRM Terms &amp; Conditions
         </Link>{" "}
-        and acknowledge the{" "}
+        and{" "}
+        <Link
+          to="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-primary hover:underline"
+        >
+          Privacy Policy
+        </Link>
+        , and acknowledge the{" "}
         <Link
           to="/refund-policy"
           target="_blank"
           rel="noopener noreferrer"
           className="font-medium text-primary hover:underline"
         >
-          No-Refund Policy
+          Refund Policy
         </Link>
-        . I understand the Service is provided &ldquo;as-is&rdquo; and that all payments are final
-        and non-refundable.
+        . I understand the Service is provided &ldquo;as-is&rdquo;.
       </label>
     </div>
   );
