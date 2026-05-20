@@ -171,7 +171,7 @@ export function CrmSidebar() {
       items: [
         { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
         { to: "/leads", icon: Users, label: template.terminology.leadPlural },
-        { to: "/pipeline", icon: DollarSign, label: "Pricing" },
+        { to: "/pipeline", icon: TrendingUp, label: template.terminology.pipeline },
         { to: "/book", icon: Briefcase, label: "Clients" },
       ],
     },
