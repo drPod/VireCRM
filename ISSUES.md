@@ -12,7 +12,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### User action required (secrets / DNS / product calls)
 
-- [ ] **`/privacy` + `/terms` pages at `virecrm.com`.** Required by Google Auth Platform consent screen before publishing OAuth app beyond Testing mode (currently only listed test-user emails can sign in via Google). Placeholder URLs already entered in GCP: `https://virecrm.com/privacy` + `https://virecrm.com/terms`. Pages need real content before flipping GCP publish status → Production.
 - [ ] **Toggle `auth_leaked_password_protection`** in Supabase → Auth → Password protection. Not migration-able.
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
@@ -37,7 +36,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### Bugs found, not fixed
 
-- [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally to all displayed prices. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
 
 ### Verification / QA debts
 
@@ -106,6 +104,26 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-20 — GCP OAuth → Production + legal pages rewrite
+**Tags:** [auth] [google-oauth] [legal]
+
+#### Shipped
+- `/privacy` + `/terms` fully rewritten with substantive legal content. Operator: Darsh Poddar (individual). Legal contact: `darsh.pod@gmail.com`. Privacy policy adds explicit Google Sign-In data section (GCP requirement), names all sub-processors (Supabase, Stripe, Resend, Cloudflare), GDPR/CCPA user rights. Terms covers acceptable use, data ownership, termination, liability cap, Texas governing law. Commits `9bdba55`, `91af9b9`.
+- `TermsCheckbox.tsx` — added `/privacy` link (was missing); renamed "No-Refund Policy" → "Refund Policy"; dropped inaccurate "all payments are final" inline summary.
+- GCP OAuth app published to **Production**. Any email can now sign in via Google (no longer restricted to test-user allowlist).
+
+### 2026-05-20 — Fix promo enforcement + ESLint scope explosion
+**Tags:** [bug] [frontend] [supabase]
+
+#### Shipped
+- `supabase/functions/create-checkout/index.ts` — added server-side subscription count gate before applying `launch30` coupon. Counts `subscriptions` where `environment='live'` and `status IN ('active','trialing')`; skips coupon if `>= 100`. `max_redemptions` on the Stripe coupon object was not viable (Stripe coupons are immutable post-creation; existing `launch30` in prod has no cap). Service-role client scoped to the promo check only.
+- `eslint.config.js` — added `.claude` and `.agents` to `ignores`. These directories (worktrees + compiled bundles + skill scripts) were not excluded; scanning them inflated error count from ~5.2k to 104k. Back to 5257 baseline.
+- ~~`## Open` "Promo enforcement"~~ — resolved.
+
+#### Verification
+- `bun run typecheck` clean.
+- `bun run lint` returns 5257 errors (5218 + 39 warnings) — matches pre-explosion baseline.
 
 ### 2026-05-20 — Crystal pre-launch: branding, subscription, navbar
 **Tags:** [crystal] [frontend] [supabase] [auth]
@@ -248,7 +266,7 @@ Continuation session: revalidated Phase G state end-to-end, then closed out the 
 
 #### Manual follow-up (user)
 
-- Create `/privacy` + `/terms` routes before publishing GCP OAuth consent screen past Testing mode (see `## Open`).
+- ~~Create `/privacy` + `/terms` routes before publishing GCP OAuth consent screen past Testing mode.~~ **Done 2026-05-20** — pages fully rewritten (commits `9bdba55`, `91af9b9`); GCP OAuth app published to Production.
 
 ### 2026-05-20 — Phase G: Crystal own-org xlsx enrichment (destructive REPLACE)
 **Tags:** [lovable-migration] [supabase] [crystal] [xlsx]
