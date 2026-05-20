@@ -112,6 +112,32 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-20 — CF for SaaS enabled on virecrm.com (autonomous unblock)
+**Tags:** [cf-saas] [virecrm] [rebrand] [unblock]
+
+Prior session blocked: "CF for SaaS dashboard config on virecrm.com zone — blocked on MCP token-scope ceiling." Both plugin OAuth + wrangler OAuth confirmed insufficient (10000 / 9109 / 1000 errors on `/zones/{id}/custom_hostnames/*` + `/dns_records` despite advertised `#ssl:edit` / `ssl_certs:write`). Wrangler scopes are Workers-related; plugin OAuth scopes are account-read-heavy. Neither carries Zone-level Cert-Manager / Custom-Hostnames / DNS edit.
+
+User minted a Custom API Token (`claude-code-virecrm-saas`) with `Zone.SSL and Certificates: Edit`, `Zone.DNS: Edit`, `Zone.Zone Settings: Edit`, `Zone.Zone: Read`, `Zone.Workers Routes: Edit` scoped to virecrm.com + majix.ai. Stored as `CLOUDFLARE_API_TOKEN_ADMIN` in local `.env` (gitignored). Token verify returned `status: active`.
+
+#### Shipped (via direct CF API curl)
+
+- **`PUT /zones/bef363938825376aef7db07f57c3f04b/custom_hostnames/fallback_origin`** body `{"origin":"customers.virecrm.com"}` — returned 200, `status: initializing` → `status: active` in <1s (single poll). CF for SaaS now live on the virecrm.com zone.
+- Pre-existing DNS already correct: `customers.virecrm.com` CNAME → `virecrm.com`, proxied (mirrors `customers.majix.ai` → `majix.ai` proxied pattern). No DNS change needed.
+- Worker route `customers.virecrm.com/*` already present in `wrangler.jsonc:48` (zone_name = "virecrm.com"). No code change needed.
+
+#### Verification
+
+- `GET .../custom_hostnames/fallback_origin` on virecrm.com — `origin=customers.virecrm.com, status=active, created_at=2026-05-20T15:01:45Z`.
+- `GET .../custom_hostnames/fallback_origin` on majix.ai (reference) — same shape, `status=active`.
+- `curl -sI https://customers.virecrm.com/` — `HTTP/2 200`, `server: cloudflare`, `cf-ray: 9fec389c9a95766c-SEA`.
+- `curl -sI https://customers.majix.ai/` (reference) — same shape, also 200.
+- Token scope verified via `/user/tokens/verify` → `status: active`.
+
+#### Manual follow-up (user)
+
+- **Extend the Worker `CLOUDFLARE_API_TOKEN` secret's zone resources** to include `virecrm.com`. That secret is what `src/functions/custom-hostnames.functions.ts` uses at RUNTIME to provision tenant custom hostnames; without virecrm.com in its zone scope, premium-tier tenants on the virecrm.com side can't onboard a custom domain. Dashboard → My Profile → API Tokens → find the Worker token → Edit → Zone Resources → add `virecrm.com`. No code change required.
+- **Mint `CLOUDFLARE_LEGACY_ZONE_ID` Worker secret** = `a5a3f9d70f46387b2f3933dbb5c68cde` (majix.ai zone). Plus decide whether to flip `CLOUDFLARE_ZONE_ID` to `bef363938825376aef7db07f57c3f04b` (virecrm.com). The flip requires code edits in `src/functions/custom-hostnames.functions.ts` + `src/functions/domain-health.functions.ts` so they read both zones. Pin decision in `docs/custom-domains/cf-for-saas-setup.md` before flipping.
+
 ### 2026-05-19 — post-migration verify + skip_guc migration registered
 **Tags:** [lovable-migration] [supabase] [verification]
 
