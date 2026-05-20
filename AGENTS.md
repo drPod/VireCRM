@@ -112,7 +112,7 @@ Hostname plan live 2026-05-18 — all five tiers deployed + smoke-verified (200 
 - `<slug>.virecrm.com` — Per-tenant white-label CRM (free tier). Wildcard Worker route + wildcard Advanced cert (`virecrm.com` + `*.virecrm.com`).
 - `<custom>.acmecorp.com` — Per-tenant white-label CRM (premium tier) via existing CF for SaaS flow (CNAME → `customers.virecrm.com`).
 - `customers.virecrm.com` — CF for SaaS fallback. Infra-only, never user-visible. If hit directly, serves default VireCRM marketing.
-- `notify.virecrm.com` — Resend transactional email sender (pending). Pending Resend DNS verification (~24h external user action). `notify.majix.ai` STILL active legacy verified domain — outbound currently `noreply@notify.majix.ai` until `notify.virecrm.com` verifies.
+- `notify.virecrm.com` — Resend transactional email sender (live 2026-05-20). DNS verified on Resend; test send delivered. All `SENDER_DOMAIN` + `FROM_DOMAIN` constants in code now point here. `notify.majix.ai` kept verified during parallel cutover (until ~2026-08-17) but no new code path uses it.
 - `genesisxsx.darsh-pod.workers.dev` — Worker subdomain, dev/preview escape hatch.
 
 Reserved subdomain labels (never tenant slugs, blocked at both DB + client): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in `get_org_by_domain` migration (`20260518020000_…`) + `DomainBrandingProvider.SYSTEM_HOST_PATTERNS`.

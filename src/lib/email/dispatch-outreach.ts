@@ -22,8 +22,8 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Must match the constants baked into the transactional send route.
 const SITE_NAME = "VireCRM";
-const SENDER_DOMAIN = "notify.majix.ai";
-const FROM_DOMAIN = "notify.majix.ai";
+const SENDER_DOMAIN = "notify.virecrm.com";
+const FROM_DOMAIN = "notify.virecrm.com";
 
 function generateToken(): string {
   const bytes = new Uint8Array(32);

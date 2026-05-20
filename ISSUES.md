@@ -112,6 +112,37 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-20 — Resend cutover to notify.virecrm.com complete
+**Tags:** [resend] [virecrm] [rebrand] [email]
+
+Pending item #4 from prior summary. Resend DNS verification (~24h external) completed: `GET /domains` shows `notify.virecrm.com` `status: verified`. Flipped all canonical sender constants in code + sent a live test.
+
+#### Shipped
+
+- **`SENDER_DOMAIN` + `FROM_DOMAIN` constants** flipped `"notify.majix.ai"` → `"notify.virecrm.com"` in 6 files:
+  - `src/routes/api/email/transactional/send.ts:11,15`
+  - `src/routes/api/notify-low-balance.ts:18,19`
+  - `src/routes/api/public/hooks/contact-followup-reminders.ts:17,18`
+  - `src/routes/api/public/contact.ts:18,19`
+  - `src/routes/hooks/send-pending-welcomes.ts:9,10`
+  - `src/lib/email/dispatch-outreach.ts:25,26`
+- **`src/routes/api/email/queue/process.ts:243`** fallback unsubscribe-URL host flipped (`?? "notify.majix.ai"` → `?? "notify.virecrm.com"`).
+- **`src/components/crm/ResendSettingsCard.tsx`** placeholder + docstring updated (`noreply@notify.majix.ai` → `noreply@notify.virecrm.com`).
+- **`src/lib/resend.ts:80`** docstring reframed — `notify.virecrm.com` now canonical; `notify.majix.ai` flagged as legacy parallel-cutover.
+- **`CLAUDE.md:76`** + **`AGENTS.md:115`** hostname-table rows updated (status: pending → live, sender-constants note added).
+- 6 files + 3 doc files = 9 file edits.
+
+#### Verification
+
+- `bun run typecheck` clean.
+- `grep -nE "notify\.majix\.ai" src/**` returns only the intentional parallel-cutover docstring at `src/lib/resend.ts:80` — all code-level constants flipped.
+- **Live test send via Resend API** (`POST /emails`, `from: VireCRM <noreply@notify.virecrm.com>`, `to: darsh.pod@gmail.com`): returned id `d56dc7a3-5b59-4bff-91e1-db88a02a3a6d`, `GET /emails/{id}` later reported `last_event: "delivered"`.
+- **Note:** Test was via raw Resend API (not via the flipped code constants), since the constant changes only take effect post-deploy. Live deploy will be a separate verification step.
+
+#### Manual follow-up (user)
+
+- After next Worker deploy, verify a real transactional flow (e.g. trigger a welcome email or contact-form follow-up) lands with `From: noreply@notify.virecrm.com`.
+
 ### 2026-05-20 — Supabase Auth site_url + redirect allow-list flipped to virecrm.com
 **Tags:** [supabase] [auth] [virecrm] [rebrand]
 

@@ -73,7 +73,7 @@ If an audit suggests killing "reseller-only" code, **don't unilaterally delete**
 | `<slug>.virecrm.com` | Per-tenant white-label CRM (free tier) | Wildcard Worker route + wildcard Advanced cert. Theme/brand resolved by `get_org_by_domain` path 2 (slug match). |
 | `<custom>.acmecorp.com` | Per-tenant white-label CRM (premium tier) | Tenants CNAME their record to `customers.virecrm.com`. CF for SaaS handles cert + routing. Theme resolved by `get_org_by_domain` path 1 (`org_custom_domains.hostname` match). |
 | `customers.virecrm.com` | CF for SaaS fallback — infrastructure only | Never user-visible. If hit directly, falls through to default VireCRM marketing — acceptable. |
-| `notify.virecrm.com` | Resend transactional email sender (pending) | Pending Resend DNS verification (~24h external action by user). `notify.majix.ai` STILL active (legacy verified domain) — outbound currently `noreply@notify.majix.ai` until `notify.virecrm.com` verifies. |
+| `notify.virecrm.com` | Resend transactional email sender (live 2026-05-20) | DNS verified on Resend; test send delivered. All `SENDER_DOMAIN` + `FROM_DOMAIN` constants in code now point here. `notify.majix.ai` kept verified during parallel cutover (until ~2026-08-17) for any in-flight queue items but no new code path uses it. |
 
 Routes defined in `wrangler.jsonc`. `*.virecrm.com/*` wildcard does NOT match apex (Cloudflare requires non-empty label), so `virecrm.com/*` needs own explicit row. More-specific rows (`app`, `www`, `customers`) take precedence over wildcard at edge. Legacy `*.majix.ai/*` + apex + sub-rows remain in additive parallel until 308 cutover.
 

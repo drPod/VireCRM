@@ -6,8 +6,8 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 
 // Match the constants used by the transactional send route.
 const SITE_NAME = "VireCRM";
-const SENDER_DOMAIN = "notify.majix.ai";
-const FROM_DOMAIN = "notify.majix.ai";
+const SENDER_DOMAIN = "notify.virecrm.com";
+const FROM_DOMAIN = "notify.virecrm.com";
 
 const TEMPLATE_NAME = "client-welcome";
 const MAX_ATTEMPTS = 5;

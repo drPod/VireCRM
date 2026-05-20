@@ -240,7 +240,7 @@ export const Route = createFileRoute("/api/email/queue/process")({
               // unsubscribe token), Resend simply omits the List-Unsubscribe
               // headers — non-fatal.
               const unsubscribeUrl = payload.unsubscribe_token
-                ? `https://${payload.sender_domain ?? "notify.majix.ai"}/unsubscribe?token=${encodeURIComponent(payload.unsubscribe_token)}`
+                ? `https://${payload.sender_domain ?? "notify.virecrm.com"}/unsubscribe?token=${encodeURIComponent(payload.unsubscribe_token)}`
                 : undefined;
 
               await sendResendEmail({

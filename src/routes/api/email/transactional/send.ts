@@ -8,11 +8,11 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 const SITE_NAME = "VireCRM";
 // SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
 // It MUST match the subdomain verified with Resend. NEVER use the root domain.
-const SENDER_DOMAIN = "notify.majix.ai";
+const SENDER_DOMAIN = "notify.virecrm.com";
 // FROM_DOMAIN is the domain shown in the From: header. Must match a
 // verified Resend domain — keep it equal to SENDER_DOMAIN unless the apex
 // is also verified in Resend.
-const FROM_DOMAIN = "notify.majix.ai";
+const FROM_DOMAIN = "notify.virecrm.com";
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return "***";

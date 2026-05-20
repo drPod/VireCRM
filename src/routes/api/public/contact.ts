@@ -15,8 +15,8 @@ import { keepAlive } from "@/lib/cloudflare/context";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
-const SENDER_DOMAIN = "notify.majix.ai";
-const FROM_DOMAIN = "notify.majix.ai";
+const SENDER_DOMAIN = "notify.virecrm.com";
+const FROM_DOMAIN = "notify.virecrm.com";
 const FROM_DISPLAY_NAME = "VireCRM Contact Form";
 
 /**

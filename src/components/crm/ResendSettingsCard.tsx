@@ -5,7 +5,7 @@
  * there's no per-org API key to paste. The card focuses on the only
  * org-specific settings that matter:
  *   - The verified `from` address (must be on a domain the org has verified
- *     in their Resend dashboard, e.g. `noreply@notify.majix.ai`).
+ *     in their Resend dashboard, e.g. `noreply@notify.virecrm.com`).
  *   - An optional `reply_to` address.
  *
  * We only show whether `RESEND_API_KEY` is present in the runtime — if it
@@ -277,7 +277,7 @@ export function ResendSettingsCard() {
                 type="email"
                 value={fromDraft}
                 onChange={(e) => setFromDraft(e.target.value)}
-                placeholder="noreply@notify.majix.ai"
+                placeholder="noreply@notify.virecrm.com"
                 className="font-mono text-sm"
                 spellCheck={false}
                 autoComplete="off"
