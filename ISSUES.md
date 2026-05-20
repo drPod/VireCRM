@@ -13,9 +13,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 ### User action required (secrets / DNS / product calls)
 
 - [ ] **`/privacy` + `/terms` pages at `virecrm.com`.** Required by Google Auth Platform consent screen before publishing OAuth app beyond Testing mode (currently only listed test-user emails can sign in via Google). Placeholder URLs already entered in GCP: `https://virecrm.com/privacy` + `https://virecrm.com/terms`. Pages need real content before flipping GCP publish status → Production.
-- [ ] **Set `CRON_SECRET` in CF Worker prod env.** Update external scheduler / pg_cron rows to pass `x-cron-secret: $CRON_SECRET` to: `calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`. Otherwise 401 silent.
 - [ ] **Toggle `auth_leaked_password_protection`** in Supabase → Auth → Password protection. Not migration-able.
-- [ ] **Apply `20260517220000_schedule_send_pending_welcomes_cron.sql`** — `supabase db push`. Sibling cron for `classify-contact-submissions` already landed.
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
 - [ ] **CF Workers Builds "Variables and secrets" panel** — manual dashboard check that no `LOVABLE_API_KEY` lingers (runtime `wrangler secret list` doesn't cover build-time). Dashboard → Workers & Pages → genesisxsx → Settings → Variables.
@@ -109,6 +107,17 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-20 — CRON_SECRET set + stale migration item closed
+**Tags:** [cf-saas] [supabase]
+
+#### Shipped
+- `wrangler secret put CRON_SECRET` — uploaded to prod Worker `genesisxsx`. Random base64-32 value generated + uploaded. External schedulers / pg_cron callers must pass `x-cron-secret: $CRON_SECRET` header to `calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`.
+- ~~`Apply 20260517220000_schedule_send_pending_welcomes_cron.sql`~~ — already applied to both local + remote (`supabase migration list` showed both columns populated). Removed from Open.
+
+#### Verification
+- `wrangler secret put` exited 0: "✨ Success! Uploaded secret CRON_SECRET"
+- `supabase migration list` output confirmed `20260517220000` in Local + Remote columns.
 
 ### 2026-05-20 — Forced password-change flow + Security settings tab
 **Tags:** [auth] [frontend] [crystal]
