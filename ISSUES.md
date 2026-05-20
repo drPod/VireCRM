@@ -176,10 +176,20 @@ Continuation session: revalidated Phase G state end-to-end, then closed out the 
 - **`/privacy` + `/terms` pages missing.** Google Auth Platform consent screen (Branding tab) requires real URLs for these before OAuth app can be published to Production. While app stays in Testing mode, only emails listed under Audience → Test users can sign in. Ticket filed in `## Open`.
 - **GCP Authorized JavaScript origins cannot use wildcards.** Per-tenant `<slug>.virecrm.com` origins cannot be listed individually. Not needed — Google only validates the `redirect_uri` (which points to Supabase, not tenant domains). Supabase `uri_allow_list` supports wildcards and handles the bounce back to tenant subdomains.
 
+#### Shipped
+
+- Supabase Auth: `external_google_enabled=true`, client_id + secret set via Management API PATCH.
+- `site_url` updated to `https://app.virecrm.com`. `uri_allow_list` extended with `https://virecrm.com/**` + `https://*.virecrm.com/**` (majix wildcards kept for parallel cutover).
+- GCP credentials stored in `.env` (server-side reference only — not `VITE_*`, not in bundle).
+
+#### Verification
+
+- Smoke test: Google sign-in on `localhost:8080` — OAuth redirect → Google consent → Supabase callback → `/dashboard`. Confirmed 2026-05-20.
+- `handle_new_user` trigger auto-provisioned org (`darsh-test-bc97cbd6`) + 1 lead. Both cleaned up post-smoke via Admin API delete.
+
 #### Manual follow-up (user)
 
-- Finish GCP Client creation (Clients → Create Client → Web application → paste Supabase callback URI → copy client_id + secret back).
-- Create `/privacy` + `/terms` routes before publishing OAuth consent screen past Testing mode.
+- Create `/privacy` + `/terms` routes before publishing GCP OAuth consent screen past Testing mode (see `## Open`).
 
 ### 2026-05-20 — Phase G: Crystal own-org xlsx enrichment (destructive REPLACE)
 **Tags:** [lovable-migration] [supabase] [crystal] [xlsx]

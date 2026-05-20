@@ -24,6 +24,11 @@ export const REQUIRED_CNAME_TARGET =
   (import.meta.env.VITE_CF_FALLBACK_HOSTNAME as string | undefined) ??
   "customers.virecrm.com";
 
+// Prefix for the app-level ownership TXT record tenants must publish.
+// e.g. _virecrm.crm.acmecorp.com = virecrm-verify-<token>
+export const TXT_VERIFICATION_PREFIX = "_virecrm";
+export const TOKEN_PREFIX = "virecrm-verify-";
+
 export type DnsType = "A" | "AAAA" | "TXT" | "MX" | "CNAME";
 
 interface DnsAnswer {
@@ -79,7 +84,7 @@ export async function runDomainChecklist(
   const [cnameRoot, aRoot, txtVirecrm, mx, txtRoot, dmarc, dkim1, dkim2] = await Promise.all([
     lookupDns(d, "CNAME"),
     lookupDns(d, "A"),
-    lookupDns(`_virecrm.${d}`, "TXT"),
+    lookupDns(`${TXT_VERIFICATION_PREFIX}.${d}`, "TXT"),
     lookupDns(d, "MX"),
     lookupDns(d, "TXT"),
     lookupDns(`_dmarc.${d}`, "TXT"),
@@ -111,7 +116,7 @@ export async function runDomainChecklist(
     },
     {
       id: "txt-virecrm",
-      label: `TXT _virecrm.${d}`,
+      label: `TXT ${TXT_VERIFICATION_PREFIX}.${d}`,
       expected: token ?? "(verification token from CRM)",
       actual: txtVirecrm,
       status: tokenMatch ? "pass" : "fail",
