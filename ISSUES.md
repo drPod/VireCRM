@@ -112,6 +112,37 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-20 — Lovable migration: JSONB double-encode bug + Crystal temp pw
+**Tags:** [lovable-migration] [supabase] [auth] [bug]
+
+User asked for a temp pw for Crystal. Admin API returned `500 "Database error loading user"` on her UUID, but worked on the smoke user. Dug in — found a wider bug in the live-port script that touched every ported `jsonb` field.
+
+#### Found
+
+- **JSONB columns double-encoded on insert.** Migration script parsed `auth.users`, `auth.identities`, and `public.*` `jsonb` values from the dump as TEXT, then bound them as TS strings via `bun:sql`'s positional params. Postgres' implicit `text → jsonb` cast on the value side stores the text *as a JSON string* (`jsonb_typeof(col) = 'string'`) instead of parsing it as an object. Generated columns like `auth.identities.email` (`lower(identity_data->>'email')`) silently resolve to NULL because `->>'email'` on a string-typed JSONB returns NULL. GoTrue's admin endpoint then joins identities + reads `email` → 500 on rows missing it.
+- Affected: **15** `auth.identities.identity_data`, **14** `auth.users.raw_user_meta_data`, **14** `auth.users.raw_app_meta_data`, **2** `public.organizations.auto_invoice_template`. Every ported user except the 1 already-native `darsh.pod@gmail.com` smoke. Scan across all `public`+`auth` jsonb columns post-fix: 0 remaining.
+
+#### Shipped
+
+- **Live data fix on prod DB** — `UPDATE … SET col = (col #>> '{}')::jsonb WHERE jsonb_typeof(col)='string'` across the four affected columns. Generated `auth.identities.email` re-derives automatically post-fix.
+- **Migration script root-cause fix** — `scripts/migrate-lovable-to-fixed.ts` now introspects `data_type='jsonb'` per-table via `getJsonbCols()` and wraps placeholders as `($N::text)::jsonb` for jsonb columns. Forces Postgres to parse text as JSON value, not wrap it as a JSON string. Re-runs of any phase against any table no longer double-encode. Touched: `phaseA_authUsers` (users + identities) + `upsertRows` (public.*). `bun run typecheck` clean.
+- **Crystal temp password minted.** UUID `7ba2ebfa-f30e-449a-866e-085c5940c1d4`, pw written to `README.md` "Temporary credentials" section + `must_change_password=true` flagged in `user_metadata`. (User explicitly chose this over the password-reset-email route; private repo + transient section.)
+- **Sign-in smoke test passed.** `POST /auth/v1/token?grant_type=password` with the new pw returns HTTP 200 + access_token + `must_change_password` flag. Bcrypt round-trip end-to-end verified. **Closes the previously-owed Crystal sign-in smoke item.**
+
+#### Verification
+
+- `auth.users` + `auth.identities`: 16 + 17 rows healthy. `jsonb_typeof()` returns `object` for all metadata columns. `auth.identities.email` populated for all 17.
+- `GET /auth/v1/admin/users/{crystal_uuid}` returns 200 (previously 500).
+- `GET /auth/v1/admin/users?per_page=20&page=1` returns 200 (previously 500 on page>=2 — the broken Crystal identity row was poisoning the list query).
+- `POST /token` sign-in with `crystal@greenenergiai.com` + temp pw → 200 + valid JWT.
+- `bash scripts/lint-issues.sh` — OK.
+
+#### Manual follow-up (user)
+
+- **Crystal's sign-in must trigger pw-reset flow.** Client login should read `user_metadata.must_change_password` post-auth and redirect to `/_app/account/password`. Not verified — flag for client-side audit next session if Crystal reports getting in without a reset prompt.
+- **DM Crystal the temp pw.** Then delete the "Temporary credentials" section from `README.md` once she has signed in + rotated.
+- **Bcrypt-port verification for the 3 other staff bcrypt rows** (`mleaverton`, `erica`, `shelby`) still nominally owed but mechanism = same as Crystal. If a sign-in is asserted to fail, mint a temp pw via the same admin-PUT path and investigate.
+
 ### 2026-05-20 — Resend cutover to notify.virecrm.com complete
 **Tags:** [resend] [virecrm] [rebrand] [email]
 

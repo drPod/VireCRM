@@ -111,6 +111,12 @@ docs/
 - [docs/handoffs/](./docs/handoffs/) — phase plans + migration logs
 - [docs/UI_QA_CHECKLIST.md](./docs/UI_QA_CHECKLIST.md) — manual QA checklist
 
+## Temporary credentials
+
+> Delete this section once Crystal signs in + rotates. Repo is private but credentials in tracked files are still bad hygiene — short-lived only.
+
+- **Crystal Cameron** (`crystal@greenenergiai.com`, user `7ba2ebfa-f30e-449a-866e-085c5940c1d4`) — temp password `hSS1eLMQitFgJfdR` minted 2026-05-20. `must_change_password=true` flagged in `user_metadata`; client login flow should redirect to a password-reset screen on first sign-in.
+
 ## History
 
 - Originally vibe-coded on Lovable. Codebase quality reflects that.

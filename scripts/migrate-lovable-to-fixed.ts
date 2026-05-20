@@ -190,6 +190,30 @@ async function getLiveCols(table: string, schema = "public"): Promise<Set<string
   return set;
 }
 
+// JSONB column set per table. Used to cast text params back to jsonb at insert
+// time. Without the cast, bun:sql binds JS strings via Postgres' implicit
+// text→jsonb path which wraps the value as a JSON string (jsonb_typeof =
+// 'string') instead of parsing it. See 2026-05-20 ISSUES.md fix.
+const jsonbColsCache = new Map<string, Set<string>>();
+async function getJsonbCols(table: string, schema = "public"): Promise<Set<string>> {
+  const key = `${schema}.${table}`;
+  if (jsonbColsCache.has(key)) return jsonbColsCache.get(key)!;
+  const rows = await sql`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_schema = ${schema} AND table_name = ${table} AND data_type = 'jsonb'
+  `;
+  const set = new Set<string>(rows.map((r: { column_name: string }) => r.column_name));
+  jsonbColsCache.set(key, set);
+  return set;
+}
+
+// Wrap a placeholder with an explicit text→jsonb cast when the target column
+// is jsonb. The dump parser hands us raw JSON text from the dump; the cast
+// parses it.
+function placeholder(col: string, idx: number, jsonbCols: Set<string>): string {
+  return jsonbCols.has(col) ? `($${idx}::text)::jsonb` : `$${idx}`;
+}
+
 // Turn a COPY row (array) into an object keyed by column, restricted to columns
 // that exist live in the new DB. Drops unknown old-DB columns.
 async function rowsToObjects(
@@ -256,13 +280,8 @@ async function phaseA_authUsers(dump: AuthInserts) {
     await tx.unsafe(`SET LOCAL request.jwt.claim.role = 'service_role'`);
 
     try {
-      const liveAuthUsers = await tx`
-        SELECT column_name FROM information_schema.columns
-        WHERE table_schema='auth' AND table_name='users'
-      `;
-      const liveAuthUserCols = new Set<string>(
-        liveAuthUsers.map((r: { column_name: string }) => r.column_name),
-      );
+      const liveAuthUserCols = await getLiveCols("users", "auth");
+      const userJsonbCols = await getJsonbCols("users", "auth");
 
       // Project dumped users to live columns.
       const projected = eligibleUsers.map((u) => {
@@ -276,7 +295,7 @@ async function phaseA_authUsers(dump: AuthInserts) {
       let inserted = 0;
       for (const u of projected) {
         const cols = Object.keys(u);
-        const placeholders = cols.map((_, i) => `$${i + 1}`).join(", ");
+        const placeholders = cols.map((c, i) => placeholder(c, i + 1, userJsonbCols)).join(", ");
         const colList = cols.map(q).join(", ");
         const updateClause = buildExcludedSet(cols);
         await tx.unsafe(
@@ -292,20 +311,15 @@ async function phaseA_authUsers(dump: AuthInserts) {
       const keptUserIds = new Set(eligibleUsers.map((u) => u.id));
       const eligibleIdent = dump.identities.filter((iden) => iden.user_id && keptUserIds.has(iden.user_id));
 
-      const liveAuthIdent = await tx`
-        SELECT column_name FROM information_schema.columns
-        WHERE table_schema='auth' AND table_name='identities'
-      `;
-      const liveAuthIdentCols = new Set<string>(
-        liveAuthIdent.map((r: { column_name: string }) => r.column_name),
-      );
+      const liveAuthIdentCols = await getLiveCols("identities", "auth");
+      const identJsonbCols = await getJsonbCols("identities", "auth");
 
       let identInserted = 0;
       for (const iden of eligibleIdent) {
         const projected: Record<string, string | null> = {};
         for (const k of Object.keys(iden)) if (liveAuthIdentCols.has(k)) projected[k] = iden[k];
         const cols = Object.keys(projected);
-        const placeholders = cols.map((_, i) => `$${i + 1}`).join(", ");
+        const placeholders = cols.map((c, i) => placeholder(c, i + 1, identJsonbCols)).join(", ");
         const colList = cols.map(q).join(", ");
         const updateClause = buildExcludedSet(cols);
         await tx.unsafe(
@@ -616,6 +630,7 @@ async function upsertRows(table: string, rows: Record<string, string | null>[], 
   const cols = [...colSet];
   const colList = cols.map(q).join(", ");
   const updateClause = buildExcludedSet(cols);
+  const jsonbCols = await getJsonbCols(table, "public");
 
   for (const slice of chunk(rows, chunkSize)) {
     const valuesSql: string[] = [];
@@ -626,7 +641,7 @@ async function upsertRows(table: string, rows: Record<string, string | null>[], 
       for (const c of cols) {
         params.push(r[c] ?? null);
         pi++;
-        placeholders.push(`$${pi}`);
+        placeholders.push(placeholder(c, pi, jsonbCols));
       }
       valuesSql.push(`(${placeholders.join(", ")})`);
     }
