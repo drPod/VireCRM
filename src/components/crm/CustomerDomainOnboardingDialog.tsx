@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Copy, Check, ExternalLink, Globe, ShieldCheck, Star, Plug } from "lucide-react";
 import { toast } from "sonner";
-import { REQUIRED_CNAME_TARGET } from "@/lib/dns-check";
+import { REQUIRED_CNAME_TARGET, TXT_VERIFICATION_PREFIX, TOKEN_PREFIX } from "@/lib/dns-check";
 
 const CRM_CNAME_TARGET = REQUIRED_CNAME_TARGET;
 
@@ -76,11 +76,11 @@ export function CustomerDomainOnboardingDialog({ triggerLabel = "Onboarding Guid
               />
               <RecordRow
                 type="TXT"
-                name="_virecrm.<your subdomain>"
-                value="virecrm-verify-<token shown in panel>"
+                name={`${TXT_VERIFICATION_PREFIX}.<your subdomain>`}
+                value={`${TOKEN_PREFIX}<token shown in panel>`}
                 copyKey="txt"
                 copied={copied === "txt"}
-                onCopy={() => copy("_virecrm", "txt")}
+                onCopy={() => copy(TXT_VERIFICATION_PREFIX, "txt")}
               />
               <p className="text-[11px] text-muted-foreground">
                 The exact TXT token is generated when you add the hostname — copy it from the Custom

@@ -35,7 +35,7 @@ import {
 } from "@/functions/custom-hostnames.functions";
 import { isNotConfigured, describeError } from "@/lib/cf-saas-errors";
 
-import { REQUIRED_CNAME_TARGET } from "@/lib/dns-check";
+import { REQUIRED_CNAME_TARGET, TXT_VERIFICATION_PREFIX, TOKEN_PREFIX } from "@/lib/dns-check";
 
 const CRM_CNAME_TARGET = REQUIRED_CNAME_TARGET;
 
@@ -454,8 +454,8 @@ function RedirectGuideDialog({
           <RecordRow
             label="Verification TXT"
             type="TXT"
-            name={`_virecrm.${host}`}
-            value="virecrm-verify-…"
+            name={`${TXT_VERIFICATION_PREFIX}.${host}`}
+            value={`${TOKEN_PREFIX}…`}
             note="Use the token shown when you added the hostname (not this placeholder)."
           />
 
