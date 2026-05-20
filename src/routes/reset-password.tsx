@@ -2,10 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Button } from "@/components/ui/button";
 import { Terminal, Loader2, ArrowLeft, Check, X } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { PasswordStrengthMeter, type PasswordStrengthResult } from "@/components/auth/PasswordStrengthMeter";
 import { friendlyAuthError } from "@/lib/auth-errors";
 
 export const Route = createFileRoute("/reset-password")({
@@ -21,7 +22,12 @@ export const Route = createFileRoute("/reset-password")({
 function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [score, setScore] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [loading, setLoading] = useState(false);
+
+  const handleStrengthChange = useCallback((result: PasswordStrengthResult) => {
+    setScore(result.score);
+  }, []);
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -30,10 +36,11 @@ function ResetPasswordPage() {
     () => ({
       length: password.length >= 8,
       match: password.length > 0 && password === confirmPassword,
+      strength: score >= 2,
     }),
-    [password, confirmPassword],
+    [password, confirmPassword, score],
   );
-  const canSubmit = sessionReady && checks.length && checks.match && !loading;
+  const canSubmit = sessionReady && checks.length && checks.match && checks.strength && !loading;
 
   // Establish recovery session from URL (hash or query) on mount
   useEffect(() => {
@@ -95,7 +102,7 @@ function ResetPasswordPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error } = await supabase.auth.updateUser({ password, data: { must_change_password: null } });
       if (error) throw error;
       toast.success("Password updated — taking you in...");
       // Snappier redirect, no artificial delay
@@ -153,6 +160,7 @@ function ResetPasswordPage() {
                 disabled={!sessionReady}
                 className="disabled:opacity-50"
               />
+              <PasswordStrengthMeter password={password} onChange={handleStrengthChange} />
             </div>
             <div>
               <label
@@ -178,6 +186,7 @@ function ResetPasswordPage() {
               <ul className="space-y-1 text-xs">
                 <Requirement met={checks.length} label="At least 8 characters" />
                 <Requirement met={checks.match} label="Passwords match" />
+                <Requirement met={checks.strength} label="Password must be Fair or stronger" />
               </ul>
             )}
 

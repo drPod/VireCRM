@@ -14,9 +14,10 @@ import { StripeConnectCard } from "@/components/crm/StripeConnectCard";
 import { IndustryTemplatePanel } from "@/components/onboarding/IndustryTemplatePanel";
 import { IndustryTemplatePicker } from "@/components/onboarding/IndustryTemplatePicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard, Sparkles } from "lucide-react";
+import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard, Sparkles, Lock } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
+import { SecuritySettings } from "@/components/crm/SecuritySettings";
 
 // Tab keys mirror the TabsTrigger `value` attrs below. Kept in sync manually
 // so the URL ?tab= param can deep-link straight to a section (e.g. Publish in
@@ -25,6 +26,7 @@ import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 const TAB_KEYS = [
   "team",
   "roles",
+  "security",
   "branding",
   "industry",
   "emails",
@@ -85,6 +87,10 @@ function SettingsPage() {
             <Shield className="h-4 w-4" />
             Roles
           </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Lock className="h-4 w-4" />
+            Security
+          </TabsTrigger>
           <TabsTrigger value="branding" className="gap-2">
             <Palette className="h-4 w-4" />
             White-Label
@@ -122,6 +128,10 @@ function SettingsPage() {
 
         <TabsContent value="roles">
           <CustomRolesPanel />
+        </TabsContent>
+
+        <TabsContent value="security">
+          <SecuritySettings />
         </TabsContent>
 
         <TabsContent value="branding" className="space-y-6">

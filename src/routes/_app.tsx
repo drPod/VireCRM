@@ -202,6 +202,15 @@ function AppLayout() {
     };
   }, [hydrated, loading, user, navigate, location.pathname, location.searchStr]);
 
+  // Forced password-change gate. Fires after auth confirmed, before billing check.
+  useEffect(() => {
+    if (!hydrated) return;
+    if (loading || !user) return;
+    if (user.user_metadata?.must_change_password) {
+      navigate({ to: "/change-password", search: { forced: "1" } });
+    }
+  }, [hydrated, loading, user, navigate]);
+
   // Hard entitlement gate: redirect to /billing when no active sub.
   // CRITICAL: only run AFTER user is known. If we redirect while user is still
   // null (post-sign-in race), the user lands on /billing and thinks login broke.
