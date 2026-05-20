@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCustomDomainGuard } from "@/hooks/useCustomDomainGuard";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
-import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/config/support";
 
 export const Route = createFileRoute("/terms")({
   component: TermsPage,
@@ -33,211 +32,273 @@ function TermsPage() {
       <main className="flex-1 pt-12 pb-16">
         <div className="mx-auto max-w-3xl px-6">
           <h1 className="text-3xl font-bold text-foreground">
-            VireCRM Software Terms &amp; Conditions Agreement
+            VireCRM Terms &amp; Conditions
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">Effective Date: April 22, 2026</p>
+          <p className="mt-2 text-sm text-muted-foreground">Effective: May 20, 2026</p>
 
           <div className="mt-8 space-y-6 text-sm leading-relaxed text-muted-foreground">
             <section>
               <h2 className="text-lg font-semibold text-foreground">1. Acceptance of Terms</h2>
               <p className="mt-2">
-                By accessing or using the VireCRM platform (&ldquo;Service&rdquo;), you agree to be
-                bound by this Agreement. If you do not agree to these Terms &amp; Conditions, you
-                may not use the Service.
+                By accessing or using VireCRM (&ldquo;Service&rdquo;, &ldquo;platform&rdquo;), you
+                agree to be bound by these Terms &amp; Conditions (&ldquo;Terms&rdquo;) and our{" "}
+                <a href="/privacy" className="text-primary hover:underline">
+                  Privacy Policy
+                </a>
+                . If you do not agree to these Terms, you may not use the Service.
+              </p>
+              <p className="mt-2">
+                The Service is operated by Darsh Poddar, an individual. References to
+                &ldquo;VireCRM&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo; in
+                these Terms refer to Darsh Poddar as the operator of VireCRM.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">2. Description of Service</h2>
               <p className="mt-2">
-                VireCRM provides a customer relationship management (CRM) platform designed to
-                assist with lead management, automation, communication workflows, and related
-                business operations.
+                VireCRM is a multi-tenant, white-label customer relationship management (CRM) SaaS
+                platform. The Service provides tools for lead management, contact tracking,
+                pipeline management, communication workflows, appointment scheduling, campaign
+                automation, and related business operations.
+              </p>
+              <p className="mt-2">
+                Each customer organization receives an isolated tenant environment. Paid tiers
+                include a custom subdomain (<em>&lt;slug&gt;.virecrm.com</em>) and optional
+                custom hostname support.
               </p>
               <p className="mt-2">
                 We reserve the right to modify, update, or discontinue any part of the Service at
-                any time without notice.
+                any time. We will provide reasonable notice of material changes where practicable.
               </p>
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-foreground">
-                3. &ldquo;As-Is&rdquo; and &ldquo;As-Available&rdquo; Disclaimer
-              </h2>
-              <p className="mt-2">
-                The Service is provided on an &ldquo;as-is&rdquo; and &ldquo;as-available&rdquo;
-                basis without warranties of any kind, whether express or implied.
-              </p>
-              <p className="mt-2">VireCRM does not guarantee that the Service will be:</p>
+              <h2 className="text-lg font-semibold text-foreground">3. Account Responsibilities</h2>
+              <p className="mt-2">You agree to:</p>
               <ul className="mt-2 list-disc pl-6 space-y-1">
-                <li>Uninterrupted</li>
-                <li>Error-free</li>
-                <li>Secure</li>
-                <li>Free from bugs or harmful components</li>
-              </ul>
-              <p className="mt-2">Your use of the Service is at your own risk.</p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground">
-                4. Bug &amp; Error Acknowledgement
-              </h2>
-              <p className="mt-2">
-                You acknowledge that software may contain bugs, errors, or unexpected behavior.
-              </p>
-              <p className="mt-2">
-                VireCRM shall not be held liable for any damages, losses, or issues arising from
-                such bugs or errors.
-              </p>
-              <p className="mt-2">
-                However, VireCRM agrees to make commercially reasonable efforts to investigate and
-                fix reported issues within a reasonable timeframe.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground">5. Limitation of Liability</h2>
-              <p className="mt-2">
-                To the fullest extent permitted by law, VireCRM shall not be liable for any
-                indirect, incidental, special, consequential, or punitive damages, including but not
-                limited to:
-              </p>
-              <ul className="mt-2 list-disc pl-6 space-y-1">
-                <li>Loss of profits</li>
-                <li>Loss of revenue</li>
-                <li>Loss of data</li>
-                <li>Business interruption</li>
-                <li>Loss of business opportunities</li>
-              </ul>
-              <p className="mt-2">
-                In all cases, VireCRM&apos;s total liability shall not exceed the amount paid by you
-                for the Service within the thirty (30) days prior to the claim.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground">6. User Responsibilities</h2>
-              <p className="mt-2">You are solely responsible for:</p>
-              <ul className="mt-2 list-disc pl-6 space-y-1">
-                <li>The accuracy and legality of all data entered into the system</li>
-                <li>Maintaining backups of your data</li>
-                <li>Reviewing and approving communications before sending</li>
+                <li>Provide accurate and complete information when creating your account.</li>
                 <li>
-                  Ensuring compliance with all applicable laws (including marketing and data laws)
+                  Maintain the confidentiality of your login credentials and be responsible for all
+                  activity that occurs under your account.
+                </li>
+                <li>
+                  Notify us immediately at{" "}
+                  <a href="mailto:darsh.pod@gmail.com" className="text-primary hover:underline">
+                    darsh.pod@gmail.com
+                  </a>{" "}
+                  if you suspect unauthorized access to your account.
+                </li>
+                <li>
+                  Not share your account credentials with individuals outside your organization.
                 </li>
               </ul>
               <p className="mt-2">
-                VireCRM is not responsible for user misuse, user error, or improper implementation.
+                You are responsible for all actions taken under your account, including actions
+                taken by team members you invite.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-foreground">4. Acceptable Use</h2>
+              <p className="mt-2">You agree not to use the Service to:</p>
+              <ul className="mt-2 list-disc pl-6 space-y-1">
+                <li>
+                  Send spam, unsolicited bulk communications, or messages that violate applicable
+                  law (including CAN-SPAM, TCPA, or GDPR).
+                </li>
+                <li>Store, transmit, or process unlawfully obtained data.</li>
+                <li>
+                  Infringe the intellectual property rights of any third party.
+                </li>
+                <li>
+                  Attempt to gain unauthorized access to other tenants&apos; data or VireCRM
+                  infrastructure.
+                </li>
+                <li>
+                  Reverse engineer, decompile, or disassemble any part of the Service.
+                </li>
+                <li>
+                  Use the Service in any manner that could damage, disable, or impair the Service
+                  or interfere with other users.
+                </li>
+              </ul>
+              <p className="mt-2">
+                You are solely responsible for ensuring your use of the Service complies with all
+                applicable laws and regulations, including marketing and data privacy laws in your
+                jurisdiction. VireCRM is not responsible for your compliance obligations.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">
-                7. Payments &amp; No Refund Policy
+                5. Subscriptions &amp; Billing
               </h2>
               <p className="mt-2">
-                All payments made to VireCRM are final and non-refundable, unless otherwise
-                explicitly agreed to in writing.
-              </p>
-              <p className="mt-2">
-                Due to the digital nature of the Service and immediate access upon purchase, you
-                acknowledge and agree that:
+                Paid plans are billed on a recurring basis (monthly or annually) via Stripe. Current
+                plan pricing is available at{" "}
+                <a href="/pricing" className="text-primary hover:underline">
+                  virecrm.com/pricing
+                </a>
+                .
               </p>
               <ul className="mt-2 list-disc pl-6 space-y-1">
-                <li>No refunds will be issued once access has been granted</li>
-                <li>No refunds will be issued for partial use or lack of use</li>
-                <li>No refunds will be issued due to dissatisfaction</li>
                 <li>
-                  No refunds will be issued due to bugs, errors, or temporary service interruptions
+                  Your subscription renews automatically at the end of each billing period unless
+                  cancelled.
+                </li>
+                <li>
+                  You may cancel your subscription at any time through the billing portal. Cancellation
+                  takes effect at the end of your current billing period — access continues until
+                  then and no further charges are made.
+                </li>
+                <li>
+                  We reserve the right to change pricing with at least 30 days&apos; advance
+                  notice. Continued use after the price change date constitutes acceptance.
+                </li>
+                <li>
+                  All fees are exclusive of taxes. You are responsible for any applicable taxes in
+                  your jurisdiction.
                 </li>
               </ul>
               <p className="mt-2">
-                VireCRM will make reasonable efforts to fix issues, but technical problems do not
-                qualify for refunds.
-              </p>
-              <p className="mt-2">
-                By purchasing and using the Service, you fully agree to this No Refund Policy.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-foreground">8. Data &amp; Privacy</h2>
-              <p className="mt-2">
-                While VireCRM implements reasonable security measures, you acknowledge that no
-                system is completely secure.
-              </p>
-              <p className="mt-2">VireCRM is not responsible for:</p>
-              <ul className="mt-2 list-disc pl-6 space-y-1">
-                <li>Data loss</li>
-                <li>Unauthorized access caused by user negligence</li>
-                <li>Third-party breaches outside of our control</li>
-              </ul>
-              <p className="mt-2">
-                You are responsible for protecting your login credentials and sensitive data.
+                For refund eligibility, see our{" "}
+                <a href="/refund-policy" className="text-primary hover:underline">
+                  Refund Policy
+                </a>
+                .
               </p>
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-foreground">9. Service Availability</h2>
+              <h2 className="text-lg font-semibold text-foreground">6. Data Ownership</h2>
               <p className="mt-2">
-                VireCRM does not guarantee continuous or uninterrupted access to the Service.
-                Downtime may occur due to:
+                <strong>Your data:</strong> You retain full ownership of all CRM data, contacts,
+                leads, and content you input into the Service. VireCRM processes this data on your
+                behalf and does not claim any ownership over it.
               </p>
-              <ul className="mt-2 list-disc pl-6 space-y-1">
-                <li>Maintenance</li>
-                <li>System updates</li>
-                <li>Server issues</li>
-                <li>External or unforeseen circumstances</li>
-              </ul>
               <p className="mt-2">
-                VireCRM shall not be held liable for any losses resulting from downtime.
+                <strong>Our platform:</strong> VireCRM retains all rights, title, and interest in
+                the Service, including its codebase, design, algorithms, and proprietary
+                technology. Nothing in these Terms grants you any rights to the underlying
+                platform beyond the limited right to use the Service as described herein.
+              </p>
+              <p className="mt-2">
+                VireCRM may use aggregated, anonymized, non-identifiable data derived from your
+                use of the Service for internal product analytics and improvement purposes.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-foreground">7. Termination</h2>
+              <p className="mt-2">
+                <strong>By you:</strong> You may terminate your account at any time by cancelling
+                your subscription and deleting your account through the platform settings.
+              </p>
+              <p className="mt-2">
+                <strong>By us:</strong> We may suspend or terminate your access to the Service
+                immediately if you breach these Terms, engage in conduct harmful to other users or
+                the platform, or fail to pay amounts owed. We will provide reasonable notice where
+                practicable.
+              </p>
+              <p className="mt-2">
+                <strong>After termination:</strong> Your CRM data will be available for export for
+                30 days following account closure. After that period, data is deleted in accordance
+                with our{" "}
+                <a href="/privacy" className="text-primary hover:underline">
+                  Privacy Policy
+                </a>
+                .
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-foreground">8. Service Availability</h2>
+              <p className="mt-2">
+                VireCRM is provided on an &ldquo;as-is&rdquo; and &ldquo;as-available&rdquo; basis.
+                We do not guarantee continuous, uninterrupted, or error-free access to the Service.
+                Downtime may occur due to scheduled maintenance, system updates, infrastructure
+                events, or circumstances beyond our control.
+              </p>
+              <p className="mt-2">
+                We will make commercially reasonable efforts to maintain platform availability and
+                to provide advance notice of planned maintenance windows.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-foreground">
+                9. Limitation of Liability
+              </h2>
+              <p className="mt-2">
+                To the fullest extent permitted by applicable law, VireCRM (and Darsh Poddar as
+                operator) shall not be liable for any indirect, incidental, special, consequential,
+                or punitive damages, including but not limited to loss of profits, loss of revenue,
+                loss of data, or business interruption, arising out of or related to your use of or
+                inability to use the Service, even if we have been advised of the possibility of
+                such damages.
+              </p>
+              <p className="mt-2">
+                In all cases, our total aggregate liability to you for any claims arising under or
+                related to these Terms shall not exceed the total amount paid by you to VireCRM
+                during the thirty (30) days immediately preceding the event giving rise to the
+                claim.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold text-foreground">10. Indemnification</h2>
               <p className="mt-2">
-                You agree to indemnify, defend, and hold harmless VireCRM, its owners, affiliates,
-                and partners from any claims, damages, liabilities, or legal disputes arising from:
+                You agree to indemnify, defend, and hold harmless Darsh Poddar and VireCRM from and
+                against any claims, damages, liabilities, costs, and expenses (including reasonable
+                legal fees) arising from:
               </p>
               <ul className="mt-2 list-disc pl-6 space-y-1">
-                <li>Your use of the Service</li>
-                <li>Your violation of these Terms</li>
-                <li>Your violation of any laws or third-party rights</li>
+                <li>Your use of or access to the Service.</li>
+                <li>Your violation of these Terms.</li>
+                <li>
+                  Your violation of any applicable law or the rights of any third party, including
+                  data privacy laws applicable to your contacts or customers.
+                </li>
+                <li>
+                  The content or accuracy of data you input into the Service.
+                </li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-foreground">
-                11. Modifications to Agreement
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground">11. Governing Law</h2>
               <p className="mt-2">
-                VireCRM reserves the right to update or modify these Terms at any time. Continued
-                use of the Service after changes constitutes acceptance of the updated Terms.
+                These Terms shall be governed by and construed in accordance with the laws of the
+                State of Texas, United States, without regard to its conflict of law principles. Any
+                disputes arising under or related to these Terms shall be subject to the exclusive
+                jurisdiction of the courts located in Texas.
               </p>
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-foreground">12. Governing Law</h2>
+              <h2 className="text-lg font-semibold text-foreground">12. Modifications</h2>
               <p className="mt-2">
-                This Agreement shall be governed by and interpreted in accordance with the laws of
-                the State of Texas, United States, without regard to conflict of law principles.
+                We reserve the right to update or modify these Terms at any time. When we make
+                material changes, we will notify you via email or an in-app notice at least 14 days
+                before the changes take effect. Your continued use of the Service after the effective
+                date of the revised Terms constitutes your acceptance of those changes.
               </p>
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-foreground">13. Contact &amp; Support</h2>
+              <h2 className="text-lg font-semibold text-foreground">13. Contact</h2>
               <p className="mt-2">
-                For all questions, support requests, or concerns, you may contact:
+                Questions or concerns regarding these Terms may be directed to:
               </p>
               <p className="mt-2">
-                Email:{" "}
-                <a href={SUPPORT_MAILTO} className="text-primary hover:underline">
-                  {SUPPORT_EMAIL}
+                <strong>Darsh Poddar</strong>
+                <br />
+                Operator, VireCRM
+                <br />
+                <a href="mailto:darsh.pod@gmail.com" className="text-primary hover:underline">
+                  darsh.pod@gmail.com
                 </a>
-              </p>
-              <p className="mt-2">
-                VireCRM will make reasonable efforts to respond in a timely manner.
               </p>
             </section>
           </div>
