@@ -253,7 +253,7 @@ export function BrandedSignup({ branding }: { branding: DomainBranding }) {
 
           <Button
             type="submit"
-            variant="command"
+            variant="default"
             className="w-full"
             disabled={submitting || googleLoading}
             style={accentColor ? { backgroundColor: accentColor } : undefined}
