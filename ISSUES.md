@@ -107,6 +107,26 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-20 — Crystal pre-launch: branding, subscription, navbar
+**Tags:** [crystal] [frontend] [supabase] [auth]
+
+#### Shipped
+- DB `subscriptions` — inserted manual `environment=manual, status=active` row for Crystal (`user_id=7ba2ebfa-f30e-449a-866e-085c5940c1d4`). Without this she'd hit `/billing?required=1` immediately after forced password change. No subscription row existed for Green EnergiAi org.
+- DB `organizations` `188c4869-8bc4-438e-b746-c8f28e2932d2` — corrected branding from Lovable defaults: `primary_color=#10CCB7` (was `#b410b7` magenta), `accent_color=#334C40`, `sidebar_color=#0A2A1A`, `button_color=#10CCB7`, `logo_url` set to Green EnergiAi Wix CDN logo. Colors sourced from live greenenergiai.com via subagent browser research.
+- `src/components/crm/CrmSidebar.tsx:174` — `/pipeline` nav label changed from hardcoded `"Pricing"` to `template.terminology.pipeline` (energy = "Energy Pipeline"). Icon swapped `DollarSign` → `TrendingUp`. Eliminates collision with `/energy/pricing` "Pricing" entry — Crystal would have seen two identical "Pricing" links. Commit `91d3dec`.
+
+#### Found
+- `src/routes/_app.dashboard.tsx:461` — "Total Leads" metric label hardcoded, doesn't use `template.terminology.leadPlural` ("Prospects" for energy). Low priority — cosmetic.
+- GCP OAuth consent screen test users: no programmatic path — API deprecated Jan 2026, IAP API disabled on project. Must add `crystal@greenenergiai.com` via console manually.
+
+#### Verification
+- `bun run typecheck` clean after sidebar change.
+- DB queries confirmed: 4,793 leads in org, `must_change_password=true` set, `onboarding_completed_at` and `tour_completed_at` both set (no wizard/tour fires on login).
+- Crystal login flow: forced PW change → dashboard → no billing bounce → energy sidebar unlocked.
+
+#### Manual follow-up (user)
+- Add `crystal@greenenergiai.com` to GCP OAuth test users: console.cloud.google.com → VireCRM Auth project → OAuth consent screen → Test users → Add.
+
 ### 2026-05-20 — Fix auth + subscription middleware: throw new Response() → throw new Error()
 **Tags:** [bug] [auth] [supabase]
 
