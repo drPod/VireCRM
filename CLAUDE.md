@@ -50,7 +50,7 @@ Full migration plan + Crystal duplicate-account note in `ISSUES.md ## Open` "Lov
 
 **No reseller layer.** Nobody resells the CRM. Every row in `organizations` = direct end-tenant of VireCRM. (Examples: Green EnergiAi is a tenant — they sell energy contracts to their own customers, but those customers don't get CRM accounts. They're just contacts/leads inside Green EnergiAi's CRM data.)
 
-- Brand = `virecrm.com` (legacy `majix.ai` parallel during cutover, eventual 308 redirect after 90d). Domain at IONOS, DNS on Cloudflare.
+- Brand = `virecrm.com`. `majix.ai` 308-redirects at Worker layer — retired. Domain at IONOS, DNS on Cloudflare.
 - Tenant gets: own user pool, own data, own theme (logo, colors, copy), own billing relationship with VireCRM.
 - Routing: custom hostnames CNAME at `customers.virecrm.com`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup via `get_org_by_domain` → renders white-labeled UI.
 
@@ -62,9 +62,7 @@ Lovable scaffold included reseller-tier features that do not match the current b
 
 If an audit suggests killing "reseller-only" code, **don't unilaterally delete** — flag the candidate in `ISSUES.md` `## Open` under "Lovable cleanup follow-ups" for explicit review. Chesterton's fence.
 
-### Hostname plan (live 2026-05-18 — all five tiers deployed + smoke-verified)
-
-**Parallel cutover (until ~2026-08-17):** `majix.ai`, `www.majix.ai`, `app.majix.ai`, `customers.majix.ai`, `notify.majix.ai`, `*.majix.ai` continue resolving via additive `wrangler.jsonc` routes. New canonical = `virecrm.com`. After 90d (~2026-08-17), `majix.ai` zones 308 → `virecrm.com` equivalents.
+### Hostname plan (live 2026-05-20 — virecrm.com canonical, majix.ai 308-redirects at Worker)
 
 | Hostname | Role | Notes |
 |---|---|---|
@@ -73,15 +71,15 @@ If an audit suggests killing "reseller-only" code, **don't unilaterally delete**
 | `<slug>.virecrm.com` | Per-tenant white-label CRM (free tier) | Wildcard Worker route + wildcard Advanced cert. Theme/brand resolved by `get_org_by_domain` path 2 (slug match). |
 | `<custom>.acmecorp.com` | Per-tenant white-label CRM (premium tier) | Tenants CNAME their record to `customers.virecrm.com`. CF for SaaS handles cert + routing. Theme resolved by `get_org_by_domain` path 1 (`org_custom_domains.hostname` match). |
 | `customers.virecrm.com` | CF for SaaS fallback — infrastructure only | Never user-visible. If hit directly, falls through to default VireCRM marketing — acceptable. |
-| `notify.virecrm.com` | Resend transactional email sender (live 2026-05-20) | DNS verified on Resend; test send delivered. All `SENDER_DOMAIN` + `FROM_DOMAIN` constants in code now point here. `notify.majix.ai` kept verified during parallel cutover (until ~2026-08-17) for any in-flight queue items but no new code path uses it. |
+| `notify.virecrm.com` | Resend transactional email sender (live 2026-05-20) | DNS verified on Resend; test send delivered. All `SENDER_DOMAIN` + `FROM_DOMAIN` constants in code point here. |
 
-Routes defined in `wrangler.jsonc`. `*.virecrm.com/*` wildcard does NOT match apex (Cloudflare requires non-empty label), so `virecrm.com/*` needs own explicit row. More-specific rows (`app`, `www`, `customers`) take precedence over wildcard at edge. Legacy `*.majix.ai/*` + apex + sub-rows remain in additive parallel until 308 cutover.
+Routes defined in `wrangler.jsonc`. `*.virecrm.com/*` wildcard does NOT match apex (Cloudflare requires non-empty label), so `virecrm.com/*` needs own explicit row. More-specific rows (`app`, `www`, `customers`) take precedence over wildcard at edge. `majix.ai` routes serve 308 redirects to `virecrm.com` equivalents.
 
 Reserved subdomain labels (never tenant slugs, blocked at both DB + client layers): `app`, `www`, `customers`, `notify`, `api`, `admin`, `mail`. Enforced in:
 - `get_org_by_domain` (migration `20260518020000_get_org_by_domain_majix_subdomain.sql`) — returns NULL early when label is reserved
 - `DomainBrandingProvider.SYSTEM_HOST_PATTERNS` — short-circuits RPC call client-side
 
-Tenant theming: `DomainBrandingProvider` reads `window.location.hostname`, skips lookup for system hosts, otherwise calls `get_org_by_domain(host)`. RPC has two paths: (1) verified custom hostname via `org_custom_domains` join, (2) slug match for `<label>.virecrm.com` (legacy `<label>.majix.ai` accepted same path during parallel cutover). Both return `json` blob with `id`, `slug`, `brand_name`, `logo_url`, `favicon_url`, `font_family`, `primary_color`, `secondary_color`, `accent_color`, `sidebar_color`, `button_color`, `is_reseller`, `support_email`, `verified`. VireCRM subdomains always return `verified=true` (own parent zone + wildcard cert).
+Tenant theming: `DomainBrandingProvider` reads `window.location.hostname`, skips lookup for system hosts, otherwise calls `get_org_by_domain(host)`. RPC has two paths: (1) verified custom hostname via `org_custom_domains` join, (2) slug match for `<label>.virecrm.com`. Both return `json` blob with `id`, `slug`, `brand_name`, `logo_url`, `favicon_url`, `font_family`, `primary_color`, `secondary_color`, `accent_color`, `sidebar_color`, `button_color`, `is_reseller`, `support_email`, `verified`. VireCRM subdomains always return `verified=true` (own parent zone + wildcard cert).
 
 Reseller-named code (per "Legacy 'reseller' code" above) — don't unilaterally strip. White-label + custom-hostname features ARE core premium product even though no resellers exist; rest is dormant Lovable scaffold pending explicit cleanup pass.
 

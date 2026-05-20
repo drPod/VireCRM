@@ -454,8 +454,8 @@ function RedirectGuideDialog({
           <RecordRow
             label="Verification TXT"
             type="TXT"
-            name={`_majix.${host}`}
-            value="majix-verify-…"
+            name={`_virecrm.${host}`}
+            value="virecrm-verify-…"
             note="Use the token shown when you added the hostname (not this placeholder)."
           />
 

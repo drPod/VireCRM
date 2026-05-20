@@ -305,7 +305,7 @@ function DnsCheckPage() {
         </CardHeader>
         <CardContent className="text-xs space-y-1.5 text-muted-foreground font-mono">
           <div>CNAME &lt;subdomain&gt; {REQUIRED_CNAME_TARGET}</div>
-          <div>TXT   _majix.&lt;subdomain&gt; &lt;verification token&gt;</div>
+          <div>TXT   _virecrm.&lt;subdomain&gt; &lt;verification token&gt;</div>
         </CardContent>
       </Card>
     </div>

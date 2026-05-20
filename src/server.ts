@@ -23,6 +23,16 @@ export default {
     env: unknown,
     ctx: ExecutionContext | undefined,
   ): Promise<Response> {
+    // 308-redirect all majix.ai traffic to virecrm.com equivalents.
+    const dest = new URL(request.url);
+    if (dest.hostname === "majix.ai" || dest.hostname.endsWith(".majix.ai")) {
+      dest.hostname =
+        dest.hostname === "majix.ai"
+          ? "virecrm.com"
+          : dest.hostname.slice(0, -(".majix.ai".length)) + ".virecrm.com";
+      return Response.redirect(dest.toString(), 308);
+    }
+
     const delegate = (startEntry as { fetch: DelegateFetch }).fetch;
 
     // Some runtime paths (e.g. vite dev's internal route preload) invoke the

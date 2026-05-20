@@ -77,7 +77,7 @@ export async function verifyResendConnection(): Promise<
 }
 
 export interface ResendSendOpts {
-  /** Verified Resend sender address (`noreply@notify.virecrm.com`; legacy `noreply@notify.majix.ai` still verified during parallel cutover until ~2026-08-17). */
+  /** Verified Resend sender address. Canonical domain: `notify.virecrm.com`. */
   from: string;
   /** Single recipient (we don't expose batching here — outreach is 1:1). */
   to: string;

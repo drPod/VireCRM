@@ -168,7 +168,7 @@ export function EditClientWhiteLabelDialog({
     if (!clientOrgId || !savedDomain) return;
     setVerifying(true);
     try {
-      const lookupHost = `_majix.${savedDomain}`;
+      const lookupHost = `_virecrm.${savedDomain}`;
       const res = await fetch(
         `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(lookupHost)}&type=TXT`,
         { headers: { Accept: "application/dns-json" } },
@@ -178,7 +178,7 @@ export function EditClientWhiteLabelDialog({
       const matched = records.some((r) => r.includes(verificationToken));
       if (!matched) {
         toast.error(
-          `No matching TXT record found at _majix.${savedDomain}. DNS can take a few minutes to propagate.`,
+          `No matching TXT record found at _virecrm.${savedDomain}. DNS can take a few minutes to propagate.`,
         );
         return;
       }
@@ -345,7 +345,7 @@ export function EditClientWhiteLabelDialog({
                       2 — Add TXT verification
                     </h4>
                     <p className="text-[10px] text-muted-foreground mb-1.5 leading-relaxed">
-                      TXT record at <code className="text-foreground">_majix.{savedDomain}</code>{" "}
+                      TXT record at <code className="text-foreground">_virecrm.{savedDomain}</code>{" "}
                       with this value:
                     </p>
                     <div className="flex gap-1.5">

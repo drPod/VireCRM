@@ -15,27 +15,13 @@
     "SUPABASE_URL": "https://coynbufhejaeuifpvmvw.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AfxTcWiGW7j882pfkhPhwg_hKKdSAW2"
   },
-  // Hostname plan (see CLAUDE.md "Hosts" + ISSUES.md hostname rollout):
-  //   majix.ai + www.majix.ai → public marketing (anonymous visitors)
-  //   app.majix.ai           → central CRM landing + auth callbacks + Majix platform admin
-  //   <slug>.majix.ai        → per-tenant white-label CRM (wildcard route)
-  //   customers.majix.ai     → CF for SaaS fallback for custom hostnames (infra only)
-  //
+  // Route table: virecrm.com (canonical) + majix.ai (legacy, kept so the Worker
+  // receives those requests and can issue 308 redirects to virecrm.com equivalents).
+  // src/server.ts fires the redirect before any app logic.
   // Wildcard `*.majix.ai/*` does NOT match the apex — apex needs its own row.
-  // More-specific patterns win at the edge, so the explicit `app`/`www`/`customers`
-  // entries take priority over the wildcard. CF for SaaS still owns custom hostnames
-  // (CNAME → customers.majix.ai); CLOUDFLARE_API_TOKEN + CLOUDFLARE_ZONE_ID secrets
-  // power the runtime provisioning. Runbook: docs/custom-domains/cf-for-saas-setup.md.
-  //
-  // Rebrand cutover (Majix → VireCRM, majix.ai → virecrm.com): both zones serve
-  // identically during transition. virecrm.com is the canonical going forward;
-  // majix.ai routes stay live until DNS/auth/email cutover completes and traffic
-  // drains. Same five-tier plan mirrors onto virecrm.com:
-  //   virecrm.com + www.virecrm.com → public marketing
-  //   app.virecrm.com               → central CRM landing + auth callbacks + platform admin
-  //   <slug>.virecrm.com            → per-tenant white-label CRM (wildcard route)
-  //   customers.virecrm.com         → CF for SaaS fallback (infra only)
-  // Wildcard/apex/priority rules apply identically per zone.
+  // More-specific patterns (app/www/customers) win over wildcard at the edge.
+  // CF for SaaS custom hostnames: CNAME → customers.virecrm.com.
+  // Runbook: docs/custom-domains/cf-for-saas-setup.md.
   "routes": [
     { "pattern": "majix.ai/*", "zone_name": "majix.ai" },
     { "pattern": "www.majix.ai/*", "zone_name": "majix.ai" },

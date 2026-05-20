@@ -76,11 +76,11 @@ export function CustomerDomainOnboardingDialog({ triggerLabel = "Onboarding Guid
               />
               <RecordRow
                 type="TXT"
-                name="_majix.<your subdomain>"
-                value="majix-verify-<token shown in panel>"
+                name="_virecrm.<your subdomain>"
+                value="virecrm-verify-<token shown in panel>"
                 copyKey="txt"
                 copied={copied === "txt"}
-                onCopy={() => copy("_majix", "txt")}
+                onCopy={() => copy("_virecrm", "txt")}
               />
               <p className="text-[11px] text-muted-foreground">
                 The exact TXT token is generated when you add the hostname — copy it from the Custom

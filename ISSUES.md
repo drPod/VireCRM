@@ -19,9 +19,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
 - [ ] **CF Workers Builds "Variables and secrets" panel** — manual dashboard check that no `LOVABLE_API_KEY` lingers (runtime `wrangler secret list` doesn't cover build-time). Dashboard → Workers & Pages → genesisxsx → Settings → Variables.
-- [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
-  - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
-  - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
 - [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out** — **PAUSED 2026-05-19.** Steps 0-6 shipped on 2026-05-18 (`30f3a54`, `e0ada67`, `554580a`, `4635496`, `4b6f75e`, `1448353`, `6399b7b`, `286cd81`) but invalidated by 2026-05-19 discovery — old Lovable DB still live, Crystal's auth.users row preserved there (`7ba2ebfa-…`), session-1 provisioning created a DUPLICATE on new DB (`b5ae0c3e-…`), session-2 xlsx-import wrote 3850 rows with broken column mapping. **Migration must run FIRST** (`docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`). Resume Crystal onboarding at Step 5 of `docs/handoffs/2026-05-18-green-energiai-onboarding.md` AFTER migration lands — by then her UUID/password/data already on new DB, energy fields already populated from xlsx supplement pass.
 
 ### Lovable → fixed-DB data migration
@@ -112,6 +109,34 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-20 — Retire majix.ai: 308 redirect + full virecrm.com cleanup
+**Tags:** [virecrm] [rebrand] [cf-saas] [docs]
+
+#### Shipped
+- `src/server.ts` — 308-redirect handler: all `*.majix.ai` requests redirect to virecrm.com equivalents before reaching TanStack Start.
+- `wrangler.jsonc` — comments updated; majix.ai routes kept for redirect to fire.
+- `src/config/support.ts` — SUPPORT_EMAIL flipped to `support@virecrm.com`.
+- `supabase/functions/_shared/stripe.ts` — removed `.majix.ai`/`majix.ai` from CORS allow-list; fallback origin flipped to `https://virecrm.com`.
+- `src/lib/resend.ts` — removed stale notify.majix.ai cutover comment.
+- `src/components/auth/DomainBrandingProvider.tsx` + `GlobalErrorBoundary.tsx` — removed 5 majix.ai regex entries from SYSTEM_HOST_PATTERNS.
+- `src/lib/dns-check.ts` — default CNAME target flipped to `customers.virecrm.com`; removed `REQUIRED_CNAME_TARGET_ALT`; TXT lookup renamed `_majix.` → `_virecrm.`.
+- `supabase/migrations/20260520100000_rename_verification_token_prefix.sql` — token default flipped `majix-verify-` → `virecrm-verify-`; existing rows backfilled.
+- 5 UI files (`CustomerDomainOnboardingDialog`, `DomainHealthPanel`, `EditClientWhiteLabelDialog`, `CustomDomainsPanel`, `_app.dns-check.tsx`) — TXT label prefix `_majix` → `_virecrm`.
+- 8 files — localStorage + custom event keys renamed `majix:*`/`majix.*` → `virecrm:*`/`virecrm.*`.
+- `supabase/migrations/20260520110000_get_org_by_domain_virecrm_only.sql` — dropped majix.ai subdomain branch from `get_org_by_domain()`.
+- `CLAUDE.md`, `AGENTS.md`, `README.md`, `docs/custom-domains/cf-for-saas-setup.md` — removed all parallel-cutover language; single-zone (virecrm.com) narrative.
+
+#### Verification
+- `bun run typecheck` clean across all units.
+- `supabase db push` applied both new migrations.
+- E2E: curl `Host: app.majix.ai` → 308 `https://app.virecrm.com` (Unit 1 worktree).
+
+#### Manual follow-up (user)
+- Push all unit PRs and merge. After merge and redeploy, smoke curl `https://app.majix.ai/` to confirm 308 fires at production edge.
+- `wrangler secret put CLOUDFLARE_ZONE_ID` = `bef363938825376aef7db07f57c3f04b` (virecrm.com zone) to flip the runtime CF for SaaS provisioning to virecrm zone.
+- Worker API Token: dashboard → My Profile → API Tokens → find Worker token → Edit → Zone Resources → add `virecrm.com`.
+- Extend `CLOUDFLARE_API_TOKEN` scope to include virecrm.com zone (dashboard only).
 
 ### 2026-05-20 — Phase G validation + compositeAddress() literal-NULL cleanup
 **Tags:** [lovable-migration] [supabase] [bug] [crystal] [caziah]

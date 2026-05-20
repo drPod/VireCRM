@@ -295,7 +295,7 @@ export function ResendSettingsCard() {
                 type="email"
                 value={replyDraft}
                 onChange={(e) => setReplyDraft(e.target.value)}
-                placeholder="support@majix.ai"
+                placeholder="support@virecrm.com"
                 className="font-mono text-sm"
                 spellCheck={false}
                 autoComplete="off"
