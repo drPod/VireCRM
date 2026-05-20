@@ -170,8 +170,8 @@ function AppLayout() {
   // Listen for manual "Restart tour" requests from the sidebar.
   useEffect(() => {
     const handler = () => setTourOpen(true);
-    window.addEventListener("majix:restart-tour", handler);
-    return () => window.removeEventListener("majix:restart-tour", handler);
+    window.addEventListener("virecrm:restart-tour", handler);
+    return () => window.removeEventListener("virecrm:restart-tour", handler);
   }, []);
 
   // Avoid bouncing freshly-signed-in users back to /login: after a successful

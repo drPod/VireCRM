@@ -17,7 +17,7 @@ interface TestRow extends TestEmailStatus {
   sentAt: string;
 }
 
-const STORAGE_KEY = "majix.test-email-report.v1";
+const STORAGE_KEY = "virecrm.test-email-report.v1";
 const MAX_ROWS = 10;
 
 function loadStored(): TestRow[] {

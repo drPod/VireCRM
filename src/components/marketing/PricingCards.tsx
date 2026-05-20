@@ -235,11 +235,10 @@ function TierCard({
   useEffect(() => {
     const sync = () => setDisplayedPrice(getDisplayedPrice(tier.stripePriceId, tier.price));
     sync();
-    // TODO(rebrand): rename event in a follow-up — must change emitter + this listener atomically.
-    window.addEventListener("majix:pricing-overrides-changed", sync);
+    window.addEventListener("virecrm:pricing-overrides-changed", sync);
     window.addEventListener("storage", sync);
     return () => {
-      window.removeEventListener("majix:pricing-overrides-changed", sync);
+      window.removeEventListener("virecrm:pricing-overrides-changed", sync);
       window.removeEventListener("storage", sync);
     };
   }, [tier.stripePriceId, tier.price]);

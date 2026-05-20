@@ -427,7 +427,7 @@ export function CrmSidebar() {
           type="button"
           onClick={() => {
             setMobileOpen(false);
-            window.dispatchEvent(new Event("majix:restart-tour"));
+            window.dispatchEvent(new Event("virecrm:restart-tour"));
           }}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
         >

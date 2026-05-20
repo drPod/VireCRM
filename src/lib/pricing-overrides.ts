@@ -9,7 +9,7 @@
  * Stored in localStorage as { [stripePriceId]: { price: "$129", updatedAt } }.
  */
 
-const STORAGE_KEY = "majix.pricing-overrides.v1";
+const STORAGE_KEY = "virecrm.pricing-overrides.v1";
 
 export interface PriceOverride {
   /** Display string, e.g. "$129". Always currency + integer when set by auto-sync. */
@@ -70,8 +70,7 @@ export function saveOverrides(map: PriceOverrideMap): void {
   if (!isBrowser()) return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-    // TODO(rebrand): rename event in a follow-up — must change emitter + listener atomically.
-    window.dispatchEvent(new CustomEvent("majix:pricing-overrides-changed"));
+    window.dispatchEvent(new CustomEvent("virecrm:pricing-overrides-changed"));
   } catch {
     // Ignore quota / privacy errors — overrides simply won't persist.
   }
@@ -80,8 +79,7 @@ export function saveOverrides(map: PriceOverrideMap): void {
 export function clearOverrides(): void {
   if (!isBrowser()) return;
   window.localStorage.removeItem(STORAGE_KEY);
-  // TODO(rebrand): rename event in a follow-up — must change emitter + listener atomically.
-  window.dispatchEvent(new CustomEvent("majix:pricing-overrides-changed"));
+  window.dispatchEvent(new CustomEvent("virecrm:pricing-overrides-changed"));
 }
 
 /**

@@ -110,8 +110,8 @@ export function PriceConsistencyCheck() {
   useEffect(() => {
     setOverridesState(loadOverrides());
     const sync = () => setOverridesState(loadOverrides());
-    window.addEventListener("majix:pricing-overrides-changed", sync);
-    return () => window.removeEventListener("majix:pricing-overrides-changed", sync);
+    window.addEventListener("virecrm:pricing-overrides-changed", sync);
+    return () => window.removeEventListener("virecrm:pricing-overrides-changed", sync);
   }, []);
 
   const tiers: { tier: PricingTier; group: CheckRow["group"] }[] = [
