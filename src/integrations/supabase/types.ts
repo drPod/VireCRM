@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_quote_events: {
@@ -421,37 +446,55 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          audience_filter: Json | null
+          completed_at: string | null
           created_at: string
+          from_name: string | null
           id: string
+          launched_at: string | null
           leads_count: number | null
           name: string
           objective: string | null
           organization_id: string
           replies_count: number | null
+          reply_to: string | null
+          scheduled_at: string | null
           sent_count: number | null
           status: string
           updated_at: string
         }
         Insert: {
+          audience_filter?: Json | null
+          completed_at?: string | null
           created_at?: string
+          from_name?: string | null
           id?: string
+          launched_at?: string | null
           leads_count?: number | null
           name: string
           objective?: string | null
           organization_id: string
           replies_count?: number | null
+          reply_to?: string | null
+          scheduled_at?: string | null
           sent_count?: number | null
           status?: string
           updated_at?: string
         }
         Update: {
+          audience_filter?: Json | null
+          completed_at?: string | null
           created_at?: string
+          from_name?: string | null
           id?: string
+          launched_at?: string | null
           leads_count?: number | null
           name?: string
           objective?: string | null
           organization_id?: string
           replies_count?: number | null
+          reply_to?: string | null
+          scheduled_at?: string | null
           sent_count?: number | null
           status?: string
           updated_at?: string
@@ -2992,6 +3035,7 @@ export type Database = {
       }
       outreach_sequences: {
         Row: {
+          campaign_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -3009,6 +3053,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          campaign_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -3026,6 +3071,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          campaign_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -3043,6 +3089,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "outreach_sequences_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "outreach_sequences_organization_id_fkey"
             columns: ["organization_id"]
@@ -3098,6 +3151,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_webhook_failures: {
+        Row: {
+          created_at: string
+          environment: string
+          error_message: string | null
+          event_id: string | null
+          event_type: string
+          failure_kind: string
+          id: string
+          raw_payload: Json | null
+          replayed_at: string | null
+          replayed_by: string | null
+          stripe_object_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          error_message?: string | null
+          event_id?: string | null
+          event_type: string
+          failure_kind: string
+          id?: string
+          raw_payload?: Json | null
+          replayed_at?: string | null
+          replayed_by?: string | null
+          stripe_object_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          error_message?: string | null
+          event_id?: string | null
+          event_type?: string
+          failure_kind?: string
+          id?: string
+          raw_payload?: Json | null
+          replayed_at?: string | null
+          replayed_by?: string | null
+          stripe_object_id?: string | null
+        }
+        Relationships: []
       }
       pending_subscription_grants: {
         Row: {
@@ -3344,6 +3439,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          checklist_dismissed_at: string | null
+          checklist_items_completed: string[]
           created_at: string
           full_name: string | null
           id: string
@@ -3351,9 +3448,12 @@ export type Database = {
           tour_completed_at: string | null
           updated_at: string
           user_id: string
+          wizard_notice_dismissed: boolean
         }
         Insert: {
           avatar_url?: string | null
+          checklist_dismissed_at?: string | null
+          checklist_items_completed?: string[]
           created_at?: string
           full_name?: string | null
           id?: string
@@ -3361,9 +3461,12 @@ export type Database = {
           tour_completed_at?: string | null
           updated_at?: string
           user_id: string
+          wizard_notice_dismissed?: boolean
         }
         Update: {
           avatar_url?: string | null
+          checklist_dismissed_at?: string | null
+          checklist_items_completed?: string[]
           created_at?: string
           full_name?: string | null
           id?: string
@@ -3371,6 +3474,7 @@ export type Database = {
           tour_completed_at?: string | null
           updated_at?: string
           user_id?: string
+          wizard_notice_dismissed?: boolean
         }
         Relationships: [
           {
@@ -4908,6 +5012,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["owner", "manager", "sales_rep"],

@@ -1,35 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Zap,
-  Plus,
-  Users,
-  Send,
-  BarChart3,
-  Loader2,
-  Play,
-  Pause,
-  Trash2,
-} from "lucide-react";
+import { Zap, Plus, Users, Send, BarChart3, Loader2, Play, Pause, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +15,11 @@ import {
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import {
+  pauseCampaignFn,
+  resumeCampaignFn,
+  deleteCampaignFn,
+} from "@/functions/campaigns.functions";
 import { toast } from "sonner";
 
 type CampaignsSearch = { new?: boolean };
@@ -62,7 +39,7 @@ export const Route = createFileRoute("/_app/campaigns")({
   }),
 });
 
-type CampaignStatus = "active" | "paused" | "completed" | "draft";
+type CampaignStatus = "active" | "paused" | "completed" | "draft" | "scheduled";
 
 interface Campaign {
   id: string;
@@ -77,12 +54,15 @@ interface Campaign {
 const statusVariants: Record<CampaignStatus, "success" | "warning" | "secondary" | "info"> = {
   active: "success",
   paused: "warning",
+  scheduled: "warning",
   completed: "secondary",
   draft: "info",
 };
 
 function isCampaignStatus(s: string): s is CampaignStatus {
-  return s === "active" || s === "paused" || s === "completed" || s === "draft";
+  return (
+    s === "active" || s === "paused" || s === "completed" || s === "draft" || s === "scheduled"
+  );
 }
 
 function CampaignsPage() {
@@ -91,23 +71,12 @@ function CampaignsPage() {
   const { new: openNew } = Route.useSearch();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [name, setName] = useState("");
-  const [objective, setObjective] = useState("");
-  const [status, setStatus] = useState<CampaignStatus>("draft");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Campaign | null>(null);
 
-  // Auto-open the create dialog when arriving with ?new=1, then strip the param.
   useEffect(() => {
     if (openNew) {
-      setDialogOpen(true);
-      navigate({
-        to: "/campaigns",
-        search: (prev: CampaignsSearch) => ({ ...prev, new: undefined }),
-        replace: true,
-      });
+      navigate({ to: "/campaigns/new", replace: true });
     }
   }, [openNew, navigate]);
 
@@ -146,78 +115,52 @@ function CampaignsPage() {
     };
   }, [organization?.id]);
 
-  const resetForm = () => {
-    setName("");
-    setObjective("");
-    setStatus("draft");
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!organization?.id) return;
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      toast.error("Campaign name is required");
-      return;
-    }
-    setSubmitting(true);
-    const { error } = await supabase.from("campaigns").insert({
-      organization_id: organization.id,
-      name: trimmedName,
-      objective: objective.trim() || null,
-      status,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message || "Failed to create campaign");
-      return;
-    }
-    toast.success("Campaign created");
-    setDialogOpen(false);
-    resetForm();
-    await loadCampaigns(organization.id);
-  };
-
-  const setCampaignStatus = async (c: Campaign, next: CampaignStatus) => {
+  const handlePause = async (c: Campaign) => {
     if (!organization?.id) return;
     setBusyId(c.id);
-    const { error } = await supabase
-      .from("campaigns")
-      .update({ status: next })
-      .eq("id", c.id)
-      .eq("organization_id", organization.id);
-    setBusyId(null);
-    if (error) {
-      toast.error(error.message || "Update failed");
-      return;
+    try {
+      await pauseCampaignFn({
+        data: { organizationId: organization.id, campaignId: c.id },
+      });
+      toast.success("Paused");
+      await loadCampaigns(organization.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Pause failed");
+    } finally {
+      setBusyId(null);
     }
-    toast.success(
-      next === "active"
-        ? "Campaign resumed"
-        : next === "paused"
-          ? "Campaign paused"
-          : "Campaign updated",
-    );
-    await loadCampaigns(organization.id);
   };
-
+  const handleResume = async (c: Campaign) => {
+    if (!organization?.id) return;
+    setBusyId(c.id);
+    try {
+      await resumeCampaignFn({
+        data: { organizationId: organization.id, campaignId: c.id },
+      });
+      toast.success("Resumed");
+      await loadCampaigns(organization.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Resume failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
   const handleDelete = async () => {
     if (!confirmDelete || !organization?.id) return;
     const c = confirmDelete;
     setBusyId(c.id);
-    const { error } = await supabase
-      .from("campaigns")
-      .delete()
-      .eq("id", c.id)
-      .eq("organization_id", organization.id);
-    setBusyId(null);
-    setConfirmDelete(null);
-    if (error) {
-      toast.error(error.message || "Delete failed");
-      return;
+    try {
+      await deleteCampaignFn({
+        data: { organizationId: organization.id, campaignId: c.id },
+      });
+      toast.success("Campaign deleted");
+      await loadCampaigns(organization.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setBusyId(null);
+      setConfirmDelete(null);
     }
-    toast.success("Campaign deleted");
-    await loadCampaigns(organization.id);
   };
 
   return (
@@ -227,12 +170,12 @@ function CampaignsPage() {
           <h1 className="text-2xl font-bold text-foreground">Campaigns</h1>
           <p className="text-sm text-muted-foreground">Automated outreach sequences</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="command" size="sm" onClick={() => setDialogOpen(true)}>
+        <Button variant="command" size="sm" asChild>
+          <Link to="/campaigns/new">
             <Plus className="h-4 w-4" />
             New Campaign
-          </Button>
-        </div>
+          </Link>
+        </Button>
       </div>
 
       {loading ? (
@@ -246,9 +189,11 @@ function CampaignsPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Create your first outreach campaign to start engaging leads automatically.
           </p>
-          <Button variant="command" size="sm" className="mt-4" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            New Campaign
+          <Button variant="command" size="sm" className="mt-4" asChild>
+            <Link to="/campaigns/new">
+              <Plus className="h-4 w-4" />
+              New Campaign
+            </Link>
           </Button>
         </div>
       ) : (
@@ -257,9 +202,11 @@ function CampaignsPage() {
             const conversionRate =
               c.sent_count > 0 ? Math.round((c.replies_count / c.sent_count) * 1000) / 10 : 0;
             return (
-              <div
+              <Link
                 key={c.id}
-                className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
+                to="/campaigns/$id"
+                params={{ id: c.id }}
+                className="block rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
@@ -277,18 +224,26 @@ function CampaignsPage() {
                         className="h-8 w-8"
                         title="Pause"
                         disabled={busyId === c.id}
-                        onClick={() => setCampaignStatus(c, "paused")}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handlePause(c);
+                        }}
                       >
                         <Pause className="h-4 w-4" />
                       </Button>
-                    ) : c.status === "paused" || c.status === "draft" ? (
+                    ) : c.status === "paused" ? (
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        title={c.status === "draft" ? "Activate" : "Resume"}
+                        title="Resume"
                         disabled={busyId === c.id}
-                        onClick={() => setCampaignStatus(c, "active")}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleResume(c);
+                        }}
                       >
                         <Play className="h-4 w-4" />
                       </Button>
@@ -299,7 +254,11 @@ function CampaignsPage() {
                       className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       title="Delete"
                       disabled={busyId === c.id}
-                      onClick={() => setConfirmDelete(c)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setConfirmDelete(c);
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -322,82 +281,11 @@ function CampaignsPage() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
       )}
-
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) resetForm();
-        }}
-      >
-        <DialogContent>
-          <form onSubmit={handleCreate}>
-            <DialogHeader>
-              <DialogTitle>New Campaign</DialogTitle>
-              <DialogDescription>
-                Create a new outreach campaign. You can wire it up to leads and workflows
-                afterwards.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="campaign-name">Name</Label>
-                <Input
-                  id="campaign-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Q1 enterprise outbound"
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="campaign-objective">Objective (optional)</Label>
-                <Textarea
-                  id="campaign-objective"
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
-                  placeholder="Book demos with mid-market SaaS founders"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="campaign-status">Status</Label>
-                <Select value={status} onValueChange={(v) => isCampaignStatus(v) && setStatus(v)}>
-                  <SelectTrigger id="campaign-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="paused">Paused</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" variant="command" disabled={submitting}>
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Create campaign
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>

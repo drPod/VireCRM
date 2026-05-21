@@ -81,9 +81,12 @@ import { Route as AppEnergyPricingRouteImport } from './routes/_app.energy.prici
 import { Route as AppEnergyLoaRouteImport } from './routes/_app.energy.loa'
 import { Route as AppEnergyCustomersRouteImport } from './routes/_app.energy.customers'
 import { Route as AppEnergyContractsRouteImport } from './routes/_app.energy.contracts'
+import { Route as AppCampaignsNewRouteImport } from './routes/_app.campaigns.new'
+import { Route as AppCampaignsIdRouteImport } from './routes/_app.campaigns.$id'
 import { Route as AppAcademyCourseIdRouteImport } from './routes/_app.academy.$courseId'
 import { Route as ApiPublicHooksRunWorkflowsRouteImport } from './routes/api/public/hooks/run-workflows'
 import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/public/hooks/purge-audit-log'
+import { Route as ApiPublicHooksLaunchScheduledCampaignsRouteImport } from './routes/api/public/hooks/launch-scheduled-campaigns'
 import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
 import { Route as ApiPublicHooksDispatchFollowupsRouteImport } from './routes/api/public/hooks/dispatch-followups'
 import { Route as ApiPublicHooksContactFollowupRemindersRouteImport } from './routes/api/public/hooks/contact-followup-reminders'
@@ -452,6 +455,16 @@ const AppEnergyContractsRoute = AppEnergyContractsRouteImport.update({
   path: '/contracts',
   getParentRoute: () => AppEnergyRoute,
 } as any)
+const AppCampaignsNewRoute = AppCampaignsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppCampaignsRoute,
+} as any)
+const AppCampaignsIdRoute = AppCampaignsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppCampaignsRoute,
+} as any)
 const AppAcademyCourseIdRoute = AppAcademyCourseIdRouteImport.update({
   id: '/$courseId',
   path: '/$courseId',
@@ -467,6 +480,12 @@ const ApiPublicHooksPurgeAuditLogRoute =
   ApiPublicHooksPurgeAuditLogRouteImport.update({
     id: '/api/public/hooks/purge-audit-log',
     path: '/api/public/hooks/purge-audit-log',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksLaunchScheduledCampaignsRoute =
+  ApiPublicHooksLaunchScheduledCampaignsRouteImport.update({
+    id: '/api/public/hooks/launch-scheduled-campaigns',
+    path: '/api/public/hooks/launch-scheduled-campaigns',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksDispatchSequencesRoute =
@@ -532,7 +551,7 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AppBillingRoute
   '/book': typeof AppBookRoute
   '/calendar': typeof AppCalendarRoute
-  '/campaigns': typeof AppCampaignsRoute
+  '/campaigns': typeof AppCampaignsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
@@ -562,6 +581,8 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
+  '/campaigns/$id': typeof AppCampaignsIdRoute
+  '/campaigns/new': typeof AppCampaignsNewRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
   '/energy/customers': typeof AppEnergyCustomersRoute
   '/energy/loa': typeof AppEnergyLoaRoute
@@ -584,6 +605,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
+  '/api/public/hooks/launch-scheduled-campaigns': typeof ApiPublicHooksLaunchScheduledCampaignsRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
 }
@@ -614,7 +636,7 @@ export interface FileRoutesByTo {
   '/billing': typeof AppBillingRoute
   '/book': typeof AppBookRoute
   '/calendar': typeof AppCalendarRoute
-  '/campaigns': typeof AppCampaignsRoute
+  '/campaigns': typeof AppCampaignsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
@@ -644,6 +666,8 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
+  '/campaigns/$id': typeof AppCampaignsIdRoute
+  '/campaigns/new': typeof AppCampaignsNewRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
   '/energy/customers': typeof AppEnergyCustomersRoute
   '/energy/loa': typeof AppEnergyLoaRoute
@@ -666,6 +690,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
+  '/api/public/hooks/launch-scheduled-campaigns': typeof ApiPublicHooksLaunchScheduledCampaignsRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
 }
@@ -698,7 +723,7 @@ export interface FileRoutesById {
   '/_app/billing': typeof AppBillingRoute
   '/_app/book': typeof AppBookRoute
   '/_app/calendar': typeof AppCalendarRoute
-  '/_app/campaigns': typeof AppCampaignsRoute
+  '/_app/campaigns': typeof AppCampaignsRouteWithChildren
   '/_app/command-chat': typeof AppCommandChatRoute
   '/_app/contact-submissions': typeof AppContactSubmissionsRoute
   '/_app/conversations': typeof AppConversationsRoute
@@ -728,6 +753,8 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/_app/academy/$courseId': typeof AppAcademyCourseIdRoute
+  '/_app/campaigns/$id': typeof AppCampaignsIdRoute
+  '/_app/campaigns/new': typeof AppCampaignsNewRoute
   '/_app/energy/contracts': typeof AppEnergyContractsRoute
   '/_app/energy/customers': typeof AppEnergyCustomersRoute
   '/_app/energy/loa': typeof AppEnergyLoaRoute
@@ -750,6 +777,7 @@ export interface FileRoutesById {
   '/api/public/hooks/contact-followup-reminders': typeof ApiPublicHooksContactFollowupRemindersRoute
   '/api/public/hooks/dispatch-followups': typeof ApiPublicHooksDispatchFollowupsRoute
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
+  '/api/public/hooks/launch-scheduled-campaigns': typeof ApiPublicHooksLaunchScheduledCampaignsRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
 }
@@ -812,6 +840,8 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/hooks/send-pending-welcomes'
     | '/academy/$courseId'
+    | '/campaigns/$id'
+    | '/campaigns/new'
     | '/energy/contracts'
     | '/energy/customers'
     | '/energy/loa'
@@ -834,6 +864,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
+    | '/api/public/hooks/launch-scheduled-campaigns'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
   fileRoutesByTo: FileRoutesByTo
@@ -894,6 +925,8 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/hooks/send-pending-welcomes'
     | '/academy/$courseId'
+    | '/campaigns/$id'
+    | '/campaigns/new'
     | '/energy/contracts'
     | '/energy/customers'
     | '/energy/loa'
@@ -916,6 +949,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
+    | '/api/public/hooks/launch-scheduled-campaigns'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
   id:
@@ -977,6 +1011,8 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/hooks/send-pending-welcomes'
     | '/_app/academy/$courseId'
+    | '/_app/campaigns/$id'
+    | '/_app/campaigns/new'
     | '/_app/energy/contracts'
     | '/_app/energy/customers'
     | '/_app/energy/loa'
@@ -999,6 +1035,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/contact-followup-reminders'
     | '/api/public/hooks/dispatch-followups'
     | '/api/public/hooks/dispatch-sequences'
+    | '/api/public/hooks/launch-scheduled-campaigns'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
   fileRoutesById: FileRoutesById
@@ -1035,6 +1072,7 @@ export interface RootRouteChildren {
   ApiPublicHooksContactFollowupRemindersRoute: typeof ApiPublicHooksContactFollowupRemindersRoute
   ApiPublicHooksDispatchFollowupsRoute: typeof ApiPublicHooksDispatchFollowupsRoute
   ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
+  ApiPublicHooksLaunchScheduledCampaignsRoute: typeof ApiPublicHooksLaunchScheduledCampaignsRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
   ApiPublicHooksRunWorkflowsRoute: typeof ApiPublicHooksRunWorkflowsRoute
 }
@@ -1545,6 +1583,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEnergyContractsRouteImport
       parentRoute: typeof AppEnergyRoute
     }
+    '/_app/campaigns/new': {
+      id: '/_app/campaigns/new'
+      path: '/new'
+      fullPath: '/campaigns/new'
+      preLoaderRoute: typeof AppCampaignsNewRouteImport
+      parentRoute: typeof AppCampaignsRoute
+    }
+    '/_app/campaigns/$id': {
+      id: '/_app/campaigns/$id'
+      path: '/$id'
+      fullPath: '/campaigns/$id'
+      preLoaderRoute: typeof AppCampaignsIdRouteImport
+      parentRoute: typeof AppCampaignsRoute
+    }
     '/_app/academy/$courseId': {
       id: '/_app/academy/$courseId'
       path: '/$courseId'
@@ -1564,6 +1616,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/purge-audit-log'
       fullPath: '/api/public/hooks/purge-audit-log'
       preLoaderRoute: typeof ApiPublicHooksPurgeAuditLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/launch-scheduled-campaigns': {
+      id: '/api/public/hooks/launch-scheduled-campaigns'
+      path: '/api/public/hooks/launch-scheduled-campaigns'
+      fullPath: '/api/public/hooks/launch-scheduled-campaigns'
+      preLoaderRoute: typeof ApiPublicHooksLaunchScheduledCampaignsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/dispatch-sequences': {
@@ -1621,6 +1680,20 @@ const AppAcademyRouteChildren: AppAcademyRouteChildren = {
 
 const AppAcademyRouteWithChildren = AppAcademyRoute._addFileChildren(
   AppAcademyRouteChildren,
+)
+
+interface AppCampaignsRouteChildren {
+  AppCampaignsIdRoute: typeof AppCampaignsIdRoute
+  AppCampaignsNewRoute: typeof AppCampaignsNewRoute
+}
+
+const AppCampaignsRouteChildren: AppCampaignsRouteChildren = {
+  AppCampaignsIdRoute: AppCampaignsIdRoute,
+  AppCampaignsNewRoute: AppCampaignsNewRoute,
+}
+
+const AppCampaignsRouteWithChildren = AppCampaignsRoute._addFileChildren(
+  AppCampaignsRouteChildren,
 )
 
 interface AppEnergyRouteChildren {
@@ -1708,7 +1781,7 @@ interface AppRouteChildren {
   AppBillingRoute: typeof AppBillingRoute
   AppBookRoute: typeof AppBookRoute
   AppCalendarRoute: typeof AppCalendarRoute
-  AppCampaignsRoute: typeof AppCampaignsRoute
+  AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
   AppCommandChatRoute: typeof AppCommandChatRoute
   AppContactSubmissionsRoute: typeof AppContactSubmissionsRoute
   AppConversationsRoute: typeof AppConversationsRoute
@@ -1745,7 +1818,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBillingRoute: AppBillingRoute,
   AppBookRoute: AppBookRoute,
   AppCalendarRoute: AppCalendarRoute,
-  AppCampaignsRoute: AppCampaignsRoute,
+  AppCampaignsRoute: AppCampaignsRouteWithChildren,
   AppCommandChatRoute: AppCommandChatRoute,
   AppContactSubmissionsRoute: AppContactSubmissionsRoute,
   AppConversationsRoute: AppConversationsRoute,
@@ -1809,6 +1882,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksContactFollowupRemindersRoute,
   ApiPublicHooksDispatchFollowupsRoute: ApiPublicHooksDispatchFollowupsRoute,
   ApiPublicHooksDispatchSequencesRoute: ApiPublicHooksDispatchSequencesRoute,
+  ApiPublicHooksLaunchScheduledCampaignsRoute:
+    ApiPublicHooksLaunchScheduledCampaignsRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,
   ApiPublicHooksRunWorkflowsRoute: ApiPublicHooksRunWorkflowsRoute,
 }

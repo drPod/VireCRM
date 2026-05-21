@@ -21,19 +21,8 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
-- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out** — **PAUSED 2026-05-19.** Steps 0-6 shipped on 2026-05-18 (`30f3a54`, `e0ada67`, `554580a`, `4635496`, `4b6f75e`, `1448353`, `6399b7b`, `286cd81`) but invalidated by 2026-05-19 discovery — old Lovable DB still live, Crystal's auth.users row preserved there (`7ba2ebfa-…`), session-1 provisioning created a DUPLICATE on new DB (`b5ae0c3e-…`), session-2 xlsx-import wrote 3850 rows with broken column mapping. **Migration must run FIRST** (`docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`). Resume Crystal onboarding at Step 5 of `docs/handoffs/2026-05-18-green-energiai-onboarding.md` AFTER migration lands — by then her UUID/password/data already on new DB, energy fields already populated from xlsx supplement pass.
-
-### Lovable → fixed-DB data migration
-
-- [ ] **Migrate live data from old Lovable Supabase project to current `coynbufhejaeuifpvmvw` project.** Full plan in `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Strategy = enrich, not replace: old DB is truth for users + lead UUIDs; xlsx is supplement for the energy-broker fields the old importer dropped. User dumped the old project to `og_database/` on 2026-05-19 (gitignored, never push — bcrypt password hashes + PII). Contents:
-  - `genesis_auth_data.sql` (47k) — 23 `auth.users` rows
-  - `genesis_database_schema.sql` (382k) — schema-only
-  - `genesis_database_full.sql` (3.4M) — schema + `COPY public.* FROM stdin` data sections
-  - `genesis_database_full_with_auth.sql` (3.4M) — everything (auth + public)
-  - **Caziah Cameron (`cameroncaziah@gmail.com`) last signed in on the OLD project at 2026-05-19 01:05** — the old project is still live for at least one user. Migration window is short; cut over before a stale-DB writes get lost.
-  - **Crystal Cameron (`crystal@greenenergiai.com`) already exists on the OLD project** with `auth.users.id = 7ba2ebfa-f30e-449a-866e-085c5940c1d4` confirmed 2026-04-23 16:37. The 2026-05-18 session-1 provisioning created a DUPLICATE on the new DB with `id = b5ae0c3e-1655-48d5-b211-a9fd55aaafea`. Decide before DM-ing her: either (a) delete the new-DB Crystal and port the old-DB row over (preserves UUID, keeps any historical references) or (b) keep the new-DB Crystal and write off the old account.
-  - Real-looking accounts in old DB: 4 `@greenenergiai.com` staff (crystal, erica, shelby, mleaverton), 2 founder addresses (`ethansereti`, `esereti22`), `cameroncaziah`, plus 6 other gmail/personal addresses (`alexanderjakari`, `caziahbankss`, `davioncarr60`, `info.solace05`, `jesaira.lifosjoe12`, `paparusse02`, `primeframem`). Plus 5 test/audit users to skip.
-  - Plan TBD: write a one-shot migration script that connects to BOTH projects, transforms old → new schema where shapes diverged (e.g. the energy_broker_fields migration `20260518200618_*` added columns the old DB didn't have), inserts via service-role on new project. Auth-user import via Supabase Admin API (`POST /auth/v1/admin/users` with `password_hash` to preserve bcrypt). Then freeze old project + redirect any lingering DNS.
+- [ ] **[green-energiai] Resume Crystal onboarding** — migration landed 2026-05-19, verified live 2026-05-22 (see Recent). Crystal's old UUID `7ba2ebfa-…` preserved + bcrypt password ported. Org structure (intentional): Crystal owns `188c4869-…` (slug `greenenergiai`, the greenenergiai tenant — 4793 leads from her own org's dump, no xlsx supplement); Caziah owns separate tenant `8b8c76ab-…` (slug `caziah-cameron`, 9198 leads w/ xlsx-enriched energy fields — his own broker book). Pick up at Step 5/8 of `docs/handoffs/2026-05-18-green-energiai-onboarding.md`: DM Crystal a sign-in link for `greenenergiai.virecrm.com`, walk her through energy-broker UI (Pipeline / Clients tabs). Caziah onboarding = separate track once he's ready.
+- [ ] **Freeze old Lovable Supabase project** — Step 6 of migration handoff. Sequence: (1) confirm Crystal + Caziah both signed in on new DB, (2) revoke service-role key on old project (rotates anon too — any client still pointing at old DB goes 401), (3) verify Lovable preview at `genesisx.space` is down (DNS already moved per 2026-05-18 work — re-verify), (4) optional: Supabase pause (one-way after 30d) vs delete.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -439,6 +428,65 @@ Unit-1 of the 13-worker parallel god-component refactor. Container route `/admin
 - `bun run test` — 143/143 pass (was 133/133; +10 from new `submission-helpers.test.ts`).
 - `bun run build` — 7.27s, no errors. `dist/server/assets/_app.admin-CKckmNfH.js` chunk emitted at 171.86 kB. `grep` against that chunk confirms all 7 extracted module names + the user-facing strings ("Contact Submissions", "Stripe Invoice", "Payment history", "SubmissionTable") are present in the bundle — proves the refactor compiled into the admin route bundle.
 - **Preview-server screenshot skipped:** `bun run preview` errors with `Cannot find module '.../dist/server/server.js'` — TanStack Start build emits a Cloudflare Worker bundle, not a Node server, so `vite preview` can't boot it. Same issue noted in the 2026-05-19 unit-3 entry below. Bundle-emission verification used as the e2e signal per the worker e2e-recipe fallback. Admin route is auth-gated anyway — a screenshot at `/admin` would have captured a login redirect, not the panel.
+### 2026-05-22 — Campaign Builder shipped (wraps outreach_sequences)
+**Tags:** [campaigns] [outreach] [supabase] [tanstack-start]
+
+Built user-facing campaign builder on top of existing `outreach_sequences` infra. 1:1 link via new `outreach_sequences.campaign_id` FK (`ON DELETE CASCADE`). Zero new send code — existing `dispatch-sequences` cron + `dispatchOutreachEmail` reused untouched.
+
+#### Shipped
+
+- **Migration** `supabase/migrations/20260522000000_campaign_builder.sql`: 6 new columns on `campaigns` (`audience_filter jsonb`, `from_name`, `reply_to`, `scheduled_at`, `launched_at`, `completed_at`), status CHECK extended with `scheduled`, `outreach_sequences.campaign_id` FK + unique partial index, 3 SECURITY DEFINER trigger functions auto-bumping `leads_count` / `sent_count` / `replies_count`, pg_cron entry for `campaigns-launch-scheduled` (`*/5 * * * *`).
+- **Server fns** `src/functions/campaigns.functions.ts`: `createDraft`, `get`, `updateDetails`, `previewAudience`, `launch` (`mode: 'now' | 'scheduled'`), `pause`/`resume`/`complete`/`delete`. All zod-validated + `assertOrgMember`-gated.
+- **Audience helpers** `src/lib/campaigns/audience-filter.ts`: zod schema + `resolveAudienceFilter()` (statuses, sources, tags, assignees, search, has_email, exclude_closed).
+- **Cron handler** `src/routes/api/public/hooks/launch-scheduled-campaigns.ts`: mirrors `dispatch-sequences.ts` pattern (x-cron-secret, service-role client, BATCH_SIZE=25). Per-campaign: resolve filter → skip suppressed → upsert enrollments → flip campaign+sequence to active.
+- **Builder UI** 5-tab page `src/routes/_app.campaigns.$id.tsx` (Details / Audience / Sequence / Settings / Review) + `_app.campaigns.new.tsx` entry. Components: `AudienceFilterBuilder`, `CampaignStepEditor` (plaintext + `{{token}}` insertion popover), `CampaignStepList`, `CampaignReviewPanel` (Send-now / Schedule with Calendar + time input).
+- **List page rewired** `_app.campaigns.tsx`: cards now `<Link>` to `/campaigns/$id`, "New Campaign" redirects to `/campaigns/new`, `?new=1` legacy query redirects, added `scheduled` status badge variant, removed inline create dialog.
+
+#### Suppressed gotcha
+
+`suppressed_emails` is global-scoped, NOT org-scoped (columns: `id, created_at, email, metadata, reason`). All suppression checks dropped the `.eq("organization_id", ...)` filter. Three callsites fixed.
+
+#### Verification status
+
+- `bun run typecheck` clean.
+- `bun run lint` clean for all new files (pre-existing ~4900 prettier errors in unrelated files are pre-existing tech debt — not introduced).
+- `bun run dev` boots clean, vite ready in <1s, no compile errors.
+- End-to-end smoke (create draft → 2 steps → Send now → watch dispatch-sequences cron → verify `email_send_log`) — **pending**, requires live browser session against running Worker. Open follow-up below.
+
+#### Open follow-up
+
+- Smoke test end-to-end send flow in browser (`darsh.pod@gmail.com` as test recipient). Verify enrollment row appears in `outreach_sequence_enrollments`, dispatch-sequences picks it up, `email_send_log.status='sent'`, Resend delivery lands in inbox.
+- Counter triggers untested live — verify by sending one campaign + confirming `campaigns.{leads_count, sent_count}` increment without manual writes.
+
+### 2026-05-22 — Lovable→fixed-DB migration verified live; docs synced
+**Tags:** [lovable-migration] [supabase] [docs]
+
+Mid-flight check that migration was already done. ISSUES.md `## Open` still listed it as pending — discovered via cross-read against `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`, which has Step 2 + Step 3+4 marked `[x]` (executed 2026-05-19 session 5). No one appended the live-port to `## Recent` at the time, so docs drifted vs reality. This entry closes the drift.
+
+#### Verification (DB queries against `coynbufhejaeuifpvmvw`)
+
+- `auth.users` = **18** (14 ported per handoff + 2 pre-existing dev/test + 2 added since). Crystal's old UUID `7ba2ebfa-f30e-449a-866e-085c5940c1d4` confirmed live on `crystal@greenenergiai.com`.
+- `organizations` (whitelisted) = **2** — both `8b8c76ab-…` + `188c4869-…` present.
+- `leads` on Caziah's org `8b8c76ab-…` = **9198** (5389 dump + 3809 xlsx INSERTs). Matches handoff line 149.
+- `leads` on Crystal's own-org `188c4869-…` = **4793** (dump-only). Matches.
+- Caziah's leads with `agent_mils` populated = **4018**. Same count for `esi_id`. xlsx supplement landed.
+- Spot-check 5 random Caziah leads: `agent_mils` in 0.5-1.4 range (NOT the 505 bug from old `ImportLeadsDialog`), `esi_id` 17-22 digit ESI format, `current_supplier` + contract dates + composite `service_address` all populated, `status='won'`, `source='xlsx_supplement'`. Quality good.
+
+#### Found (slug-flip vs handoff plan)
+
+- Handoff Step 2 line 109 said Caziah's `8b8c76ab-…` would get the `greenenergiai` slug override. Reality on new DB: Caziah = `caziah-cameron`, Crystal's own-org `188c4869-…` = `greenenergiai`. Slugs flipped vs the handoff text. **By design.** Crystal works FOR greenenergiai (the company) — her org `188c4869` IS the greenenergiai tenant. Caziah = separate person, separate tenant, his own data. Old Lovable DB conflated them under "Caziah Cameron's Organization" w/ `is_reseller=t`; new model splits cleanly: Crystal = greenenergiai owner, Caziah = own tenant. Handoff text out-of-date — that text was written before the org-split decision landed.
+- Crystal's own-org ugly slug `crystal-cameron-7ba2ebfa` (handoff line 155 open follow-up) is gone — superseded by the `greenenergiai` rename. Open follow-up resolved.
+
+#### Shipped (docs sync)
+
+- `ISSUES.md ## Open` — removed `### Lovable → fixed-DB data migration` subsection (data port done). Updated `[green-energiai] Onboard Crystal Cameron` item: removed PAUSED status, retargeted at Step 5/8 of green-energiai onboarding handoff, noted slug-flip. Added two new items under "User action required": freeze old Lovable project (Step 6), Crystal own-org xlsx-enrichment decision.
+- `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` — appended today's verification log under Step 3+4, flagged slug-flip in post-port follow-ups, marked Caziah-spot-check + Crystal own-org-slug follow-ups resolved.
+- `CLAUDE.md` + `AGENTS.md` `### og_database/` section — past-tensed migration line, repointed at handoff doc + this `## Recent` entry. Files still gitignored + read-not-cat rule still applies (dumps stay around until Step 6 freezes old project, then can be archived).
+
+#### Open follow-ups (not done in this session)
+
+- Step 5 (DM Crystal sign-in link for `greenenergiai.virecrm.com`) — moved into `## Open [green-energiai]` item.
+- Step 6 (freeze old Lovable project) — moved into `## Open` "User action required".
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
