@@ -159,7 +159,7 @@ function AppLayout() {
       if (cancelled) return;
       if (!data?.tour_completed_at) {
         // Small delay so sidebar links are mounted before we measure them.
-        setTimeout(() => setTourOpen(true), 600);
+        setTimeout(() => setTourOpen(true), 100);
       }
     })();
     return () => {
