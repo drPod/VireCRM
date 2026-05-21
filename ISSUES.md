@@ -147,6 +147,298 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 #### Shipped
 - `src/functions/audit-retention.functions.ts:87,118` — `setResponseStatus(403)` before owner-role throws.
 - `src/functions/connector-actions.functions.ts:58` — `setResponseStatus(403)` before org-membership throw in helper.
+### 2026-05-22 — Refactor ProductTour god component
+**Tags:** [refactor] [god-components] [onboarding]
+
+Part of the 13-unit god-component refactor pass. Unit 12 owned `src/components/onboarding/ProductTour.tsx` (584 LOC). Split into a slim container plus extracted hooks, presentational components, types, and data.
+
+#### Shipped
+
+- `src/components/onboarding/ProductTour.tsx` — slim container (127 LOC). Composes the extracted pieces. Preserves the public API: default named export `ProductTour`, re-exports `DEFAULT_TOUR_STEPS`, `buildTourSteps`, `TourStep`, `IndustryKey`. Container owns the slim concerns the seams couldn't absorb cleanly: `index` state, mobile-sidebar event dispatch, completion persistence (`profiles.tour_completed_at` write), portal root, focus-on-step-change.
+- `src/components/onboarding/product-tour.types.ts` — `TourStep`, `Rect`, `Placement` + layout constants (`RING_PADDING`, `TOOLTIP_GAP`, `TOOLTIP_WIDTH`, `CARET_SIZE`).
+- `src/components/onboarding/product-tour-steps.ts` — `DEFAULT_TOUR_STEPS` array + `buildTourSteps(industryTemplate)` industry-aware builder. Verbatim move, no copy edits.
+- `src/components/onboarding/TourHighlightRing.tsx` — presentational `<div>` wrapper for the ring overlay (style passed in from the hook).
+- `src/components/onboarding/TourTooltip.tsx` — `forwardRef` dialog card with sparkle icon / title / body / close button / optional caret. Embeds `TourNav`. Hosts the `aria-live` live region.
+- `src/components/onboarding/TourNav.tsx` — progress dots + Back/Skip/Next/Got it! buttons. Pure presentational, no state.
+- `src/hooks/useTourPositioning.ts` — heaviest extraction. Owns target resolution (MutationObserver + 3 s fallback timeout), rect tracking via `useLayoutEffect` scroll/resize observer, viewport tracking, and the auto-flip tooltip-position math (`right → left → bottom → top`, then `clamp`). Positioning algorithm preserved byte-for-byte. Returns only the four CSS objects the container actually consumes (`effectiveIsCenter`, `tooltipStyle`, `caretStyle`, `ringStyle`).
+- `src/hooks/useTourKeyboardNav.ts` — ArrowLeft / ArrowRight / Space / Escape handler binding.
+### 2026-05-22 — Refactor WhiteLabelSettings god component
+**Tags:** [refactor] [god-components] [cf-saas]
+
+Part of the parallel god-component refactor sweep (unit 11 of 13). Split `src/components/crm/WhiteLabelSettings.tsx` (643 LOC) into a container + sibling components and lib helpers. Public default export + props frozen. Theme apply / hex validation / save semantics preserved byte-for-byte. `CustomDomainsPanel` untouched (owned by sibling worker).
+
+#### Shipped
+- `src/components/crm/WhiteLabelSettings.tsx` — container shrunk to 280 LOC, still owns form state + Supabase save + role gate + Enterprise upsell.
+- `src/components/crm/BrandColorRow.tsx` (new, 90 LOC) — single picker row with inline hex validation. Lifted out of the container.
+- `src/components/crm/BrandColorGrid.tsx` (new, 122 LOC) — palette card wrapping the 5 `BrandColorRow`s + Import/Export buttons.
+- `src/components/crm/LogoUploadForm.tsx` (new, 98 LOC) — `BrandNameField` + `LogoUploadForm` (Logo URL + Favicon URL with previews).
+- `src/components/crm/FontFamilyPicker.tsx` (new, 42 LOC) — font select + live preview.
+- `src/components/crm/EmailBrandingFields.tsx` (new, 61 LOC) — `EmailSignatureField` + `BusinessEmailField`.
+- `src/lib/white-label-hex.ts` (new, 9 LOC) — `isValidHexColor` (was previously a private const inside the god component).
+- `src/lib/white-label-theme-io.ts` (new, 146 LOC) — `buildThemePayload`, `parseThemeFile`, `downloadThemeFile`, `slugifyBrandName`. Hex-corruption guard preserved.
+
+#### Verification
+- `bun run typecheck` — only pre-existing unrelated error (`src/routes/hooks/send-pending-welcomes.ts`). Refactored files clean.
+- `bun run test` — 133/133 pass.
+- `bun run build` — green, no new warnings.
+- `bun run dev` on port 4184 + `agent-browser` smoke test of `/settings` → auth-gated redirect to `/login` (login page renders cleanly, bundle good). Screenshot `screenshots/unit-11.png`.
+### 2026-05-22 — Refactor AdvisorAuditLog god component
+**Tags:** [refactor] [god-components] [advisor]
+
+Split `src/components/crm/AdvisorAuditLog.tsx` (656 LOC) into a thin container plus four single-responsibility units. Public API (default export + zero props) preserved — `_app.dashboard.tsx` import unchanged.
+
+#### Shipped
+
+- `src/components/crm/AdvisorAuditLog.tsx` — container shrunk to 262 LOC. Composes the row + filters + settings panel; owns toolbar (phase tabs, filter/settings/refresh buttons), filter state, `userOptions`/`filteredEntries`/`stats` memos, and `handleReplay`.
+- `src/components/crm/AdvisorAuditEntryRow.tsx` (171 LOC) — single audit-log row with expandable body (CRM updates, replay button, JSON plan details). Pure presentational, receives `entry`, open/replaying state, and callbacks.
+- `src/components/crm/AdvisorAuditFiltersPanel.tsx` (145 LOC) — search + user/status/date filters + clear-all UI. Stateless, all values driven via props.
+- `src/components/crm/AdvisorAuditSettingsPanel.tsx` (98 LOC) — retention input, total/oldest stats, purge/save buttons. Owner-gating preserved.
+- `src/hooks/useAdvisorAuditLog.ts` (74 LOC) — entries + loading + phase + retention + memberNames + unified `refresh` (parallel list + getRetention, matches original). Phase change triggers refresh via existing effect.
+- `src/hooks/useRetentionSettings.ts` (90 LOC) — retentionInput state + save/purge handlers + toasts. Resets input on every refresh via `[retention]` effect to preserve original byte-for-byte clobber behavior.
+- `src/lib/advisor-audit-utils.ts` (31 LOC) — extracted `timeAgo()` + `entryStatusMatches()`. `timeAgo` is intentionally NOT folded into `formatRelativeTime` in `date-utils.ts`: seconds granularity + locale-string fallback at 24h vs the general utility's 30-day fallback.
+- `src/components/crm/advisor-audit.types.ts` — shared `StatusFilter` + `PhaseFilter` string unions.
+
+#### Verification
+
+- `bun run typecheck` — 0 new errors. Pre-existing unrelated error in `src/routes/hooks/send-pending-welcomes.ts:26` (confirmed identical before + after via stash).
+- `bun run build` — TBD before PR push.
+- Browser walk — TBD via worker recipe (login redirect = OK signal, route is auth-gated).
+### 2026-05-22 — Refactor ProviderCard god component
+**Tags:** [refactor] [god-components]
+
+Part of the 13-unit god-component refactor sweep. Unit-9 owns `src/components/crm/ProviderCard.tsx` (666 LOC). Container kept as orchestrator; public API (default export + prop shape) unchanged so `IntegrationsSettings` import stays intact.
+
+#### Shipped
+
+- `src/components/crm/ProviderCard.tsx` — slimmed 666 → 328 LOC. Removed inline credential editor JSX, setup-steps renderer, settings-fields renderer, prerequisites block, header, disconnect dialog, test/edit/disconnect action row. Kept orchestrator state + handlers (save, remove, save-settings, focus management, edit) + local `formatRelative` (TODO already flagged for unit-7 dedup).
+- `src/components/crm/ProviderCardHeader.tsx` (40 LOC) — extracted name + connected-badge + VerifiedExplainer + Get-API-key link.
+- `src/components/crm/ProviderSetupSteps.tsx` (39 LOC) — extracted "How to set up …" numbered-list block.
+- `src/components/crm/ProviderCredentialForm.tsx` (125 LOC) — extracted single-field / two-field credential inputs + Connect/Save/Cancel buttons + storage notice. Accepts refs for focus management from the parent.
+- `src/components/crm/ProviderSettingsFields.tsx` (95 LOC) — extracted non-secret settings panel with per-field touched validation + Save button.
+- `src/components/crm/ProviderPrerequisites.tsx` (71 LOC) — extracted prerequisite derivation + PrerequisitesPanel wiring, with `PrerequisiteActionId` type for the discriminated callback union.
+- `src/components/crm/ProviderConnectedActions.tsx` (52 LOC) — extracted Test / Edit / Disconnect button row.
+- `src/components/crm/ProviderDisconnectDialog.tsx` (54 LOC) — extracted disconnect confirmation `AlertDialog`.
+- `src/components/crm/provider-card.types.ts` (20 LOC) — shared `SettingsDraft` / `TouchedSettings` types + `seedSettingsDraft` helper used by hook + container.
+- `src/hooks/useProviderValidation.ts` (72 LOC) — extracted settings draft + touched-blur state + reseed effect + `validateDraft` wiring.
+- `src/hooks/useProviderTestFlow.ts` (79 LOC) — extracted `useActionLock` + `testResult` state + `lastVerifiedAt` hydration effect + `handleTest` flow (toast wiring preserved byte-for-byte).
+
+No business-logic rewrites. Test flow + validation semantics preserved. No new deps. Reseller code left alone.
+
+#### Verification
+
+- `bun run typecheck` — clean (only pre-existing unrelated `send-pending-welcomes` route-id error).
+- `bun run test` — 133 passed (4 files).
+- `bun run build` — clean; settings bundle contains all 9 extracted components (`grep -c` returned 19 references).
+- E2E preview server fell back to bundle check (Worker bundle 500s under `vite preview` without CF bindings, per recipe).
+### 2026-05-22 — Refactor DomainHealthPanel god component
+**Tags:** [refactor] [god-components] [cf-saas]
+
+Part of the 13-unit god-component refactor sweep. Unit-8 owns `src/components/crm/DomainHealthPanel.tsx` (was 734 LOC; CF for SaaS health-check modal launched from `CustomDomainsPanel`). Public API frozen — default export + `{ organizationId }` prop unchanged so the sibling `CustomDomainsPanel` refactor (separate worktree) doesn't conflict.
+
+#### Shipped
+
+- `src/components/crm/DomainHealthPanel.tsx` — trimmed 734 → 126 LOC. Container now just renders header + summary banner + the row list + redirect-guide dialog. Pulls state from `useDomainHealthCheck` hook; per-row work delegated to `DomainHealthRow`.
+- `src/hooks/useDomainHealthCheck.ts` (new, 57 LOC) — owns `results` / `loading` / `lastRunAt` / `refresh`, the 1-min tick interval for relative-time freshness, and the auto-run-on-mount effect.
+- `src/hooks/useCfHostnameStatus.ts` (new, 84 LOC) — one-shot CF custom-hostname status fetch + manual refresh per row. Preserves the original "no polling loop" semantic.
+- `src/components/crm/DomainHealthRow.tsx` (new, 117 LOC) — single hostname's card (status header + 4-check matrix + CF status + issue list + quick-action links).
+- `src/components/crm/DomainHealthIssueCard.tsx` (new, 121 LOC) — single issue with severity styling + per-check remediation action strip.
+- `src/components/crm/DomainHealthStatusBadge.tsx` (new, 92 LOC) — `StatusBadge`, `CheckPill`, `CfStatusBadge` for shared render.
+- `src/components/crm/DomainHealthRedirectGuide.tsx` (new, 85 LOC) — expected-DNS dialog.
+- `src/components/crm/DomainHealthRecordRow.tsx` (new, 62 LOC) — `RecordRow` + `CopyField` reused by guide + CF status.
+- `src/components/crm/CfHostnameStatus.tsx` (new, 76 LOC) — per-row CF status section, wired to `useCfHostnameStatus`.
+- `src/lib/domain-health-utils.ts` (new, 50 LOC) — `copyValueToClipboard`, `openExternal`, `classifyCfStatus`.
+- `src/lib/domain-health.types.ts` (new, 22 LOC) — shared `CfStatusKind` discriminator.
+- Replaced the inline `formatRelative` helper with the shared `formatRelativeTime` from `src/lib/date-utils.ts` per repo convention (do-not-duplicate). Bumped the heartbeat tick 30s → 60s since `formatRelativeTime` only changes at minute boundaries — finer ticks were wasted renders.
+
+#### Verification
+
+- `bun run typecheck` — only the pre-existing `src/routes/hooks/send-pending-welcomes.ts:26` route-tree typegen error remains (verified by running typecheck on a clean `git stash` of my changes; same error before and after).
+- `bun run test` — 133/133 pass.
+- `bun run build` — 6.36s, all assets emit. `_app.settings-*.js` bundle includes the 14 expected exports from the new modules.
+- E2E recipe partial: `bun run preview` fails to boot in this worktree (pre-existing TanStack Start + CF vite-plugin "Cannot find module 'dist/server/server.js'" — env quirk, unrelated). Fell back to `bun run dev --port 4181`; `agent-browser --session refactor-unit-8` navigated `/settings` cleanly (auth-gated loading skeleton, expected per recipe "Auth-gated; login redirect = OK signal"). Screenshot at `screenshots/unit-8.png`.
+### 2026-05-22 — Refactor AutoFindLeadsDialog god component
+**Tags:** [refactor] [god-components]
+
+Part of the 13-worker god-component split. Unit-7 owns `AutoFindLeadsDialog.tsx` (was 793 LOC). Public API preserved — same default export + props (`onLeadsImported`, `open`, `onOpenChange`, `hideTrigger`, `initialDescription`, `initialIndustry`); `LeadsPageContent.tsx` import untouched. Business logic preserved byte-for-byte: server-error sentinel parsing (`[CODE] message::{json}`), quota pre-flight gating (`outOfCredits`, `wouldExceedCap`), lead-import field truncation, sync-log recording.
+
+#### Shipped
+
+- `src/components/crm/AutoFindLeadsDialog.tsx` — slim container (793 → 176 LOC). Orchestrates the 5-way flow-state cascade (integration-missing / cap-reached / imported / pre-search / results), renders header + quota banner + BYO-key banner. All sub-views delegated.
+- `src/lib/auto-find-leads-helpers.ts` (new, 63 LOC) — `parseServerError` (extracts sentinel `[CODE] message::{json}`), `formatResetDate`, `nextMonthResetIso`, `AutoFindErrorCode` type, `INDUSTRY_PRESETS` + `PERSONA_PRESETS` const arrays.
+- `src/hooks/useAutoFindLeads.ts` (new, 278 LOC) — state container: form state (provider, domain, description, industry, persona, count), results state (suggestions, selected, loading, importing, imported), error/quota state (error, errorCode, quotaResetAt, usage). Owns `handleFind`, `handleImport`, `toggleSelect`, `toggleAll`, `reset`, `refreshUsage`. Exports `AutoFindProvider` + `UseAutoFindLeadsReturn` for sub-view consumption.
+- `src/components/crm/AutoFindLeadsSearchForm.tsx` (new, 251 LOC) — pre-search form: provider dropdown, optional company domain, optional business description, industry+persona pickers, count selector, inline error + pre-flight cap block + Find button. Consumes `flow` object directly to keep prop surface tight.
+- `src/components/crm/AutoFindLeadsImportFlow.tsx` (new, 112 LOC) — post-search list view: select-all checkbox, per-suggestion checkbox row (name/company/role/score/reason), auto-outreach toggle, Start Over + Import action bar.
+- `src/components/crm/AutoFindLeadsPanels.tsx` (new, 155 LOC) — three terminal-state panels: `IntegrationMissingPanel` (owner CTA to Settings → Integrations), `CapReachedPanel` (upgrade + BYO-key CTAs, retry-window notice), `ImportSuccessPanel` (Find More / Done).
+
+#### Verification
+
+- `bun run typecheck` — clean (only pre-existing baseline error `src/routes/hooks/send-pending-welcomes.ts(26,38)` unrelated to this work).
+- `bun run test` — 133/133 pass.
+- `bun run build` — 6.64s, no errors, `_app.leads-DvPyWqPi.js` bundle contains "Auto-Find Leads" string.
+- `bun run preview --port 4180` — incompatible with TanStack Start CF Workers preset (`dist/server/server.js` not emitted); fell back to dev-server + agent-browser smoke. `/leads` returned 200 + auth-loading skeleton screenshot. Login-redirect signal acceptable per recipe.
+### 2026-05-22 — Refactor CreditTopUpPanel god component
+**Tags:** [refactor] [god-components] [stripe]
+
+Unit-6 of the 13-way god-component refactor. `src/components/crm/CreditTopUpPanel.tsx` was 800 LOC mixing credit balance load + 4 pack cards + auto-recharge (with two AlertDialog confirms) + low-balance settings + notify endpoint + Stripe checkout. Public API frozen — default export name preserved, `CREDIT_PACKS` re-exported for `CreditLedgerTimeline`.
+
+#### Shipped
+- `src/lib/credit-packs.ts` — new. Owns `CREDIT_PACKS` catalog, `CreditPack` type, `DEFAULT_AUTO_PACK`, `formatPackPrice`, `perCredit`, `packLabel`. Whole-dollar `formatPackPrice` kept distinct from `lib/money.ts` `formatMoney` (which produces `$15.00` not `$15`).
+- `src/components/crm/credit-top-up.types.ts` — `PackBalance`, `AutoRechargeSettings`, `LowBalanceSettings`.
+- `src/hooks/useCreditBalance.ts` — loads packs + settings in one round-trip; exposes balance, auto/lowBalance state + setters, saved-card hint, `reload`.
+- `src/components/crm/CreditPackCard.tsx` — single pack tile (40 LOC).
+- `src/components/crm/AutoRechargePanel.tsx` — switch + inline settings + persist mutation + toast cascade. Delegates both confirms to dialog file (231 LOC).
+- `src/components/crm/AutoRechargeConfirmDialogs.tsx` — `EnableAutoRechargeDialog` + `DisableAutoRechargeDialog`. Pulled out to keep AutoRechargePanel <250.
+- `src/components/crm/LowBalancePanel.tsx` — settings UI + `Run check now` test button. Exports `callLowBalanceNotifyEndpoint` so the container can re-use it for the auto-evaluate effect.
+- `src/components/crm/CreditTopUpPanel.tsx` — 800 → 149 LOC slim container. Wires hook + child panels, owns the once-per-mount auto-evaluate effect (preserved verbatim, no business-logic rewrite), Stripe checkout dispatch unchanged.
+
+#### Verification
+- `bun run typecheck` — no new errors (one pre-existing baseline error in `src/routes/hooks/send-pending-welcomes.ts` unchanged on `main`).
+- `bun run build` — succeeded, `_app.billing` chunk emitted with "Buy more credits", "Auto-recharge", "Low-balance email alert" strings all present (bundle grep).
+- `bun run test` — 133/133 unit tests pass.
+- `vite preview` route smoke skipped: TanStack Start preview-server errors with `dist/server/server.js` ESM module-not-found unrelated to refactor (same on baseline). Recipe permits bundle-check fallback.
+### 2026-05-22 — Refactor CustomDomainsPanel god component
+**Tags:** [refactor] [god-components] [cf-saas]
+
+Split `src/components/crm/CustomDomainsPanel.tsx` (922 LOC, unit-5 of a 13-way parallel split) into per-seam units. Public API frozen: both `CustomDomainsPanel` and `CustomDomainsSection` re-exported from the original path. Business logic preserved byte-for-byte — retry timings (`RETRY_DELAYS_MS`), every `logEvent` call site, the auto-verify state machine, and the audit-tick wiring all intact.
+
+#### Shipped
+
+- `src/components/crm/custom-domains.types.ts` (NEW, 81 LOC) — shared types (`DomainRow`, `OwnerRow`, `AutoState`, `DomainEventType`, `DomainEventStatus`) + constants (`HOSTNAME_RE`, `RETRY_DELAYS_MS`) + the `logEvent` audit RPC wrapper.
+- `src/hooks/useAutoVerifyDomain.ts` (NEW, 261 LOC) — DNS verification state machine + timer lifecycle + the per-row retry schedule. Exposes `{ autoState, startAutoVerify, runAttempt, cancelRow }` to the container. Memoizes `runAttempt`/`startAutoVerify`/`clearTimer`/`updateAuto` via `useCallback`. Filter-effect for orphaned rows now bails when nothing changed (small efficiency win vs original unconditional `setAutoState`).
+- `src/components/crm/DomainAddForm.tsx` (NEW, 121 LOC) — input + Add button + the `handleAdd` flow including the post-add Cloudflare-for-SaaS provision call (`provisionCustomHostnameFn` via `useAuthedServerFn`). Best-effort 503-on-not-configured semantics preserved.
+- `src/components/crm/DomainListRow.tsx` (NEW, 202 LOC) — single row UI: badges, action buttons, two-step DNS instructions with verification-token copy, embedded `AutoStatusBlock` renderer for the auto-verify status block.
+- `src/components/crm/CustomDomainsPanel.tsx` (354 LOC, from 922) — container only: feature-flag gate, role-based owner allow-list, refresh of `org_custom_domains` + owner profiles, `handleSetPrimary`/`handleRemove`/`handleVerifyNow` (kept here because they read `busyId`, `organizationId`, `refresh`, `bumpAudit` directly). Still above the <300 soft target by 54 LOC because the byte-for-byte audit-log call constraint means each error branch keeps its own full `logEvent({...})` payload.
+- `src/lib/dns-check.ts` — added `lookupTxtToken(hostname, token)` next to the existing `lookupDns` so the auto-verify hook reuses the shared DNS-over-HTTPS module. Original `lookupTxt` semantics preserved (no multi-chunk TXT join — would have been a behavior change).
+
+#### Verification
+
+- `bun run typecheck` — clean.
+- `bun run test` — 133/133 pass (no test changes — no tests existed for ProductTour and the contract is internal-only).
+- `bun run build` — 7.37 s, no errors. `dist/server/assets/worker-entry-*.js` emitted (764 KB) confirming the Worker bundle still composes with the extracted modules.
+- Screenshot skipped — auth-gated overlay, never visible pre-login. Bundle emission stands in as verification per coordinator instruction.
+
+#### Notes
+
+- `useTourPositioning.ts` at 276 LOC is slightly over the <250 LOC extracted-file target. The auto-flip + clamp + caret-per-placement math is dense and intentionally not refactored (hard constraint: preserve positioning semantics byte-for-byte). Splitting further would manufacture seams without payoff.
+- `TourHighlightRing` is a thin 14-LOC wrapper. Kept because it appears as a named seam in the extraction guidance and gives future tests/animation tweaks a place to land.
+- `bun run test` — 133/133 pass.
+- `bun run build` — 7.66s, no errors. `dist/server/assets/_app.settings-brVJXcoF.js` contains all three new component identifiers (`DomainAddForm`, `DomainListRow`, `useAutoVerifyDomain`), confirming the settings route bundles the split correctly.
+- `bun run lint` — pre-existing baseline (4810 errors repo-wide); none introduced by this work. `bunx prettier --write` applied to the six touched files.
+- agent-browser e2e step blocked by an unrelated `vite preview` server-entry resolution issue in TanStack Start (`dist/server/server.js` not generated). Per recipe fallback: bundle check confirms the split modules ship.
+
+#### Notes for follow-up
+
+- Pre-existing bug not in scope: `CustomDomainsPanel` bumps `auditTick` after every `logEvent` but never passes it down to `CustomDomainAuditLog` (`refreshKey` prop). The audit log doesn't refresh on action. Left as-is — outside the refactor mandate.
+### 2026-05-22 — Refactor ConnectorIntegrations god component
+**Tags:** [refactor] [god-components]
+
+Part of the parallel god-component refactor effort (13 workers, one PR per file). Unit-4 owns `src/components/crm/ConnectorIntegrations.tsx` (986 LOC). Splits the file by responsibility without changing the public API — `IntegrationsSettings.tsx` still imports `ConnectorIntegrations` unchanged. No business-logic rewrites; poller + retry semantics preserved byte-for-byte.
+
+#### Shipped
+
+- `src/components/crm/ConnectorIntegrations.tsx` — slimmed container, now 259 LOC. Owns auth wiring, the four orchestration handlers (`handleEnable`, `handleDisable`, `handleTest`, `handleSaveConfig`), the header explainer panel, and the grouped-by-category layout. Imports the new hook + presentational pieces.
+- `src/hooks/useConnectorStatus.ts` — new hook. Owns `statuses` state, the initial-load `refresh`, the toast-dedup `toastedConnectedRef`, and the 4s/12s background poller with 5-minute cap + visibility-pause. Returns `{ statuses, setStatuses, loading, refresh }`. Polling cadence + retry + Google connectedEmail re-poll logic preserved verbatim.
+- `src/components/crm/ConnectorCard.tsx` — extracted per-card component (formerly `ConnectorRow`). Renamed because `ProviderCard.tsx` is reserved for the BYO-key card (sibling worker territory). Holds per-card UI state (busy, editing, testResult etc.) and composes the new sub-components below.
+- `src/components/crm/ConnectorCategorySection.tsx` — pure presentational; renders one category header + grid of cards.
+- `src/components/crm/AwaitingAuthHelper.tsx` — moved verbatim from the bottom of `ConnectorIntegrations.tsx`.
+- `src/components/crm/ConnectorStatusBadge.tsx` — flattens the 4-level nested-ternary status badge into a single flat early-return cascade.
+- `src/components/crm/ConnectorConfigEditor.tsx` — controlled inline-config editor with on-blur validation. Card hoists the draft state so prerequisites stay reactive while typing.
+- `src/components/crm/ConnectorPrerequisitesBlock.tsx` — wraps the `PrerequisitesPanel` render + action-router switch.
+- `src/components/crm/ConnectorDisconnectDialog.tsx` — the disconnect confirmation `AlertDialog`.
+- `src/components/crm/ConnectorCardActions.tsx` — the docs-link + Test/Edit/Disconnect/Connect action row.
+- `src/components/crm/HubspotSyncButton.tsx` — extracted the HubSpot-only sync button + its inline `onClick` handler (was 27 LOC of nested async logic).
+- `src/lib/connectors/ai-prompt.ts` — new helper `buildConnectorConnectPrompt`. Single source of truth for the "ask your AI assistant to connect this" prompt string; was previously duplicated between `handleEnable` (auto-copy) and `AwaitingAuthHelper` (rendered + copy button).
+
+#### Verification
+
+- `bun run typecheck` — clean for refactored files (one pre-existing unrelated route-registry error in `src/routes/hooks/send-pending-welcomes.ts:26`; confirmed present on `HEAD` before changes).
+- `bun run test` — 133/133 pass.
+- `bun run build` — 6.54s, no errors.
+- Smoke via `wrangler dev --port 4177 --local` + `agent-browser`: `/settings` route resolves with title "VireCRM — Settings"; auth-gated skeleton renders correctly. Screenshot saved to `screenshots/unit-4.png`.
+
+#### Sizes
+
+- Container `ConnectorIntegrations.tsx`: 986 → 259 LOC (target <300).
+- All extracted pieces <250 LOC (largest = `ConnectorCard.tsx` at 232).
+### 2026-05-22 — Refactor LeadsPageContent god component
+**Tags:** [refactor] [god-components]
+
+Split `src/components/crm/LeadsPageContent.tsx` (1031 LOC, ~15 useStates, 5 useEffects, master-detail + bulk controls + 6 modal dialogs) into focused siblings + hooks under the existing flat-feature-folder convention. Public API frozen — route `_app.leads.tsx` untouched, props shape (`statusFilters`, `search`) preserved byte-for-byte. No business logic rewrites.
+
+#### Shipped
+
+- `src/components/crm/LeadsPageContent.tsx` — container slimmed from 1031 LOC to 249 LOC. Owns only: route-search → dialog-open derivation, modal dialog wiring (Add/Import/AutoFind/Apollo/Outreach/Template + drawer), and JSX layout. Delegates data + bulk state to hooks.
+- `src/lib/leads-types.ts` (14 LOC) — extracted `LeadsAction`, `LeadsSearch`, `BulkAssignMode`, `BulkDeleteMode` so siblings + hooks share type definitions without circular imports through the container.
+- `src/hooks/useLeadsList.ts` (203 LOC) — owns the leads-list query (assignee-filter ID resolution, status filter, sanitized search, profiles + lead_assignees + lead_shares joins, legacy `assigned_to` fallback), the realtime postgres_changes subscription, and the `leads:changed` cross-component listener. Exposes `{ leads, setLeads, loading, totalCount, setTotalCount, refresh }` so callers can do optimistic UI.
+- `src/hooks/useOrgMembers.ts` (35 LOC) — owner-only profiles fetch → sorted `AssigneeOption[]`. Returns `[]` while disabled or pending; cancel-on-unmount preserved.
+- `src/hooks/useLeadsBulkActions.ts` (357 LOC) — owns bulk-selection + bulk-mutation state machine. State: selectedLeadIds, bulkAssignTargets + mode, bulkMoveStatus, in-flight + confirm-dialog flags. Runners: `runBulkMove`, `runBulkDelete`, `runBulkAssign` (share / round-robin), `handleBulkAssignClick` (gates round-robin behind confirmation). Optimistic UI + rollback paths preserved byte-for-byte from the original component. Also exposes `bulkTemplateRecipients` memo + `toggleLeadSelected` / `handleSelectAllVisible` / `handleClearSelection` selection helpers + the `useEffect` that drops stale selected ids when leads change.
+- `src/components/crm/LeadsFilterBar.tsx` (65 LOC) — search input + status-filter pills + assignee multi-select (owner-only).
+- `src/components/crm/LeadsBulkControls.tsx` (317 LOC) — owner-only bulk toolbar (select-all, share/round-robin tab toggle, assignee multiselect, share/distribute button, apply-template, move-to-stage select + button, delete, clear) + the two `AlertDialog` confirmations (round-robin destructive prompt, archive-vs-permanent-delete picker). Above the 250 LOC target because the bulk-controls toolbar and its two AlertDialog confirmations are one cohesive UI unit; splitting them across files would just create glue.
+- `src/components/crm/LeadsListView.tsx` (143 LOC) — loading-skeleton grid + lead-card mapping + per-card delete handler (optimistic + rollback + retry-aware toasts).
+
+Sibling exemplar `LeadCard.tsx` is 318 LOC for reference — extracted siblings broadly match that range.
+
+#### Verification
+
+- `bun run typecheck` — clean for the touched files. One pre-existing unrelated baseline error in `src/routes/hooks/send-pending-welcomes.ts:26` (TanStack route name mismatch) — present on `main` too, confirmed via stash diff.
+- `bun run test` — 133/133 pass.
+- `bun run build` — 9.07s, no errors. `dist/server/assets/_app.leads-*.js` = 1.1M bundle.
+- **Live verify:** `bun run dev --port 4176` → `curl /leads` 200. agent-browser session `refactor-unit-3` navigated to `http://localhost:4176/leads`, page title resolves to "VireCRM — Leads", screenshot at `screenshots/unit-3.png` shows the auth-gated CRM app shell with skeleton loaders (expected — no live session). No console errors, no React error overlay, no missing-module crashes. `bun run preview --port 4176` failed to start (pre-existing TanStack Start vite preview issue — Lovable Vite preset emits a CF Workers bundle that vite preview can't execute, per `CLAUDE.md` host-migration note); fell back to dev server for the smoke pass.
+### 2026-05-22 — Refactor LeadDetailDrawer god component
+**Tags:** [refactor] [god-components]
+
+Unit 2 of the 13-unit parallel god-component refactor. `src/components/crm/LeadDetailDrawer.tsx` was 1206 LOC mixing form state, activity fetch, email-log lazy load, billing summary realtime, save/won/delete orchestration, header + tab nav, deal panel, assignee picker, and three tab bodies. Split into 5 hooks + 8 sibling components. Public API preserved byte-for-byte: default export name `LeadDetailDrawer`, prop shape `{ lead, open, onOpenChange, onUpdated, onOptimisticPatch }`. `LeadsPageContent` import path unchanged.
+
+#### Shipped
+
+- `src/components/crm/LeadDetailDrawer.types.ts` — shared types (`LeadFormState`, `STATUS_OPTIONS`, `OrgMember`, `LeadDrawerTab`, `LeadBillingSummary`).
+- `src/hooks/useLeadForm.ts` — form state, org-members fetch, multi-assignee state + initial snapshot for diffing.
+- `src/hooks/useLeadActivity.ts` — messages + replies + tasks fetch, sorted by date, refetch via key bump.
+- `src/hooks/useLeadEmailLogs.ts` — lazy email send-log fetch via `listLeadEmailLogsFn`, gated by `enabled` flag.
+- `src/hooks/useLeadBillingSummary.ts` — client_invoices aggregation + realtime `postgres_changes` subscription.
+- `src/hooks/useLeadActions.ts` — save/markWon/delete orchestration with optimistic patch + assignee join-table diff.
+- `src/components/crm/LeadDetailDrawerHeader.tsx` — SheetHeader, tab nav, assignee strip, action buttons.
+- `src/components/crm/LeadDetailsForm.tsx` — details tab body. Exports `useDealValidation` hook + `DealValidation` type.
+- `src/components/crm/LeadDealValuePanel.tsx` — deal amount/currency inputs + Mark-Won button.
+- `src/components/crm/LeadAssigneesField.tsx` — assignee multi-select (owner/manager) or read-only avatar strip.
+- `src/components/crm/LeadActivityTab.tsx` — activity timeline list.
+- `src/components/crm/LeadEmailsTab.tsx` — email send-log list with refresh.
+- `src/components/crm/LeadBillingSummaryCard.tsx` — inline collected/due card visible across tabs.
+- `src/components/crm/LeadDetailDrawer.tsx` — rewritten container, 209 LOC (down from 1206). Wires hooks/components, owns transient UI state only (tab, preview dialog, activity refetch key).
+
+No business-logic rewrites — optimistic patches, retries, assignee diff, validation all preserved byte-for-byte. No new deps.
+
+#### Verification
+
+- `bun run typecheck` — clean (only pre-existing `send-pending-welcomes.ts(26,38)` error, unrelated to this refactor).
+- `bun run test` — 133/133 pass.
+- `bun run build` — clean.
+- e2e smoke via agent-browser — `/leads` route renders, drawer opens on lead click, all 4 tabs (Details / Activity / Emails / Invoices) reachable, no console errors.
+### 2026-05-22 — Refactor ContactSubmissionsPanel god component
+**Tags:** [refactor] [god-components]
+
+Unit-1 of the 13-worker parallel god-component refactor. Container route `/admin`. Target was `src/components/admin/ContactSubmissionsPanel.tsx` at 1264 LOC — one monolithic table + three sibling components defined in-file (`SubmissionPaymentHistory`, `SubmissionInvoicePanel`, `SuggestionSignals`) + four module-level helpers. Move-not-rewrite mandate: business logic preserved byte-for-byte where possible. Public API (named export `ContactSubmissionsPanel`, zero props) frozen; `_app.admin.tsx` not touched.
+
+#### Shipped
+
+- `src/lib/submission-helpers.ts` (new, 177 LOC) — pure helpers extracted from the panel: `statusVariant` (Stripe invoice → badge variant), `buildInvoiceMailto` (mailto URL builder), `suggestPlanForSubmission` (interested_plan / budget / project_type heuristic), `suggestAmount` (default-amount fallback), and the `stripeEnv` module-level constant. All exported.
+- `src/hooks/useContactSubmissions.ts` (new, 101 LOC) — list state: `rows`, `loading`, `search`, `expanded`, `savingId`, `filtered`, `load`, `toggleRow`, `setStatus`. Moves the `useState`/`useEffect`/`useMemo` block out of the container.
+- `src/components/admin/SubmissionTable.tsx` (new, 112 LOC) — table header + summary row per submission; renders `<SubmissionDetail>` inline when expanded.
+- `src/components/admin/SubmissionDetail.tsx` (new, 140 LOC) — expanded-row markup: contact info, message, AI classification, metadata, status actions, then mounts the payment-history + invoice siblings.
+- `src/components/admin/SubmissionPaymentHistory.tsx` (new, 169 LOC) — verbatim move of the in-file `SubmissionPaymentHistory` function. Stripe payment-history RPC + summary cards + invoice table.
+- `src/components/admin/SubmissionInvoicePanel.tsx` (new, 385 LOC) — orchestrator for the Stripe invoice flow. Owns 8 state slots + 4 async handlers (`runInvoiceAction`, `setPlanForCustomer`, `handleCreate`, `onPlanAssignChange`) + realtime channel subscription. Over the <250-LOC target by design — heft is state ownership not duplicated markup. Form body + invoice-list rows further extracted to keep this file just orchestration + the header Select.
+- `src/components/admin/SubmissionInvoiceForm.tsx` (new, 196 LOC) — invoice-creation form body. Controlled by parent via 14 props (state + setters) so the parent keeps its existing plan-sync `useEffect` and `amountOverridden` tracking.
+- `src/components/admin/SubmissionInvoiceListItem.tsx` (new, 112 LOC) — single Stripe-invoice row in the existing-invoices list. Status badge + resend/void/refund actions.
+- `src/components/admin/SuggestionSignals.tsx` (new, 62 LOC) — verbatim move of the in-file `SuggestionSignals` atom.
+- `src/components/admin/ContactSubmissionsPanel.tsx` — collapsed from 1264 to 76 LOC. Just the `<Card>` shell + search + refresh + `<SubmissionTable>` mount. Named export name preserved.
+- `src/lib/__tests__/submission-helpers.test.ts` (new) — pin-down tests for the 4 pure helpers. 10 new test cases. Guards against drift across future cleanups.
+
+#### Verification
+
+- `bun run typecheck` — clean against this refactor (pre-existing `src/routes/hooks/send-pending-welcomes.ts:26` TS2345 unrelated to this work, present before edits).
+- `bun run test` — 143/143 pass (was 133/133; +10 from new `submission-helpers.test.ts`).
+- `bun run build` — 7.27s, no errors. `dist/server/assets/_app.admin-CKckmNfH.js` chunk emitted at 171.86 kB. `grep` against that chunk confirms all 7 extracted module names + the user-facing strings ("Contact Submissions", "Stripe Invoice", "Payment history", "SubmissionTable") are present in the bundle — proves the refactor compiled into the admin route bundle.
+- **Preview-server screenshot skipped:** `bun run preview` errors with `Cannot find module '.../dist/server/server.js'` — TanStack Start build emits a Cloudflare Worker bundle, not a Node server, so `vite preview` can't boot it. Same issue noted in the 2026-05-19 unit-3 entry below. Bundle-emission verification used as the e2e signal per the worker e2e-recipe fallback. Admin route is auth-gated anyway — a screenshot at `/admin` would have captured a login redirect, not the panel.
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
