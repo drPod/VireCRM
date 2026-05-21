@@ -46,19 +46,14 @@ function LoadingShell() {
         className="hidden h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 md:flex"
       >
         <div className="flex items-center gap-2 pb-4">
-          <span
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-base font-extrabold text-primary-foreground shadow-[0_0_18px_-4px_var(--color-primary)]"
-          >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-base font-extrabold text-primary-foreground shadow-[0_0_18px_-4px_var(--color-primary)]">
             M
           </span>
           <div className="h-4 w-24 rounded bg-sidebar-foreground/10 animate-pulse" />
         </div>
         <div className="mt-2 space-y-1.5">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 px-2 py-1.5 animate-pulse"
-            >
+            <div key={i} className="flex items-center gap-2 px-2 py-1.5 animate-pulse">
               <div className="h-4 w-4 rounded bg-sidebar-foreground/10" />
               <div
                 className="h-3 rounded bg-sidebar-foreground/10"
@@ -190,7 +185,9 @@ function AppLayout() {
       if (!data.session) {
         // Preserve the path (and query) the user was trying to reach so /login
         // can send them back after they sign in. Defaults to /dashboard.
-        const returnTo = safeReturnTo(`${location.pathname}${location.searchStr || ""}` || "/dashboard");
+        const returnTo = safeReturnTo(
+          `${location.pathname}${location.searchStr || ""}` || "/dashboard",
+        );
         navigate({
           to: "/login",
           search: { redirect: returnTo } as never,
@@ -262,17 +259,6 @@ function AppLayout() {
         <OnboardingWizard
           organizationId={profile.organization_id}
           isOwner={role?.role === "owner"}
-          currentIndustry={
-            (organization?.industry_template as
-              | "general"
-              | "energy"
-              | "gym"
-              | "solar"
-              | "real_estate"
-              | "insurance"
-              | null
-              | undefined) ?? null
-          }
           currentBrandColor={organization?.primary_color ?? null}
           currentStrictIsolation={organization?.strict_lead_isolation ?? false}
           onComplete={() => setOnboardingDone(true)}

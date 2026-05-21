@@ -100,6 +100,33 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Narrow IndustryKey to "energy"; swap industry E2E for energy smoke
+**Tags:** [refactor] [vertical-narrow] [onboarding] [e2e]
+
+#### Shipped
+- `src/lib/industry-templates.ts` — `IndustryKey` narrowed to literal `"energy"`. `INDUSTRY_TEMPLATES` record contains only the `energy` entry (general/gym/solar/real_estate/insurance dropped). `getTemplate()` fallback → `INDUSTRY_TEMPLATES.energy`. Type machinery (Record key, `IndustryTemplate` shape) preserved so a future vertical is widen-and-append.
+- `src/components/crm/CrmSidebar.tsx` — dropped non-energy nav items (Solar Hub/Projects, Real Estate Hub/Listings/Showings, Insurance Hub/Quotes/Policies, Member Health), `isLockedVertical` derivation, muted styling branches, Lock icon import + render, plus unused `Sun`/`Home`/`Shield`/`Dumbbell` icon imports. `NavItem.industry?` field removed (zero readers post-narrow).
+- `src/components/onboarding/OnboardingWizard.tsx` — dropped the industry-picker step (now 2 steps: color + privacy). `currentIndustry` prop removed. Wizard auto-stamps `energy` template + its default modules on finish. `Building2`/`ChevronRight` imports removed, `INDUSTRY_LIST` import dropped in favor of direct `INDUSTRY_TEMPLATES.energy`.
+- `src/components/onboarding/IndustryTemplatePicker.tsx` + `IndustryTemplatePanel.tsx` — deleted (180 + 110 LOC).
+- `src/routes/_app.settings.tsx` — removed `IndustryTemplatePanel`/`IndustryTemplatePicker` imports + the `TabsTrigger value="industry"` + `TabsContent`. `Sparkles` icon import dropped. `TAB_KEYS` retains `"industry"` so legacy IndustryGate `?tab=industry` deep-links still parse; render falls back to `"team"`.
+- `src/routes/_app.tsx` — dropped the wide `currentIndustry` cast block on `<OnboardingWizard>` (prop no longer exists).
+- `src/components/onboarding/product-tour-steps.ts` — `industryMiddle: Record<IndustryKey, TourStep[]>` narrowed to just the `energy` entry (general/solar/real_estate/insurance/gym steps stripped).
+- `src/components/admin/OrganizationsPanel.tsx` — `INDUSTRY_OPTIONS` narrowed to single `{ key: "energy", label: "Energy" }`.
+- Out-of-scope route files patched with throwaway `as IndustryKey` casts (Unit 1 deletes them next): `_app.gym.tsx`, `_app.insurance.tsx`, `_app.insurance.policies.tsx`, `_app.insurance.quotes.tsx`, `_app.real-estate.tsx`, `_app.real-estate.listings.tsx`, `_app.real-estate.showings.tsx`, `_app.solar.tsx`, `_app.solar.projects.tsx`.
+- `tests/e2e/industry-switching.spec.ts` — deleted (185 LOC).
+- `tests/e2e/energy-vertical.spec.ts` — new smoke spec. Env-skip pattern (QA_TEST_EMAIL/QA_TEST_PASSWORD). Asserts 7 energy sidebar links present, 9 stripped hub labels absent, no `[aria-disabled="true"]` in sidebar, 8 energy routes return <400 + `<h1>` visible.
+- `package.json` — `test:e2e:industry` → `test:e2e:energy` (points at new spec path).
+
+#### Verification
+- `bun run typecheck` — exit 0.
+- `bun run lint` on touched files — exit 0 (auto-fixed prettier-only nits; rest of repo's 4868 pre-existing Lovable-scaffold lint errors untouched).
+- `bun run test` — vitest 143/143 passed (5 files).
+- `bun run build` — vite build successful, no chunk-graph regressions.
+- E2E suite intentionally not run (no QA_TEST_EMAIL/QA_TEST_PASSWORD locally; CI without secrets self-skips per env-guard).
+- Net diff: −695 LOC (mostly the 4 deleted template/spec files + sidebar lock-styling branches).
+
+#### Manual follow-up (user)
+- None. Sibling units (vertical route deletes, marketing strip, DB migrations, docs) land separately per the Unit 0 coordinator brief.
 ### 2026-05-22 — Remove VerticalsStrip from /features (single-vertical product)
 **Tags:** [frontend] [marketing] [lovable-migration]
 
