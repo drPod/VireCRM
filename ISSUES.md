@@ -100,6 +100,17 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — B3 unit tests for billing proration estimator
+**Tags:** [test] [billing] [stripe]
+
+#### Shipped
+- `src/lib/billing-proration.ts` (new) — extracted pure `estimateProration` from inline def at `src/routes/_app.billing.tsx:64-82`. Same signature, same behaviour. `ProrationArgs` + `ProrationResult` interfaces exported alongside.
+- `src/routes/_app.billing.tsx` — inline function removed, replaced with `import { estimateProration } from "@/lib/billing-proration"`. Only call site at line ~294 unchanged.
+- `src/lib/__tests__/billing-proration.test.ts` (new) — 14 tests covering same-tier (zero), upgrade mid-cycle (proportional), downgrade (zero today), same-day switch (full delta), end-of-cycle (1 day remaining → small charge), missing/null/unparseable dates (null), degenerate cycle (end <= start → null), and cycleDays-min-1 clamp. Vitest fake timers freeze `Date.now()`.
+
+#### Verification
+- `bun run test` → 6 files / 157 tests pass (was 143, +14).
+- `bun run typecheck` → clean.
 ### 2026-05-22 — Unit tests: `_lead-sync-log.ts` audit-writer
 **Tags:** [audit] [test]
 
