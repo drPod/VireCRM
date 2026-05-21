@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
+import { getRequest, setResponseStatus } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -43,7 +43,10 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
 
     // 1. Platform-admin gate
     const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", { p_user_id: userId });
-    if (!isAdmin) throw new Error("Unauthorized: platform admin required");
+    if (!isAdmin) {
+      setResponseStatus(401);
+      throw new Error("Unauthorized: platform admin required");
+    }
 
     // 2. Load quote
     const { data: quote, error } = await supabaseAdmin
@@ -88,7 +91,10 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
       .get("authorization")
       ?.replace(/^Bearer\s+/i, "")
       .trim();
-    if (!accessToken) throw new Error("Missing user session token");
+    if (!accessToken) {
+      setResponseStatus(401);
+      throw new Error("Missing user session token");
+    }
 
     const requestOrigin = incoming ? new URL(incoming.url).origin : null;
     const origin =
