@@ -1,0 +1,5 @@
+# ISSUES.md is append-only — every agent adds a new `### YYYY-MM-DD —` block
+# under `## Recent`. Union merge concatenates both sides at conflict regions,
+# preserving every appended entry without manual resolution. See CLAUDE.md
+# "ISSUES.md is non-negotiable" for the protocol.
+ISSUES.md merge=union
