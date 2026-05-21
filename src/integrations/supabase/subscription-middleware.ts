@@ -10,6 +10,7 @@
 // 'past_due' is intentionally NOT granted access here — UI can still show a
 // grace banner, but writes to paid features are blocked server-side.
 import { createMiddleware } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "./auth-middleware";
 import { supabaseAdmin } from "./client.server";
 
@@ -40,6 +41,7 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
     if (ownSubResult.error || profileResult.error) {
       // Fail closed — if we can't verify entitlement, deny access. This is
       // safer than letting through on transient DB hiccups.
+      setResponseStatus(403);
       throw new Error("Subscription check failed. Please try again.");
     }
 
@@ -60,6 +62,7 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
         .eq("role", "owner");
 
       if (rolesError) {
+        setResponseStatus(403);
         throw new Error("Subscription check failed. Please try again.");
       }
 
@@ -72,6 +75,7 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
           .in("status", ACTIVE_STATUSES as unknown as string[]);
 
         if (ownerSubsError) {
+          setResponseStatus(403);
           throw new Error("Subscription check failed. Please try again.");
         }
 
@@ -80,6 +84,7 @@ export const requireActiveSubscription = createMiddleware({ type: "function" })
     }
 
     if (!hasActive) {
+      setResponseStatus(402);
       throw new Error(
         "Subscription required. An active subscription is needed to use this feature. Please visit /billing.",
       );

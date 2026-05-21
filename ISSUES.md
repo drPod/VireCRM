@@ -48,7 +48,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **`_app.admin.tsx` lines 770, 797, 1821, 1829, 1837, 2058, 2070** — 7 `window.confirm`/`window.prompt` sites for destructive ops. Port to shadcn `AlertDialog` (pattern at same file 2213+).
 - [ ] **`AddLeadDialog.tsx:160-329`** — every `<label>` bare (no `htmlFor`), every `<input>` lacks `id`/`name`/`autoComplete`. Primary lead-entry form inaccessible to SR + password managers.
 - [ ] **`PipelineView.tsx:286-320`** — drag-and-drop only. No keyboard alternative. Pipeline unreachable via keyboard.
-- [ ] **Auth middleware uses `throw new Response()`** — TanStack Start doesn't serialize Response; 401/403 paths wrap as 500. `src/integrations/supabase/auth-middleware.ts`. Currently dead path (Bearer always attached) but blocks future "token expired mid-call" handling.
 - [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
 - [ ] **Onboarding wizard `aria-describedby` Radix warning** — re-capture w/ Radix stack trace from browser console next session. Candidates: `command.tsx` (`CommandDialog`, dead), `AddLeadDialog.tsx`, `EnergyTablePage.tsx`, `_app.academy.tsx`, `_app.academy.$courseId.tsx`, `_app.contact-submissions.tsx`.
 
@@ -119,6 +118,15 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-22 — middleware status codes (TanStack Start canonical pattern)
+**Tags:** [bug] [tanstack-start] [middleware] [auth]
+
+#### Shipped
+- `src/integrations/supabase/auth-middleware.ts` lines 20/26/30/35/53/57 — `setResponseStatus(401)` before each `throw new Error("Unauthorized: …")`. Line 12 (missing env var) stays implicit 500 — actual internal error.
+- `src/integrations/supabase/subscription-middleware.ts` lines 43/63/75 — `setResponseStatus(403)` before "Subscription check failed" (fail-closed entitlement DB error). Lines 83-85 — `setResponseStatus(402)` before "Subscription required" (Payment Required).
+- Errors now serialize with proper HTTP status — clients can branch on 401 vs 402 vs 403 instead of seeing generic 500.
+- Cleared stale `## Open` "Bugs found, not fixed" bullet that mis-described auth-middleware as using `throw new Response()` (it always used `throw new Error()`); real gap was missing status codes, now fixed.
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
