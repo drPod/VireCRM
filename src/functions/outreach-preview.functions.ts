@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
@@ -37,7 +37,7 @@ export interface OutreachPreview {
 }
 
 export const previewOutreachFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth, requireActiveSubscription])
+  .middleware([requireAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof previewSchema>) => previewSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachPreview> => {
     const { supabase, userId } = context;
@@ -179,7 +179,7 @@ export interface SendOutreachResult {
 }
 
 export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth, requireActiveSubscription])
+  .middleware([requireAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof sendSchema>) => sendSchema.parse(input))
   .handler(async ({ data, context }): Promise<SendOutreachResult> => {
     const { supabase, userId } = context;

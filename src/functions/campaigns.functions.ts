@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { assertOrgMember } from "@/lib/auth-helpers";
 import { z } from "zod";
 import {
@@ -43,7 +43,7 @@ const createDraftSchema = orgScope.extend({
 });
 
 export const createDraftCampaignFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof createDraftSchema>) => createDraftSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ campaignId: string; sequenceId: string }> => {
     const { supabase, userId } = context;
@@ -81,7 +81,7 @@ export const createDraftCampaignFn = createServerFn({ method: "POST" })
   });
 
 export const getCampaignFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof idScope>) => idScope.parse(input))
   .handler(async ({ data, context }): Promise<Campaign> => {
     const { supabase, userId } = context;
@@ -117,7 +117,7 @@ const updateDetailsSchema = idScope.extend({
 });
 
 export const updateCampaignDetailsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof updateDetailsSchema>) => updateDetailsSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -158,7 +158,7 @@ export const updateCampaignDetailsFn = createServerFn({ method: "POST" })
   });
 
 export const previewCampaignAudienceFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof idScope>) => idScope.parse(input))
   .handler(
     async ({
@@ -214,7 +214,7 @@ const launchSchema = idScope.extend({
 });
 
 export const launchCampaignFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof launchSchema>) => launchSchema.parse(input))
   .handler(
     async ({ data, context }): Promise<{ enrolled: number; status: "active" | "scheduled" }> => {
@@ -331,7 +331,7 @@ export const launchCampaignFn = createServerFn({ method: "POST" })
 const statusOnly = idScope;
 
 export const pauseCampaignFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof statusOnly>) => statusOnly.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -351,7 +351,7 @@ export const pauseCampaignFn = createServerFn({ method: "POST" })
   });
 
 export const resumeCampaignFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof statusOnly>) => statusOnly.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -371,7 +371,7 @@ export const resumeCampaignFn = createServerFn({ method: "POST" })
   });
 
 export const completeCampaignFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof statusOnly>) => statusOnly.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -391,7 +391,7 @@ export const completeCampaignFn = createServerFn({ method: "POST" })
   });
 
 export const deleteCampaignFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof statusOnly>) => statusOnly.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;

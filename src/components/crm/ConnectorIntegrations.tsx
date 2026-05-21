@@ -14,7 +14,7 @@
  */
 import { useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useConnectorStatus } from "@/hooks/useConnectorStatus";
 import {
   enableConnectorFn,
@@ -34,10 +34,10 @@ export function ConnectorIntegrations() {
   const { organization, role } = useAuth();
   const isOwner = role?.role === "owner";
 
-  const enableConnector = useAuthedServerFn(enableConnectorFn);
-  const disableConnector = useAuthedServerFn(disableConnectorFn);
-  const testConnector = useAuthedServerFn(testConnectorFn);
-  const updateConnectorConfig = useAuthedServerFn(updateConnectorConfigFn);
+  const enableConnector = useServerFn(enableConnectorFn);
+  const disableConnector = useServerFn(disableConnectorFn);
+  const testConnector = useServerFn(testConnectorFn);
+  const updateConnectorConfig = useServerFn(updateConnectorConfigFn);
 
   const { statuses, setStatuses, loading, refresh } = useConnectorStatus({
     organizationId: organization?.id,

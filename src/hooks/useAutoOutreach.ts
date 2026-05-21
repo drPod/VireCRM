@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { autoOutreachFn } from "@/functions/auto-outreach.functions";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { isAuthError } from "@/lib/server-fn-auth";
 import { toast } from "sonner";
 
@@ -41,7 +41,7 @@ const INTEGRATION_SOURCES = new Set<string>([
 
 export function useAutoOutreach() {
   const { organization } = useAuth();
-  const outreach = useAuthedServerFn(autoOutreachFn);
+  const outreach = useServerFn(autoOutreachFn);
   const pendingRef = useRef(false);
 
   const triggerOutreach = useCallback(
@@ -96,7 +96,7 @@ export function useAutoOutreach() {
           });
         }
       } catch (err) {
-        // Auth errors already surfaced by useAuthedServerFn — stay silent here.
+        // Auth errors already surfaced by global attachAuth middleware — stay silent here.
         if (isAuthError(err)) return;
         console.error("Auto-outreach failed:", err);
         toast.info("Leads added. Auto-outreach will be retried later.", {
