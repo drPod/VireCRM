@@ -19,10 +19,10 @@ serve(async (req) => {
       error: authError,
     } = await supabase.auth.getUser(authHeader);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Unauthorized", code: "unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const { returnUrl, environment } = await req.json();
@@ -40,10 +40,14 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!sub?.stripe_customer_id) {
-      return new Response(JSON.stringify({ error: "No subscription found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "No active subscription on file",
+          code: "no_active_subscription",
+          action: { label: "Start subscription", href: "/billing" },
+        }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const portal = await stripe.billingPortal.sessions.create({
@@ -55,9 +59,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: (error as Error).message, code: "internal" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });

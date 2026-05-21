@@ -91,57 +91,18 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — Dedup ensureMember to assertOrgMember
-**Tags:** [audit] [security]
+### 2026-05-21 — customer-portal actionable error
+**Tags:** [stripe] [billing] [supabase] [ux]
 
 #### Shipped
-- `src/functions/outreach-sequences.functions.ts:68` — deleted local `ensureMember(supabase: any, ...)`; imported `assertOrgMember` from `@/lib/auth-helpers`; swapped 11 call sites.
-- `src/functions/outreach-templates.functions.ts:56` — deleted local `ensureMember(supabase: any, ...)`; imported `assertOrgMember`; swapped 3 call sites.
-- `src/functions/appointments.functions.ts:152` — deleted local `ensureMember` (was typed against `ReturnType<typeof createClient<Database>>`); imported `assertOrgMember`; swapped 6 call sites.
-- Bodies of all three locals were byte-identical to canonical — same `profiles.organization_id` lookup, same error string ("Unauthorized: not a member of this organization"). No behavior change. Canonical is properly typed (`SupabaseClient`, no `any`), so refactor drops two `any` parameter types.
+- `supabase/functions/customer-portal/index.ts:21-26` — 401 unauth now returns `{ error: "Unauthorized", code: "unauthorized" }` so callers distinguish auth failure from other 4xx.
+- `supabase/functions/customer-portal/index.ts:42-51` — 404 "no subscription" replaced bare message with structured `{ error, code: "no_active_subscription", action: { label, href: "/billing" } }`. Caller (`src/routes/_app.billing.tsx:247`) still works via existing `.message` fallback; new `code`/`action` fields available for future UI wire-up.
+- `supabase/functions/customer-portal/index.ts:61-66` — 500 catch block adds `code: "internal"` so known-state errors vs unexpected ones differ on the wire.
+- Surgical: UI caller untouched, no shared contract type added, sibling edge functions untouched.
 
 #### Verification
-- `bun run typecheck` → clean.
-- `bun run test` → 119/119 passed.
-- `bun run build` → succeeded.
-- `bun run lint` → pre-existing errors only in changed files (prettier formatting + `any` casts in code paths I did not touch). Refactor introduced zero new lint errors.
-- Skipped browser e2e per unit recipe (server-function-only change, no UI render path).
-
-### 2026-05-21 — Move misplaced server fns to src/functions/
-**Tags:** [audit] [lovable-migration]
-
-#### Shipped
-- `git mv src/lib/admin-quote-email.functions.ts → src/functions/admin-quote-email.functions.ts`
-- `git mv src/lib/quote-pdf.functions.ts → src/functions/quote-pdf.functions.ts`
-- `git mv src/lib/test-account.functions.ts → src/functions/test-account.functions.ts`
-- Updated 2 import sites: `src/components/admin/QuotesPanel.tsx` (lines 60-61), `src/components/admin/TestAccountButton.tsx` (line 26) — `@/lib/...` → `@/functions/...`
-- Rationale: all three use `createServerFn` and belonged in `src/functions/` per repo convention; history preserved via `git mv`
-
-### 2026-05-21 — Move connector clients to lib/connectors
-**Tags:** [audit] [lovable-migration]
-
-#### Shipped
-- `git mv src/lib/{apollo,hunter,snov}.ts src/lib/connectors/` — co-located with existing `gateway.ts` + `oauth.ts` + `catalog.ts` + `prerequisites.ts` + `validation.ts`. History preserved.
-- Updated 3 importers (only call sites): `src/functions/integrations.functions.ts:9-11`, `src/functions/find-leads.functions.ts:5-7`, `src/functions/apollo-lists.functions.ts:15` — `@/lib/<x>` → `@/lib/connectors/<x>`.
-- Moved files had zero internal relative imports — no edits to bodies.
-
-#### Verification
-- `bun run typecheck` → clean
-- `bun run test` → 119/119 passed
-- `bun run lint` → no new errors on touched files (pre-existing errors in `supabase/functions/*`, `vite.config.ts` unchanged)
-- `bun run build` → succeeded
-
-### 2026-05-21 — Email infrastructure abstraction (Phase C)
-**Tags:** [lovable-migration] [audit]
-
-#### Shipped
-- `src/lib/email/send-transactional.ts` — centralized suppression check, unsubscribe token reuse-or-create, template render, email_send_log pending/failed, enqueue_email RPC (~70-line pattern repeated 6× before)
-- `send-transactional.ts` accepts `recipientOverride` param to bypass `template.to` (used for CONTACT_TEST_MODE inbox redirect in `contact.ts`)
-- Updated 5 routes: `api/email/transactional/send.ts`, `api/notify-low-balance.ts`, `hooks/send-pending-welcomes.ts`, `api/public/hooks/contact-followup-reminders.ts`, `api/public/contact.ts`
-- Restored test-mode inbox redirect that was lost in initial refactor
-
-#### Verification
-- `bun run typecheck` → 0 errors
+- `bun run typecheck` → exit 0.
+- Live Stripe smoke skipped per unit recipe.
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
