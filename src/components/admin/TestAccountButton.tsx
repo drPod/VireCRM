@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import {
   createTestAccount,
   revokeTestAccount,
-} from "@/lib/test-account.functions";
+} from "@/functions/test-account.functions";
 import { handleAuthError } from "@/lib/server-fn-auth";
 import { runAuditAs, type AuditCheck } from "@/lib/audit-runner";
 
