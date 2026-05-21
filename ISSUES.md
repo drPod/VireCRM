@@ -120,6 +120,31 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor LeadsPageContent god component
+**Tags:** [refactor] [god-components]
+
+Split `src/components/crm/LeadsPageContent.tsx` (1031 LOC, ~15 useStates, 5 useEffects, master-detail + bulk controls + 6 modal dialogs) into focused siblings + hooks under the existing flat-feature-folder convention. Public API frozen — route `_app.leads.tsx` untouched, props shape (`statusFilters`, `search`) preserved byte-for-byte. No business logic rewrites.
+
+#### Shipped
+
+- `src/components/crm/LeadsPageContent.tsx` — container slimmed from 1031 LOC to 249 LOC. Owns only: route-search → dialog-open derivation, modal dialog wiring (Add/Import/AutoFind/Apollo/Outreach/Template + drawer), and JSX layout. Delegates data + bulk state to hooks.
+- `src/lib/leads-types.ts` (14 LOC) — extracted `LeadsAction`, `LeadsSearch`, `BulkAssignMode`, `BulkDeleteMode` so siblings + hooks share type definitions without circular imports through the container.
+- `src/hooks/useLeadsList.ts` (203 LOC) — owns the leads-list query (assignee-filter ID resolution, status filter, sanitized search, profiles + lead_assignees + lead_shares joins, legacy `assigned_to` fallback), the realtime postgres_changes subscription, and the `leads:changed` cross-component listener. Exposes `{ leads, setLeads, loading, totalCount, setTotalCount, refresh }` so callers can do optimistic UI.
+- `src/hooks/useOrgMembers.ts` (35 LOC) — owner-only profiles fetch → sorted `AssigneeOption[]`. Returns `[]` while disabled or pending; cancel-on-unmount preserved.
+- `src/hooks/useLeadsBulkActions.ts` (357 LOC) — owns bulk-selection + bulk-mutation state machine. State: selectedLeadIds, bulkAssignTargets + mode, bulkMoveStatus, in-flight + confirm-dialog flags. Runners: `runBulkMove`, `runBulkDelete`, `runBulkAssign` (share / round-robin), `handleBulkAssignClick` (gates round-robin behind confirmation). Optimistic UI + rollback paths preserved byte-for-byte from the original component. Also exposes `bulkTemplateRecipients` memo + `toggleLeadSelected` / `handleSelectAllVisible` / `handleClearSelection` selection helpers + the `useEffect` that drops stale selected ids when leads change.
+- `src/components/crm/LeadsFilterBar.tsx` (65 LOC) — search input + status-filter pills + assignee multi-select (owner-only).
+- `src/components/crm/LeadsBulkControls.tsx` (317 LOC) — owner-only bulk toolbar (select-all, share/round-robin tab toggle, assignee multiselect, share/distribute button, apply-template, move-to-stage select + button, delete, clear) + the two `AlertDialog` confirmations (round-robin destructive prompt, archive-vs-permanent-delete picker). Above the 250 LOC target because the bulk-controls toolbar and its two AlertDialog confirmations are one cohesive UI unit; splitting them across files would just create glue.
+- `src/components/crm/LeadsListView.tsx` (143 LOC) — loading-skeleton grid + lead-card mapping + per-card delete handler (optimistic + rollback + retry-aware toasts).
+
+Sibling exemplar `LeadCard.tsx` is 318 LOC for reference — extracted siblings broadly match that range.
+
+#### Verification
+
+- `bun run typecheck` — clean for the touched files. One pre-existing unrelated baseline error in `src/routes/hooks/send-pending-welcomes.ts:26` (TanStack route name mismatch) — present on `main` too, confirmed via stash diff.
+- `bun run test` — 133/133 pass.
+- `bun run build` — 9.07s, no errors. `dist/server/assets/_app.leads-*.js` = 1.1M bundle.
+- **Live verify:** `bun run dev --port 4176` → `curl /leads` 200. agent-browser session `refactor-unit-3` navigated to `http://localhost:4176/leads`, page title resolves to "VireCRM — Leads", screenshot at `screenshots/unit-3.png` shows the auth-gated CRM app shell with skeleton loaders (expected — no live session). No console errors, no React error overlay, no missing-module crashes. `bun run preview --port 4176` failed to start (pre-existing TanStack Start vite preview issue — Lovable Vite preset emits a CF Workers bundle that vite preview can't execute, per `CLAUDE.md` host-migration note); fell back to dev server for the smoke pass.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
