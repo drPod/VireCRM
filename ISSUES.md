@@ -106,6 +106,17 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 #### Shipped
 - `src/functions/__tests__/_lead-sync-log.test.ts` (new, 200 LOC) — 7 tests covering `recordLeadSync()` contract: happy path, snake_case row-shape mapping, default counters, optional `metadata` passthrough, DB-error swallowed w/ `console.error`, thrown-exception swallowed w/ `console.error`, `quota_exceeded` status. Mocks `supabaseAdmin.from().insert()` via `vi.mock` of `@/integrations/supabase/client.server`; module-scoped `inserted[]` captures each row. Direct insert mock (not chain-recording Proxy) because target only calls `.from().insert()` — no chain. `vi.mocked(console.error)` for typed mock access.
 - Full suite: `bun run test` → 6 files, 150 tests passing.
+### 2026-05-22 — Unit tests: find-leads server fn
+**Tags:** [tests] [lead-sync]
+
+#### Shipped
+- `src/functions/__tests__/find-leads.test.ts` (new, 12 tests) — covers provider routing (apollo/hunter/snov), platform-quota consumption + BYO-key skip, `recordLeadSync` row shape, provider error mapping (Apollo 401/429, Hunter 500), empty-result partial path.
+- `src/functions/find-leads.functions.ts` — extracted inner handler as `_findLeadsHandler` so tests bypass the TanStack Start middleware chain (auth + subscription). `findLeadsFn` wrapper unchanged in behaviour, still `.middleware([...]).inputValidator(...).handler(_findLeadsHandler)`.
+
+#### Verification
+- `bun run test` — 155/155 pass (6 files).
+- `bun run typecheck` — clean.
+- `bun run lint` — clean for both touched files.
 ### 2026-05-22 — Unit tests for `src/lib/auth-helpers.ts`
 **Tags:** [tests] [auth] [supabase]
 
