@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { deliverOutreachEmail, loadOutreachDeliveryChannels } from "@/lib/email/outreach-delivery";
+import { fetchOrgBranding } from "@/lib/org-branding";
 import { z } from "zod";
 
 /**
@@ -43,13 +44,7 @@ export const sendFollowupSuggestionsFn = createServerFn({ method: "POST" })
       throw new Error("Unauthorized: not a member of this organization");
     }
 
-    const { data: org } = await supabase
-      .from("organizations")
-      .select(
-        "name, brand_name, support_email, logo_url, primary_color, font_family, email_signature",
-      )
-      .eq("id", data.organizationId)
-      .single();
+    const org = await fetchOrgBranding(supabase, data.organizationId);
     if (!org) throw new Error("Organization not found");
 
     const channels = await loadOutreachDeliveryChannels(data.organizationId);
@@ -99,10 +94,10 @@ export const sendFollowupSuggestionsFn = createServerFn({ method: "POST" })
           idempotencyKey: `followup-suggestion-${s.id}`,
           channels,
           organizationId: data.organizationId,
-          logoUrl: (org as any).logo_url ?? null,
-          accentColor: (org as any).primary_color ?? null,
-          fontFamily: (org as any).font_family ?? null,
-          signature: (org as any).email_signature ?? null,
+          logoUrl: org.logo_url ?? null,
+          accentColor: org.primary_color ?? null,
+          fontFamily: org.font_family ?? null,
+          signature: org.email_signature ?? null,
         });
 
         if (!dispatch.success) {

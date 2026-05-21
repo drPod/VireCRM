@@ -4,6 +4,7 @@ import { requireActiveSubscription } from "@/integrations/supabase/subscription-
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { deliverOutreachEmail, loadOutreachDeliveryChannels } from "@/lib/email/outreach-delivery";
+import { fetchOrgAiUsage, fetchOrgBranding } from "@/lib/org-branding";
 import { fillTemplateTokens } from "@/lib/outreach/template-fill";
 import { z } from "zod";
 
@@ -71,16 +72,12 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
     // `support_email` doubles as the org's business reply-to address — when
     // set, recipient replies route to the user's inbox instead of disappearing
     // into the platform default.
-    const { data: org } = await supabase
-      .from("organizations")
-      .select(
-        "name, brand_name, support_email, ai_tokens_used, ai_tokens_limit, logo_url, primary_color, font_family, email_signature",
-      )
-      .eq("id", data.organizationId)
-      .single();
-
-    if (!org) throw new Error("Organization not found");
-    if (org.ai_tokens_used >= org.ai_tokens_limit) {
+    const [org, aiUsage] = await Promise.all([
+      fetchOrgBranding(supabase, data.organizationId),
+      fetchOrgAiUsage(supabase, data.organizationId),
+    ]);
+    if (!org || !aiUsage) throw new Error("Organization not found");
+    if (aiUsage.ai_tokens_used >= aiUsage.ai_tokens_limit) {
       throw new Error("AI token limit reached. Upgrade your plan for more.");
     }
 
@@ -258,10 +255,10 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
           idempotencyKey: `outreach-${inserted.id}`,
           channels: deliveryChannels,
           organizationId: data.organizationId,
-          logoUrl: (org as any).logo_url ?? null,
-          accentColor: (org as any).primary_color ?? null,
-          fontFamily: (org as any).font_family ?? null,
-          signature: (org as any).email_signature ?? null,
+          logoUrl: org.logo_url ?? null,
+          accentColor: org.primary_color ?? null,
+          fontFamily: org.font_family ?? null,
+          signature: org.email_signature ?? null,
         });
 
         if (!dispatch.success) {

@@ -4,6 +4,7 @@ import { requireActiveSubscription } from "@/integrations/supabase/subscription-
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { deliverOutreachEmail, loadOutreachDeliveryChannels } from "@/lib/email/outreach-delivery";
+import { fetchOrgBranding } from "@/lib/org-branding";
 import { fillTemplateTokens } from "@/lib/outreach/template-fill";
 import { z } from "zod";
 
@@ -203,13 +204,7 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
     if (!lead) throw new Error("Lead not found");
 
     // Pull org branding + reply-to (business inbox) in one shot.
-    const { data: org } = await supabase
-      .from("organizations")
-      .select(
-        "name, brand_name, support_email, logo_url, primary_color, font_family, email_signature",
-      )
-      .eq("id", data.organizationId)
-      .maybeSingle();
+    const org = await fetchOrgBranding(supabase, data.organizationId);
 
     if (!org) throw new Error("Organization not found");
     const businessName = org.brand_name || org.name;
@@ -271,10 +266,10 @@ export const sendOutreachWithContentFn = createServerFn({ method: "POST" })
       idempotencyKey: `outreach-${inserted.id}`,
       channels,
       organizationId: data.organizationId,
-      logoUrl: (org as any).logo_url ?? null,
-      accentColor: (org as any).primary_color ?? null,
-      fontFamily: (org as any).font_family ?? null,
-      signature: (org as any).email_signature ?? null,
+      logoUrl: org.logo_url ?? null,
+      accentColor: org.primary_color ?? null,
+      fontFamily: org.font_family ?? null,
+      signature: org.email_signature ?? null,
     });
 
     if (!result.success) {
