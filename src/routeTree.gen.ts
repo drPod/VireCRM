@@ -14,7 +14,6 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SigninRouteImport } from './routes/signin'
-import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -25,11 +24,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ConfirmEmailRouteImport } from './routes/confirm-email'
+import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as HooksSendPendingWelcomesRouteImport } from './routes/hooks/send-pending-welcomes'
-import { Route as HooksCalculatePayoutsRouteImport } from './routes/hooks/calculate-payouts'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
@@ -117,11 +115,6 @@ const SigninRoute = SigninRouteImport.update({
   path: '/signin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChangePasswordRoute = ChangePasswordRouteImport.update({
-  id: '/change-password',
-  path: '/change-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -172,6 +165,11 @@ const ConfirmEmailRoute = ConfirmEmailRouteImport.update({
   path: '/confirm-email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChangePasswordRoute = ChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AcceptInviteRoute = AcceptInviteRouteImport.update({
   id: '/accept-invite',
   path: '/accept-invite',
@@ -184,17 +182,6 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HooksSendPendingWelcomesRoute =
-  HooksSendPendingWelcomesRouteImport.update({
-    id: '/hooks/send-pending-welcomes',
-    path: '/hooks/send-pending-welcomes',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const HooksCalculatePayoutsRoute = HooksCalculatePayoutsRouteImport.update({
-  id: '/hooks/calculate-payouts',
-  path: '/hooks/calculate-payouts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
@@ -514,6 +501,7 @@ const ApiEmailQueueProcessRoute = ApiEmailQueueProcessRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
+  '/change-password': typeof ChangePasswordRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/contact': typeof ContactRoute
   '/features': typeof FeaturesRoute
@@ -523,7 +511,6 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
-  '/change-password': typeof ChangePasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -566,8 +553,6 @@ export interface FileRoutesByFullPath {
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
-  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
   '/energy/customers': typeof AppEnergyCustomersRoute
@@ -597,6 +582,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
+  '/change-password': typeof ChangePasswordRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/contact': typeof ContactRoute
   '/features': typeof FeaturesRoute
@@ -606,7 +592,6 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
-  '/change-password': typeof ChangePasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -649,8 +634,6 @@ export interface FileRoutesByTo {
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
-  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
   '/energy/customers': typeof AppEnergyCustomersRoute
@@ -682,6 +665,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/accept-invite': typeof AcceptInviteRoute
+  '/change-password': typeof ChangePasswordRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/contact': typeof ContactRoute
   '/features': typeof FeaturesRoute
@@ -691,7 +675,6 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
-  '/change-password': typeof ChangePasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
@@ -734,8 +717,6 @@ export interface FileRoutesById {
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
-  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/_app/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/_app/energy/contracts': typeof AppEnergyContractsRoute
   '/_app/energy/customers': typeof AppEnergyCustomersRoute
@@ -767,6 +748,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/accept-invite'
+    | '/change-password'
     | '/confirm-email'
     | '/contact'
     | '/features'
@@ -776,7 +758,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
-    | '/change-password'
     | '/reset-password'
     | '/signin'
     | '/signup'
@@ -819,8 +800,6 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
-    | '/hooks/calculate-payouts'
-    | '/hooks/send-pending-welcomes'
     | '/academy/$courseId'
     | '/energy/contracts'
     | '/energy/customers'
@@ -850,6 +829,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/accept-invite'
+    | '/change-password'
     | '/confirm-email'
     | '/contact'
     | '/features'
@@ -859,7 +839,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
-    | '/change-password'
     | '/reset-password'
     | '/signin'
     | '/signup'
@@ -902,8 +881,6 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
-    | '/hooks/calculate-payouts'
-    | '/hooks/send-pending-welcomes'
     | '/academy/$courseId'
     | '/energy/contracts'
     | '/energy/customers'
@@ -934,6 +911,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/accept-invite'
+    | '/change-password'
     | '/confirm-email'
     | '/contact'
     | '/features'
@@ -943,7 +921,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
-    | '/change-password'
     | '/reset-password'
     | '/signin'
     | '/signup'
@@ -986,8 +963,6 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
-    | '/hooks/calculate-payouts'
-    | '/hooks/send-pending-welcomes'
     | '/_app/academy/$courseId'
     | '/_app/energy/contracts'
     | '/_app/energy/customers'
@@ -1019,6 +994,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AcceptInviteRoute: typeof AcceptInviteRoute
+  ChangePasswordRoute: typeof ChangePasswordRoute
   ConfirmEmailRoute: typeof ConfirmEmailRoute
   ContactRoute: typeof ContactRoute
   FeaturesRoute: typeof FeaturesRoute
@@ -1028,7 +1004,6 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RefundPolicyRoute: typeof RefundPolicyRoute
-  ChangePasswordRoute: typeof ChangePasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SigninRoute: typeof SigninRoute
   SignupRoute: typeof SignupRoute
@@ -1039,8 +1014,6 @@ export interface RootRouteChildren {
   BookSlugRoute: typeof BookSlugRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
-  HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
-  HooksSendPendingWelcomesRoute: typeof HooksSendPendingWelcomesRoute
   ApiPublicContactRoute: typeof ApiPublicContactRoute
   ApiEmailQueueProcessRoute: typeof ApiEmailQueueProcessRoute
   ApiEmailTransactionalSendRoute: typeof ApiEmailTransactionalSendRoute
@@ -1087,13 +1060,6 @@ declare module '@tanstack/react-router' {
       path: '/signin'
       fullPath: '/signin'
       preLoaderRoute: typeof SigninRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/change-password': {
-      id: '/change-password'
-      path: '/change-password'
-      fullPath: '/change-password'
-      preLoaderRoute: typeof ChangePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -1166,6 +1132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfirmEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/change-password': {
+      id: '/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof ChangePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/accept-invite': {
       id: '/accept-invite'
       path: '/accept-invite'
@@ -1185,20 +1158,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hooks/send-pending-welcomes': {
-      id: '/hooks/send-pending-welcomes'
-      path: '/hooks/send-pending-welcomes'
-      fullPath: '/hooks/send-pending-welcomes'
-      preLoaderRoute: typeof HooksSendPendingWelcomesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hooks/calculate-payouts': {
-      id: '/hooks/calculate-payouts'
-      path: '/hooks/calculate-payouts'
-      fullPath: '/hooks/calculate-payouts'
-      preLoaderRoute: typeof HooksCalculatePayoutsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/email/unsubscribe': {
@@ -1799,6 +1758,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AcceptInviteRoute: AcceptInviteRoute,
+  ChangePasswordRoute: ChangePasswordRoute,
   ConfirmEmailRoute: ConfirmEmailRoute,
   ContactRoute: ContactRoute,
   FeaturesRoute: FeaturesRoute,
@@ -1808,7 +1768,6 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RefundPolicyRoute: RefundPolicyRoute,
-  ChangePasswordRoute: ChangePasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SigninRoute: SigninRoute,
   SignupRoute: SignupRoute,
@@ -1819,8 +1778,6 @@ const rootRouteChildren: RootRouteChildren = {
   BookSlugRoute: BookSlugRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
-  HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
-  HooksSendPendingWelcomesRoute: HooksSendPendingWelcomesRoute,
   ApiPublicContactRoute: ApiPublicContactRoute,
   ApiEmailQueueProcessRoute: ApiEmailQueueProcessRoute,
   ApiEmailTransactionalSendRoute: ApiEmailTransactionalSendRoute,
