@@ -2,18 +2,13 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   Building2,
   Palette,
-  Globe,
   Upload,
   Crown,
   Shield,
-  Sparkles,
   Loader2,
-  Copy,
-  CheckCircle2,
   AlertCircle,
   Mail,
   Type,
@@ -31,7 +26,6 @@ import { CustomDomainsSection } from "@/components/crm/CustomDomainsPanel";
 import { CustomerDomainOnboardingDialog } from "@/components/crm/CustomerDomainOnboardingDialog";
 
 type OrgWithDomain = {
-  is_reseller?: boolean;
   domain_verification_token?: string;
   domain_verified_at?: string | null;
   support_email?: string | null;
@@ -58,10 +52,7 @@ export function WhiteLabelSettings() {
   const [fontFamily, setFontFamily] = useState(orgExt?.font_family || "");
   const [emailSignature, setEmailSignature] = useState(orgExt?.email_signature || "");
   const [supportEmail, setSupportEmail] = useState(orgExt?.support_email || "");
-  const initialIsReseller = !!orgExt?.is_reseller;
-  const [isReseller, setIsReseller] = useState(initialIsReseller);
   const [saving, setSaving] = useState(false);
-  const [togglingReseller, setTogglingReseller] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEnterprise = organization?.plan === "enterprise";
@@ -138,23 +129,6 @@ export function WhiteLabelSettings() {
       toast.success("White-label settings saved");
       await refreshProfile();
     }
-  };
-
-  const handleToggleReseller = async (next: boolean) => {
-    if (!organization?.id) return;
-    setTogglingReseller(true);
-    const { error } = await supabase
-      .from("organizations")
-      .update({ is_reseller: next } as never)
-      .eq("id", organization.id);
-    setTogglingReseller(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    setIsReseller(next);
-    toast.success(next ? "Reseller mode enabled" : "Reseller mode disabled");
-    await refreshProfile();
   };
 
   /* ---------------------------------------------------------------------- */
@@ -280,69 +254,6 @@ export function WhiteLabelSettings() {
           </Badge>
         )}
       </div>
-
-      {/* Reseller toggle */}
-      {isEnterprise && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex gap-3">
-              <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Reseller Mode</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Onboard your own clients under your branded CRM. Each client gets an isolated
-                  workspace.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {togglingReseller && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              )}
-              <Switch
-                checked={isReseller}
-                onCheckedChange={handleToggleReseller}
-                disabled={togglingReseller}
-              />
-            </div>
-          </div>
-
-          {isReseller && organization?.slug && (
-            <div className="rounded-lg border border-border bg-background/60 p-3 space-y-2">
-              <p className="text-xs font-semibold text-foreground">Your public storefront</p>
-              <p className="text-xs text-muted-foreground">
-                Share this link to let prospects see your branded landing page, plans, and signup.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  readOnly
-                  value={`${typeof window !== "undefined" ? window.location.origin : ""}/r/${organization.slug}`}
-                  className="h-9 flex-1 rounded-md border border-input bg-input px-2 text-xs text-foreground font-mono outline-none"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(
-                      `${window.location.origin}/r/${organization.slug}`,
-                    );
-                    toast.success("Storefront link copied");
-                  }}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  Copy
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/r/${organization.slug}`} target="_blank" rel="noreferrer">
-                    Open
-                  </a>
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className={`space-y-4 ${!isEnterprise ? "opacity-50 pointer-events-none" : ""}`}>
         {/* Brand Name */}
@@ -488,7 +399,7 @@ export function WhiteLabelSettings() {
           />
           <p className="mt-2 text-xs text-muted-foreground">
             Square image (32×32 or 64×64 recommended). Shown in the browser tab on your custom
-            domain and reseller storefront. Supports PNG, SVG, or ICO.
+            domain. Supports PNG, SVG, or ICO.
           </p>
           {faviconUrl && (
             <div className="mt-3 flex items-center gap-3 rounded-lg bg-secondary/50 p-3">
@@ -530,8 +441,7 @@ export function WhiteLabelSettings() {
             </div>
           )}
           <p className="mt-2 text-xs text-muted-foreground">
-            Applied across the CRM, reseller landing page, and emails so your brand reads
-            consistently everywhere.
+            Applied across the CRM and emails so your brand reads consistently everywhere.
           </p>
         </div>
 
