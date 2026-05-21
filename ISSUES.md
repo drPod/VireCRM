@@ -100,6 +100,21 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Unit tests for public contact form handler (L4)
+**Tags:** [tests] [lead-sync] [public-api]
+
+#### Shipped
+- `src/routes/api/public/__tests__/contact.test.ts` — 14 specs covering happy path, honeypot, validation (missing/malformed email, empty message, mismatched + out-of-range captcha, missing captcha), rate-limit 429, dedup short-circuit, missing service-role-key 500, owner-email enqueue failure, visitor-ack failure-as-non-fatal, OPTIONS preflight.
+- Mocks held narrow: `@supabase/supabase-js` (chainable builder fake supporting `.select(_, { count, head:true })` + `.maybeSingle()` terminals), `@/lib/email/send-transactional`, `@/lib/contact/classify-submission`, `@/lib/cloudflare/context` (`keepAlive` awaits inline).
+- `vitest.config.ts` — added `test.env.VITE_SUPABASE_URL` so handler's `import.meta.env` gate is passable; routes that build service-role clients server-side still gate-check the URL.
+
+#### Verification
+- `bun run test src/routes/api/public/__tests__/contact.test.ts` → 14 pass.
+- `bun run test` (full suite) → 6 files / 157 pass. No regressions.
+
+#### Found (no work needed)
+- Honeypot has two layers: Zod schema `website: z.string().max(0)` rejects bot fills with 400, then the post-parse `if (payload.website.length > 0)` silent-success branch is unreachable (dead code). Test documents both. Not flagging for removal — defense-in-depth is intentional even if redundant.
+
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
