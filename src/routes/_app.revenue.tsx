@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   TrendingUp,
   DollarSign,
-  Wallet,
   Receipt,
   Users,
   Percent,
@@ -60,12 +59,6 @@ function RevenuePage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/payouts">
-              <Wallet className="mr-1.5 h-3.5 w-3.5" />
-              Team Payouts
-            </Link>
-          </Button>
           <Button variant="command" size="sm" asChild>
             <Link to="/expenses">
               <Receipt className="mr-1.5 h-3.5 w-3.5" />

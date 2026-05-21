@@ -974,7 +974,6 @@ export interface FileRouteTypes {
     | '/_app/invoices'
     | '/_app/leads'
     | '/_app/messages'
-    | '/_app/payouts'
     | '/_app/pipeline'
     | '/_app/qa-checklist'
     | '/_app/real-estate'
@@ -990,8 +989,6 @@ export interface FileRouteTypes {
     | '/hooks/calculate-payouts'
     | '/hooks/send-pending-welcomes'
     | '/_app/academy/$courseId'
-    | '/_app/clients/payouts'
-    | '/_app/clients/plans'
     | '/_app/energy/contracts'
     | '/_app/energy/customers'
     | '/_app/energy/loa'
@@ -1288,13 +1285,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPipelineRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/payouts': {
-      id: '/_app/payouts'
-      path: '/payouts'
-      fullPath: '/payouts'
-      preLoaderRoute: typeof AppPayoutsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/messages': {
       id: '/_app/messages'
       path: '/messages'
@@ -1398,13 +1388,6 @@ declare module '@tanstack/react-router' {
       path: '/command-chat'
       fullPath: '/command-chat'
       preLoaderRoute: typeof AppCommandChatRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/clients': {
-      id: '/_app/clients'
-      path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof AppClientsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/campaigns': {
@@ -1582,20 +1565,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEnergyContractsRouteImport
       parentRoute: typeof AppEnergyRoute
     }
-    '/_app/clients/plans': {
-      id: '/_app/clients/plans'
-      path: '/plans'
-      fullPath: '/clients/plans'
-      preLoaderRoute: typeof AppClientsPlansRouteImport
-      parentRoute: typeof AppClientsRoute
-    }
-    '/_app/clients/payouts': {
-      id: '/_app/clients/payouts'
-      path: '/payouts'
-      fullPath: '/clients/payouts'
-      preLoaderRoute: typeof AppClientsPayoutsRouteImport
-      parentRoute: typeof AppClientsRoute
-    }
     '/_app/academy/$courseId': {
       id: '/_app/academy/$courseId'
       path: '/$courseId'
@@ -1672,20 +1641,6 @@ const AppAcademyRouteChildren: AppAcademyRouteChildren = {
 
 const AppAcademyRouteWithChildren = AppAcademyRoute._addFileChildren(
   AppAcademyRouteChildren,
-)
-
-interface AppClientsRouteChildren {
-  AppClientsPayoutsRoute: typeof AppClientsPayoutsRoute
-  AppClientsPlansRoute: typeof AppClientsPlansRoute
-}
-
-const AppClientsRouteChildren: AppClientsRouteChildren = {
-  AppClientsPayoutsRoute: AppClientsPayoutsRoute,
-  AppClientsPlansRoute: AppClientsPlansRoute,
-}
-
-const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
-  AppClientsRouteChildren,
 )
 
 interface AppEnergyRouteChildren {
@@ -1774,7 +1729,6 @@ interface AppRouteChildren {
   AppBookRoute: typeof AppBookRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppCampaignsRoute: typeof AppCampaignsRoute
-  AppClientsRoute: typeof AppClientsRouteWithChildren
   AppCommandChatRoute: typeof AppCommandChatRoute
   AppContactSubmissionsRoute: typeof AppContactSubmissionsRoute
   AppConversationsRoute: typeof AppConversationsRoute
@@ -1790,7 +1744,6 @@ interface AppRouteChildren {
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
-  AppPayoutsRoute: typeof AppPayoutsRoute
   AppPipelineRoute: typeof AppPipelineRoute
   AppQaChecklistRoute: typeof AppQaChecklistRoute
   AppRealEstateRoute: typeof AppRealEstateRouteWithChildren
@@ -1813,7 +1766,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppBookRoute: AppBookRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppCampaignsRoute: AppCampaignsRoute,
-  AppClientsRoute: AppClientsRouteWithChildren,
   AppCommandChatRoute: AppCommandChatRoute,
   AppContactSubmissionsRoute: AppContactSubmissionsRoute,
   AppConversationsRoute: AppConversationsRoute,
@@ -1829,7 +1781,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppInvoicesRoute: AppInvoicesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,
-  AppPayoutsRoute: AppPayoutsRoute,
   AppPipelineRoute: AppPipelineRoute,
   AppQaChecklistRoute: AppQaChecklistRoute,
   AppRealEstateRoute: AppRealEstateRouteWithChildren,

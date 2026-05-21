@@ -91,6 +91,26 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-21 — Remove reseller CRM management routes
+**Tags:** [reseller] [frontend] [lovable-migration]
+
+#### Shipped
+- Deleted `src/routes/_app.clients.tsx`, `_app.clients.payouts.tsx`, `_app.clients.plans.tsx`, `_app.payouts.tsx`
+- `EditClientWhiteLabelDialog` component preserved (white-label feature)
+- Removed `Link to="/payouts"` button + unused `Wallet` import from `_app.revenue.tsx`
+- Cleaned all deleted route references from `src/routeTree.gen.ts` (imports, declarations, interfaces, union types)
+- `bun run typecheck` → zero errors
+
+### 2026-05-21 — Delete reseller components
+**Tags:** [reseller] [frontend] [lovable-migration]
+
+#### Shipped
+- Deleted `src/components/marketing/BrandedSignup.tsx`, `src/components/marketing/features/ResellerCta.tsx`, `src/components/crm/CommissionRulesDialog.tsx`
+- Removed all import sites and JSX usages: `index.tsx` (BrandedSignup conditional render), `features.tsx` (ResellerCta block)
+- `_app.payouts.tsx` was already deleted by a parallel unit; no action needed
+- Updated stale comment in `useCustomDomainGuard.ts`
+- Commit: `618d0d1`
+
 ### 2026-05-21 — Remove is_reseller toggle from WhiteLabelSettings
 **Tags:** [reseller] [frontend] [lovable-migration]
 
