@@ -91,6 +91,20 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-21 — Move connector clients to lib/connectors
+**Tags:** [audit] [lovable-migration]
+
+#### Shipped
+- `git mv src/lib/{apollo,hunter,snov}.ts src/lib/connectors/` — co-located with existing `gateway.ts` + `oauth.ts` + `catalog.ts` + `prerequisites.ts` + `validation.ts`. History preserved.
+- Updated 3 importers (only call sites): `src/functions/integrations.functions.ts:9-11`, `src/functions/find-leads.functions.ts:5-7`, `src/functions/apollo-lists.functions.ts:15` — `@/lib/<x>` → `@/lib/connectors/<x>`.
+- Moved files had zero internal relative imports — no edits to bodies.
+
+#### Verification
+- `bun run typecheck` → clean
+- `bun run test` → 119/119 passed
+- `bun run lint` → no new errors on touched files (pre-existing errors in `supabase/functions/*`, `vite.config.ts` unchanged)
+- `bun run build` → succeeded
+
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
 
