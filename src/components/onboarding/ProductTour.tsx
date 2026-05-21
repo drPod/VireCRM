@@ -17,8 +17,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { SUPPORT_EMAIL } from "@/config/support";
+import { type IndustryKey } from "@/lib/industry-templates";
+
+// Re-export so callers can import both ProductTour and IndustryKey from this module.
+export type { IndustryKey };
 
 export interface TourStep {
   /** data-tour id of the target element. Use "_center" for a centered modal step (no anchor). */
@@ -40,6 +45,7 @@ interface ProductTourProps {
 const RING_PADDING = 6;
 const TOOLTIP_GAP = 12;
 const TOOLTIP_WIDTH = 320;
+const CARET_SIZE = 8;
 
 interface Rect {
   top: number;
@@ -69,6 +75,32 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
   useEffect(() => {
     if (open) setIndex(0);
   }, [open]);
+
+  // Keyboard navigation.
+  useEffect(() => {
+    if (!open) return;
+    const total = steps.length;
+    const isLast = index === total - 1;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === " ") {
+        e.preventDefault();
+        if (!isLast) setIndex((i) => Math.min(total - 1, i + 1));
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setIndex((i) => Math.max(0, i - 1));
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, index, steps.length, onClose]);
+
+  // Move focus to tooltip on step change.
+  useEffect(() => {
+    if (open) tooltipRef.current?.focus();
+  }, [open, index]);
 
   // On mobile viewports, open the sidebar drawer so nav targets are in the DOM
   // and visible when the tour runs. Close it again when the tour closes.
@@ -105,8 +137,12 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
   const isCenter = step?.target === "_center" || step?.placement === "center";
 
   // Resolve the target element for the current step. Uses MutationObserver so
-  // we react immediately when sidebar items mount rather than polling blindly.
+  // it reacts the moment the element mounts rather than burning fixed poll
+  // slots. Falls back to centered mode after 3 s if the element never appears.
   useEffect(() => {
+    // Reset fallback flag on every step (including center steps).
+    setElementNotFound(false);
+
     if (!open || !step || isCenter) {
       setTarget(null);
       setRect(null);
@@ -129,13 +165,18 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
       return false;
     };
 
+    // Try immediately — element may already be in the DOM.
     if (tryFind()) return;
 
+    // Watch for DOM mutations until the element appears.
     const observer = new MutationObserver(() => {
-      if (tryFind()) observer.disconnect();
+      if (tryFind()) {
+        observer.disconnect();
+      }
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
+    // Hard timeout: show centered fallback if the element never mounts.
     const timeout = setTimeout(() => {
       if (cancelled) return;
       observer.disconnect();
@@ -156,12 +197,11 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     if (!target || isCenter) return;
     const update = () => setRect(getRect(target));
     update();
-    const onScroll = () => update();
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
     return () => {
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
     };
   }, [target, isCenter, viewport.w, viewport.h]);
 
@@ -193,6 +233,8 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     viewport.w > 0 ? Math.min(TOOLTIP_WIDTH, viewport.w - 24) : TOOLTIP_WIDTH;
 
   // Compute tooltip position based on placement + viewport.
+  // `placement` is lifted out so the caret computation can reference it.
+  let placement: "top" | "bottom" | "left" | "right" = "right";
   const tooltipStyle: React.CSSProperties = (() => {
     if (effectiveIsCenter || !rect) {
       return {
@@ -204,7 +246,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
         zIndex: 10001,
       };
     }
-    let placement = step.placement ?? "right";
+    placement = step.placement === "center" ? "right" : (step.placement ?? "right");
     // Auto-flip if it would overflow.
     if (
       placement === "right" &&
@@ -248,8 +290,61 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     };
   })();
 
-  // Highlight ring around the target. Built with 4 dim overlays so we don't
-  // need to fight stacking contexts inside the sidebar.
+  // Caret arrow pointing from the tooltip toward the highlighted element.
+  const caretStyle: React.CSSProperties | null = (() => {
+    if (effectiveIsCenter || !rect) return null;
+    const base: React.CSSProperties = {
+      position: "absolute",
+      width: 0,
+      height: 0,
+      pointerEvents: "none",
+    };
+    if (placement === "right") {
+      return {
+        ...base,
+        left: -CARET_SIZE,
+        top: "50%",
+        transform: "translateY(-50%)",
+        borderTop: `${CARET_SIZE}px solid transparent`,
+        borderBottom: `${CARET_SIZE}px solid transparent`,
+        borderRight: `${CARET_SIZE}px solid hsl(var(--border))`,
+      };
+    }
+    if (placement === "left") {
+      return {
+        ...base,
+        right: -CARET_SIZE,
+        top: "50%",
+        transform: "translateY(-50%)",
+        borderTop: `${CARET_SIZE}px solid transparent`,
+        borderBottom: `${CARET_SIZE}px solid transparent`,
+        borderLeft: `${CARET_SIZE}px solid hsl(var(--border))`,
+      };
+    }
+    if (placement === "bottom") {
+      return {
+        ...base,
+        top: -CARET_SIZE,
+        left: "50%",
+        transform: "translateX(-50%)",
+        borderLeft: `${CARET_SIZE}px solid transparent`,
+        borderRight: `${CARET_SIZE}px solid transparent`,
+        borderBottom: `${CARET_SIZE}px solid hsl(var(--border))`,
+      };
+    }
+    return {
+      ...base,
+      bottom: -CARET_SIZE,
+      left: "50%",
+      transform: "translateX(-50%)",
+      borderLeft: `${CARET_SIZE}px solid transparent`,
+      borderRight: `${CARET_SIZE}px solid transparent`,
+      borderTop: `${CARET_SIZE}px solid hsl(var(--border))`,
+    };
+  })();
+
+  // Highlight ring around the target. The box-shadow paints the full-screen dim
+  // so we don't need to fight stacking contexts inside the sidebar.
   const ringStyle: React.CSSProperties | null =
     effectiveIsCenter || !rect
       ? null
@@ -280,20 +375,32 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
       )}
       {ringStyle && <div style={ringStyle} aria-hidden="true" />}
 
+      {/* Live region announces step changes to screen readers. */}
+      <span aria-live="polite" aria-atomic="true" className="sr-only">
+        {index + 1} of {total}: {step.title}
+      </span>
+
       <div
         ref={tooltipRef}
         role="dialog"
-        aria-label="Product tour"
+        aria-labelledby="tour-title"
+        aria-describedby="tour-description"
+        tabIndex={-1}
         style={tooltipStyle}
-        className="rounded-xl border border-border bg-card p-5 shadow-2xl"
+        className="rounded-xl border border-border bg-card p-5 shadow-2xl outline-none"
       >
+        {caretStyle && <div style={caretStyle} aria-hidden="true" />}
         <div className="flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15">
             <Sparkles className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-foreground">{step.title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{step.body}</p>
+            <h3 id="tour-title" className="text-sm font-semibold text-foreground">
+              {step.title}
+            </h3>
+            <p id="tour-description" className="mt-1 text-sm text-muted-foreground">
+              {step.body}
+            </p>
           </div>
           <button
             aria-label="Close tour"
@@ -305,9 +412,21 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            {index + 1} of {total}
-          </span>
+          <div className="flex items-center gap-1">
+            {steps.map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  i === index
+                    ? "w-4 bg-primary"
+                    : i < index
+                      ? "w-1.5 bg-primary/50"
+                      : "w-1.5 bg-muted-foreground/30",
+                )}
+              />
+            ))}
+          </div>
           <div className="flex items-center gap-2">
             {index > 0 && (
               <Button size="sm" variant="ghost" onClick={() => setIndex((i) => Math.max(0, i - 1))}>
@@ -332,6 +451,9 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
             )}
           </div>
         </div>
+        <p className="mt-2 text-center text-xs text-muted-foreground/60">
+          ← → navigate · Esc close
+        </p>
       </div>
     </>,
     document.body,
@@ -401,3 +523,62 @@ export const DEFAULT_TOUR_STEPS: TourStep[] = [
     placement: "center",
   },
 ];
+
+/**
+ * Build tour steps tailored to the tenant's industry template. Each industry
+ * gets its own curated middle section that highlights the nav items actually
+ * present in their sidebar, using industry-specific terminology. Shared
+ * utility steps (Command Chat, AI Follow-ups, Academy, Settings) always appear
+ * at the end before the "You're all set" close step.
+ */
+export function buildTourSteps(industryTemplate: IndustryKey): TourStep[] {
+  const welcome = DEFAULT_TOUR_STEPS[0];
+  const finish = DEFAULT_TOUR_STEPS[DEFAULT_TOUR_STEPS.length - 1];
+  const sharedTargets = ["nav-command-chat", "nav-followup-inbox", "nav-academy", "nav-settings"];
+  const shared = DEFAULT_TOUR_STEPS.filter((s) => sharedTargets.includes(s.target));
+
+  const industryMiddle: Record<IndustryKey, TourStep[]> = {
+    general: DEFAULT_TOUR_STEPS.slice(1, -1).filter((s) => !sharedTargets.includes(s.target)),
+    energy: [
+      { target: "nav-dashboard", title: "Dashboard", body: "Your command center — pipeline value, energy contracts in progress, and key metrics.", placement: "right" },
+      { target: "nav-leads", title: "Prospects", body: "All your energy prospects in one searchable table. Click a row to see notes, messages, and AI scoring.", placement: "right" },
+      { target: "nav-energy", title: "Energy Hub", body: "Manage LOAs, usage data, pricing quotes, and supplier info — all in one place.", placement: "right" },
+      { target: "nav-energy-loa", title: "LOA Management", body: "Track Letters of Authority from submission through approval. Filter by status and export for suppliers.", placement: "right" },
+      { target: "nav-energy-contracts", title: "Contracts", body: "View active energy contracts, renewal dates, and margin per account.", placement: "right" },
+      DEFAULT_TOUR_STEPS.find((s) => s.target === "nav-workflows")!,
+    ],
+    solar: [
+      { target: "nav-dashboard", title: "Dashboard", body: "Your command center — active solar projects, pipeline value, and key metrics.", placement: "right" },
+      { target: "nav-leads", title: "Leads", body: "All your solar prospects. Click a row to see site details, notes, messages, and AI scoring.", placement: "right" },
+      { target: "nav-solar", title: "Solar Hub", body: "Manage your full solar operation from one place.", placement: "right" },
+      { target: "nav-solar-projects", title: "Projects", body: "Track every solar installation from proposal through commissioning. Status, site data, and financials.", placement: "right" },
+      DEFAULT_TOUR_STEPS.find((s) => s.target === "nav-workflows")!,
+    ],
+    real_estate: [
+      { target: "nav-dashboard", title: "Dashboard", body: "Your command center — active listings, leads in pipeline, and key metrics.", placement: "right" },
+      { target: "nav-leads", title: "Leads", body: "All your real estate prospects. Click a row to see property interests, notes, and AI scoring.", placement: "right" },
+      { target: "nav-real-estate", title: "Real Estate Hub", body: "Manage listings and showings from one place.", placement: "right" },
+      { target: "nav-real-estate-listings", title: "Listings", body: "Track all active and pending listings — price, status, days on market.", placement: "right" },
+      { target: "nav-real-estate-showings", title: "Showings", body: "Schedule and track showings across all your listings.", placement: "right" },
+      DEFAULT_TOUR_STEPS.find((s) => s.target === "nav-workflows")!,
+    ],
+    insurance: [
+      { target: "nav-dashboard", title: "Dashboard", body: "Your command center — policies active, renewals due, and key metrics.", placement: "right" },
+      { target: "nav-leads", title: "Prospects", body: "All your insurance prospects. Click a row to see coverage interests, notes, and AI scoring.", placement: "right" },
+      { target: "nav-insurance", title: "Insurance Hub", body: "Manage quotes and policies from one place.", placement: "right" },
+      { target: "nav-insurance-quotes", title: "Quotes", body: "Track all active quotes — coverage type, premium, expiry date.", placement: "right" },
+      { target: "nav-insurance-policies", title: "Policies", body: "View all in-force policies, renewal dates, and coverage details.", placement: "right" },
+      DEFAULT_TOUR_STEPS.find((s) => s.target === "nav-workflows")!,
+    ],
+    gym: [
+      { target: "nav-dashboard", title: "Dashboard", body: "Your command center — active members, trial signups in pipeline, and key metrics.", placement: "right" },
+      { target: "nav-leads", title: "Prospects", body: "All your gym prospects. Click a row to see membership interests, notes, and AI scoring.", placement: "right" },
+      DEFAULT_TOUR_STEPS.find((s) => s.target === "nav-conversations")!,
+      { target: "nav-calendar", title: "Calendar", body: "Manage your schedule, trial sessions, and appointments.", placement: "right" },
+      { target: "nav-appointments", title: "Appointments", body: "Book and track individual appointments with leads and members.", placement: "right" },
+      DEFAULT_TOUR_STEPS.find((s) => s.target === "nav-workflows")!,
+    ],
+  };
+
+  return [welcome, ...industryMiddle[industryTemplate], ...shared, finish];
+}

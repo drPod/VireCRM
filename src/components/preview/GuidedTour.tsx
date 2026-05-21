@@ -103,6 +103,9 @@ export function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTo
       }
     : null;
 
+  // Effective width matches the CSS min() so JS centering stays consistent on narrow screens.
+  const effectiveWidth = Math.min(TOOLTIP_WIDTH, viewport.w - 24);
+
   let tooltipTop = 0;
   let tooltipLeft = 0;
   if (spot) {
@@ -114,11 +117,11 @@ export function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTo
       : Math.max(spot.top - TOOLTIP_GAP - 220, 16);
     tooltipLeft = Math.max(
       16,
-      Math.min(spot.left + spot.width / 2 - TOOLTIP_WIDTH / 2, viewport.w - TOOLTIP_WIDTH - 16),
+      Math.min(spot.left + spot.width / 2 - effectiveWidth / 2, viewport.w - effectiveWidth - 16),
     );
   } else {
     tooltipTop = Math.max(viewport.h / 2 - 120, 16);
-    tooltipLeft = Math.max(viewport.w / 2 - TOOLTIP_WIDTH / 2, 16);
+    tooltipLeft = Math.max(viewport.w / 2 - effectiveWidth / 2, 16);
   }
 
   return (
@@ -182,7 +185,7 @@ export function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTo
           position: "absolute",
           top: tooltipTop,
           left: tooltipLeft,
-          width: TOOLTIP_WIDTH,
+          width: `min(${TOOLTIP_WIDTH}px, calc(100vw - 24px))`,
         }}
         className="rounded-xl border border-primary/30 bg-card/95 p-4 shadow-2xl shadow-primary/30 backdrop-blur-xl"
       >
@@ -191,7 +194,7 @@ export function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTo
             variant="outline"
             className="gap-1 border-primary/40 bg-primary/10 text-[10px] uppercase tracking-wide text-primary"
           >
-            <Sparkles className="h-3 w-3" /> Tour · {currentStep + 1}/{steps.length}
+            <Sparkles className="h-3 w-3" /> Tour
           </Badge>
           <button
             type="button"
@@ -256,6 +259,7 @@ export function GuidedTour({ steps, currentStep, onNavigate, onClose }: GuidedTo
             )}
           </div>
         </div>
+        <p className="mt-2 text-center text-xs text-muted-foreground">← → navigate · Esc close</p>
       </div>
     </div>
   );

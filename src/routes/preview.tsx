@@ -108,6 +108,81 @@ function ViewRenderer({ view }: { view: string }) {
   }
 }
 
+const TOUR_STEPS: TourStep[] = [
+  {
+    tab: "dashboard",
+    selector: '[data-tour="metrics"]',
+    title: "Your dashboard at a glance",
+    body: "Live metrics — active leads, pipeline value, win rate and AI response time — refresh in real time as your team works.",
+  },
+  {
+    tab: "dashboard",
+    selector: '[data-tour="pipeline"]',
+    title: "AI-prioritized pipeline",
+    body: "Majix ranks every opportunity by intent and value, so your reps always know what to chase next.",
+  },
+  {
+    tab: "leads",
+    selector: '[data-tour="leads-table"]',
+    title: "Every lead, every signal",
+    body: "Filter by status, search by company, see AI scores and last touch — your whole pipeline in one view.",
+  },
+  {
+    tab: "messages",
+    selector: '[data-tour="messages"]',
+    title: "Unified messages inbox",
+    body: "Email, SMS, WhatsApp and Instagram replies land in one timeline. The AI drafts responses you can send in a click.",
+  },
+  {
+    tab: "workflows",
+    selector: '[data-tour="workflows"]',
+    title: "Automate the whole funnel",
+    body: "Build multi-channel sequences with branches, waits, and AI-personalized copy. Auto-paused on reply.",
+  },
+  {
+    tab: "advisor",
+    selector: '[data-tour="advisor"]',
+    title: "Majix AI Advisor",
+    body: "Ask anything about your pipeline — Majix surfaces hot leads, suggests next actions, and writes outreach for you.",
+  },
+  {
+    tab: "calendar",
+    selector: '[data-tour="calendar"]',
+    title: "Bookings, no chasing",
+    body: "Round-robin scheduling, automated reminders, and a self-serve link your leads can book on instantly.",
+  },
+  {
+    tab: "revenue",
+    selector: '[data-tour="revenue"]',
+    title: "Revenue you can defend",
+    body: "Live MRR, LTV, CAC, and an AI forecast with low / likely / high ranges — exportable for board decks.",
+  },
+  {
+    tab: "email",
+    selector: '[data-tour="email"]',
+    title: "Email Marketing",
+    body: "Design and send email campaigns to your leads. Templates, scheduling, and open-rate tracking all in one place.",
+  },
+  {
+    tab: "campaigns",
+    selector: '[data-tour="campaigns"]',
+    title: "Campaigns",
+    body: "Run multi-channel outreach campaigns. Combine email, SMS, and AI-powered follow-ups in a single campaign flow.",
+  },
+  {
+    tab: "analytics",
+    selector: '[data-tour="analytics"]',
+    title: "Analytics",
+    body: "Track pipeline performance, conversion rates, and team activity. Identify bottlenecks and top performers at a glance.",
+  },
+  {
+    tab: "reputation",
+    selector: '[data-tour="reputation"]',
+    title: "Reputation Management",
+    body: "Monitor and respond to reviews across Google, Facebook, and other platforms — all from one inbox.",
+  },
+];
+
 function CrmPreviewPage() {
   const search = Route.useSearch();
   const active = search.view ?? "dashboard";
@@ -131,65 +206,14 @@ function CrmPreviewPage() {
   }, [setActive]);
   const endTour = useCallback(() => setTourStep(null), []);
 
-  const tourSteps: TourStep[] = [
-    {
-      tab: "dashboard",
-      selector: '[data-tour="metrics"]',
-      title: "Your dashboard at a glance",
-      body: "Live metrics — active leads, pipeline value, win rate and AI response time — refresh in real time as your team works.",
-    },
-    {
-      tab: "dashboard",
-      selector: '[data-tour="pipeline"]',
-      title: "AI-prioritized pipeline",
-      body: "Majix ranks every opportunity by intent and value, so your reps always know what to chase next.",
-    },
-    {
-      tab: "leads",
-      selector: '[data-tour="leads-table"]',
-      title: "Every lead, every signal",
-      body: "Filter by status, search by company, see AI scores and last touch — your whole pipeline in one view.",
-    },
-    {
-      tab: "messages",
-      selector: '[data-tour="messages"]',
-      title: "Unified messages inbox",
-      body: "Email, SMS, WhatsApp and Instagram replies land in one timeline. The AI drafts responses you can send in a click.",
-    },
-    {
-      tab: "workflows",
-      selector: '[data-tour="workflows"]',
-      title: "Automate the whole funnel",
-      body: "Build multi-channel sequences with branches, waits, and AI-personalized copy. Auto-paused on reply.",
-    },
-    {
-      tab: "advisor",
-      selector: '[data-tour="advisor"]',
-      title: "Majix AI Advisor",
-      body: "Ask anything about your pipeline — Majix surfaces hot leads, suggests next actions, and writes outreach for you.",
-    },
-    {
-      tab: "calendar",
-      selector: '[data-tour="calendar"]',
-      title: "Bookings, no chasing",
-      body: "Round-robin scheduling, automated reminders, and a self-serve link your leads can book on instantly.",
-    },
-    {
-      tab: "revenue",
-      selector: '[data-tour="revenue"]',
-      title: "Revenue you can defend",
-      body: "Live MRR, LTV, CAC, and an AI forecast with low / likely / high ranges — exportable for board decks.",
-    },
-  ];
-
   const goToStep = useCallback(
     (idx: number) => {
-      const step = tourSteps[idx];
+      const step = TOUR_STEPS[idx];
       if (!step) return;
       if (step.tab !== active) setActive(step.tab);
       setTourStep(idx);
     },
-    [active, tourSteps, setActive],
+    [active, setActive],
   );
 
   const notifyBlocked = useCallback(() => {
@@ -416,7 +440,7 @@ function CrmPreviewPage() {
       </div>
 
       <GuidedTour
-        steps={tourSteps}
+        steps={TOUR_STEPS}
         currentStep={tourStep}
         onNavigate={goToStep}
         onClose={endTour}
