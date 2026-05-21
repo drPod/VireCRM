@@ -30,6 +30,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 ### Bugs found, not fixed
 
 - [ ] **`AddLeadDialog.tsx:160-329`** — Status/Score/Next Action/Notes/Contract end date/Current supplier fields lack `autoComplete`. `htmlFor`/`id`/`name` are now present on all fields.
+- [ ] **`src/functions/__tests__/apollo-lists.test.ts` runtime mock drift** — All 13 specs throw `No "createMiddleware" export is defined on the "@tanstack/react-start" mock`. Source moved `requireSupabaseAuth` import from `@/integrations/supabase/auth-middleware` to `@/auth/server`, but test still mocks the old path and stubs only `createServerFn`. Fix: stub `createMiddleware` in the `@tanstack/react-start` factory and add a mock for `@/auth/server` (exporting `requireAuth` + `requireSupabaseAuth`). Typecheck now passes (2026-05-22 fix), runtime still red.
 - [ ] **Onboarding wizard `aria-describedby` Radix warning** — best-effort audit in progress (Unit 4 of 2026-05-22 batch); scanning all `DialogContent`/`SheetContent`/`AlertDialogContent` for missing description children.
 
 ### Verification / QA debts
@@ -99,6 +100,22 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-22 — Typecheck fix for 3 test files on main
+**Tags:** [tests] [typecheck] [ci]
+
+#### Shipped
+- `src/components/__tests__/GlobalAuthErrorListener.test.tsx` — typed `addSpy` / `removeSpy` as `Mock<typeof window.addEventListener>` / `Mock<typeof window.removeEventListener>`. Replaces `ReturnType<typeof vi.spyOn>` which collapsed to `Mock<Procedure | Constructable>` and left `.mock.calls.map((c) => c[0])` callbacks with implicit-any params (TS7006 × 6).
+- `src/functions/__tests__/apollo-lists.test.ts` — typed three mocks with explicit signatures: `assertOrgMemberMock` as `vi.fn<(...args: unknown[]) => Promise<void>>`, `recordLeadSyncMock` as `vi.fn<(...args: unknown[]) => Promise<void>>`, `rpcMock` as `ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>`. Untyped `vi.fn(async () => {})` inferred `[]` parameters → tuple-index errors on `.mock.calls[0][n]` destructure (TS2493 × 6), spread-into-zero-arg errors (TS2556 × 2), and non-callable Mock union (TS2348).
+- `src/lib/__tests__/server-fn-auth.test.ts` — typed `assignMock` as `ReturnType<typeof vi.fn<(url: string | URL) => void>>` so it matches the `Location["assign"]` slot in `setLocation` (TS2322 × 4).
+
+#### Verification
+- `bun run typecheck` → clean (0 errors).
+- `bun run test src/components/__tests__/GlobalAuthErrorListener.test.tsx src/lib/__tests__/server-fn-auth.test.ts` → 25/25 pass.
+- `apollo-lists.test.ts` typechecks but fails at runtime — see "Bugs found, not fixed" entry below. Pre-existing on `main`, not introduced by this fix.
+
+#### Found (not fixed in this commit)
+- **`src/functions/__tests__/apollo-lists.test.ts` runtime failure — pre-existing mock drift.** `src/functions/apollo-lists.functions.ts` now imports `requireAuth` from `@/auth/server` (line 6) and `requireActiveSubscription` from `@/integrations/supabase/subscription-middleware` (line 7). Both modules call `createMiddleware` from `@tanstack/react-start` at import time. The test mocks `createServerFn` but not `createMiddleware`, and mocks the obsolete `@/integrations/supabase/auth-middleware` path instead of `@/auth/server`. All 13 specs throw `No "createMiddleware" export is defined on the "@tanstack/react-start" mock` at import time. Filed under "Bugs found, not fixed" in `## Open`.
 
 ### 2026-05-22 — Unit tests for public contact form handler (L4)
 **Tags:** [tests] [lead-sync] [public-api]

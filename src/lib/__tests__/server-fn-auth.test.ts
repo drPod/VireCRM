@@ -147,7 +147,7 @@ describe("SessionExpiredError", () => {
 // --- handleAuthError ------------------------------------------------------
 
 describe("handleAuthError", () => {
-  let assignMock: ReturnType<typeof vi.fn>;
+  let assignMock: ReturnType<typeof vi.fn<(url: string | URL) => void>>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -229,7 +229,7 @@ describe("handleAuthError", () => {
 // --- getServerFnAuthHeaders ----------------------------------------------
 
 describe("getServerFnAuthHeaders", () => {
-  let assignMock: ReturnType<typeof vi.fn>;
+  let assignMock: ReturnType<typeof vi.fn<(url: string | URL) => void>>;
 
   beforeEach(() => {
     vi.useFakeTimers();

@@ -41,7 +41,7 @@ vi.mock("@/integrations/supabase/subscription-middleware", () => ({
 }));
 
 // Org-member assertion: configurable per-test via the spy below.
-const assertOrgMemberMock = vi.fn(async () => {});
+const assertOrgMemberMock = vi.fn<(...args: unknown[]) => Promise<void>>(async () => {});
 vi.mock("@/lib/auth-helpers", () => ({
   assertOrgMember: (...args: unknown[]) => assertOrgMemberMock(...args),
 }));
@@ -57,7 +57,7 @@ vi.mock("@/lib/connectors/apollo", () => ({
 }));
 
 // Lead-sync log: spy only. Real impl just inserts into a table.
-const recordLeadSyncMock = vi.fn(async () => {});
+const recordLeadSyncMock = vi.fn<(...args: unknown[]) => Promise<void>>(async () => {});
 vi.mock("../_lead-sync-log", () => ({
   recordLeadSync: (...a: unknown[]) => recordLeadSyncMock(...a),
 }));
@@ -81,7 +81,7 @@ type QueryHandler = (ops: Array<{ method: string; args: unknown[] }>) => {
 const tableHandlers = new Map<string, QueryHandler>();
 const insertedRows = new Map<string, unknown[][]>();
 const updatedRows: Array<{ table: string; values: unknown; ops: string[] }> = [];
-let rpcMock: ReturnType<typeof vi.fn>;
+let rpcMock: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 
 function setTableHandler(table: string, fn: QueryHandler) {
   tableHandlers.set(table, fn);

@@ -12,7 +12,7 @@
  * No `@testing-library/react` in this repo — we mount via `createRoot`
  * inside `act()` to satisfy React 19's strict effect flushing.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "react";
 
@@ -44,8 +44,8 @@ function unmount(root: Root, container: HTMLDivElement) {
 }
 
 describe("GlobalAuthErrorListener", () => {
-  let addSpy: ReturnType<typeof vi.spyOn>;
-  let removeSpy: ReturnType<typeof vi.spyOn>;
+  let addSpy: Mock<typeof window.addEventListener>;
+  let removeSpy: Mock<typeof window.removeEventListener>;
 
   beforeEach(() => {
     handleAuthErrorMock.mockReset();
