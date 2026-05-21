@@ -42,7 +42,7 @@ import {
   type ExecuteCommandResponse,
   type ExecutionResult,
 } from "@/functions/command-execute.functions";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
@@ -148,8 +148,8 @@ function Dashboard() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [execution, setExecution] = useState<ExecuteCommandResponse | null>(null);
   const [taskStatuses, setTaskStatuses] = useState<TaskStatusItem[]>([]);
-  const execCommand = useAuthedServerFn(executeCommandFn);
-  const runCommand = useAuthedServerFn(executeCommandActionsFn);
+  const execCommand = useServerFn(executeCommandFn);
+  const runCommand = useServerFn(executeCommandActionsFn);
   const router = useRouter();
 
   const handleCommand = async (command: string) => {

@@ -14,7 +14,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useActionLock } from "@/hooks/useActionLock";
 import { sendTestEmailFn } from "@/functions/connector-actions.functions";
 import { CheckCircle2, AlertTriangle, Loader2, Send, X } from "lucide-react";
@@ -36,7 +36,7 @@ export function SendTestEmailControl({
   disabledReason,
 }: SendTestEmailControlProps) {
   const { user, organization } = useAuth();
-  const sendTestEmail = useAuthedServerFn(sendTestEmailFn);
+  const sendTestEmail = useServerFn(sendTestEmailFn);
 
   const [open, setOpen] = useState(false);
   const [to, setTo] = useState(user?.email ?? "");

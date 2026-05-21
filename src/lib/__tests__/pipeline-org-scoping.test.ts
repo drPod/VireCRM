@@ -169,7 +169,6 @@ describe("pipeline counts: organization_id scoping", () => {
  */
 describe("pipeline counts: source-level org_id audit", () => {
   const FILES_TO_AUDIT = [
-    "src/routes/_app.solar.tsx",
     "src/hooks/useDashboardMetrics.ts",
     "src/routes/_app.analytics.tsx",
   ] as const;

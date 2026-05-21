@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   checkDomainHealth,
   type DomainHealthResult,
@@ -20,7 +20,7 @@ interface UseDomainHealthCheck {
  * in the consumer stays current without re-fetching.
  */
 export function useDomainHealthCheck(organizationId: string | undefined): UseDomainHealthCheck {
-  const runCheck = useAuthedServerFn(checkDomainHealth);
+  const runCheck = useServerFn(checkDomainHealth);
   const [results, setResults] = useState<DomainHealthResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);

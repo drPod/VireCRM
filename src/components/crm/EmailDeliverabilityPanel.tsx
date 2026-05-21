@@ -26,7 +26,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   checkEmailDeliverability,
   type DeliverabilityRecord,
@@ -84,7 +84,7 @@ function StatusBadge({ status }: { status: DeliverabilityStatus }) {
 }
 
 export function EmailDeliverabilityPanel({ organizationId }: Props) {
-  const run = useAuthedServerFn(checkEmailDeliverability);
+  const run = useServerFn(checkEmailDeliverability);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CheckEmailDeliverabilityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

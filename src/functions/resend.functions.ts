@@ -10,7 +10,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendResendEmail, verifyResendConnection } from "@/lib/resend";
 import { assertOwner } from "@/lib/auth-helpers";
@@ -40,7 +40,7 @@ function readConfig(raw: unknown): ResendConfig {
 const getSchema = z.object({ organizationId: z.string().uuid() });
 
 export const getResendStatusFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof getSchema>) => getSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -86,7 +86,7 @@ const saveSchema = z.object({
 });
 
 export const saveResendSettingsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof saveSchema>) => saveSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -121,7 +121,7 @@ export const saveResendSettingsFn = createServerFn({ method: "POST" })
 const testSchema = z.object({ organizationId: z.string().uuid() });
 
 export const testResendConnectionFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof testSchema>) => testSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -145,7 +145,7 @@ export const testResendConnectionFn = createServerFn({ method: "POST" })
 const disconnectSchema = z.object({ organizationId: z.string().uuid() });
 
 export const disconnectResendFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof disconnectSchema>) => disconnectSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -168,7 +168,7 @@ const testSendSchema = z.object({
 });
 
 export const sendResendTestEmailFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof testSendSchema>) => testSendSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;

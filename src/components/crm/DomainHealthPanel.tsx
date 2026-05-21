@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Activity, Loader2, RefreshCw, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useDomainHealthCheck } from "@/hooks/useDomainHealthCheck";
 import { pollCustomHostnameStatusFn } from "@/functions/custom-hostnames.functions";
 import type { DomainHealthResult } from "@/functions/domain-health.functions";
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function DomainHealthPanel({ organizationId }: Props) {
-  const pollCf = useAuthedServerFn(pollCustomHostnameStatusFn);
+  const pollCf = useServerFn(pollCustomHostnameStatusFn);
   const { results, loading, lastRunAt, refresh } = useDomainHealthCheck(organizationId);
   const [redirectGuide, setRedirectGuide] = useState<DomainHealthResult | null>(null);
 
