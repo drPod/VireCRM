@@ -20,7 +20,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export type DeliverabilityCheck = "spf" | "dkim" | "dmarc";
@@ -390,7 +390,7 @@ function rootDomain(host: string): string {
 // ───────────────────────────────────────────────────────────────────────────
 
 export const checkEmailDeliverability = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: unknown): CheckEmailDeliverabilityInput => {
     if (
       !input ||

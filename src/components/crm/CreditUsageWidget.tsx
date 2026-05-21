@@ -10,7 +10,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   simulateTierChangeFn,
   type SimulateTierChangeResponse,
@@ -169,7 +169,7 @@ export function CreditUsageWidget({ organizationId }: CreditUsageWidgetProps) {
 
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<SimulateTierChangeResponse | null>(null);
-  const runSimulate = useAuthedServerFn(simulateTierChangeFn);
+  const runSimulate = useServerFn(simulateTierChangeFn);
 
   // ----- Audit log -----
   const [logOpen, setLogOpen] = useState(false);

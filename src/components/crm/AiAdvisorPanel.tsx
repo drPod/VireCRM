@@ -17,7 +17,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { analyzeBusinessFn } from "@/functions/ai-advisor.functions";
 import { toast } from "sonner";
 
@@ -55,7 +55,7 @@ export function AiAdvisorPanel() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const analyzeBusiness = useAuthedServerFn(analyzeBusinessFn);
+  const analyzeBusiness = useServerFn(analyzeBusinessFn);
 
   const tokensRemaining = organization
     ? organization.ai_tokens_limit - organization.ai_tokens_used

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listOutreachTemplatesFn,
   upsertOutreachTemplateFn,
@@ -69,9 +69,9 @@ export function OutreachTemplatesManager() {
   const { organization, role } = useAuth();
   const canEdit = role?.role === "owner" || role?.role === "manager";
 
-  const list = useAuthedServerFn(listOutreachTemplatesFn);
-  const upsert = useAuthedServerFn(upsertOutreachTemplateFn);
-  const remove = useAuthedServerFn(deleteOutreachTemplateFn);
+  const list = useServerFn(listOutreachTemplatesFn);
+  const upsert = useServerFn(upsertOutreachTemplateFn);
+  const remove = useServerFn(deleteOutreachTemplateFn);
 
   const [templates, setTemplates] = useState<OutreachTemplate[]>([]);
   const [loading, setLoading] = useState(true);

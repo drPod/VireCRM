@@ -3,7 +3,7 @@
 // reveal also counts against the org's monthly platform lead quota — we
 // reserve quota upfront and refund any unused credits at the end.
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
@@ -68,7 +68,7 @@ export interface ApolloListSummary {
 }
 
 export const listApolloListsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ lists: ApolloListSummary[] }> => {
     const { supabase, userId } = context;
@@ -114,7 +114,7 @@ export interface ImportResult {
 }
 
 export const importApolloListFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth, requireActiveSubscription])
+  .middleware([requireAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof importSchema>) => importSchema.parse(input))
   .handler(async ({ data, context }): Promise<ImportResult> => {
     const { supabase, userId } = context;
