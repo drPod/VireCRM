@@ -1,6 +1,6 @@
 # genesisxsx
 
-Multi-tenant white-label CRM SaaS. Customers sign up directly with VireCRM and get their own white-labeled CRM instance — on a `<slug>.virecrm.com` subdomain (free tier, auto-provisioned at signup) or on their own custom hostname (premium tier, via Cloudflare for SaaS). No reseller layer; every tenant is a direct customer of VireCRM.
+Multi-tenant white-label CRM SaaS. Built for commercial energy brokers. Customers sign up directly with VireCRM and get their own white-labeled CRM instance — on a `<slug>.virecrm.com` subdomain (free tier, auto-provisioned at signup) or on their own custom hostname (premium tier, via Cloudflare for SaaS). No reseller layer; every tenant is a direct customer of VireCRM.
 
 The brand has been renamed from `Majix` / `majix.ai` to `VireCRM` / `virecrm.com`. The `majix.ai` hostnames now 308-redirect to their `virecrm.com` equivalents at the Worker layer — the cutover is complete.
 
