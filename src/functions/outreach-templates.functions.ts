@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertOrgMember } from "@/lib/auth-helpers";
 import { z } from "zod";
 
 /**
@@ -53,23 +54,12 @@ export interface OutreachTemplate {
   updated_at: string;
 }
 
-async function ensureMember(supabase: any, userId: string, organizationId: string) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!profile || profile.organization_id !== organizationId) {
-    throw new Error("Unauthorized: not a member of this organization");
-  }
-}
-
 export const listOutreachTemplatesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachTemplate[]> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { data: rows, error } = await supabase
       .from("outreach_templates")
@@ -89,7 +79,7 @@ export const upsertOutreachTemplateFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof upsertSchema>) => upsertSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachTemplate> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     if (data.isDefault) {
       const clearQuery = supabase
@@ -141,7 +131,7 @@ export const deleteOutreachTemplateFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof deleteSchema>) => deleteSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ success: true }> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { error } = await supabase
       .from("outreach_templates")
