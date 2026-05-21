@@ -120,6 +120,13 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — email-log + followup-suggestions: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [email]
+
+#### Shipped
+- `src/functions/email-log.functions.ts:56` — `setResponseStatus(403)` before owner-only throw.
+- `src/functions/send-followup-suggestions.functions.ts:44` — `setResponseStatus(403)` before org-membership throw.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 

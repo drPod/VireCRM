@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
@@ -53,6 +54,7 @@ export const listRecentEmailLogsFn = createServerFn({ method: "GET" })
       // Throw a plain Error rather than a Response — TanStack server functions
       // serialize Error.message into a friendly client-side error, while a raw
       // Response surfaces as the dreaded "[object Response]" string.
+      setResponseStatus(403);
       throw new Error("Forbidden: owner role required to view email logs.");
     }
 
