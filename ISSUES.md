@@ -91,23 +91,19 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — Split QuotesPanel into per-dialog components
-**Tags:** [audit] [frontend]
+### 2026-05-21 — Slim leads route + remove LeadsSmokeTest from prod render
+**Tags:** [audit] [frontend] [security]
 
 #### Shipped
-- `src/types/quotes.ts` — extracted `QuoteStatus`, `LineItem`, `Differentiator`, `Quote`, `STATUS_STYLES`, `emptyLineItem`, `DEFAULT_DIFFERENTIATORS`
-- `src/components/admin/StatCard.tsx` — minimal label/value tile shared by admin panels (narrow surface; other routes keep richer local variants)
-- `src/components/admin/QuoteBuilderDialog.tsx` — line-item + differentiators editor lifted out of `QuotesPanel`
-- `src/components/admin/QuoteHistoryDialog.tsx` — audit log dialog + `TimestampCell` (co-located, both consumed by parent)
-- `src/components/admin/RecipientsView.tsx` — grouped-by-email view extracted intact (pre-existing Fragment-without-key Lovable pattern left untouched per surgical-edit rule)
-- `src/components/admin/QuotesPanel.tsx` — 1227 → 456 lines, thin parent wiring the dialogs; `formatMoney` now imports from `@/lib/money`
+- `src/routes/_app.leads.tsx` — slimmed from 1,082 lines to ~42; keeps Route definition + `statusFilters` constant + thin `<LeadsPageContent />` render.
+- `src/components/crm/LeadsPageContent.tsx` — new file, receives the entire former `LeadsPage` body verbatim (only mechanical change: reads `search` via props instead of `Route.useSearch()` inside the component; `Route.useSearch()` now called in the route shell and passed through).
+- `src/components/crm/LeadsSmokeTest.tsx` — deleted (274 lines). Component rendered unconditionally in production at `_app.leads.tsx` line 631 with no dev-only flag / env gate — every load hit live Supabase with auth/list/filter probes, and the "Smoke test" button shipped to every CRM user. Import + JSX removed from leads route.
 
 #### Verification
-- `bun run typecheck` → 0 errors
-- `bun run test` → 119/119 passed
-- `bun run build` → ok
-- `bun run lint` → 0 errors in changed files (pre-existing repo-wide errors unrelated)
-- e2e/visual skipped — no tests cover admin/quotes surface; mechanical split, no behavior change
+- `bun run typecheck` — pending (will run before commit)
+- `bun run test` / `lint` / `build` — pending
+- Visible UI diff: "Smoke test" button no longer renders in the leads header action bar — intentional; will be flagged in PR description.
+- Behavior otherwise unchanged — same hooks, same JSX, same effects.
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
