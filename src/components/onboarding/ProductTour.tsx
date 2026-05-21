@@ -6,14 +6,14 @@
  *   - find the element, scroll it into view, draw a highlight ring around it
  *   - render a tooltip card with title/body/Next/Skip controls, anchored
  *     near the highlighted element (auto-flips so it never goes off-screen)
- *   - on Finish/Skip, persist `profiles.tour_completed_at` so the tour never
- *     auto-launches again for that user
+ *   - on "Got it!" (final step only), persist `profiles.tour_completed_at` so the tour
+ *     never auto-launches again; X/Skip/backdrop dismiss without writing to DB
  *
  * Re-positions on resize/scroll so it stays glued to its target.
  *
  * Runs only in the browser (no SSR usage of window/document at module scope).
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -124,7 +124,9 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     };
   }, [target, isCenter, viewport.w, viewport.h]);
 
-  const finish = async () => {
+  // Writes tour_completed_at to the DB then closes. Call only on intentional
+  // completion ("Got it!" on the final step).
+  const completeTour = async () => {
     if (userId) {
       await supabase
         .from("profiles")
@@ -223,7 +225,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
       {isCenter && (
         <div
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 10000 }}
-          onClick={() => void finish()}
+          onClick={onClose}
         />
       )}
       {ringStyle && <div style={ringStyle} aria-hidden="true" />}
@@ -245,7 +247,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
           </div>
           <button
             aria-label="Close tour"
-            onClick={() => void finish()}
+            onClick={onClose}
             className="text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4" />
@@ -264,12 +266,12 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
               </Button>
             )}
             {!isLast && (
-              <Button size="sm" variant="ghost" onClick={() => void finish()}>
+              <Button size="sm" variant="ghost" onClick={onClose}>
                 Skip
               </Button>
             )}
             {isLast ? (
-              <Button size="sm" onClick={() => void finish()}>
+              <Button size="sm" onClick={() => void completeTour()}>
                 Got it!
               </Button>
             ) : (
