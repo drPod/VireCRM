@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { logAdvisorPlan } from "@/lib/advisor-audit";
@@ -24,7 +24,7 @@ export interface CommandPlan {
 }
 
 export const executeCommandFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof commandSchema>) => commandSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;

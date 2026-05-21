@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { searchApolloPeople, revealApolloEmail, type ApolloError } from "@/lib/connectors/apollo";
@@ -42,98 +42,128 @@ function codedError(code: FindLeadsErrorCode, msg: string, meta?: Record<string,
   return new Error(`[${code}] ${msg}${payload}`);
 }
 
-export const findLeadsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth, requireActiveSubscription])
-  .inputValidator((input: z.infer<typeof findLeadsSchema>) => findLeadsSchema.parse(input))
-  .handler(
-    async ({
-      data,
-      context,
-    }): Promise<{
-      leads: SuggestedLead[];
-      meta: {
-        searched: number;
-        revealed: number;
-        provider: LeadProvider;
-        keySource: "byo" | "platform";
+export interface FindLeadsResult {
+  leads: SuggestedLead[];
+  meta: {
+    searched: number;
+    revealed: number;
+    provider: LeadProvider;
+    keySource: "byo" | "platform";
+  };
+}
+
+/**
+ * Inner handler, extracted so unit tests can call it directly without the
+ * TanStack Start middleware chain (auth + subscription). The exported
+ * `findLeadsFn` below wraps this with middleware + input validation.
+ *
+ * `context.supabase` is typed `unknown` because TanStack's inferred middleware
+ * context isn't exported as a nameable type — the runtime shape is the
+ * user-scoped Supabase client from requireSupabaseAuth.
+ */
+export async function _findLeadsHandler(args: {
+  data: z.infer<typeof findLeadsSchema>;
+  context: { supabase: unknown; userId: string };
+}): Promise<FindLeadsResult> {
+  const { data, context } = args;
+  const supabase = context.supabase as {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: unknown,
+        ) => {
+          maybeSingle: () => Promise<{
+            data: {
+              organization_id?: string;
+              ai_tokens_used?: number;
+              ai_tokens_limit?: number;
+            } | null;
+          }>;
+        };
       };
-    }> => {
-      const { supabase, userId } = context;
-      const startedAt = Date.now();
+    };
+  };
+  const { userId } = context;
+  const startedAt = Date.now();
 
-      try {
-        // 1. Org membership
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("organization_id")
-          .eq("user_id", userId)
-          .maybeSingle();
-        if (!profile || profile.organization_id !== data.organizationId) {
-          setResponseStatus(403);
-          throw new Error("Unauthorized: not a member of this organization");
-        }
+  try {
+    // 1. Org membership
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!profile || profile.organization_id !== data.organizationId) {
+      setResponseStatus(403);
+      throw new Error("Unauthorized: not a member of this organization");
+    }
 
-        // 2. Token budget (still applies — protects against runaway costs)
-        const { data: org } = await supabase
-          .from("organizations")
-          .select("ai_tokens_used, ai_tokens_limit")
-          .eq("id", data.organizationId)
-          .maybeSingle();
-        if (!org) throw new Error("Organization not found");
-        if (org.ai_tokens_used >= org.ai_tokens_limit) {
-          throw new Error("AI token limit reached. Upgrade your plan for more analyses.");
-        }
+    // 2. Token budget (still applies — protects against runaway costs)
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("ai_tokens_used, ai_tokens_limit")
+      .eq("id", data.organizationId)
+      .maybeSingle();
+    if (!org) throw new Error("Organization not found");
+    if ((org.ai_tokens_used ?? 0) >= (org.ai_tokens_limit ?? 0)) {
+      throw new Error("AI token limit reached. Upgrade your plan for more analyses.");
+    }
 
-        // 3. Dispatch by provider.
-        const result =
-          data.provider === "hunter" || data.provider === "snov"
-            ? await runDomainSearchProvider(data, userId)
-            : await runApolloProvider(data, userId);
+    // 3. Dispatch by provider.
+    const result =
+      data.provider === "hunter" || data.provider === "snov"
+        ? await runDomainSearchProvider(data, userId)
+        : await runApolloProvider(data, userId);
 
-        await recordLeadSync({
-          organizationId: data.organizationId,
-          userId,
-          provider: result.meta.provider,
-          source: "auto_find_search",
-          status: result.leads.length > 0 ? "success" : "partial",
-          fetched: result.meta.searched,
-          revealed: result.leads.length,
-          noEmail: Math.max(0, result.meta.revealed - result.leads.length),
-          durationMs: Date.now() - startedAt,
-          metadata: {
-            requested_count: data.count,
-            industry: data.industry ?? null,
-            persona: data.persona ?? null,
-            company_domain: data.companyDomain ?? null,
-            key_source: result.meta.keySource,
-          },
-        });
+    await recordLeadSync({
+      organizationId: data.organizationId,
+      userId,
+      provider: result.meta.provider,
+      source: "auto_find_search",
+      status: result.leads.length > 0 ? "success" : "partial",
+      fetched: result.meta.searched,
+      revealed: result.leads.length,
+      noEmail: Math.max(0, result.meta.revealed - result.leads.length),
+      durationMs: Date.now() - startedAt,
+      metadata: {
+        requested_count: data.count,
+        industry: data.industry ?? null,
+        persona: data.persona ?? null,
+        company_domain: data.companyDomain ?? null,
+        key_source: result.meta.keySource,
+      },
+    });
 
-        return result;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        const codeMatch = message.match(/^\[([A-Z_]+)\]/);
-        const errorCode = codeMatch?.[1] ?? "UNKNOWN";
-        await recordLeadSync({
-          organizationId: data.organizationId,
-          userId,
-          provider: data.provider,
-          source: "auto_find_search",
-          status: errorCode === "QUOTA_EXCEEDED" ? "quota_exceeded" : "error",
-          durationMs: Date.now() - startedAt,
-          errorCode,
-          errorMessage: message.slice(0, 500),
-          metadata: {
-            requested_count: data.count,
-            industry: data.industry ?? null,
-            persona: data.persona ?? null,
-            company_domain: data.companyDomain ?? null,
-          },
-        });
-        throw err;
-      }
-    },
-  );
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const codeMatch = message.match(/^\[([A-Z_]+)\]/);
+    const errorCode = codeMatch?.[1] ?? "UNKNOWN";
+    await recordLeadSync({
+      organizationId: data.organizationId,
+      userId,
+      provider: data.provider,
+      source: "auto_find_search",
+      status: errorCode === "QUOTA_EXCEEDED" ? "quota_exceeded" : "error",
+      durationMs: Date.now() - startedAt,
+      errorCode,
+      errorMessage: message.slice(0, 500),
+      metadata: {
+        requested_count: data.count,
+        industry: data.industry ?? null,
+        persona: data.persona ?? null,
+        company_domain: data.companyDomain ?? null,
+      },
+    });
+    throw err;
+  }
+}
+
+export const findLeadsFn = createServerFn({ method: "POST" })
+  .middleware([requireAuth, requireActiveSubscription])
+  .inputValidator((input: z.infer<typeof findLeadsSchema>) => findLeadsSchema.parse(input))
+  .handler(_findLeadsHandler);
 
 // ===== Apollo path (with platform-quota fallback) =====
 
@@ -513,7 +543,7 @@ export interface LeadUsage {
 }
 
 export const getLeadUsageFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof usageSchema>) => usageSchema.parse(input))
   .handler(async ({ data, context }): Promise<LeadUsage> => {
     const { supabase, userId } = context;
@@ -559,7 +589,7 @@ const recordImportSchema = z.object({
 });
 
 export const recordLeadImportFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof recordImportSchema>) => recordImportSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const { supabase, userId } = context;

@@ -11,7 +11,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listEmailTemplatesFn,
   renderEmailTemplateFn,
@@ -44,8 +44,8 @@ export function EmailTemplatePreviewPanel() {
   const { profile } = useAuth();
   const organizationId = profile?.organization_id;
 
-  const listTemplates = useAuthedServerFn(listEmailTemplatesFn);
-  const renderTemplate = useAuthedServerFn(renderEmailTemplateFn);
+  const listTemplates = useServerFn(listEmailTemplatesFn);
+  const renderTemplate = useServerFn(renderEmailTemplateFn);
 
   const [templates, setTemplates] = useState<TemplateSummary[] | null>(null);
   const [loadingList, setLoadingList] = useState(true);

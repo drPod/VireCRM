@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listSequencesFn,
   upsertSequenceFn,
@@ -76,17 +76,17 @@ function SequencesPage() {
   const { organization } = useAuth();
   const orgId = organization?.id;
 
-  const listSeq = useAuthedServerFn(listSequencesFn);
-  const upsertSeq = useAuthedServerFn(upsertSequenceFn);
-  const deleteSeq = useAuthedServerFn(deleteSequenceFn);
-  const listSteps = useAuthedServerFn(listStepsFn);
-  const upsertStep = useAuthedServerFn(upsertStepFn);
-  const deleteStep = useAuthedServerFn(deleteStepFn);
-  const listEnroll = useAuthedServerFn(listEnrollmentsFn);
-  const enroll = useAuthedServerFn(enrollLeadsFn);
-  const updateEnroll = useAuthedServerFn(updateEnrollmentStatusFn);
-  const listLog = useAuthedServerFn(listSequenceLogFn);
-  const listTemplates = useAuthedServerFn(listOutreachTemplatesFn);
+  const listSeq = useServerFn(listSequencesFn);
+  const upsertSeq = useServerFn(upsertSequenceFn);
+  const deleteSeq = useServerFn(deleteSequenceFn);
+  const listSteps = useServerFn(listStepsFn);
+  const upsertStep = useServerFn(upsertStepFn);
+  const deleteStep = useServerFn(deleteStepFn);
+  const listEnroll = useServerFn(listEnrollmentsFn);
+  const enroll = useServerFn(enrollLeadsFn);
+  const updateEnroll = useServerFn(updateEnrollmentStatusFn);
+  const listLog = useServerFn(listSequenceLogFn);
+  const listTemplates = useServerFn(listOutreachTemplatesFn);
 
   const [sequences, setSequences] = useState<OutreachSequence[]>([]);
   const [templates, setTemplates] = useState<OutreachTemplate[]>([]);

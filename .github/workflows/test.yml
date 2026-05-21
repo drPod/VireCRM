@@ -1,0 +1,61 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: typecheck + lint + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pin Bun to the local-dev version that generated bun.lock (lockfileVersion: 1).
+      # Project requires bun 1.2+ (text-format bun.lock) per CLAUDE.md; using the
+      # same version locally + in CI avoids the lockfile-version mismatch class of
+      # failure that bit the Cloudflare Workers Builds rollout (ISSUES.md 2026-05).
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      # Node 22 Active LTS — TanStack Start / Vite toolchain expects Node-compatible
+      # APIs available during build. Bun handles install + script runner; Node is
+      # there for any tooling that shells out to `node` directly.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      # ISSUES.md structural lint. Catches orphan #### subsections, missing
+      # **Tags:** lines, and archive candidates >14d old. Local enforcement is
+      # via .githooks/pre-commit but only fires for devs who ran
+      # scripts/install-hooks.sh; CI catches PRs from agents/worktrees that
+      # bypass the local hook. Script exits non-zero on errors only — archive
+      # warnings stay non-blocking.
+      - name: ISSUES.md lint
+        run: bash scripts/lint-issues.sh
+
+      # Lint currently has ~4.9k pre-existing errors on main (mostly @typescript-eslint
+      # rules in supabase/functions/* + prettier drift). Tracked as Lovable-cleanup
+      # tech debt — failing CI on it would block every PR. Surface the failures
+      # without blocking; remove `continue-on-error` once the backlog is cleared.
+      # TODO(lovable-cleanup): drop continue-on-error once lint passes clean on main.
+      - name: Lint
+        run: bun run lint
+        continue-on-error: true
+
+      - name: Test
+        run: bun run test

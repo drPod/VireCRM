@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listCalendarsFn,
   upsertCalendarFn,
@@ -81,11 +81,11 @@ function AppointmentsPage() {
   const { organization } = useAuth();
   const orgId = organization?.id;
 
-  const listCals = useAuthedServerFn(listCalendarsFn);
-  const upsertCal = useAuthedServerFn(upsertCalendarFn);
-  const deleteCal = useAuthedServerFn(deleteCalendarFn);
-  const listAppts = useAuthedServerFn(listAppointmentsFn);
-  const cancelAppt = useAuthedServerFn(cancelAppointmentFn);
+  const listCals = useServerFn(listCalendarsFn);
+  const upsertCal = useServerFn(upsertCalendarFn);
+  const deleteCal = useServerFn(deleteCalendarFn);
+  const listAppts = useServerFn(listAppointmentsFn);
+  const cancelAppt = useServerFn(cancelAppointmentFn);
 
   const [calendars, setCalendars] = useState<CalendarRow[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
