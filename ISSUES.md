@@ -91,73 +91,23 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — Extract fetchOrgBranding helper
-**Tags:** [audit] [lovable-migration]
+### 2026-05-21 — Split QuotesPanel into per-dialog components
+**Tags:** [audit] [frontend]
 
 #### Shipped
-- `src/lib/org-branding.ts` — new typed helpers `fetchOrgBranding` (returns `OrgBranding` = name, brand_name, support_email, logo_url, primary_color, font_family, email_signature) + `fetchOrgAiUsage` (ai_tokens_used, ai_tokens_limit). Types derived from generated `Database['public']['Tables']['organizations']['Row']`.
-- `src/functions/send-followup-suggestions.functions.ts` — replaced inline select + 4 `(org as any).<field>` casts.
-- `src/functions/outreach-preview.functions.ts` — replaced inline select + 4 casts (only the `sendOutreachWithContentFn` org-branding fetch; `previewOutreachFn`'s ai-usage-only fetch left alone — different scope).
-- `src/functions/auto-outreach.functions.ts` — split the previously-combined branding+ai-usage select into parallel `Promise.all([fetchOrgBranding, fetchOrgAiUsage])`. Cleaner separation of concerns; concurrent so no roundtrip cost vs old single-query.
-- Net: 12 `(org as any).<field>` casts removed across 3 files.
-
-#### Verification
-- `bun run typecheck` → exit 0, zero errors.
-- `bun run test` → 119/119 passing.
-- `npx eslint` on the 4 modified files → clean (full repo lint has pre-existing errors in `supabase/functions/*` + `vite.config.ts` unrelated to this work).
-- `bun run build` → success.
-
-### 2026-05-21 — Dedup ensureMember to assertOrgMember
-**Tags:** [audit] [security]
-
-#### Shipped
-- `src/functions/outreach-sequences.functions.ts:68` — deleted local `ensureMember(supabase: any, ...)`; imported `assertOrgMember` from `@/lib/auth-helpers`; swapped 11 call sites.
-- `src/functions/outreach-templates.functions.ts:56` — deleted local `ensureMember(supabase: any, ...)`; imported `assertOrgMember`; swapped 3 call sites.
-- `src/functions/appointments.functions.ts:152` — deleted local `ensureMember` (was typed against `ReturnType<typeof createClient<Database>>`); imported `assertOrgMember`; swapped 6 call sites.
-- Bodies of all three locals were byte-identical to canonical — same `profiles.organization_id` lookup, same error string ("Unauthorized: not a member of this organization"). No behavior change. Canonical is properly typed (`SupabaseClient`, no `any`), so refactor drops two `any` parameter types.
-
-#### Verification
-- `bun run typecheck` → clean.
-- `bun run test` → 119/119 passed.
-- `bun run build` → succeeded.
-- `bun run lint` → pre-existing errors only in changed files (prettier formatting + `any` casts in code paths I did not touch). Refactor introduced zero new lint errors.
-- Skipped browser e2e per unit recipe (server-function-only change, no UI render path).
-
-### 2026-05-21 — Move misplaced server fns to src/functions/
-**Tags:** [audit] [lovable-migration]
-
-#### Shipped
-- `git mv src/lib/admin-quote-email.functions.ts → src/functions/admin-quote-email.functions.ts`
-- `git mv src/lib/quote-pdf.functions.ts → src/functions/quote-pdf.functions.ts`
-- `git mv src/lib/test-account.functions.ts → src/functions/test-account.functions.ts`
-- Updated 2 import sites: `src/components/admin/QuotesPanel.tsx` (lines 60-61), `src/components/admin/TestAccountButton.tsx` (line 26) — `@/lib/...` → `@/functions/...`
-- Rationale: all three use `createServerFn` and belonged in `src/functions/` per repo convention; history preserved via `git mv`
-
-### 2026-05-21 — Move connector clients to lib/connectors
-**Tags:** [audit] [lovable-migration]
-
-#### Shipped
-- `git mv src/lib/{apollo,hunter,snov}.ts src/lib/connectors/` — co-located with existing `gateway.ts` + `oauth.ts` + `catalog.ts` + `prerequisites.ts` + `validation.ts`. History preserved.
-- Updated 3 importers (only call sites): `src/functions/integrations.functions.ts:9-11`, `src/functions/find-leads.functions.ts:5-7`, `src/functions/apollo-lists.functions.ts:15` — `@/lib/<x>` → `@/lib/connectors/<x>`.
-- Moved files had zero internal relative imports — no edits to bodies.
-
-#### Verification
-- `bun run typecheck` → clean
-- `bun run test` → 119/119 passed
-- `bun run lint` → no new errors on touched files (pre-existing errors in `supabase/functions/*`, `vite.config.ts` unchanged)
-- `bun run build` → succeeded
-
-### 2026-05-21 — Email infrastructure abstraction (Phase C)
-**Tags:** [lovable-migration] [audit]
-
-#### Shipped
-- `src/lib/email/send-transactional.ts` — centralized suppression check, unsubscribe token reuse-or-create, template render, email_send_log pending/failed, enqueue_email RPC (~70-line pattern repeated 6× before)
-- `send-transactional.ts` accepts `recipientOverride` param to bypass `template.to` (used for CONTACT_TEST_MODE inbox redirect in `contact.ts`)
-- Updated 5 routes: `api/email/transactional/send.ts`, `api/notify-low-balance.ts`, `hooks/send-pending-welcomes.ts`, `api/public/hooks/contact-followup-reminders.ts`, `api/public/contact.ts`
-- Restored test-mode inbox redirect that was lost in initial refactor
+- `src/types/quotes.ts` — extracted `QuoteStatus`, `LineItem`, `Differentiator`, `Quote`, `STATUS_STYLES`, `emptyLineItem`, `DEFAULT_DIFFERENTIATORS`
+- `src/components/admin/StatCard.tsx` — minimal label/value tile shared by admin panels (narrow surface; other routes keep richer local variants)
+- `src/components/admin/QuoteBuilderDialog.tsx` — line-item + differentiators editor lifted out of `QuotesPanel`
+- `src/components/admin/QuoteHistoryDialog.tsx` — audit log dialog + `TimestampCell` (co-located, both consumed by parent)
+- `src/components/admin/RecipientsView.tsx` — grouped-by-email view extracted intact (pre-existing Fragment-without-key Lovable pattern left untouched per surgical-edit rule)
+- `src/components/admin/QuotesPanel.tsx` — 1227 → 456 lines, thin parent wiring the dialogs; `formatMoney` now imports from `@/lib/money`
 
 #### Verification
 - `bun run typecheck` → 0 errors
+- `bun run test` → 119/119 passed
+- `bun run build` → ok
+- `bun run lint` → 0 errors in changed files (pre-existing repo-wide errors unrelated)
+- e2e/visual skipped — no tests cover admin/quotes surface; mechanical split, no behavior change
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
