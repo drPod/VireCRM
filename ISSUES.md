@@ -26,18 +26,11 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 ### Phase 2 — Lovable cleanup follow-ups
 
 - [ ] **Connector OAuth proxy** — replace `src/lib/connectors/gateway.ts` stub (currently throws `ConnectorNotConfiguredError(503)`). Nango or hand-rolled. Apollo/Slack/Gmail/Twilio/Sendgrid integrations dark until done.
-- [ ] **Email send path still hits Lovable.** `src/lib/email/send.ts:36`, `src/lib/email/dispatch-outreach.ts`, `src/lib/admin-quote-email.functions.ts:99` POST to `/lovable/email/transactional/send` (dead). Either keep route as Resend SDK shim or rewrite callers direct.
-- [ ] **Customer-domain onboarding still points DNS at LOVABLE.** `src/components/crm/CustomerDomainOnboardingDialog.tsx:15,71-90,145` + `src/components/crm/DomainHealthPanel.tsx:33-34,344,435-449` — A-record `185.158.133.1`, `_lovable` TXT. Update to CF Workers target + `_majix` token (migration `20260517170000_rebrand_verification_token_prefix.sql`).
-- [ ] **`@lovable.dev/cloud-auth-js`** — social signin (Google/Apple/Microsoft) still routes through it via `src/integrations/lovable/index.ts`. Callers: `BrandedSignup.tsx`, `login.tsx`, `signup.tsx`, `r.$resellerSlug.signup.tsx`. Migrate to Supabase native OAuth providers.
-- [ ] **`ResendSettingsCard.tsx:4` + `resend.functions.ts:4,18,212`** — runtime sentinel `KEY_SENTINEL = "__lovable_connector__"` gates per-org Resend key flow; Phase 1 went direct SDK, likely dead.
 
 ### Bugs found, not fixed
 
-- [ ] **`_app.admin.tsx` lines 770, 797, 1821, 1829, 1837, 2058, 2070** — 7 `window.confirm`/`window.prompt` sites for destructive ops. Port to shadcn `AlertDialog` (pattern at same file 2213+).
-- [ ] **`AddLeadDialog.tsx:160-329`** — every `<label>` bare (no `htmlFor`), every `<input>` lacks `id`/`name`/`autoComplete`. Primary lead-entry form inaccessible to SR + password managers.
-- [ ] **`PipelineView.tsx:286-320`** — drag-and-drop only. No keyboard alternative. Pipeline unreachable via keyboard.
-- [ ] **Promo enforcement** — `PromoBanner` says "first 100 customers only" but `applyPromoDiscount` applies unconditionally. Gate via Stripe coupon `max_redemptions=100` or server-side counter.
-- [ ] **Onboarding wizard `aria-describedby` Radix warning** — re-capture w/ Radix stack trace from browser console next session. Candidates: `command.tsx` (`CommandDialog`, dead), `AddLeadDialog.tsx`, `EnergyTablePage.tsx`, `_app.academy.tsx`, `_app.academy.$courseId.tsx`, `_app.contact-submissions.tsx`.
+- [ ] **`AddLeadDialog.tsx:160-329`** — Status/Score/Next Action/Notes/Contract end date/Current supplier fields lack `autoComplete`. `htmlFor`/`id`/`name` are now present on all fields.
+- [ ] **Onboarding wizard `aria-describedby` Radix warning** — best-effort audit in progress (Unit 4 of 2026-05-22 batch); scanning all `DialogContent`/`SheetContent`/`AlertDialogContent` for missing description children.
 
 ### Verification / QA debts
 
@@ -106,6 +99,29 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
+**Tags:** [audit] [lovable-migration]
+
+#### Found (verification — all shipped, no work needed)
+- **`/lovable/email/transactional/send` email path** — zero occurrences in `src/`. All callers use `sendResendEmail()` SDK direct via `src/lib/resend.ts`.
+- **Customer-domain DNS `185.158.133.1` + `_lovable` TXT** — zero occurrences in `src/`. `CustomerDomainOnboardingDialog.tsx:14` uses `REQUIRED_CNAME_TARGET` (`customers.virecrm.com`) + `_virecrm` TXT prefix from `src/lib/dns-check.ts:23-29`. `DomainHealthPanel.tsx` polls via `pollCustomHostnameStatusFn`.
+- **`@lovable.dev/cloud-auth-js`** — gone from `package.json`. `src/integrations/lovable/` directory absent. All 4 callers (signup.tsx, login.tsx, BrandedSignup.tsx, r.$resellerSlug.signup.tsx) use Supabase native OAuth. Cross-ref archive 2026-05.md:1106.
+- **`__lovable_connector__` sentinel + `KEY_SENTINEL`** — already renamed to `"__platform_managed__"` at `src/functions/resend.functions.ts:22`. Only a historical comment at line 20 references the old name (Unit 3 cleanup).
+- **7 `window.confirm`/`window.prompt` in `_app.admin.tsx`** — zero native calls. All `confirm()`/`prompt()` call sites use the shadcn-backed `useConfirm()` hook from `src/hooks/useConfirm.tsx`.
+- **`PipelineView.tsx` keyboard alt to drag-drop** — already shipped. `DropdownMenu` "Move to stage" trigger per card at lines 330-357, `aria-label`, calls `moveLeadToStage()` without drag.
+- **`throw new Response()` in auth middleware** — zero occurrences anywhere in `src/`. `signin.tsx:17` uses `throw redirect({ to, search, replace: true })`.
+- **Promo enforcement** — `PromoBanner.tsx` removed in marketing rebuild. `PROMO_DISCOUNT`/`applyPromoDiscount` gone. Bullet dropped from `## Open`.
+
+#### Shipped
+- `ISSUES.md` `## Open` — pruned 8 stale bullets (5 Lovable cleanup + 3 bug-fix items). Kept `Connector OAuth proxy` (still real), `AddLeadDialog` a11y (Unit 2 shipping autoComplete in parallel), `aria-describedby` (Unit 4 audit in parallel).
+
+#### Verification
+- Grep evidence for every "shipped" claim above run from project root: `grep -rn "/lovable/email/transactional/send\|185.158.133.1\|_lovable\|@lovable.dev/cloud-auth-js\|throw new Response\|window\.confirm\|window\.prompt" src/` → no matches except DKIM-selector probe in `email-deliverability.functions.ts:202` (defensive, intentional).
+- `bash scripts/lint-issues.sh` — exit 0, header count +1 vs pre-edit.
+
+#### Manual follow-up (user)
+- None.
 
 ### 2026-05-22 — Refactor TeamMembers god component
 **Tags:** [refactor] [god-components] [rbac]
