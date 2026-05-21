@@ -1,7 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useState } from "react";
 import { Logo } from "@/components/Logo";
 import { BusinessEmailBanner } from "@/components/marketing/BusinessEmailBanner";
@@ -70,6 +76,9 @@ export function MarketingHeader() {
             </SheetTrigger>
             <SheetContent side="right" className="w-3/4 sm:max-w-sm">
               <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+              <SheetDescription className="sr-only">
+                Browse marketing pages and access sign in or start a free trial.
+              </SheetDescription>
               <nav className="mt-6 flex flex-col gap-3">
                 {navLinks.map((link) => (
                   <Link
