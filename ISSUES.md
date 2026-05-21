@@ -120,6 +120,32 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor DomainHealthPanel god component
+**Tags:** [refactor] [god-components] [cf-saas]
+
+Part of the 13-unit god-component refactor sweep. Unit-8 owns `src/components/crm/DomainHealthPanel.tsx` (was 734 LOC; CF for SaaS health-check modal launched from `CustomDomainsPanel`). Public API frozen — default export + `{ organizationId }` prop unchanged so the sibling `CustomDomainsPanel` refactor (separate worktree) doesn't conflict.
+
+#### Shipped
+
+- `src/components/crm/DomainHealthPanel.tsx` — trimmed 734 → 126 LOC. Container now just renders header + summary banner + the row list + redirect-guide dialog. Pulls state from `useDomainHealthCheck` hook; per-row work delegated to `DomainHealthRow`.
+- `src/hooks/useDomainHealthCheck.ts` (new, 57 LOC) — owns `results` / `loading` / `lastRunAt` / `refresh`, the 1-min tick interval for relative-time freshness, and the auto-run-on-mount effect.
+- `src/hooks/useCfHostnameStatus.ts` (new, 84 LOC) — one-shot CF custom-hostname status fetch + manual refresh per row. Preserves the original "no polling loop" semantic.
+- `src/components/crm/DomainHealthRow.tsx` (new, 117 LOC) — single hostname's card (status header + 4-check matrix + CF status + issue list + quick-action links).
+- `src/components/crm/DomainHealthIssueCard.tsx` (new, 121 LOC) — single issue with severity styling + per-check remediation action strip.
+- `src/components/crm/DomainHealthStatusBadge.tsx` (new, 92 LOC) — `StatusBadge`, `CheckPill`, `CfStatusBadge` for shared render.
+- `src/components/crm/DomainHealthRedirectGuide.tsx` (new, 85 LOC) — expected-DNS dialog.
+- `src/components/crm/DomainHealthRecordRow.tsx` (new, 62 LOC) — `RecordRow` + `CopyField` reused by guide + CF status.
+- `src/components/crm/CfHostnameStatus.tsx` (new, 76 LOC) — per-row CF status section, wired to `useCfHostnameStatus`.
+- `src/lib/domain-health-utils.ts` (new, 50 LOC) — `copyValueToClipboard`, `openExternal`, `classifyCfStatus`.
+- `src/lib/domain-health.types.ts` (new, 22 LOC) — shared `CfStatusKind` discriminator.
+- Replaced the inline `formatRelative` helper with the shared `formatRelativeTime` from `src/lib/date-utils.ts` per repo convention (do-not-duplicate). Bumped the heartbeat tick 30s → 60s since `formatRelativeTime` only changes at minute boundaries — finer ticks were wasted renders.
+
+#### Verification
+
+- `bun run typecheck` — only the pre-existing `src/routes/hooks/send-pending-welcomes.ts:26` route-tree typegen error remains (verified by running typecheck on a clean `git stash` of my changes; same error before and after).
+- `bun run test` — 133/133 pass.
+- `bun run build` — 6.36s, all assets emit. `_app.settings-*.js` bundle includes the 14 expected exports from the new modules.
+- E2E recipe partial: `bun run preview` fails to boot in this worktree (pre-existing TanStack Start + CF vite-plugin "Cannot find module 'dist/server/server.js'" — env quirk, unrelated). Fell back to `bun run dev --port 4181`; `agent-browser --session refactor-unit-8` navigated `/settings` cleanly (auth-gated loading skeleton, expected per recipe "Auth-gated; login redirect = OK signal"). Screenshot at `screenshots/unit-8.png`.
 ### 2026-05-22 — Refactor AutoFindLeadsDialog god component
 **Tags:** [refactor] [god-components]
 
