@@ -241,6 +241,7 @@ export function AddLeadDialog({
               <select
                 id={fid("status")}
                 name="status"
+                autoComplete="off"
                 className={inputClass}
                 value={form.status}
                 onChange={(e) => update("status", e.target.value)}
@@ -259,6 +260,7 @@ export function AddLeadDialog({
               <input
                 id={fid("score")}
                 name="score"
+                autoComplete="off"
                 type="number"
                 min={0}
                 max={100}
@@ -276,6 +278,7 @@ export function AddLeadDialog({
             <input
               id={fid("next_action")}
               name="next_action"
+              autoComplete="off"
               className={inputClass}
               placeholder="Send intro email"
               value={form.next_action}
@@ -289,6 +292,7 @@ export function AddLeadDialog({
             <textarea
               id={fid("notes")}
               name="notes"
+              autoComplete="off"
               className="w-full rounded-lg border border-input bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring resize-none"
               rows={2}
               placeholder="Any notes about this lead..."
@@ -335,6 +339,7 @@ export function AddLeadDialog({
                       <input
                         id={fid("contract_end_date")}
                         name="contract_end_date"
+                        autoComplete="off"
                         type="date"
                         className={inputClass}
                         value={form.contract_end_date}
@@ -348,6 +353,7 @@ export function AddLeadDialog({
                       <input
                         id={fid("current_supplier")}
                         name="current_supplier"
+                        autoComplete="organization"
                         className={inputClass}
                         placeholder="e.g. British Gas, EDF, Octopus"
                         value={form.current_supplier}
@@ -384,6 +390,7 @@ export function AddLeadDialog({
                           <input
                             id={`${fid("cf-label")}-${f.id}`}
                             name={`custom_field_label_${f.id}`}
+                            autoComplete="off"
                             className={`${inputClass} sm:max-w-[40%]`}
                             placeholder="Field name"
                             value={f.label}
@@ -395,6 +402,7 @@ export function AddLeadDialog({
                           <input
                             id={`${fid("cf-value")}-${f.id}`}
                             name={`custom_field_value_${f.id}`}
+                            autoComplete="off"
                             className={inputClass}
                             placeholder="Value"
                             value={f.value}
