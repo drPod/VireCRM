@@ -91,6 +91,60 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-21 — Remove is_reseller toggle from WhiteLabelSettings
+**Tags:** [reseller] [frontend] [lovable-migration]
+
+#### Shipped
+- `src/components/crm/WhiteLabelSettings.tsx` — removed `is_reseller?` from `OrgWithDomain` type, dropped `initialIsReseller`/`isReseller`/`togglingReseller` state, deleted `handleToggleReseller` handler, removed reseller-mode Switch UI block + storefront-URL reveal block, scrubbed "reseller storefront"/"reseller landing page" from help text, removed unused imports (`Switch`, `Globe`, `Sparkles`, `Copy`, `CheckCircle2`). Commit `359dfd1`.
+
+#### Verification
+- `bun run typecheck` → exit 0, zero errors.
+- No reseller references remain in the file (`grep` confirmed).
+
+### 2026-05-21 — Stripe live account wired end-to-end
+**Tags:** [stripe] [secrets] [pricing]
+
+User created new Stripe account `acct_…51TYVK6`, pasted live keys in chat (`pk_live_…` + `sk_live_…`). Replaced prior dormant Stripe account `51TNoG1` in `.env.production`. **Action item:** rotate the `sk_live_` key in Stripe dashboard once setup is settled — pasted in chat = persisted in conversation logs.
+
+#### Wired
+| What | Where | Value / id |
+|---|---|---|
+| Publishable key (frontend) | `.env.production` `VITE_PAYMENTS_CLIENT_TOKEN` | `pk_live_51TYVK6…` |
+| Secret key (server) | `.env` `STRIPE_LIVE_API_KEY` | `sk_live_51TYVK6…` |
+| Secret key (Supabase Edge Fns) | `supabase secrets set STRIPE_LIVE_API_KEY` | same as above |
+| Webhook endpoint | Stripe → `https://coynbufhejaeuifpvmvw.supabase.co/functions/v1/payments-webhook` | `we_1TZVqt7klyZ9sPrQUALwcH2w`, 11 events (checkout.session.completed, customer.subscription.{created,updated,deleted}, invoice.{finalized,sent,updated,voided,marked_uncollectible,payment_succeeded,payment_failed}) |
+| Webhook secret | `supabase secrets set PAYMENTS_LIVE_WEBHOOK_SECRET` | `whsec_lffBCTrb…` |
+| Stripe MCP server | `~/.claude.json` project block | HTTP transport at `https://mcp.stripe.com/` |
+
+#### Products + prices (live mode, 5 monthly recurring)
+| lookup_key | Price id | Product id | Amount |
+|---|---|---|---|
+| `crm_starter_monthly` | `price_1TZVsQ7klyZ9sPrQ0i2NdYDD` | `prod_UYd8aAOSJbAwGI` | $97/mo |
+| `crm_growth_monthly` | `price_1TZVsU7klyZ9sPrQ4aUx4hEo` | `prod_UYd8aXkb37fTcr` | $197/mo |
+| `crm_pro_monthly` | `price_1TZVsX7klyZ9sPrQGXHdKokZ` | `prod_UYd8GtX2zTTkeJ` | $297/mo |
+| `lease_starter_monthly` | `price_1TZVsa7klyZ9sPrQfAatsKcG` | `prod_UYd8W9lE51pahP` | $249/mo |
+| `lease_pro_monthly` | `price_1TZVsd7klyZ9sPrQYxwOFhzi` | `prod_UYd8AEjIb0K4du` | $849/mo |
+
+Amounts mirror `src/components/marketing/PricingCards.tsx` `crmTiers` + `whiteLabelTiers`. `Custom CRM`, `Full Ownership`, `Custom Enterprise` tiers route to `/contact` and intentionally have no Stripe price.
+
+#### Known gaps (not blocking — flagged for follow-up)
+- **`.env.development` `pk_test_*` is from a DIFFERENT abandoned Stripe account (`51TNmcQ`).** Local dev mode → checkout will misbehave because the price lookup_keys don't exist in that test account. To fix: enable test mode on the new `51TYVK6` account, create matching test-mode products + prices (Stripe test↔live sync isn't automatic), copy that account's `pk_test_*` into `.env.development`. **Punt until local-dev checkout is actually needed.**
+- **`supabase/functions/_shared/stripe.ts` CORS allow-list still lists `.virecrm.com` / `virecrm.com`.** Domain history was majix.ai → virecrm.com — both are referenced across the repo (220 hits, 20 files). CORS list is current as long as the live brand is `virecrm.com`. If the brand pivots again, update both `ALLOWED_ORIGIN_SUFFIXES` and the fallback `Access-Control-Allow-Origin`.
+- **Stripe Connect webhook NOT created.** The webhook above is platform-only. Once Connect is enabled on the account, create a second webhook with `connect=true` (same URL, same events) so reseller payouts/invoices flow into `client_stripe_accounts` + `submission_stripe_customers`.
+- **Promo removed (already shipped pre-session):** commits `27eb0ef` `1460897` `73d0581` `8e309e8` ripped out 30% launch promo from UI, create-checkout, payments-webhook, and tests. No Stripe coupon to manage. Earlier "Promo enforcement" follow-up in ISSUES.md is moot.
+
+#### Verification
+- All 5 lookup_keys resolve via `GET /v1/prices?lookup_keys[]=…`, `active=true`, `livemode=true`.
+- Webhook endpoint `status=enabled`, `livemode=true`, 11 events subscribed.
+- `supabase secrets list` confirms both `STRIPE_LIVE_API_KEY` + `PAYMENTS_LIVE_WEBHOOK_SECRET` are set (digests visible).
+- End-to-end checkout NOT yet smoke-tested (would require real card + real charge). Recommended next step: enable test mode in the new account, create matching test-mode prices, run a test card through `/pricing` → checkout → return flow before pointing real customers at it.
+
+#### Manual follow-ups (user)
+- [ ] **Rotate `sk_live_51TYVK6…`** in Stripe dashboard → Developers → API keys. The key was pasted in chat and is in conversation logs. After rotation, update `.env` `STRIPE_LIVE_API_KEY` and re-run `supabase secrets set STRIPE_LIVE_API_KEY=<new>`.
+- [ ] **Smoke a $1 test product + a real card** before launch. Suggested flow: temporary $1 product in live mode → checkout from a logged-in test account → verify `subscriptions` row inserts via the webhook → cancel from Stripe dashboard → archive the $1 product.
+- [ ] **Set Stripe statement descriptor + business profile** in the new account (Settings → Public details). Affects what shows up on customer card statements.
+- [ ] **Set `STRIPE_LIVE_API_KEY` + `PAYMENTS_LIVE_WEBHOOK_SECRET` on Cloudflare Worker** ONLY if a route handler under `src/routes/api/**` ever calls Stripe directly. As of this session, all Stripe calls live in Supabase Edge Functions, so the Worker doesn't need these — verified via grep on `src/` (`STRIPE_LIVE_API_KEY` zero hits in `src/`). Skip unless a future route handler imports Stripe.
+
 ### 2026-05-21 — Crystal sign-in confirmed; markdown cleanup
 **Tags:** [crystal] [auth] [docs]
 
