@@ -3,12 +3,12 @@
  * /_app on an org that hasn't completed onboarding yet
  * (organizations.onboarding_completed_at IS NULL).
  *
- * Three steps:
- *   1. Pick industry template — drives terminology, default modules, theme
- *   2. Pick brand color (defaults to template primary, owner can override)
- *   3. Configure data privacy (strict lead isolation toggle)
+ * Two steps (industry step was dropped — energy is the only vertical, so it's
+ * auto-applied on finish):
+ *   1. Pick brand color (defaults to energy template primary, owner can override)
+ *   2. Configure data privacy (strict lead isolation toggle)
  *
- * On finish we patch organizations with the chosen template, color, modules,
+ * On finish we patch organizations with the energy template, color, modules,
  * privacy setting, and stamp onboarding_completed_at — which dismisses the
  * wizard for everyone in the org.
  *
@@ -16,7 +16,7 @@
  * finish setup" notice on first paint instead of a half-configured CRM.
  */
 import { useState } from "react";
-import { Loader2, Check, ChevronRight, Building2, Palette, Shield } from "lucide-react";
+import { Loader2, Check, Palette, Shield } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,14 +30,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { INDUSTRY_LIST, type IndustryKey, type IndustryTemplate } from "@/lib/industry-templates";
+import { INDUSTRY_TEMPLATES } from "@/lib/industry-templates";
 
 interface OnboardingWizardProps {
   organizationId: string;
   isOwner: boolean;
   onComplete: () => void;
-  /** Prefill industry on re-run so owners aren't dropped at zero. */
-  currentIndustry?: IndustryKey | null;
   /** Prefill brand color on re-run. */
   currentBrandColor?: string | null;
   /** Prefill privacy toggle on re-run. */
@@ -48,28 +46,22 @@ interface OnboardingWizardProps {
   onDismissNotice: () => void;
 }
 
+// Energy is the only legal industry now. Wizard pulls theme + module defaults
+// straight from this template and skips the picker step entirely.
+const ENERGY_TEMPLATE = INDUSTRY_TEMPLATES.energy;
+
 export function OnboardingWizard({
   organizationId,
   isOwner,
   onComplete,
-  currentIndustry,
   currentBrandColor,
   currentStrictIsolation,
   noticeDismissed,
   onDismissNotice,
 }: OnboardingWizardProps) {
-  // Owners pick their own industry template — used to be platform-admin-only,
-  // which silently locked every real customer to "general" since they have no
-  // platform admin to ask. The DB trigger `guard_industry_template_change`
-  // now permits owners alongside platform admins; non-owners still get the
-  // friendly "ask your owner" notice below and never reach this step.
-  const initialTemplate = currentIndustry
-    ? (INDUSTRY_LIST.find((t) => t.key === currentIndustry) ?? null)
-    : null;
   const [step, setStep] = useState(0);
-  const [industry, setIndustry] = useState<IndustryKey | null>(currentIndustry ?? null);
   const [brandColor, setBrandColor] = useState<string>(
-    currentBrandColor || initialTemplate?.theme.primary || "",
+    currentBrandColor || ENERGY_TEMPLATE.theme.primary,
   );
   const [strictIsolation, setStrictIsolation] = useState(currentStrictIsolation ?? false);
   const [saving, setSaving] = useState(false);
@@ -113,34 +105,22 @@ export function OnboardingWizard({
     );
   }
 
-  const selectedTemplate: IndustryTemplate | null = industry
-    ? (INDUSTRY_LIST.find((t) => t.key === industry) ?? null)
-    : null;
-
-  const handleSelectIndustry = (key: IndustryKey) => {
-    const tmpl = INDUSTRY_LIST.find((t) => t.key === key);
-    setIndustry(key);
-    if (tmpl) setBrandColor(tmpl.theme.primary);
-    setStep(1);
-  };
-
   const hexColorValid = brandColor.length === 0 || /^#[0-9a-fA-F]{6}$/.test(brandColor);
 
   const handleFinish = async () => {
-    if (!selectedTemplate) return;
     setSaving(true);
     setSaveError(null);
     try {
-      // Owner sets industry_template + enabled_modules along with theme,
+      // Owner stamps industry_template + enabled_modules along with theme,
       // privacy, and the completion stamp. The DB trigger
       // `guard_industry_template_change` permits owner-driven updates and
       // `log_template_change` audits them automatically.
       const patch: Record<string, unknown> = {
-        industry_template: selectedTemplate.key,
-        enabled_modules: selectedTemplate.defaultModules,
-        primary_color: brandColor || selectedTemplate.theme.primary,
-        accent_color: selectedTemplate.theme.accent,
-        sidebar_color: selectedTemplate.theme.sidebar,
+        industry_template: ENERGY_TEMPLATE.key,
+        enabled_modules: ENERGY_TEMPLATE.defaultModules,
+        primary_color: brandColor || ENERGY_TEMPLATE.theme.primary,
+        accent_color: ENERGY_TEMPLATE.theme.accent,
+        sidebar_color: ENERGY_TEMPLATE.theme.sidebar,
         strict_lead_isolation: strictIsolation,
         onboarding_completed_at: new Date().toISOString(),
       };
@@ -150,7 +130,7 @@ export function OnboardingWizard({
         .eq("id", organizationId);
 
       if (error) throw error;
-      toast.success(`${selectedTemplate.name} workspace ready`);
+      toast.success(`${ENERGY_TEMPLATE.name} workspace ready`);
       onComplete();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to save setup";
@@ -166,55 +146,19 @@ export function OnboardingWizard({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {step === 0 && <Building2 className="h-5 w-5" />}
-            {step === 1 && <Palette className="h-5 w-5" />}
-            {step === 2 && <Shield className="h-5 w-5" />}
-            {step === 0 && "Pick your industry"}
-            {step === 1 && "Pick your brand color"}
-            {step === 2 && "Lead privacy"}
+            {step === 0 && <Palette className="h-5 w-5" />}
+            {step === 1 && <Shield className="h-5 w-5" />}
+            {step === 0 && "Pick your brand color"}
+            {step === 1 && "Lead privacy"}
           </DialogTitle>
-          <DialogDescription>
-            Step {step + 1} of 3 — only owners see this setup.
-          </DialogDescription>
+          <DialogDescription>Step {step + 1} of 2 — only owners see this setup.</DialogDescription>
         </DialogHeader>
 
-        {/* Step 0 — industry template */}
+        {/* Step 0 — color */}
         {step === 0 && (
-          <div className="max-h-[60vh] overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-              {INDUSTRY_LIST.map((tmpl) => (
-                <button
-                  key={tmpl.key}
-                  onClick={() => handleSelectIndustry(tmpl.key)}
-                  className="text-left rounded-lg border border-border bg-card hover:bg-accent/30 p-4 transition-colors group"
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div
-                      className="h-8 w-8 rounded-md flex-shrink-0 ring-1 ring-border/50"
-                      style={{
-                        background: `linear-gradient(135deg, ${tmpl.theme.primary}, ${tmpl.theme.accent})`,
-                      }}
-                    />
-                    <div>
-                      <h3 className="font-semibold text-foreground">{tmpl.name}</h3>
-                      <p className="text-xs text-muted-foreground">{tmpl.tagline}</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{tmpl.description}</p>
-                  <div className="mt-3 flex items-center text-xs text-primary opacity-0 group-hover:opacity-100 transition">
-                    Use this template <ChevronRight className="h-3 w-3 ml-1" />
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Step 1 — color */}
-        {step === 1 && selectedTemplate && (
           <div className="space-y-4 mt-2">
             <p className="text-sm text-muted-foreground">
-              Default color for <strong>{selectedTemplate.name}</strong>. Override it to match your
+              Default color for <strong>{ENERGY_TEMPLATE.name}</strong>. Override it to match your
               brand — applies to buttons, links, and the sidebar accent.
             </p>
             <div className="flex items-center gap-3">
@@ -233,7 +177,9 @@ export function OnboardingWizard({
                   placeholder="#3b82f6"
                 />
                 {brandColor.length > 0 && !hexColorValid && (
-                  <p className="text-xs text-destructive mt-1">Must be a valid hex color like #3b82f6</p>
+                  <p className="text-xs text-destructive mt-1">
+                    Must be a valid hex color like #3b82f6
+                  </p>
                 )}
               </div>
             </div>
@@ -246,19 +192,16 @@ export function OnboardingWizard({
                 Sample button
               </Button>
             </div>
-            <div className="flex justify-between">
-              <Button variant="ghost" onClick={() => setStep(0)}>
-                Back
-              </Button>
-              <Button onClick={() => setStep(2)} disabled={!hexColorValid}>
+            <div className="flex justify-end">
+              <Button onClick={() => setStep(1)} disabled={!hexColorValid}>
                 Continue
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 2 — privacy */}
-        {step === 2 && selectedTemplate && (
+        {/* Step 1 — privacy */}
+        {step === 1 && (
           <div className="space-y-4 mt-2">
             <div className="rounded-lg border border-border p-4 bg-muted/30">
               <div className="flex items-start justify-between gap-4">
@@ -287,12 +230,12 @@ export function OnboardingWizard({
               <div className="text-sm text-muted-foreground space-y-1">
                 <div className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-primary" /> Industry:{" "}
-                  <strong className="text-foreground">{selectedTemplate.name}</strong>
+                  <strong className="text-foreground">{ENERGY_TEMPLATE.name}</strong>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-primary" /> Modules enabled:{" "}
                   <strong className="text-foreground">
-                    {selectedTemplate.defaultModules.length}
+                    {ENERGY_TEMPLATE.defaultModules.length}
                   </strong>
                 </div>
                 <div className="flex items-center gap-2">
@@ -309,7 +252,7 @@ export function OnboardingWizard({
             </div>
 
             <div className="flex justify-between">
-              <Button variant="ghost" onClick={() => setStep(1)} disabled={saving}>
+              <Button variant="ghost" onClick={() => setStep(0)} disabled={saving}>
                 Back
               </Button>
               <Button onClick={() => void handleFinish()} disabled={saving}>

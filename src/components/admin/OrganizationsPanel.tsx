@@ -38,12 +38,7 @@ import { formatPlanPrice, planBadgeVariant, subStatusVariant } from "@/lib/admin
 import type { AdminOrgRow, OrgBillingSnapshot } from "@/types/admin";
 
 const INDUSTRY_OPTIONS: ReadonlyArray<{ key: IndustryKey; label: string }> = [
-  { key: "general", label: "General" },
-  { key: "gym", label: "Gym" },
-  { key: "solar", label: "Solar" },
   { key: "energy", label: "Energy" },
-  { key: "real_estate", label: "Real Estate" },
-  { key: "insurance", label: "Insurance" },
 ];
 
 const PLAN_LABELS: ReadonlyArray<{ value: string; label: string; price: string; tagline: string }> =
