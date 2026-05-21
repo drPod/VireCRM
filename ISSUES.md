@@ -100,6 +100,17 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Unit tests for `src/lib/stripe.ts` (env detection + loader singleton)
+**Tags:** [tests] [billing] [stripe]
+
+#### Shipped
+- `src/lib/__tests__/stripe.test.ts` (new, 9 tests) — covers `getStripeEnvironment()` returning `live` only for `pk_live_*` prefix and `sandbox` for `pk_test_*` / empty / malformed; `isStripeConfigured()` true/false branches; `getStripe()` throw on missing token, `loadStripe` invocation with the configured key, and singleton memoization (same promise across 3 calls, `loadStripe` called exactly once).
+- Pattern: `vi.resetModules()` + dynamic `await import("../stripe")` per test because `clientToken` is captured at module-load from `import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN` (line 3 of `src/lib/stripe.ts`) and `stripePromise` is a module-level singleton. `@stripe/stripe-js` mocked module-wide so loader never hits the real script injection in jsdom.
+
+#### Verification
+- `bun run test src/lib/__tests__/stripe.test.ts` — 9/9 passing.
+- `bun run test` — full suite 152/152 passing across 6 files.
+
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
