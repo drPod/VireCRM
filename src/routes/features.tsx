@@ -8,7 +8,6 @@ import { FeaturesNav } from "@/components/marketing/features/FeaturesNav";
 import { ChapterDivider } from "@/components/marketing/features/ChapterDivider";
 import { FeatureBlock } from "@/components/marketing/features/FeatureBlock";
 import { ComparisonTable } from "@/components/marketing/features/ComparisonTable";
-import { VerticalsStrip } from "@/components/marketing/features/VerticalsStrip";
 import { IntegrationsGrid } from "@/components/marketing/features/IntegrationsGrid";
 import { FeaturesFaq } from "@/components/marketing/features/FeaturesFaq";
 import { CHAPTERS, FEATURES } from "@/components/marketing/features/featureBlocks";
@@ -43,7 +42,6 @@ const NAV_ITEMS = [
   { id: "convert", label: "Convert" },
   { id: "scale", label: "Scale" },
   { id: "compare", label: "Compare" },
-  { id: "verticals", label: "Verticals" },
   { id: "integrations", label: "Integrations" },
   { id: "faq", label: "FAQ" },
 ];
@@ -83,7 +81,6 @@ function FeaturesPage() {
       ))}
 
       <ComparisonTable />
-      <VerticalsStrip />
       <IntegrationsGrid />
       <FeaturesFaq />
       <MarketingFooter />
