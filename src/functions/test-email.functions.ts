@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -114,7 +115,10 @@ export const lookupTestEmailStatusFn = createServerFn({ method: "POST" })
       .eq("organization_id", profile.organization_id)
       .eq("role", "owner")
       .maybeSingle();
-    if (!roleRow) throw new Error("Forbidden: owner role required.");
+    if (!roleRow) {
+      setResponseStatus(403);
+      throw new Error("Forbidden: owner role required.");
+    }
 
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;

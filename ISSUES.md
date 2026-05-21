@@ -508,6 +508,12 @@ Step 6 = effectively done. Old Lovable project no longer accessible to user → 
 - `src/functions/admin-quote-email.functions.ts:46` — `setResponseStatus(401)` before platform-admin auth throw.
 - `src/functions/test-email.functions.ts:117` — `setResponseStatus(403)` before owner-only role throw.
 - Clients can now branch on 401 vs 403 vs 500 instead of seeing generic 500 for every failure.
+### 2026-05-22 — Remix throw Response → TanStack Start setResponseStatus
+**Tags:** [bug] [tanstack-start] [domain-health] [email-deliverability]
+
+#### Shipped
+- `src/functions/domain-health.functions.ts:266` + `email-deliverability.functions.ts:417` — converted `throw new Response("Forbidden", { status: 403 })` to canonical `setResponseStatus(403); throw new Error("Forbidden")`. `throw new Response()` is a Remix idiom and gets wrapped as 500 by TanStack Start's server-function serializer.
+- `src/functions/domain-health.functions.ts:277` — DB-error rethrow converted to plain `throw new Error(error.message)` (no setResponseStatus — real internal error, implicit 500 correct).
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]

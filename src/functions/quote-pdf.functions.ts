@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -63,7 +64,10 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
 
     // Verify caller is platform admin
     const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", { p_user_id: userId });
-    if (!isAdmin) throw new Error("Unauthorized: platform admin required");
+    if (!isAdmin) {
+      setResponseStatus(401);
+      throw new Error("Unauthorized: platform admin required");
+    }
 
     const { data: quote, error } = await supabaseAdmin
       .from("admin_quotes")
@@ -312,7 +316,10 @@ export const getQuotePdfSignedUrl = createServerFn({ method: "POST" })
     const { userId } = context;
 
     const { data: isAdmin } = await supabaseAdmin.rpc("is_platform_admin", { p_user_id: userId });
-    if (!isAdmin) throw new Error("Unauthorized: platform admin required");
+    if (!isAdmin) {
+      setResponseStatus(401);
+      throw new Error("Unauthorized: platform admin required");
+    }
 
     const { data: quote, error } = await supabaseAdmin
       .from("admin_quotes")
