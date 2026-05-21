@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useRef } from "react";
 import heroImage from "@/assets/hero-dashboard.jpg";
 
@@ -69,35 +69,13 @@ export function HeroSection() {
 
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
-            <Sparkles className="h-3 w-3" />
-            Custom-built CRM &amp; AI sales systems
-          </div>
-
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Custom CRM &amp; AI Sales Systems
-            <br />
-            <span className="text-gradient-primary [-webkit-text-fill-color:transparent] drop-shadow-[0_2px_12px_oklch(0.65_0.2_250/0.35)]">
-              Built for Your Business
-            </span>
-            <br />
-            <span className="text-2xl font-medium text-muted-foreground sm:text-3xl lg:text-4xl">
-              — Not One-Size-Fits-All
-            </span>
+            Custom CRM &amp; AI sales systems, built for your business
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            More than a CRM — this is your AI-powered sales system. We design and build custom
-            systems that manage your pipeline, follow up with every lead, and keep your sales
-            process moving — without the complexity of traditional CRMs.
-          </p>
-
-          <p className="mx-auto mt-4 max-w-xl text-sm font-medium text-foreground/80">
-            Built for real estate, agencies, solar, roofing, home services, and coaching businesses.
-          </p>
-
-          <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground/80">
-            All the power of a CRM. None of the complexity.
+            We design and build the system that runs your pipeline, follows up with every lead, and
+            keeps deals moving — without the bloat of an off-the-shelf CRM.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -111,35 +89,6 @@ export function HeroSection() {
               <Link to="/preview">See It In Action</Link>
             </Button>
           </div>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Set up in days, not months
-            </span>
-            <span aria-hidden="true" className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-success" /> No technical skills required
-            </span>
-            <span aria-hidden="true" className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Automated follow-up built in
-            </span>
-            <span aria-hidden="true" className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Pipeline runs 24/7
-            </span>
-            <span aria-hidden="true" className="hidden sm:inline">·</span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-success" /> Built around how you sell
-            </span>
-          </div>
-
-          <div className="mx-auto mt-10 max-w-xl rounded-xl border border-primary/20 bg-primary/5 px-6 py-5">
-            <p className="text-sm text-muted-foreground">Most businesses rent their systems.</p>
-            <p className="mt-1 text-base font-semibold text-foreground">
-              Leaders build assets — and control their growth.
-            </p>
-          </div>
         </div>
 
         {/* Hero Image */}
@@ -148,7 +97,6 @@ export function HeroSection() {
           className="relative mx-auto mt-16 max-w-5xl will-change-transform"
           style={{ transform: "translate3d(0, var(--parallax-y, 0px), 0)" }}
         >
-          <div className="pointer-events-none absolute -inset-12 rounded-[2rem] hero-aurora opacity-70" />
           <div className="pointer-events-none absolute -inset-4 rounded-3xl bg-primary/10 blur-2xl" />
           <div className="relative overflow-hidden rounded-2xl border border-border shadow-2xl shadow-primary/15 hero-float">
             <img
