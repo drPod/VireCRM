@@ -114,6 +114,17 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 
 #### Found (no work needed)
 - Honeypot has two layers: Zod schema `website: z.string().max(0)` rejects bot fills with 400, then the post-parse `if (payload.website.length > 0)` silent-success branch is unreachable (dead code). Test documents both. Not flagging for removal — defense-in-depth is intentional even if redundant.
+### 2026-05-22 — Unit tests: find-leads server fn
+**Tags:** [tests] [lead-sync]
+
+#### Shipped
+- `src/functions/__tests__/find-leads.test.ts` (new, 12 tests) — covers provider routing (apollo/hunter/snov), platform-quota consumption + BYO-key skip, `recordLeadSync` row shape, provider error mapping (Apollo 401/429, Hunter 500), empty-result partial path.
+- `src/functions/find-leads.functions.ts` — extracted inner handler as `_findLeadsHandler` so tests bypass the TanStack Start middleware chain (auth + subscription). `findLeadsFn` wrapper unchanged in behaviour, still `.middleware([...]).inputValidator(...).handler(_findLeadsHandler)`.
+
+#### Verification
+- `bun run test` — 155/155 pass (6 files).
+- `bun run typecheck` — clean.
+- `bun run lint` — clean for both touched files.
 ### 2026-05-22 — Unit tests for `src/lib/auth-helpers.ts`
 **Tags:** [tests] [auth] [supabase]
 
