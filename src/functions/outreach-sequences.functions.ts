@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { assertOrgMember } from "@/lib/auth-helpers";
 import { z } from "zod";
 
@@ -69,7 +69,7 @@ const seqScope = orgScope.extend({ sequenceId: z.string().uuid() });
 // ---------- Sequences ----------
 
 export const listSequencesFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof orgScope>) => orgScope.parse(input))
   .handler(async ({ data, context }): Promise<OutreachSequence[]> => {
     const { supabase, userId } = context;
@@ -118,7 +118,7 @@ const upsertSequenceSchema = orgScope.extend({
 });
 
 export const upsertSequenceFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof upsertSequenceSchema>) =>
     upsertSequenceSchema.parse(input),
   )
@@ -150,7 +150,7 @@ export const upsertSequenceFn = createServerFn({ method: "POST" })
   });
 
 export const deleteSequenceFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof orgScope> & { id: string }) =>
     orgScope.extend({ id: z.string().uuid() }).parse(input),
   )
@@ -170,7 +170,7 @@ export const deleteSequenceFn = createServerFn({ method: "POST" })
 // ---------- Steps ----------
 
 export const listStepsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
   .handler(async ({ data, context }): Promise<OutreachSequenceStep[]> => {
     const { supabase, userId } = context;
@@ -198,7 +198,7 @@ const upsertStepSchema = seqScope.extend({
 });
 
 export const upsertStepFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof upsertStepSchema>) => upsertStepSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachSequenceStep> => {
     const { supabase, userId } = context;
@@ -233,7 +233,7 @@ export const upsertStepFn = createServerFn({ method: "POST" })
   });
 
 export const deleteStepFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof orgScope> & { id: string }) =>
     orgScope.extend({ id: z.string().uuid() }).parse(input),
   )
@@ -253,7 +253,7 @@ export const deleteStepFn = createServerFn({ method: "POST" })
 // ---------- Enrollments ----------
 
 export const listEnrollmentsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
   .handler(async ({ data, context }): Promise<SequenceEnrollment[]> => {
     const { supabase, userId } = context;
@@ -288,7 +288,7 @@ const enrollSchema = seqScope.extend({
 });
 
 export const enrollLeadsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof enrollSchema>) => enrollSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ enrolled: number }> => {
     const { supabase, userId } = context;
@@ -336,7 +336,7 @@ const updateEnrollmentSchema = orgScope.extend({
 });
 
 export const updateEnrollmentStatusFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof updateEnrollmentSchema>) =>
     updateEnrollmentSchema.parse(input),
   )
@@ -372,7 +372,7 @@ export const updateEnrollmentStatusFn = createServerFn({ method: "POST" })
 // ---------- Step log ----------
 
 export const listSequenceLogFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
   .handler(async ({ data, context }): Promise<StepLogRow[]> => {
     const { supabase, userId } = context;

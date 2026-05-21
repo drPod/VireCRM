@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { importHubspotContactsFn } from "@/functions/connector-actions.functions";
 
 interface HubspotSyncButtonProps {
@@ -12,7 +12,7 @@ interface HubspotSyncButtonProps {
 
 export function HubspotSyncButton({ organizationId, importLimit }: HubspotSyncButtonProps) {
   const [syncing, setSyncing] = useState(false);
-  const importHubspot = useAuthedServerFn(importHubspotContactsFn);
+  const importHubspot = useServerFn(importHubspotContactsFn);
 
   const handleSync = async () => {
     setSyncing(true);

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { assertOrgMember } from "@/lib/auth-helpers";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -153,7 +153,7 @@ function emptyAvailability(): Availability {
 // ---------- Calendars ----------
 
 export const listCalendarsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof orgScope>) => orgScope.parse(input))
   .handler(async ({ data, context }): Promise<CalendarRow[]> => {
     const { supabase, userId } = context;
@@ -201,7 +201,7 @@ const upsertCalendarSchema = orgScope.extend({
 });
 
 export const upsertCalendarFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof upsertCalendarSchema>) =>
     upsertCalendarSchema.parse(input),
   )
@@ -265,7 +265,7 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
   });
 
 export const deleteCalendarFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof orgScope> & { id: string }) =>
     orgScope.extend({ id: z.string().uuid() }).parse(input),
   )
@@ -285,7 +285,7 @@ export const deleteCalendarFn = createServerFn({ method: "POST" })
 // ---------- Appointments ----------
 
 export const listAppointmentsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof orgScope> & { calendarId?: string; leadId?: string }) =>
     orgScope
       .extend({ calendarId: z.string().uuid().optional(), leadId: z.string().uuid().optional() })
@@ -333,7 +333,7 @@ const createAppointmentSchema = orgScope.extend({
 });
 
 export const createAppointmentFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof createAppointmentSchema>) =>
     createAppointmentSchema.parse(input),
   )
@@ -363,7 +363,7 @@ export const createAppointmentFn = createServerFn({ method: "POST" })
   });
 
 export const cancelAppointmentFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof orgScope> & { id: string }) =>
     orgScope.extend({ id: z.string().uuid() }).parse(input),
   )

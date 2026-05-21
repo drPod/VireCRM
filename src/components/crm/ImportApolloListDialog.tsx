@@ -20,7 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listApolloListsFn,
   importApolloListFn,
@@ -57,8 +57,8 @@ export function ImportApolloListDialog({ onLeadsImported }: ImportApolloListDial
   const [errorCode, setErrorCode] = useState<ErrorCode>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
 
-  const fetchLists = useAuthedServerFn(listApolloListsFn);
-  const importList = useAuthedServerFn(importApolloListFn);
+  const fetchLists = useServerFn(listApolloListsFn);
+  const importList = useServerFn(importApolloListFn);
 
   const reset = useCallback(() => {
     setLists(null);

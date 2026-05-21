@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -58,8 +58,8 @@ export function TestAccountButton() {
   const [auditing, setAuditing] = useState(false);
   const [auditResults, setAuditResults] = useState<AuditCheck[] | null>(null);
 
-  const createFn = useAuthedServerFn(createTestAccount);
-  const revokeFn = useAuthedServerFn(revokeTestAccount);
+  const createFn = useServerFn(createTestAccount);
+  const revokeFn = useServerFn(revokeTestAccount);
 
   useEffect(() => {
     if (open) setAccount(readStored());

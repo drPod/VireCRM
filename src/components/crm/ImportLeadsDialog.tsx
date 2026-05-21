@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { useAutoOutreachPreference } from "@/hooks/useAutoOutreachPreference";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { mapImportColumnsFn } from "@/functions/import-mapping.functions";
 import { toast } from "sonner";
 import type { ParseOutcome, ParseIssue, ParsedLead } from "@/types/import";
@@ -68,7 +68,7 @@ export function ImportLeadsDialog({
   // are loading their existing client list at onboarding, not new leads.
   const [backfillMode, setBackfillMode] = useState<boolean>(false);
 
-  const mapColumns = useAuthedServerFn(mapImportColumnsFn);
+  const mapColumns = useServerFn(mapImportColumnsFn);
 
   const reset = useCallback(() => {
     setFile(null);
