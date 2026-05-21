@@ -247,7 +247,6 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 #### Manual follow-up (user)
 - None.
 
-### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 ### 2026-05-22 — Reseller scaffold nuke + smoke blocked on billing gate
 **Tags:** [reseller] [lovable-migration] [supabase] [bug]
 
@@ -282,6 +281,7 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 - Smoke seeded rows still in prod: smoke user `64ac2242-5e02-4ca5-a75c-c5e7d12f3da3`, org `1c973d35-…`, one lead `darsh.pod@gmail.com` tagged `smoke-campaign-20260521163648`. Cleanup deferred until smoke completes end-to-end.
 
 
+### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
 #### Found (verification — all shipped, no work needed)
