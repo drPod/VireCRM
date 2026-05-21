@@ -138,7 +138,7 @@ function EmailMarketingPage() {
               </Link>
             </Button>
             <Button variant="command" className="gap-2" asChild>
-              <Link to="/campaigns/new">
+              <Link to="/campaigns" search={{ new: true }}>
                 <Plus className="h-4 w-4" />
                 New Campaign
               </Link>
@@ -199,7 +199,7 @@ function EmailMarketingPage() {
                   Create your first email campaign to start tracking performance.
                 </p>
                 <Button variant="command" size="sm" className="mt-4 gap-1" asChild>
-                  <Link to="/campaigns/new">
+                  <Link to="/campaigns" search={{ new: true }}>
                     <Plus className="h-3.5 w-3.5" />
                     Create campaign
                   </Link>
