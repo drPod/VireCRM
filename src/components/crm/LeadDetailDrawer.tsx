@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { notifyLeadsChanged } from "@/lib/leads-events";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -10,25 +10,13 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Loader2,
-  Save,
-  Trash2,
-  Mail,
-  MessageSquare,
-  Clock,
-  Send,
-  Inbox,
-  RefreshCw,
-  Trophy,
-  Calculator,
-} from "lucide-react";
+import { Loader2, Save, Trash2, Clock, Send, RefreshCw, Trophy, Calculator } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { listLeadEmailLogsFn, type EmailLogEntry } from "@/functions/email-log.functions";
+import { formatRelativeTime } from "@/lib/date-utils";
 import { OutreachPreviewDialog } from "./OutreachPreviewDialog";
 import { LeadConnectorActions } from "./LeadConnectorActions";
 import { LeadFollowupButton } from "./LeadFollowupButton";
@@ -37,6 +25,8 @@ import { AssigneeMultiSelect } from "./AssigneeMultiSelect";
 import { ShareLeadPanel } from "./ShareLeadPanel";
 import { AssigneeAvatars } from "./AssigneeAvatars";
 import { LeadInvoicesPanel } from "./LeadInvoicesPanel";
+import { ActivityEntry, type ActivityItem } from "./ActivityEntry";
+import { EmailLogEntryRow } from "./EmailLogEntryRow";
 import type { Lead } from "./LeadCard";
 
 const STATUS_OPTIONS: Lead["status"][] = [
@@ -47,16 +37,6 @@ const STATUS_OPTIONS: Lead["status"][] = [
   "won",
   "lost",
 ];
-
-interface ActivityItem {
-  id: string;
-  type: "email" | "reply" | "task" | "won";
-  title: string;
-  content: string;
-  date: string;
-  status?: string;
-  sentiment?: string | null;
-}
 
 interface LeadDetailDrawerProps {
   lead: Lead | null;
@@ -1222,190 +1202,5 @@ export function LeadDetailDrawer({
         />
       ) : null}
     </Sheet>
-  );
-}
-
-function htmlToPlainText(input: string): string {
-  if (!input) return "";
-  // Strip script/style blocks entirely
-  let s = input.replace(/<(script|style)[\s\S]*?<\/\1>/gi, "");
-  // Convert common block tags to newlines so paragraphs don't run together
-  s = s.replace(/<\/(p|div|h[1-6]|li|tr|br)\s*>/gi, "\n");
-  s = s.replace(/<br\s*\/?>/gi, "\n");
-  // Strip all remaining tags
-  s = s.replace(/<[^>]+>/g, "");
-  // Decode the most common HTML entities
-  s = s
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'");
-  // Collapse whitespace
-  s = s
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-  return s;
-}
-
-function ActivityEntry({ item }: { item: ActivityItem }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const iconMap = {
-    email: <Mail className="h-3.5 w-3.5" />,
-    reply: <MessageSquare className="h-3.5 w-3.5" />,
-    task: <Clock className="h-3.5 w-3.5" />,
-    won: <Trophy className="h-3.5 w-3.5" />,
-  };
-
-  const colorMap = {
-    email: "bg-primary/15 text-primary border-primary/20",
-    reply: "bg-accent text-accent-foreground border-accent",
-    task: "bg-secondary text-secondary-foreground border-secondary",
-    won: "bg-success/15 text-success border-success/30",
-  };
-
-  const sentimentBadge = item.sentiment ? (
-    <Badge
-      variant="outline"
-      className={`text-[10px] px-1.5 py-0 h-4 ${
-        item.sentiment === "positive"
-          ? "border-green-500/30 text-green-400"
-          : item.sentiment === "negative"
-            ? "border-red-500/30 text-red-400"
-            : "border-muted text-muted-foreground"
-      }`}
-    >
-      {item.sentiment}
-    </Badge>
-  ) : null;
-
-  const timeAgo = formatRelativeTime(item.date);
-  const plainContent = useMemo(() => htmlToPlainText(item.content || ""), [item.content]);
-  const isLong = plainContent.length > 180 || plainContent.includes("\n");
-  const canExpand = isLong && item.type === "email";
-
-  return (
-    <div className="relative pl-9 pb-4 group">
-      {/* Icon dot */}
-      <div
-        className={`absolute left-1.5 top-1 flex h-[22px] w-[22px] items-center justify-center rounded-full border ${colorMap[item.type]}`}
-      >
-        {iconMap[item.type]}
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-3 space-y-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-foreground truncate">{item.title}</span>
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo}</span>
-        </div>
-
-        {plainContent && !expanded && (
-          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed whitespace-pre-wrap">
-            {plainContent}
-          </p>
-        )}
-        {plainContent && expanded && (
-          <pre className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans bg-muted/40 rounded-md p-2 max-h-72 overflow-y-auto">
-            {plainContent}
-          </pre>
-        )}
-
-        {canExpand && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-          >
-            {expanded ? (
-              <>
-                <ChevronDown className="h-3 w-3" /> Hide full message
-              </>
-            ) : (
-              <>
-                <ChevronRight className="h-3 w-3" /> View full message
-              </>
-            )}
-          </button>
-        )}
-
-        <div className="flex items-center gap-1.5">
-          {item.status && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 capitalize">
-              {item.status}
-            </Badge>
-          )}
-          {sentimentBadge}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = now - then;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
-}
-
-function EmailLogEntryRow({ log }: { log: EmailLogEntry }) {
-  const status = (log.status || "unknown").toLowerCase();
-  const colorClass =
-    status === "sent" || status === "delivered"
-      ? "border-green-500/30 text-green-400 bg-green-500/10"
-      : status === "pending" || status === "queued"
-        ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/10"
-        : status === "suppressed"
-          ? "border-orange-500/30 text-orange-400 bg-orange-500/10"
-          : status === "failed" || status === "error" || status === "bounced"
-            ? "border-red-500/30 text-red-400 bg-red-500/10"
-            : "border-muted text-muted-foreground bg-muted/30";
-
-  return (
-    <div className="rounded-lg border border-border bg-card p-3 space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Inbox className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-xs font-medium text-foreground truncate">{log.template_name}</span>
-        </div>
-        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-          {formatRelativeTime(log.created_at)}
-        </span>
-      </div>
-      {log.subject && (
-        <p className="text-xs text-foreground/90 font-medium leading-snug line-clamp-1">
-          {log.subject}
-        </p>
-      )}
-      {log.body_preview &&
-        (() => {
-          const cleaned = htmlToPlainText(log.body_preview);
-          return cleaned ? (
-            <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 whitespace-pre-wrap">
-              {cleaned}
-            </p>
-          ) : null;
-        })()}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 capitalize ${colorClass}`}>
-          {status}
-        </Badge>
-        <span className="text-[10px] text-muted-foreground truncate">{log.recipient_email}</span>
-      </div>
-      {log.error_message && (
-        <p className="text-[11px] text-red-400 leading-relaxed line-clamp-2">{log.error_message}</p>
-      )}
-    </div>
   );
 }
