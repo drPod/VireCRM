@@ -120,6 +120,14 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — lead/outreach server fns: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [outreach]
+
+#### Shipped
+- `src/functions/find-leads.functions.ts:72,526,573` — `setResponseStatus(403)` before each org-membership throw.
+- `src/functions/auto-outreach.functions.ts:69` — `setResponseStatus(403)` before org-membership throw.
+- Auth/authz failures now return proper status code instead of implicit 500.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 

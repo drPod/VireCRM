@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -65,6 +66,7 @@ export const autoOutreachFn = createServerFn({ method: "POST" })
       .single();
 
     if (!profile || profile.organization_id !== data.organizationId) {
+      setResponseStatus(403);
       throw new Error("Unauthorized: not a member of this organization");
     }
 
