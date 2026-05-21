@@ -276,6 +276,14 @@ function AppLayout() {
           currentBrandColor={organization?.primary_color ?? null}
           currentStrictIsolation={organization?.strict_lead_isolation ?? false}
           onComplete={() => setOnboardingDone(true)}
+          noticeDismissed={profile?.wizard_notice_dismissed ?? false}
+          onDismissNotice={async () => {
+            if (!user) return;
+            await supabase
+              .from("profiles")
+              .update({ wizard_notice_dismissed: true } as never)
+              .eq("user_id", user.id);
+          }}
         />
       )}
       {/* Interactive product tour for first-time users (auto-opens once

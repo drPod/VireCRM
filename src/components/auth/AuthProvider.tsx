@@ -9,6 +9,8 @@ interface UserProfile {
   full_name: string | null;
   avatar_url: string | null;
   organization_id: string;
+  /** Populated once migration 20260521000003_wizard_notice_dismissed lands. */
+  wizard_notice_dismissed?: boolean;
 }
 
 interface UserRole {
@@ -102,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // instead so we can degrade gracefully.
       const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, organization_id")
+        .select("id, full_name, avatar_url, organization_id, wizard_notice_dismissed" as "id, full_name, avatar_url, organization_id")
         .eq("user_id", userId)
         .maybeSingle();
 

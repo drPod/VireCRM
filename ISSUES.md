@@ -91,19 +91,18 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — Slim leads route + remove LeadsSmokeTest from prod render
-**Tags:** [audit] [frontend] [security]
+### 2026-05-21 — OnboardingWizard bug fixes (4 bugs)
+**Tags:** [bug] [frontend] [supabase]
 
 #### Shipped
-- `src/routes/_app.leads.tsx` — slimmed from 1,082 lines to ~42; keeps Route definition + `statusFilters` constant + thin `<LeadsPageContent />` render.
-- `src/components/crm/LeadsPageContent.tsx` — new file, receives the entire former `LeadsPage` body verbatim (only mechanical change: reads `search` via props instead of `Route.useSearch()` inside the component; `Route.useSearch()` now called in the route shell and passed through).
-- `src/components/crm/LeadsSmokeTest.tsx` — deleted (274 lines). Component rendered unconditionally in production at `_app.leads.tsx` line 631 with no dev-only flag / env gate — every load hit live Supabase with auth/list/filter probes, and the "Smoke test" button shipped to every CRM user. Import + JSX removed from leads route.
+- `supabase/migrations/20260521000003_wizard_notice_dismissed.sql` — adds `profiles.wizard_notice_dismissed boolean NOT NULL DEFAULT false`
+- `src/components/onboarding/OnboardingWizard.tsx` — (1) replaced `sessionStorage` notice dismissal with `noticeDismissed`/`onDismissNotice` props; (2) added `hexColorValid` derived check + inline error + disabled Continue on invalid hex; (3) wrapped step-0 grid in `max-h-[60vh] overflow-y-auto` scroll container; (4) added `saveError` state + Retry button on finish failure
+- `src/components/auth/AuthProvider.tsx` — added `wizard_notice_dismissed?` to `UserProfile` interface; extended `profiles.select(...)` to fetch the column (string cast until migration lands)
+- `src/routes/_app.tsx` — passes `noticeDismissed` and `onDismissNotice` (async Supabase update) to `<OnboardingWizard>`
 
 #### Verification
-- `bun run typecheck` — pending (will run before commit)
-- `bun run test` / `lint` / `build` — pending
-- Visible UI diff: "Smoke test" button no longer renders in the leads header action bar — intentional; will be flagged in PR description.
-- Behavior otherwise unchanged — same hooks, same JSX, same effects.
+- `bun run typecheck` → 0 errors
+- `bun run build` → ✓ built in 6.63s, 0 errors
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
