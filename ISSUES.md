@@ -144,6 +144,61 @@ Sibling exemplar `LeadCard.tsx` is 318 LOC for reference — extracted siblings 
 - `bun run test` — 133/133 pass.
 - `bun run build` — 9.07s, no errors. `dist/server/assets/_app.leads-*.js` = 1.1M bundle.
 - **Live verify:** `bun run dev --port 4176` → `curl /leads` 200. agent-browser session `refactor-unit-3` navigated to `http://localhost:4176/leads`, page title resolves to "VireCRM — Leads", screenshot at `screenshots/unit-3.png` shows the auth-gated CRM app shell with skeleton loaders (expected — no live session). No console errors, no React error overlay, no missing-module crashes. `bun run preview --port 4176` failed to start (pre-existing TanStack Start vite preview issue — Lovable Vite preset emits a CF Workers bundle that vite preview can't execute, per `CLAUDE.md` host-migration note); fell back to dev server for the smoke pass.
+### 2026-05-22 — Refactor LeadDetailDrawer god component
+**Tags:** [refactor] [god-components]
+
+Unit 2 of the 13-unit parallel god-component refactor. `src/components/crm/LeadDetailDrawer.tsx` was 1206 LOC mixing form state, activity fetch, email-log lazy load, billing summary realtime, save/won/delete orchestration, header + tab nav, deal panel, assignee picker, and three tab bodies. Split into 5 hooks + 8 sibling components. Public API preserved byte-for-byte: default export name `LeadDetailDrawer`, prop shape `{ lead, open, onOpenChange, onUpdated, onOptimisticPatch }`. `LeadsPageContent` import path unchanged.
+
+#### Shipped
+
+- `src/components/crm/LeadDetailDrawer.types.ts` — shared types (`LeadFormState`, `STATUS_OPTIONS`, `OrgMember`, `LeadDrawerTab`, `LeadBillingSummary`).
+- `src/hooks/useLeadForm.ts` — form state, org-members fetch, multi-assignee state + initial snapshot for diffing.
+- `src/hooks/useLeadActivity.ts` — messages + replies + tasks fetch, sorted by date, refetch via key bump.
+- `src/hooks/useLeadEmailLogs.ts` — lazy email send-log fetch via `listLeadEmailLogsFn`, gated by `enabled` flag.
+- `src/hooks/useLeadBillingSummary.ts` — client_invoices aggregation + realtime `postgres_changes` subscription.
+- `src/hooks/useLeadActions.ts` — save/markWon/delete orchestration with optimistic patch + assignee join-table diff.
+- `src/components/crm/LeadDetailDrawerHeader.tsx` — SheetHeader, tab nav, assignee strip, action buttons.
+- `src/components/crm/LeadDetailsForm.tsx` — details tab body. Exports `useDealValidation` hook + `DealValidation` type.
+- `src/components/crm/LeadDealValuePanel.tsx` — deal amount/currency inputs + Mark-Won button.
+- `src/components/crm/LeadAssigneesField.tsx` — assignee multi-select (owner/manager) or read-only avatar strip.
+- `src/components/crm/LeadActivityTab.tsx` — activity timeline list.
+- `src/components/crm/LeadEmailsTab.tsx` — email send-log list with refresh.
+- `src/components/crm/LeadBillingSummaryCard.tsx` — inline collected/due card visible across tabs.
+- `src/components/crm/LeadDetailDrawer.tsx` — rewritten container, 209 LOC (down from 1206). Wires hooks/components, owns transient UI state only (tab, preview dialog, activity refetch key).
+
+No business-logic rewrites — optimistic patches, retries, assignee diff, validation all preserved byte-for-byte. No new deps.
+
+#### Verification
+
+- `bun run typecheck` — clean (only pre-existing `send-pending-welcomes.ts(26,38)` error, unrelated to this refactor).
+- `bun run test` — 133/133 pass.
+- `bun run build` — clean.
+- e2e smoke via agent-browser — `/leads` route renders, drawer opens on lead click, all 4 tabs (Details / Activity / Emails / Invoices) reachable, no console errors.
+### 2026-05-22 — Refactor ContactSubmissionsPanel god component
+**Tags:** [refactor] [god-components]
+
+Unit-1 of the 13-worker parallel god-component refactor. Container route `/admin`. Target was `src/components/admin/ContactSubmissionsPanel.tsx` at 1264 LOC — one monolithic table + three sibling components defined in-file (`SubmissionPaymentHistory`, `SubmissionInvoicePanel`, `SuggestionSignals`) + four module-level helpers. Move-not-rewrite mandate: business logic preserved byte-for-byte where possible. Public API (named export `ContactSubmissionsPanel`, zero props) frozen; `_app.admin.tsx` not touched.
+
+#### Shipped
+
+- `src/lib/submission-helpers.ts` (new, 177 LOC) — pure helpers extracted from the panel: `statusVariant` (Stripe invoice → badge variant), `buildInvoiceMailto` (mailto URL builder), `suggestPlanForSubmission` (interested_plan / budget / project_type heuristic), `suggestAmount` (default-amount fallback), and the `stripeEnv` module-level constant. All exported.
+- `src/hooks/useContactSubmissions.ts` (new, 101 LOC) — list state: `rows`, `loading`, `search`, `expanded`, `savingId`, `filtered`, `load`, `toggleRow`, `setStatus`. Moves the `useState`/`useEffect`/`useMemo` block out of the container.
+- `src/components/admin/SubmissionTable.tsx` (new, 112 LOC) — table header + summary row per submission; renders `<SubmissionDetail>` inline when expanded.
+- `src/components/admin/SubmissionDetail.tsx` (new, 140 LOC) — expanded-row markup: contact info, message, AI classification, metadata, status actions, then mounts the payment-history + invoice siblings.
+- `src/components/admin/SubmissionPaymentHistory.tsx` (new, 169 LOC) — verbatim move of the in-file `SubmissionPaymentHistory` function. Stripe payment-history RPC + summary cards + invoice table.
+- `src/components/admin/SubmissionInvoicePanel.tsx` (new, 385 LOC) — orchestrator for the Stripe invoice flow. Owns 8 state slots + 4 async handlers (`runInvoiceAction`, `setPlanForCustomer`, `handleCreate`, `onPlanAssignChange`) + realtime channel subscription. Over the <250-LOC target by design — heft is state ownership not duplicated markup. Form body + invoice-list rows further extracted to keep this file just orchestration + the header Select.
+- `src/components/admin/SubmissionInvoiceForm.tsx` (new, 196 LOC) — invoice-creation form body. Controlled by parent via 14 props (state + setters) so the parent keeps its existing plan-sync `useEffect` and `amountOverridden` tracking.
+- `src/components/admin/SubmissionInvoiceListItem.tsx` (new, 112 LOC) — single Stripe-invoice row in the existing-invoices list. Status badge + resend/void/refund actions.
+- `src/components/admin/SuggestionSignals.tsx` (new, 62 LOC) — verbatim move of the in-file `SuggestionSignals` atom.
+- `src/components/admin/ContactSubmissionsPanel.tsx` — collapsed from 1264 to 76 LOC. Just the `<Card>` shell + search + refresh + `<SubmissionTable>` mount. Named export name preserved.
+- `src/lib/__tests__/submission-helpers.test.ts` (new) — pin-down tests for the 4 pure helpers. 10 new test cases. Guards against drift across future cleanups.
+
+#### Verification
+
+- `bun run typecheck` — clean against this refactor (pre-existing `src/routes/hooks/send-pending-welcomes.ts:26` TS2345 unrelated to this work, present before edits).
+- `bun run test` — 143/143 pass (was 133/133; +10 from new `submission-helpers.test.ts`).
+- `bun run build` — 7.27s, no errors. `dist/server/assets/_app.admin-CKckmNfH.js` chunk emitted at 171.86 kB. `grep` against that chunk confirms all 7 extracted module names + the user-facing strings ("Contact Submissions", "Stripe Invoice", "Payment history", "SubmissionTable") are present in the bundle — proves the refactor compiled into the admin route bundle.
+- **Preview-server screenshot skipped:** `bun run preview` errors with `Cannot find module '.../dist/server/server.js'` — TanStack Start build emits a Cloudflare Worker bundle, not a Node server, so `vite preview` can't boot it. Same issue noted in the 2026-05-19 unit-3 entry below. Bundle-emission verification used as the e2e signal per the worker e2e-recipe fallback. Admin route is auth-gated anyway — a screenshot at `/admin` would have captured a login redirect, not the panel.
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
