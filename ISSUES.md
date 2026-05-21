@@ -120,6 +120,34 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor ProductTour god component
+**Tags:** [refactor] [god-components] [onboarding]
+
+Part of the 13-unit god-component refactor pass. Unit 12 owned `src/components/onboarding/ProductTour.tsx` (584 LOC). Split into a slim container plus extracted hooks, presentational components, types, and data.
+
+#### Shipped
+
+- `src/components/onboarding/ProductTour.tsx` — slim container (127 LOC). Composes the extracted pieces. Preserves the public API: default named export `ProductTour`, re-exports `DEFAULT_TOUR_STEPS`, `buildTourSteps`, `TourStep`, `IndustryKey`. Container owns the slim concerns the seams couldn't absorb cleanly: `index` state, mobile-sidebar event dispatch, completion persistence (`profiles.tour_completed_at` write), portal root, focus-on-step-change.
+- `src/components/onboarding/product-tour.types.ts` — `TourStep`, `Rect`, `Placement` + layout constants (`RING_PADDING`, `TOOLTIP_GAP`, `TOOLTIP_WIDTH`, `CARET_SIZE`).
+- `src/components/onboarding/product-tour-steps.ts` — `DEFAULT_TOUR_STEPS` array + `buildTourSteps(industryTemplate)` industry-aware builder. Verbatim move, no copy edits.
+- `src/components/onboarding/TourHighlightRing.tsx` — presentational `<div>` wrapper for the ring overlay (style passed in from the hook).
+- `src/components/onboarding/TourTooltip.tsx` — `forwardRef` dialog card with sparkle icon / title / body / close button / optional caret. Embeds `TourNav`. Hosts the `aria-live` live region.
+- `src/components/onboarding/TourNav.tsx` — progress dots + Back/Skip/Next/Got it! buttons. Pure presentational, no state.
+- `src/hooks/useTourPositioning.ts` — heaviest extraction. Owns target resolution (MutationObserver + 3 s fallback timeout), rect tracking via `useLayoutEffect` scroll/resize observer, viewport tracking, and the auto-flip tooltip-position math (`right → left → bottom → top`, then `clamp`). Positioning algorithm preserved byte-for-byte. Returns only the four CSS objects the container actually consumes (`effectiveIsCenter`, `tooltipStyle`, `caretStyle`, `ringStyle`).
+- `src/hooks/useTourKeyboardNav.ts` — ArrowLeft / ArrowRight / Space / Escape handler binding.
+
+#### Verification
+
+- `bun run typecheck` — clean.
+- `bun run test` — 133/133 pass (no test changes — no tests existed for ProductTour and the contract is internal-only).
+- `bun run build` — 7.37 s, no errors. `dist/server/assets/worker-entry-*.js` emitted (764 KB) confirming the Worker bundle still composes with the extracted modules.
+- Screenshot skipped — auth-gated overlay, never visible pre-login. Bundle emission stands in as verification per coordinator instruction.
+
+#### Notes
+
+- `useTourPositioning.ts` at 276 LOC is slightly over the <250 LOC extracted-file target. The auto-flip + clamp + caret-per-placement math is dense and intentionally not refactored (hard constraint: preserve positioning semantics byte-for-byte). Splitting further would manufacture seams without payoff.
+- `TourHighlightRing` is a thin 14-LOC wrapper. Kept because it appears as a named seam in the extraction guidance and gives future tests/animation tweaks a place to land.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
