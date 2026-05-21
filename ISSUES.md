@@ -120,6 +120,36 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor LeadDetailDrawer god component
+**Tags:** [refactor] [god-components]
+
+Unit 2 of the 13-unit parallel god-component refactor. `src/components/crm/LeadDetailDrawer.tsx` was 1206 LOC mixing form state, activity fetch, email-log lazy load, billing summary realtime, save/won/delete orchestration, header + tab nav, deal panel, assignee picker, and three tab bodies. Split into 5 hooks + 8 sibling components. Public API preserved byte-for-byte: default export name `LeadDetailDrawer`, prop shape `{ lead, open, onOpenChange, onUpdated, onOptimisticPatch }`. `LeadsPageContent` import path unchanged.
+
+#### Shipped
+
+- `src/components/crm/LeadDetailDrawer.types.ts` — shared types (`LeadFormState`, `STATUS_OPTIONS`, `OrgMember`, `LeadDrawerTab`, `LeadBillingSummary`).
+- `src/hooks/useLeadForm.ts` — form state, org-members fetch, multi-assignee state + initial snapshot for diffing.
+- `src/hooks/useLeadActivity.ts` — messages + replies + tasks fetch, sorted by date, refetch via key bump.
+- `src/hooks/useLeadEmailLogs.ts` — lazy email send-log fetch via `listLeadEmailLogsFn`, gated by `enabled` flag.
+- `src/hooks/useLeadBillingSummary.ts` — client_invoices aggregation + realtime `postgres_changes` subscription.
+- `src/hooks/useLeadActions.ts` — save/markWon/delete orchestration with optimistic patch + assignee join-table diff.
+- `src/components/crm/LeadDetailDrawerHeader.tsx` — SheetHeader, tab nav, assignee strip, action buttons.
+- `src/components/crm/LeadDetailsForm.tsx` — details tab body. Exports `useDealValidation` hook + `DealValidation` type.
+- `src/components/crm/LeadDealValuePanel.tsx` — deal amount/currency inputs + Mark-Won button.
+- `src/components/crm/LeadAssigneesField.tsx` — assignee multi-select (owner/manager) or read-only avatar strip.
+- `src/components/crm/LeadActivityTab.tsx` — activity timeline list.
+- `src/components/crm/LeadEmailsTab.tsx` — email send-log list with refresh.
+- `src/components/crm/LeadBillingSummaryCard.tsx` — inline collected/due card visible across tabs.
+- `src/components/crm/LeadDetailDrawer.tsx` — rewritten container, 209 LOC (down from 1206). Wires hooks/components, owns transient UI state only (tab, preview dialog, activity refetch key).
+
+No business-logic rewrites — optimistic patches, retries, assignee diff, validation all preserved byte-for-byte. No new deps.
+
+#### Verification
+
+- `bun run typecheck` — clean (only pre-existing `send-pending-welcomes.ts(26,38)` error, unrelated to this refactor).
+- `bun run test` — 133/133 pass.
+- `bun run build` — clean.
+- e2e smoke via agent-browser — `/leads` route renders, drawer opens on lead click, all 4 tabs (Details / Activity / Emails / Invoices) reachable, no console errors.
 ### 2026-05-22 — Refactor ContactSubmissionsPanel god component
 **Tags:** [refactor] [god-components]
 
