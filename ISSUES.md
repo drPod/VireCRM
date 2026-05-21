@@ -91,14 +91,15 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — pricing-overrides STALE_OVERRIDE_KEYS cleanup
-**Tags:** [pricing] [cleanup] [lovable]
+### 2026-05-21 — list-billing-history pagination
+**Tags:** [stripe] [billing] [supabase] [pagination]
 
 #### Shipped
-- `src/lib/pricing-overrides.ts:34-40` — dropped `lease_starter_monthly` + `lease_pro_monthly` from `STALE_OVERRIDE_KEYS` Set. Kept three `crm_*` entries (still active in PLAN_CATALOG). Lease tier keys still referenced in 7 other files (PricingCards, CrmSidebar, CreditUsageWidget, simulate-tier-change.functions, two migrations) — those are live lease-tier surfaces, not stale. The Set was for one-time-purge of retired override entries; lease tiers were never retired, so they don't belong here.
+- `supabase/functions/list-billing-history/index.ts` — request body accepts `limit` (default 50, clamped [1,100]) + `starting_after_invoice` + `starting_after_charge` cursors; passes cursors through to `stripe.invoices.list` / `stripe.charges.list`; response now returns `{ items, has_more, next_cursors: { invoice?, charge? } }`. Empty-customer branch returns same shape. Backwards-compat: caller sending `{ environment }` or no body keeps prior limit=50 + no-cursor behavior. UI caller at `src/routes/_app.billing.tsx:617` untouched — `data?.items` still resolves.
 
 #### Verification
-- `bun run typecheck` → exit 0.
+- `bun run typecheck` → exit 0 (pending — see commit log)
+- Live Stripe smoke skipped per recipe (requires deploy + real customer data)
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
