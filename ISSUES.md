@@ -120,6 +120,13 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — audit-retention + connector-actions: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [audit] [connectors]
+
+#### Shipped
+- `src/functions/audit-retention.functions.ts:87,118` — `setResponseStatus(403)` before owner-role throws.
+- `src/functions/connector-actions.functions.ts:58` — `setResponseStatus(403)` before org-membership throw in helper.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 

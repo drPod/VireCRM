@@ -8,6 +8,7 @@
  *   4. Records the result in connector_activity_log (best-effort).
  */
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callGateway } from "@/lib/connectors/gateway";
@@ -55,6 +56,7 @@ async function assertMemberAndConnector(userId: string, organizationId: string, 
     .eq("user_id", userId)
     .maybeSingle();
   if (profile?.organization_id !== organizationId) {
+    setResponseStatus(403);
     throw new Error("Not a member of that organization.");
   }
 

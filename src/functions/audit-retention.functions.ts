@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -84,7 +85,10 @@ export const updateAuditRetentionFn = createServerFn({ method: "POST" })
       .eq("role", "owner")
       .maybeSingle();
 
-    if (!ownerRow) throw new Error("Owner role required");
+    if (!ownerRow) {
+      setResponseStatus(403);
+      throw new Error("Owner role required");
+    }
 
     const { error } = await supabase
       .from("organizations")
@@ -115,7 +119,10 @@ export const purgeAuditLogNowFn = createServerFn({ method: "POST" })
       .eq("role", "owner")
       .maybeSingle();
 
-    if (!ownerRow) throw new Error("Owner role required");
+    if (!ownerRow) {
+      setResponseStatus(403);
+      throw new Error("Owner role required");
+    }
 
     const { data: org } = await supabase
       .from("organizations")
