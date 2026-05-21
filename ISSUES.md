@@ -120,6 +120,27 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor WhiteLabelSettings god component
+**Tags:** [refactor] [god-components] [cf-saas]
+
+Part of the parallel god-component refactor sweep (unit 11 of 13). Split `src/components/crm/WhiteLabelSettings.tsx` (643 LOC) into a container + sibling components and lib helpers. Public default export + props frozen. Theme apply / hex validation / save semantics preserved byte-for-byte. `CustomDomainsPanel` untouched (owned by sibling worker).
+
+#### Shipped
+- `src/components/crm/WhiteLabelSettings.tsx` — container shrunk to 280 LOC, still owns form state + Supabase save + role gate + Enterprise upsell.
+- `src/components/crm/BrandColorRow.tsx` (new, 90 LOC) — single picker row with inline hex validation. Lifted out of the container.
+- `src/components/crm/BrandColorGrid.tsx` (new, 122 LOC) — palette card wrapping the 5 `BrandColorRow`s + Import/Export buttons.
+- `src/components/crm/LogoUploadForm.tsx` (new, 98 LOC) — `BrandNameField` + `LogoUploadForm` (Logo URL + Favicon URL with previews).
+- `src/components/crm/FontFamilyPicker.tsx` (new, 42 LOC) — font select + live preview.
+- `src/components/crm/EmailBrandingFields.tsx` (new, 61 LOC) — `EmailSignatureField` + `BusinessEmailField`.
+- `src/lib/white-label-hex.ts` (new, 9 LOC) — `isValidHexColor` (was previously a private const inside the god component).
+- `src/lib/white-label-theme-io.ts` (new, 146 LOC) — `buildThemePayload`, `parseThemeFile`, `downloadThemeFile`, `slugifyBrandName`. Hex-corruption guard preserved.
+
+#### Verification
+- `bun run typecheck` — only pre-existing unrelated error (`src/routes/hooks/send-pending-welcomes.ts`). Refactored files clean.
+- `bun run test` — 133/133 pass.
+- `bun run build` — green, no new warnings.
+- `bun run dev` on port 4184 + `agent-browser` smoke test of `/settings` → auth-gated redirect to `/login` (login page renders cleanly, bundle good). Screenshot `screenshots/unit-11.png`.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
