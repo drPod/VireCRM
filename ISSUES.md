@@ -115,6 +115,18 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 - `bun run lint` → no new errors on touched files (pre-existing errors in `supabase/functions/*`, `vite.config.ts` unchanged)
 - `bun run build` → succeeded
 
+### 2026-05-21 — Email infrastructure abstraction (Phase C)
+**Tags:** [lovable-migration] [audit]
+
+#### Shipped
+- `src/lib/email/send-transactional.ts` — centralized suppression check, unsubscribe token reuse-or-create, template render, email_send_log pending/failed, enqueue_email RPC (~70-line pattern repeated 6× before)
+- `send-transactional.ts` accepts `recipientOverride` param to bypass `template.to` (used for CONTACT_TEST_MODE inbox redirect in `contact.ts`)
+- Updated 5 routes: `api/email/transactional/send.ts`, `api/notify-low-balance.ts`, `hooks/send-pending-welcomes.ts`, `api/public/hooks/contact-followup-reminders.ts`, `api/public/contact.ts`
+- Restored test-mode inbox redirect that was lost in initial refactor
+
+#### Verification
+- `bun run typecheck` → 0 errors
+
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
 

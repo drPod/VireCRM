@@ -259,6 +259,7 @@ export const Route = createFileRoute("/api/public/contact")({
           supabase,
           templateName: "contact-inquiry",
           templateData: ownerTemplateData,
+          recipientOverride: testMode.enabled && testMode.inbox ? testMode.inbox : undefined,
           fromName: FROM_DISPLAY_NAME,
           replyTo: payload.email,
           idempotencyKey: ownerIdempotencyKey,

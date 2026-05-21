@@ -10,6 +10,8 @@ export interface SendTransactionalEmailInput {
   templateName: string;
   templateData: Record<string, unknown>;
   recipientEmail?: string;
+  /** Overrides template.to AND recipientEmail — use for test-mode inbox redirects. */
+  recipientOverride?: string;
   fromName?: string | null;
   replyTo?: string | null;
   idempotencyKey: string;
@@ -33,7 +35,7 @@ export async function sendTransactionalEmail(
     return { success: false, reason: "template_not_found", error: `Template '${templateName}' not found` };
   }
 
-  const effectiveRecipient = template.to ?? input.recipientEmail;
+  const effectiveRecipient = input.recipientOverride ?? template.to ?? input.recipientEmail;
   if (!effectiveRecipient) {
     return { success: false, reason: "template_not_found", error: "No recipient" };
   }
