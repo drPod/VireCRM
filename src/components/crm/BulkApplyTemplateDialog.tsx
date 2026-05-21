@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listOutreachTemplatesFn,
   type OutreachTemplate,
@@ -57,8 +57,8 @@ interface Props {
 
 export function BulkApplyTemplateDialog({ open, onOpenChange, recipients, onSent }: Props) {
   const { organization } = useAuth();
-  const listTemplates = useAuthedServerFn(listOutreachTemplatesFn);
-  const runOutreach = useAuthedServerFn(autoOutreachFn);
+  const listTemplates = useServerFn(listOutreachTemplatesFn);
+  const runOutreach = useServerFn(autoOutreachFn);
 
   const [templates, setTemplates] = useState<OutreachTemplate[]>([]);
   const [loading, setLoading] = useState(false);

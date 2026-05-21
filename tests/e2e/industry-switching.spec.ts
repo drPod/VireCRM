@@ -90,7 +90,9 @@ async function setIndustry(key: IndustryKey) {
 async function login(page: Page) {
   await page.goto("/login");
   await page.getByLabel(/email/i).fill(process.env.QA_TEST_EMAIL!);
-  await page.getByLabel(/password/i).fill(process.env.QA_TEST_PASSWORD!);
+  // Strict mode — the password field's eye-toggle button also has the
+  // word "Password" in its accessible name, so target the textbox role.
+  await page.getByRole("textbox", { name: /password/i }).fill(process.env.QA_TEST_PASSWORD!);
   await page.getByRole("button", { name: /sign in|log in/i }).click();
   // Wait for any authed route to render (sidebar visible).
   await expect(page.getByRole("navigation")).toBeVisible({ timeout: 15_000 });

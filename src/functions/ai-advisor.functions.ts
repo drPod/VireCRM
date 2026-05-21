@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
@@ -12,7 +12,7 @@ const analyzeSchema = z.object({
 });
 
 export const analyzeBusinessFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof analyzeSchema>) => analyzeSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
