@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { z } from "zod";
 
 const listSchema = z.object({
@@ -27,7 +27,7 @@ export interface AdvisorAuditEntry {
 }
 
 export const listAdvisorAuditFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
   .handler(async ({ data, context }): Promise<AdvisorAuditEntry[]> => {
     const { supabase, userId } = context;

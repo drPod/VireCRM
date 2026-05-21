@@ -118,6 +118,199 @@ Coordinator batch — 5 sibling PRs landed in parallel. This entry covers the do
 
 #### Manual follow-up (user)
 - Decide whether `CLAUDE.md` "Legacy 'reseller' code" section gets the same delete-confidently flip the verticals batch implies, or stays scoped to reseller-named code only.
+### 2026-05-22 — Fix test typecheck + apollo-lists runtime after auth consolidation
+**Tags:** [tests] [typecheck] [apollo] [auth]
+
+#### Shipped
+- `src/lib/__tests__/server-fn-auth.test.ts` — type `assignMock` as `Mock<(url: string | URL) => void>` so it unifies with `Location["assign"]`. Four `setLocation({ assign: assignMock })` sites now typecheck.
+- `src/components/__tests__/GlobalAuthErrorListener.test.tsx` — annotate `c` as `unknown[]` on six `addSpy.mock.calls.map/find` lambdas. Drops vitest 4 `Procedure | Constructable` calls-tuple inference issue.
+- `src/functions/__tests__/apollo-lists.test.ts` — type all spies with `Mock<(...args: any[]) => any>` alias so `.mock.calls[i]` destructures + spread-into-mock works. Add missing `vi.mock("@/auth/server", …)` (canonical path post commit `fe629ca`'s auth consolidation), add `createMiddleware` stub to `@tanstack/react-start` mock as defense-in-depth.
+
+#### Verification
+- `bun run typecheck` → clean (was 17 errors across the three files).
+- `bun run test` → 16 files / 280 tests pass (was 13 fails in apollo-lists).
+
+#### Found
+- Test was stale post-`fe629ca` (auth-middleware → `@/auth/server` consolidation). Three other apollo-style test files would have hit the same break — none currently exist, but watch for it next time the auth path moves.
+
+### 2026-05-22 — Unit tests for public contact form handler (L4)
+**Tags:** [tests] [lead-sync] [public-api]
+
+#### Shipped
+- `src/routes/api/public/__tests__/contact.test.ts` — 14 specs covering happy path, honeypot, validation (missing/malformed email, empty message, mismatched + out-of-range captcha, missing captcha), rate-limit 429, dedup short-circuit, missing service-role-key 500, owner-email enqueue failure, visitor-ack failure-as-non-fatal, OPTIONS preflight.
+- Mocks held narrow: `@supabase/supabase-js` (chainable builder fake supporting `.select(_, { count, head:true })` + `.maybeSingle()` terminals), `@/lib/email/send-transactional`, `@/lib/contact/classify-submission`, `@/lib/cloudflare/context` (`keepAlive` awaits inline).
+- `vitest.config.ts` — added `test.env.VITE_SUPABASE_URL` so handler's `import.meta.env` gate is passable; routes that build service-role clients server-side still gate-check the URL.
+
+#### Verification
+- `bun run test src/routes/api/public/__tests__/contact.test.ts` → 14 pass.
+- `bun run test` (full suite) → 6 files / 157 pass. No regressions.
+
+#### Found (no work needed)
+- Honeypot has two layers: Zod schema `website: z.string().max(0)` rejects bot fills with 400, then the post-parse `if (payload.website.length > 0)` silent-success branch is unreachable (dead code). Test documents both. Not flagging for removal — defense-in-depth is intentional even if redundant.
+### 2026-05-22 — Unit tests for apollo-lists server fn
+**Tags:** [tests] [lead-sync] [apollo]
+
+#### Shipped
+- `src/functions/__tests__/apollo-lists.test.ts` — 13 unit tests covering `listApolloListsFn` + `importApolloListFn`. Mocks `@tanstack/react-start`'s `createServerFn` so chained `.middleware().inputValidator().handler(fn)` returns `fn` directly — handler is invoked with synthesized `{ data, context: { supabase, userId, claims } }` to exercise the real production code. Mocks `@/lib/connectors/apollo`, `@/lib/auth-helpers`, `@/integrations/supabase/auth-middleware`, `@/integrations/supabase/subscription-middleware`, `@/integrations/supabase/client.server` (recording chain w/ per-table handlers + rpc spy), and `../_lead-sync-log`. Coverage: list fetch + mapping, INTEGRATION_MISSING when no key, AUTH translation, quota reserve (`consume_platform_lead_quota` w/ slice-size `p_count`), quota_exceeded → ai_call_log row + QUOTA_EXCEEDED throw + sync log, reveal sequence + email-null tracking, CREDITS coded error, mid-import AUTH refund decrements `organizations.leads_used_this_period`, empty list short-circuit, partial when zero emails revealed, case-insensitive email dedupe.
+
+#### Verification
+- `bun run test src/functions/__tests__/apollo-lists.test.ts` — 13/13 green.
+- `bun run test` — full suite 156/156 green (6 files).
+### 2026-05-22 — Unit tests for subscription-middleware (entitlement gate)
+**Tags:** [tests] [billing] [auth]
+
+#### Shipped
+- `src/integrations/supabase/__tests__/subscription-middleware.test.ts` — 25 tests covering `requireActiveSubscription`:
+  - Middleware shape: `createMiddleware({ type: "function" }).middleware([requireSupabaseAuth]).server(...)`, reads `context.userId`.
+  - Owner-level path: active/trialing with future or null `current_period_end` → allow; expired (past period_end) → 402.
+  - ACTIVE_STATUSES bucketing: `active` + `trialing` allowed, `past_due` / `canceled` / `incomplete` / `incomplete_expired` / `unpaid` blocked (excluded by DB `.in()` filter).
+  - Org-level fallback: no own sub + org owner has active sub → allow; scopes `user_roles` lookup by `organization_id` + `role="owner"`; blocks when org has no owners, profile missing, owner rows have null `user_id`, or no owners have active subs.
+  - Fail-closed (403): every DB error path — own-sub, profile, user_roles, owner-subs.
+
+#### Verification
+- `bun run test src/integrations/supabase/__tests__/subscription-middleware.test.ts` → 25/25 pass.
+- `bun run test` → 168/168 pass across 6 files.
+- `bun run typecheck` → clean.
+### 2026-05-22 — B3 unit tests for billing proration estimator
+**Tags:** [test] [billing] [stripe]
+
+#### Shipped
+- `src/lib/billing-proration.ts` (new) — extracted pure `estimateProration` from inline def at `src/routes/_app.billing.tsx:64-82`. Same signature, same behaviour. `ProrationArgs` + `ProrationResult` interfaces exported alongside.
+- `src/routes/_app.billing.tsx` — inline function removed, replaced with `import { estimateProration } from "@/lib/billing-proration"`. Only call site at line ~294 unchanged.
+- `src/lib/__tests__/billing-proration.test.ts` (new) — 14 tests covering same-tier (zero), upgrade mid-cycle (proportional), downgrade (zero today), same-day switch (full delta), end-of-cycle (1 day remaining → small charge), missing/null/unparseable dates (null), degenerate cycle (end <= start → null), and cycleDays-min-1 clamp. Vitest fake timers freeze `Date.now()`.
+
+#### Verification
+- `bun run test` → 6 files / 157 tests pass (was 143, +14).
+- `bun run typecheck` → clean.
+### 2026-05-22 — Unit tests: `_lead-sync-log.ts` audit-writer
+**Tags:** [audit] [test]
+
+#### Shipped
+- `src/functions/__tests__/_lead-sync-log.test.ts` (new, 200 LOC) — 7 tests covering `recordLeadSync()` contract: happy path, snake_case row-shape mapping, default counters, optional `metadata` passthrough, DB-error swallowed w/ `console.error`, thrown-exception swallowed w/ `console.error`, `quota_exceeded` status. Mocks `supabaseAdmin.from().insert()` via `vi.mock` of `@/integrations/supabase/client.server`; module-scoped `inserted[]` captures each row. Direct insert mock (not chain-recording Proxy) because target only calls `.from().insert()` — no chain. `vi.mocked(console.error)` for typed mock access.
+- Full suite: `bun run test` → 6 files, 150 tests passing.
+### 2026-05-22 — Unit tests for `src/lib/server-fn-auth.ts`
+**Tags:** [test] [auth]
+
+#### Shipped
+- `src/lib/__tests__/server-fn-auth.test.ts` — 19 tests across 4 describe blocks: `isAuthError` status/cause/regex matrix, `SessionExpiredError` shape, `handleAuthError` toast + redirect + 3s debounce + `/login` short-circuit + URL encoding of `next`, `getServerFnAuthHeaders` token forwarding + missing-session SessionExpiredError throw. Mocks `sonner.toast.error` and `supabase.auth.getSession`. Uses `vi.useFakeTimers()` to step past the 600ms redirect setTimeout deterministically. Module-level `lastSignInToastAt` reset via `vi.resetModules()` between tests so debounce doesn't bleed.
+
+#### Verification
+- `bun run test src/lib/__tests__/server-fn-auth.test.ts` — 19/19 green.
+- `bun run test` — full suite 162/162 green (6 files).
+### 2026-05-22 — Unit tests for GlobalAuthErrorListener
+**Tags:** [tests] [auth]
+
+#### Shipped
+- `src/components/__tests__/GlobalAuthErrorListener.test.tsx` — 6 specs covering mount/unmount listener registration, listener-reference equality on cleanup (no leaks), and `handleAuthError` invocation for both auth-shaped + non-auth `unhandledrejection`/`error` events. Mount via `createRoot` inside React 19 `act()` since `@testing-library/react` not in this repo. Mocks `@/lib/server-fn-auth` via `vi.mock`.
+
+#### Verification
+- `bun run test src/components/__tests__/GlobalAuthErrorListener.test.tsx` — 6/6 green.
+- `bun run test` — full suite 6 files / 149 tests green.
+### 2026-05-22 — Unit tests for `src/lib/stripe.ts` (env detection + loader singleton)
+**Tags:** [tests] [billing] [stripe]
+
+#### Shipped
+- `src/lib/__tests__/stripe.test.ts` (new, 9 tests) — covers `getStripeEnvironment()` returning `live` only for `pk_live_*` prefix and `sandbox` for `pk_test_*` / empty / malformed; `isStripeConfigured()` true/false branches; `getStripe()` throw on missing token, `loadStripe` invocation with the configured key, and singleton memoization (same promise across 3 calls, `loadStripe` called exactly once).
+- Pattern: `vi.resetModules()` + dynamic `await import("../stripe")` per test because `clientToken` is captured at module-load from `import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN` (line 3 of `src/lib/stripe.ts`) and `stripePromise` is a module-level singleton. `@stripe/stripe-js` mocked module-wide so loader never hits the real script injection in jsdom.
+
+#### Verification
+- `bun run test src/lib/__tests__/stripe.test.ts` — 9/9 passing.
+- `bun run test` — full suite 152/152 passing across 6 files.
+### 2026-05-22 — Consolidate three auth middleware patterns into `src/auth/`
+**Tags:** [refactor] [auth] [tanstack-start]
+
+#### Shipped
+- New canonical home `src/auth/`: `server.ts` (`requireAuth`, alias `requireSupabaseAuth`), `client.ts` (`attachAuth`, alias `attachSupabaseAuth` — adds SSR guard), `errors.ts` (`SessionExpiredError`, `isAuthError`, `handleAuthError`, `getServerFnAuthHeaders`), `index.ts` barrel.
+- `src/start.ts` (new) — `createStart(() => ({ functionMiddleware: [attachAuth] }))`. Plugin auto-resolves as `#tanstack-start-entry`; **no manual `import "./start"` in router/server**. Verified via context7 — TanStack Start `1.168.6` uses `createStart` not `registerGlobalMiddleware`.
+- Back-compat shims (one-line re-exports): `src/integrations/supabase/auth-middleware.ts`, `src/integrations/supabase/auth-attacher.ts`, `src/lib/server-fn-auth.ts`. Middleware module identity preserved so `subscription-middleware.ts` `.middleware([requireAuth, requireActiveSubscription])` chain still works.
+- Deleted `src/hooks/useAuthedServerFn.ts` (37 callers). Codemod: `useAuthedServerFn(...)` → `useServerFn(...)` from `@tanstack/react-start`, importing the canonical hook directly. No more manual `headers: await getServerFnAuthHeaders()` argument — global `attachAuth` middleware does it.
+- `AuthProvider.tsx` simplified: dropped `getServerFnAuthHeaders()` + `headers` arg to `verifyAndApplyGrant()`.
+- Canonical-name rename across `src/functions/*.functions.ts`: `requireSupabaseAuth` → `requireAuth`, `@/integrations/supabase/auth-middleware` → `@/auth/server`. `subscription-middleware.ts` import path updated; export name `requireActiveSubscription` unchanged.
+- `scripts/e2e-setup-creds.ts` (new) — setup/teardown for throwaway smoke creds. Uses single-quoted shell exports so passwords with `$`/`&`/`@` survive `eval`. Mirrors `mint-smoke-user.ts` schema; reuses smoke org if present.
+- `tests/e2e/auth-middleware.smoke.spec.ts` (new) — direct verification: seeds Supabase session into localStorage, navigates `/dashboard`, asserts every `/_serverFn/*` response is non-401/403. **Passed.** This is the narrow surface this refactor changed.
+- `tests/e2e/industry-switching.spec.ts` — fixed `getByLabel(/password/i)` strict-mode violation (eye-toggle button now matches that label too); switched to `getByRole("textbox", { name: /password/i })`. Login flow on localhost still has a separate `maybeRedirectToOrgSubdomain` redirect issue unrelated to auth middleware.
+- `@playwright/test@^1.60.0` added to `devDependencies` (was missing — e2e never executable until now).
+
+#### Verification
+- `bun run typecheck` ✓ clean.
+- `bun run build` ✓ clean.
+- `bun run test` ✓ 143/143 unit tests pass.
+- `bun run test:e2e:industry` against the new auth smoke ✓ pass — server fn invoked with attached bearer header, no 401/403.
+- Audit grep `useAuthedServerFn` → no refs. `registerGlobalMiddleware` → no refs (correct: API is `createStart`). `getServerFnAuthHeaders` → only definition in `src/auth/errors.ts` (kept for legacy non-serverFn `fetch` callers, none currently in `src/` outside `errors.ts`).
+- `subscription-middleware.ts` chain preserved — verified 13 call sites in `src/functions/` still use `.middleware([requireAuth, requireActiveSubscription])` with module-identity-preserved middleware.
+- Per-request `createClient` with `persistSession: false` preserved in `src/auth/server.ts` (RLS-critical).
+- `attachAuth` SSR guard: `typeof window === "undefined" → next({})` early-return before `supabase.auth.getSession()`.
+
+#### Manual follow-up (user)
+- None. PR ready to merge after coordinator review.
+### 2026-05-22 — CI: add ISSUES.md lint step to test.yml
+**Tags:** [ci] [docs]
+
+#### Shipped
+- `.github/workflows/test.yml` — inserted new `ISSUES.md lint` step between `Typecheck` and `Lint`. Runs `bash scripts/lint-issues.sh`. No `continue-on-error` — orphan `####` subsections + missing `**Tags:**` lines block CI.
+
+#### Why
+- `.githooks/pre-commit` only fires for devs that ran `bash scripts/install-hooks.sh` (sets `core.hooksPath`). Worktree agents + fresh clones bypass. CI step catches every PR cloud-side regardless of local hook install state. Archive-candidate warnings (>14d sections) remain non-blocking per script behavior.
+
+#### Verification
+- `bash scripts/lint-issues.sh` locally → `lint-issues: OK (ISSUES.md)`.
+- Workflow YAML edited surgically (one new step block, no other changes).
+
+#### Manual follow-up (user)
+- None.
+
+### 2026-05-22 — Unit tests: find-leads server fn
+**Tags:** [tests] [lead-sync]
+
+#### Shipped
+- `src/functions/__tests__/find-leads.test.ts` (new, 12 tests) — covers provider routing (apollo/hunter/snov), platform-quota consumption + BYO-key skip, `recordLeadSync` row shape, provider error mapping (Apollo 401/429, Hunter 500), empty-result partial path.
+- `src/functions/find-leads.functions.ts` — extracted inner handler as `_findLeadsHandler` so tests bypass the TanStack Start middleware chain (auth + subscription). `findLeadsFn` wrapper unchanged in behaviour, still `.middleware([...]).inputValidator(...).handler(_findLeadsHandler)`.
+
+#### Verification
+- `bun run test` — 155/155 pass (6 files).
+- `bun run typecheck` — clean.
+- `bun run lint` — clean for both touched files.
+### 2026-05-22 — Unit tests for `src/lib/auth-helpers.ts`
+**Tags:** [tests] [auth] [supabase]
+
+#### Shipped
+- `src/lib/__tests__/auth-helpers.test.ts` (new, 168 LOC) — 10 cases covering `assertOrgMember` + `assertOwner`. Per-test configurable recording-chain Supabase fake (Proxy-based, adapted from `pipeline-org-scoping.test.ts:54-62`). Asserts both throw semantics + query shape (table, `.eq()` filter args).
+- Happy paths, mismatched-org rejection, missing-row rejection, null `organization_id`, Supabase-error path (locks in current "data-only inspection" behaviour — error surfaces as the Unauthorized/not-owner message), empty-string orgId validation edges.
+
+#### Verification
+- `bun run test src/lib/__tests__/auth-helpers.test.ts` — 10/10 passed.
+- `bun run test` — full suite 153/153 passed across 6 files. No regression in `pipeline-org-scoping`, `pipeline-counts`, `submission-helpers`, or the other suites.
+
+### 2026-05-22 — /batch worker worktree-path bug + phantom-work ratio
+**Tags:** [batch] [process] [audit] [git]
+
+#### Found
+- **`/batch` workers ignored assigned worktree path.** Unit 1, Unit 2, Unit 4 workers wrote files in main worktree (`/Users/darshpoddar/Coding/genesisxsx`) instead of their assigned sibling worktree. Bare paths resolved against `$PWD` (main) rather than the EnterWorktree-anchored sibling. Three units of N = systemic, not one-off.
+- **Unit 1 worker used destructive shortcut to clean up.** Ran `git checkout HEAD -- ISSUES.md` in main worktree to revert own mis-pathed edits. No data lost — sibling state happened to be agent's own work — but exact "destructive action as shortcut" pattern CLAUDE.md warns against. Could have stomped uncommitted user edits.
+- **Pre-flight grep gate missing in `/batch` dispatcher.** Original batch dispatched 11 units; post-hoc grep audit found 9 already shipped. Real diff = 1 dialog Description + 1 sheet sr-only Description + 8 `autoComplete` attrs + 2 dead comment blocks + ISSUES.md prune of 8 stale bullets. 82% phantom-work ratio.
+
+#### Manual follow-up (user)
+- Worker-prompt template fix: first tool call literal `cd <absolute-worktree-path>`, second tool call `pwd` assertion, abort if mismatch. Belt-and-braces because bare `EnterWorktree` didn't anchor reliably.
+- `/batch` dispatcher: add pre-flight grep gate per unit before spawning worker, skip units whose target predicate already satisfied on main.
+- Future destructive-revert smell: `git checkout HEAD -- <path>` in worktree the worker doesn't own = always preceded by `git diff` + intent check.
+
+### 2026-05-22 — CI workflow added (GitHub Actions test.yml)
+**Tags:** [ci] [docs]
+
+#### Shipped
+- `.github/workflows/test.yml` — new. Triggers on `pull_request` (all branches) + `push` to `main`. Job runs ubuntu-latest, 10 min timeout: checkout → setup-bun@v2 (pinned `1.3.10` matching local that generated `bun.lock` `lockfileVersion: 1`) → setup-node@v4 (Node 22) → `bun install --frozen-lockfile` → `bun run typecheck` → `bun run lint` (continue-on-error, see below) → `bun run test`.
+
+#### Found
+- `bun run lint` currently reports **4925 problems** (4890 errors, 35 warnings) on `main` — pre-existing Lovable scaffold debt. Largest offenders: `@typescript-eslint/no-explicit-any` across `supabase/functions/payments-webhook/index.ts`, `supabase/functions/verify-checkout-session/index.ts`, and prettier drift. Workflow marks lint step `continue-on-error: true` w/ inline `TODO(lovable-cleanup)` so PRs aren't blocked. Drop the flag once backlog clears.
+
+#### Verification
+- `bun install --frozen-lockfile` — clean (653 packages, 3.42s).
+- `bun run typecheck` — exit 0.
+- `bun run test` — 5 files / 143 tests passed (679ms).
+- `bun x js-yaml .github/workflows/test.yml` — parses cleanly.
+
+#### Manual follow-up (user)
+- None.
 
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]

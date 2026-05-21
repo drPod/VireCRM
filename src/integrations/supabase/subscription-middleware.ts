@@ -1,4 +1,4 @@
-// Server-side entitlement gate. Layers on top of requireSupabaseAuth and
+// Server-side entitlement gate. Layers on top of requireAuth and
 // blocks server functions from executing for users who don't have an active
 // subscription, even if they call the endpoint directly (bypassing the
 // React /billing redirect in _app.tsx).
@@ -11,13 +11,13 @@
 // grace banner, but writes to paid features are blocked server-side.
 import { createMiddleware } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "./auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "./client.server";
 
 const ACTIVE_STATUSES = ["active", "trialing"] as const;
 
 export const requireActiveSubscription = createMiddleware({ type: "function" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .server(async ({ next, context }) => {
     const { userId } = context;
 

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const ACTION_TYPES = [
@@ -36,7 +36,7 @@ async function getOrgId(supabase: any, userId: string): Promise<string> {
 }
 
 export const getN8nConfigFn = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .handler(async ({ context }): Promise<N8nWebhookConfig> => {
     const { supabase, userId } = context;
     const orgId = await getOrgId(supabase, userId);
@@ -56,7 +56,7 @@ export const getN8nConfigFn = createServerFn({ method: "GET" })
   });
 
 export const saveN8nConfigFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof saveSchema>) => saveSchema.parse(input))
   .handler(async ({ data, context }): Promise<N8nWebhookConfig> => {
     const { supabase, userId } = context;

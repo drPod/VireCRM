@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 /**
@@ -64,7 +64,7 @@ async function assertOwnerOrPlatformAdmin(
 }
 
 export const createTestAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .handler(async ({ context }) => {
     const { userId } = context;
     const { organizationId } = await assertOwnerOrPlatformAdmin(userId);
@@ -118,7 +118,7 @@ export const createTestAccount = createServerFn({ method: "POST" })
 const revokeSchema = z.object({ userId: z.string().uuid() });
 
 export const revokeTestAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof revokeSchema>) =>
     revokeSchema.parse(input),
   )
