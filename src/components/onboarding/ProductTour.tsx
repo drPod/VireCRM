@@ -62,6 +62,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [rect, setRect] = useState<Rect | null>(null);
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
+  const [elementNotFound, setElementNotFound] = useState(false);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   // Reset to first step whenever the tour opens.
@@ -86,6 +87,11 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     };
   }, [open]);
 
+  // Reset elementNotFound when step changes.
+  useEffect(() => {
+    setElementNotFound(false);
+  }, [index]);
+
   // Track viewport size for repositioning.
   useEffect(() => {
     if (!open) return;
@@ -98,32 +104,50 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
   const step = steps[index];
   const isCenter = step?.target === "_center" || step?.placement === "center";
 
-  // Resolve the target element for the current step. Polls briefly because
-  // sidebar items mount slightly after first paint (especially on mobile).
+  // Resolve the target element for the current step. Uses MutationObserver so
+  // we react immediately when sidebar items mount rather than polling blindly.
   useEffect(() => {
     if (!open || !step || isCenter) {
       setTarget(null);
       setRect(null);
+      setElementNotFound(false);
       return;
     }
     let cancelled = false;
-    let attempts = 0;
-    const tick = () => {
-      if (cancelled) return;
+
+    const tryFind = (): boolean => {
       const el = document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
       if (el) {
-        // Scroll into view inside whatever scroll container holds it.
         el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
-        setTarget(el);
-        setRect(getRect(el));
-      } else if (attempts < 20) {
-        attempts += 1;
-        setTimeout(tick, 100);
+        if (!cancelled) {
+          setTarget(el);
+          setRect(getRect(el));
+          setElementNotFound(false);
+        }
+        return true;
       }
+      return false;
     };
-    tick();
+
+    if (tryFind()) return;
+
+    const observer = new MutationObserver(() => {
+      if (tryFind()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    const timeout = setTimeout(() => {
+      if (cancelled) return;
+      observer.disconnect();
+      setTarget(null);
+      setRect(null);
+      setElementNotFound(true);
+    }, 3000);
+
     return () => {
       cancelled = true;
+      observer.disconnect();
+      clearTimeout(timeout);
     };
   }, [open, step, isCenter]);
 
@@ -156,6 +180,10 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
   if (!open || !step) return null;
   if (typeof document === "undefined") return null;
 
+  // When the target element couldn't be found, fall back to centered rendering
+  // so the tooltip is still visible rather than disappearing entirely.
+  const effectiveIsCenter = isCenter || elementNotFound;
+
   const total = steps.length;
   const isLast = index === total - 1;
 
@@ -166,7 +194,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
 
   // Compute tooltip position based on placement + viewport.
   const tooltipStyle: React.CSSProperties = (() => {
-    if (isCenter || !rect) {
+    if (effectiveIsCenter || !rect) {
       return {
         position: "fixed",
         top: "50%",
@@ -223,7 +251,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
   // Highlight ring around the target. Built with 4 dim overlays so we don't
   // need to fight stacking contexts inside the sidebar.
   const ringStyle: React.CSSProperties | null =
-    isCenter || !rect
+    effectiveIsCenter || !rect
       ? null
       : {
           position: "fixed",
@@ -244,7 +272,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     <>
       {/* Full-screen dim. For center steps only — when we have a ring, the
           ring's box-shadow already paints the dim overlay. */}
-      {isCenter && (
+      {effectiveIsCenter && (
         <div
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 10000 }}
           onClick={onClose}
