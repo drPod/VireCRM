@@ -4,7 +4,7 @@
 // last verified timestamp, and any non-secret config (e.g. SendGrid's default
 // "from" address).
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { verifyApolloKey } from "@/lib/connectors/apollo";
 import { verifyHunterKey } from "@/lib/connectors/hunter";
@@ -41,7 +41,7 @@ const getSchema = z.object({
 });
 
 export const getIntegrationFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof getSchema>) => getSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -73,7 +73,7 @@ const saveSchema = z.object({
 });
 
 export const saveIntegrationFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof saveSchema>) => saveSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -107,7 +107,7 @@ const updateConfigSchema = z.object({
 });
 
 export const updateIntegrationConfigFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof updateConfigSchema>) => updateConfigSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -130,7 +130,7 @@ const testSchema = z.object({
 });
 
 export const testIntegrationFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof testSchema>) => testSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -166,7 +166,7 @@ const deleteSchema = z.object({
 });
 
 export const deleteIntegrationFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof deleteSchema>) => deleteSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;

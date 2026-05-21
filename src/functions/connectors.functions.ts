@@ -8,7 +8,7 @@
  *     gateway so the UI can show "Verified" without performing real actions.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CONNECTORS, getConnector } from "@/lib/connectors/catalog";
 import { verifyConnectorCredentials, revokeConnectorCredentials } from "@/lib/connectors/gateway";
@@ -34,7 +34,7 @@ export interface ConnectorStatus {
 }
 
 export const listConnectorsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertOwner(supabaseAdmin, context.userId, data.organizationId);
@@ -118,7 +118,7 @@ async function fetchGoogleConnectedEmail(
 }
 
 export const refreshConnectorStatusFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof refreshSchema>) => refreshSchema.parse(input))
   .handler(async ({ data, context }) => {
     // Membership check (not owner-restricted — see comment above).
@@ -205,7 +205,7 @@ const enableSchema = z.object({
 });
 
 export const enableConnectorFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof enableSchema>) => enableSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertOwner(supabaseAdmin, context.userId, data.organizationId);
@@ -260,7 +260,7 @@ const disableSchema = z.object({
 });
 
 export const disableConnectorFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof disableSchema>) => disableSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertOwner(supabaseAdmin, context.userId, data.organizationId);
@@ -316,7 +316,7 @@ const configSchema = z.object({
 });
 
 export const updateConnectorConfigFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof configSchema>) => configSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertOwner(supabaseAdmin, context.userId, data.organizationId);
@@ -357,7 +357,7 @@ const testSchema = z.object({
 });
 
 export const testConnectorFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof testSchema>) => testSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertOwner(supabaseAdmin, context.userId, data.organizationId);
@@ -412,7 +412,7 @@ export const testConnectorFn = createServerFn({ method: "POST" })
 const enabledSchema = z.object({ organizationId: z.string().uuid() });
 
 export const listEnabledConnectorsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof enabledSchema>) => enabledSchema.parse(input))
   .handler(async ({ data, context }) => {
     // Membership check
@@ -463,7 +463,7 @@ export interface ConnectorActivityEntry {
 }
 
 export const listConnectorActivityFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof activitySchema>) => activitySchema.parse(input))
   .handler(async ({ data, context }) => {
     // Membership check (org member, not just owner).

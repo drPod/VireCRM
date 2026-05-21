@@ -3,7 +3,7 @@ import { Filter, RefreshCw, ScrollText, Settings2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useAdvisorAuditLog } from "@/hooks/useAdvisorAuditLog";
 import { useRetentionSettings } from "@/hooks/useRetentionSettings";
 import { replayCommandPlanFn } from "@/functions/command-execute.functions";
@@ -17,7 +17,7 @@ import type { PhaseFilter, StatusFilter } from "./advisor-audit.types";
 const PHASE_OPTIONS: readonly PhaseFilter[] = ["all", "plan", "execute"] as const;
 
 export function AdvisorAuditLog() {
-  const replay = useAuthedServerFn(replayCommandPlanFn);
+  const replay = useServerFn(replayCommandPlanFn);
   const { entries, loading, phase, setPhase, retention, memberNames, refresh } =
     useAdvisorAuditLog();
   const {

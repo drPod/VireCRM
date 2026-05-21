@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listConnectorActivityFn,
   type ConnectorActivityEntry,
@@ -139,7 +139,7 @@ function formatRelative(iso: string): string {
 
 export function IntegrationActivityLog() {
   const { organization } = useAuth();
-  const listActivity = useAuthedServerFn(listConnectorActivityFn);
+  const listActivity = useServerFn(listConnectorActivityFn);
 
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<ConnectorActivityEntry[]>([]);

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 
 const updateSchema = z.object({
   retention_days: z.number().int().min(0).max(3650),
@@ -15,7 +15,7 @@ export interface AuditRetentionInfo {
 }
 
 export const getAuditRetentionFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .handler(async ({ context }): Promise<AuditRetentionInfo> => {
     const { supabase, userId } = context;
     const { data: profile } = await supabase
@@ -65,7 +65,7 @@ export const getAuditRetentionFn = createServerFn({ method: "POST" })
   });
 
 export const updateAuditRetentionFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof updateSchema>) => updateSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -100,7 +100,7 @@ export const updateAuditRetentionFn = createServerFn({ method: "POST" })
   });
 
 export const purgeAuditLogNowFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data: profile } = await supabase

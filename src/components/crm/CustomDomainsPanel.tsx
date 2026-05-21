@@ -5,7 +5,7 @@ import { Globe, Loader2, Crown, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useAutoVerifyDomain } from "@/hooks/useAutoVerifyDomain";
 import { CustomDomainAuditLog } from "@/components/crm/CustomDomainAuditLog";
@@ -25,7 +25,7 @@ export function CustomDomainsPanel({ organizationId }: Props) {
   const { enabled, loading: flagLoading } = useFeatureFlag("custom_domain");
   const { role } = useAuth();
   const isOwner = role?.role === "owner";
-  const tearDownCf = useAuthedServerFn(tearDownCustomHostnameFn);
+  const tearDownCf = useServerFn(tearDownCustomHostnameFn);
   const { confirm } = useConfirm();
   const [rows, setRows] = useState<DomainRow[]>([]);
   const [owners, setOwners] = useState<OwnerRow[]>([]);

@@ -5,7 +5,7 @@
 // user's JWT, so it's done client-side).
 
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
@@ -29,7 +29,7 @@ interface CompleteTaskResult {
 }
 
 export const completeTaskWithAiFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth, requireActiveSubscription])
+  .middleware([requireAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof inputSchema>) => inputSchema.parse(input))
   .handler(async ({ data, context }): Promise<CompleteTaskResult> => {
     const { supabase, userId } = context;

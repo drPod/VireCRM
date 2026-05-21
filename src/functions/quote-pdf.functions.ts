@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
 
@@ -57,7 +57,7 @@ function fillBg(page: PDFPage) {
 }
 
 export const regenerateQuotePdf = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof inputSchema>) => inputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -310,7 +310,7 @@ export const regenerateQuotePdf = createServerFn({ method: "POST" })
  * full public URL by extracting the object path from it.
  */
 export const getQuotePdfSignedUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof inputSchema>) => inputSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ signedUrl: string }> => {
     const { userId } = context;

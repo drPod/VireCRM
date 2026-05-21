@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { PLATFORM_DOMAIN } from "@/config/domains";
 
@@ -241,7 +241,7 @@ function concatChunks(chunks: Uint8Array[], total: number): Uint8Array {
  * client AFTER we confirm the caller belongs to the requested org.
  */
 export const checkDomainHealth = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: unknown): CheckDomainHealthInput => {
     if (
       !input ||

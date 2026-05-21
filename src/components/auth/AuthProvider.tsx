@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { verifyAndApplyGrant } from "@/functions/verify-grant.functions";
-import { getServerFnAuthHeaders } from "@/lib/server-fn-auth";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -83,8 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (grantCheckedFor.current === userId) return;
     grantCheckedFor.current = userId;
     try {
-      const headers = await getServerFnAuthHeaders();
-      const result = await verifyAndApplyGrant({ headers });
+      // attachAuth global middleware (registered in src/start.ts) attaches
+      // the Bearer token automatically — no need to read the session here.
+      const result = await verifyAndApplyGrant();
       if (result?.healed) {
         console.info("[AuthProvider] Pre-paid grant self-healed:", result);
         // Pull fresh org state into the context.

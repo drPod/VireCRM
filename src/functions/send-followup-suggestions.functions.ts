@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { deliverOutreachEmail, loadOutreachDeliveryChannels } from "@/lib/email/outreach-delivery";
@@ -30,7 +30,7 @@ interface Result {
 }
 
 export const sendFollowupSuggestionsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth, requireActiveSubscription])
+  .middleware([requireAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof schema>) => schema.parse(input))
   .handler(async ({ data, context }): Promise<Result> => {
     const { supabase, userId } = context;

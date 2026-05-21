@@ -12,7 +12,7 @@
  * one implementation in src/lib/workflows/run.ts.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { runOne } from "@/lib/workflows/run";
 import { z } from "zod";
@@ -30,7 +30,7 @@ export interface TestRunResponse {
 }
 
 export const testRunWorkflowFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data, context }): Promise<TestRunResponse> => {
     const admin = supabaseAdmin;

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { assertOrgMember } from "@/lib/auth-helpers";
 import { z } from "zod";
 
@@ -55,7 +55,7 @@ export interface OutreachTemplate {
 }
 
 export const listOutreachTemplatesFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachTemplate[]> => {
     const { supabase, userId } = context;
@@ -75,7 +75,7 @@ export const listOutreachTemplatesFn = createServerFn({ method: "POST" })
   });
 
 export const upsertOutreachTemplateFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof upsertSchema>) => upsertSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachTemplate> => {
     const { supabase, userId } = context;
@@ -127,7 +127,7 @@ export const upsertOutreachTemplateFn = createServerFn({ method: "POST" })
   });
 
 export const deleteOutreachTemplateFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof deleteSchema>) => deleteSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ success: true }> => {
     const { supabase, userId } = context;
