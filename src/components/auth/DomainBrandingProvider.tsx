@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { isSystemHost } from "@/config/hosts";
 import { supabase } from "@/integrations/supabase/client";
 import { applyBrandFont, applyFavicon, applyWhiteLabelColor } from "@/lib/white-label-theme";
 
@@ -14,7 +15,6 @@ export interface DomainBranding {
   accent_color: string | null;
   sidebar_color: string | null;
   button_color: string | null;
-  is_reseller: boolean;
   support_email: string | null;
   verified: boolean;
 }
@@ -32,27 +32,6 @@ const DomainBrandingContext = createContext<DomainBrandingContextValue>({
   hostname: null,
   isCustomDomain: false,
 });
-
-// Hosts that are NEVER treated as a reseller's custom domain.
-// Reserved VireCRM/Majix subdomains (app, customers, notify) belong to platform infra,
-// not tenants — see CLAUDE.md "Hosts" section.
-const SYSTEM_HOST_PATTERNS = [
-  /\.lovable\.app$/i,
-  /\.lovable-project\.com$/i,
-  /\.lovableproject\.com$/i,
-  /\.workers\.dev$/i,
-  /^localhost$/i,
-  /^127\.0\.0\.1$/i,
-  /^virecrm\.com$/i,
-  /^www\.virecrm\.com$/i,
-  /^app\.virecrm\.com$/i,
-  /^customers\.virecrm\.com$/i,
-  /^notify\.virecrm\.com$/i,
-];
-
-function isSystemHost(hostname: string): boolean {
-  return SYSTEM_HOST_PATTERNS.some((pattern) => pattern.test(hostname));
-}
 
 export function DomainBrandingProvider({ children }: { children: ReactNode }) {
   const [branding, setBranding] = useState<DomainBranding | null>(null);
