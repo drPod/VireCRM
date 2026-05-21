@@ -175,8 +175,6 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv, event: any)
   // Subscription rows are populated by customer.subscription.created.
   if (session.mode === "payment" && session.payment_status === "paid") {
     const userId = session.metadata?.userId || null;
-    const resellerId = session.metadata?.attributedResellerId || null;
-    const planId = session.metadata?.resellerPlanId || null;
 
     await supabase.from("transactions").upsert(
       {
@@ -186,8 +184,6 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv, event: any)
         currency: (session.currency || "usd").toUpperCase(),
         status: "completed",
         environment: env,
-        attributed_reseller_id: resellerId,
-        reseller_plan_id: planId,
         billed_at: new Date().toISOString(),
         raw_payload: session,
       },
@@ -340,8 +336,6 @@ async function upsertSubscription(subscription: any, env: StripeEnv, event: any)
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancel_at_period_end: subscription.cancel_at_period_end || false,
       environment: env,
-      attributed_reseller_id: subscription.metadata?.attributedResellerId || null,
-      reseller_plan_id: subscription.metadata?.resellerPlanId || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "stripe_subscription_id" },
@@ -408,19 +402,15 @@ async function markPastDue(invoice: any, env: StripeEnv) {
 async function recordTransaction(invoice: any, env: StripeEnv, status: string) {
   const subId = invoice.subscription;
   let userId: string | null = null;
-  let resellerId: string | null = null;
-  let planId: string | null = null;
 
   if (subId) {
     const { data: sub } = await supabase
       .from("subscriptions")
-      .select("user_id, attributed_reseller_id, reseller_plan_id")
+      .select("user_id")
       .eq("stripe_subscription_id", subId)
       .maybeSingle();
     if (sub) {
       userId = sub.user_id;
-      resellerId = sub.attributed_reseller_id;
-      planId = sub.reseller_plan_id;
     }
   }
 
@@ -432,8 +422,6 @@ async function recordTransaction(invoice: any, env: StripeEnv, status: string) {
       currency: (invoice.currency || "usd").toUpperCase(),
       status,
       environment: env,
-      attributed_reseller_id: resellerId,
-      reseller_plan_id: planId,
       billed_at: invoice.created
         ? new Date(invoice.created * 1000).toISOString()
         : new Date().toISOString(),

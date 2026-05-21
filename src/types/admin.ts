@@ -150,7 +150,6 @@ export interface FinancialOverview {
   organizations: {
     total: number;
     new_this_month: number;
-    resellers: number;
     paying: number;
   };
   users: { total: number; new_this_month: number };

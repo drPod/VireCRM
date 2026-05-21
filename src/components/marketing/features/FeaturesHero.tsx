@@ -3,7 +3,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const TRUST_SIGNALS = [
-  "Built for resellers",
+  "Built for teams",
   "White-label ready",
   "Set up in days",
   "AI that follows up 24/7",

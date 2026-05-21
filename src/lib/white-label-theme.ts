@@ -3,7 +3,7 @@
  *
  * Owners pick a small palette (primary, secondary, accent, sidebar, button)
  * and we map each color to the shadcn/Tailwind design tokens that drive that
- * surface — so the entire CRM, reseller storefront, and emails re-skin in
+ * surface — so the entire CRM, tenant storefront, and emails re-skin in
  * one go without touching component code.
  *
  * Every applier is idempotent and returns a cleanup that restores the

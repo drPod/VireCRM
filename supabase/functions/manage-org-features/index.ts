@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       const search = String(body.search ?? "").trim();
       let query = admin
         .from("organizations")
-        .select("id, name, slug, brand_name, plan, is_reseller")
+        .select("id, name, slug, brand_name, plan")
         .order("name", { ascending: true })
         .limit(100);
       if (search) {

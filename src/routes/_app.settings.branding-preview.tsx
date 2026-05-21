@@ -260,7 +260,7 @@ function BrandingPreviewPage() {
 
           <PreviewBlock
             title="Public storefront"
-            description="What prospects see at your reseller landing page."
+            description="What prospects see at your public landing page."
           >
             <StorefrontPreview draft={draft} />
           </PreviewBlock>

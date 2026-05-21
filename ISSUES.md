@@ -12,15 +12,13 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### User action required (secrets / DNS / product calls)
 
-- [ ] **Set `CRON_SECRET` in CF Worker prod env.** Update external scheduler / pg_cron rows to pass `x-cron-secret: $CRON_SECRET` to: `calculate-payouts`, `send-pending-welcomes`, `dispatch-sequences`, `purge-audit-log`. Otherwise 401 silent.
+- [ ] **Set `CRON_SECRET` in CF Worker prod env.** Update external scheduler / pg_cron rows to pass `x-cron-secret: $CRON_SECRET` to: `dispatch-sequences`, `purge-audit-log`. Otherwise 401 silent. (`calculate-payouts` + `send-pending-welcomes` unscheduled 2026-05-22.)
 - [ ] **Toggle `auth_leaked_password_protection`** in Supabase → Auth → Password protection. Not migration-able.
-- [ ] **Apply `20260517220000_schedule_send_pending_welcomes_cron.sql`** — `supabase db push`. Sibling cron for `classify-contact-submissions` already landed.
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
 - [ ] **CF Workers Builds "Variables and secrets" panel** — manual dashboard check that no `LOVABLE_API_KEY` lingers (runtime `wrangler secret list` doesn't cover build-time). Dashboard → Workers & Pages → genesisxsx → Settings → Variables.
-- [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
-  - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
-  - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
+- [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. One small thing left:
+  - [ ] **Verify direct-tenant signup persists `organizations.slug`** so new tenant's `<slug>.virecrm.com` resolves on first visit. If signup defers slug pick, document `app.virecrm.com` as the post-signup landing until slug chosen.
 - [ ] **[caziah-cameron] Onboard Caziah Cameron** — separate tenant from greenenergiai per org-split decision. Owns `8b8c76ab-…` (slug `caziah-cameron`) w/ 9198 leads + xlsx-enriched energy fields (his broker book). Old DB had `has_password=false` (likely social/magic-link only) so no bcrypt to preserve — `last_sign_in_at` field carries old-DB value 2026-05-19 01:05 from dump, no new-DB sign-in yet. When user decides to bring him onboard: DM magic-link to `cameroncaziah@gmail.com` for `caziah-cameron.virecrm.com`. Optional: rename slug to something Caziah picks before sending the link.
 
 ### Phase 2 — Lovable cleanup follow-ups
@@ -40,7 +38,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 
 ### Out of scope (need product call)
 
-- [ ] `/clients` platform-admin tenant mgmt — single "Enable in Settings" CTA, full UI not wired (legacy Lovable reseller-style scaffold; in current model = Majix operator's tenant list). ~1-2 days. Reframe vs delete pending product call.
+- [ ] `/clients` platform-admin tenant mgmt — single "Enable in Settings" CTA, full UI not wired. In current model = VireCRM operator's tenant list. ~1-2 days. Reframe vs delete pending product call.
 - [ ] `/gym` member-health ingest UI — no way to add records. Need ingest UI or auto-populate-from-leads migration.
 - [ ] `/gym` doesn't use `IndustryHub` pattern like real-estate/insurance. Extend.
 - [ ] `/admin` gated 100% on platform-admin. Add "you would see X if admin" preview for docs.
@@ -250,6 +248,40 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 - None.
 
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
+### 2026-05-22 — Reseller scaffold nuke + smoke blocked on billing gate
+**Tags:** [reseller] [lovable-migration] [supabase] [bug]
+
+#### Found
+- **`handle_new_user()` trigger 500ing on every signup** — body still did `INSERT INTO public.organizations (..., is_reseller, ...)` after `is_reseller` column dropped by `20260521000000`. Symptom: `column "is_reseller" of relation "organizations" does not exist (SQLSTATE 42703)` on `mint-smoke-user.ts`. ALL prod signups broken since that migration.
+- **`handle_lead_won()` trigger 500ing on every lead INSERT** — `DECLARE v_rule public.commission_rules%ROWTYPE` compile failed after `commission_rules` dropped by `20260521000002`. Workaround for smoke seed used `SET session_replication_role = replica`.
+- **`mark_earning_paid` + `mark_payout_paid` SQL fns** — referenced dropped `commission_earnings` / `reseller_payouts`. Dead.
+- **`admin_financial_overview()` RPC** — still selected `count(*) filter (where is_reseller = true) as resellers` from `organizations`. Would 500 if any admin opened `/admin` financials tab.
+- **`src/routes/hooks/send-pending-welcomes.ts`** — cron handler queried dropped `pending_welcome_emails`. Cron `send-pending-welcomes` was 500ing every minute.
+- **`calculate-payouts` cron** — pointed at `/hooks/calculate-payouts` route that never existed in this Worker. Dead since lift from Lovable.
+
+#### Shipped
+- `supabase/migrations/20260522010000_drop_reseller_function_remnants.sql` — drops `trg_lead_won` + `handle_lead_won()` + `mark_earning_paid` + `mark_payout_paid`; rewrites `handle_new_user` (strip `is_reseller` col + `v_grant.is_reseller`) and `admin_financial_overview` (strip resellers count). Applied to prod 2026-05-22.
+- `supabase/migrations/20260522020000_unschedule_dead_reseller_crons.sql` — `cron.unschedule('send-pending-welcomes')` + `cron.unschedule('calculate-payouts')`. Applied to prod 2026-05-22.
+- Deleted: `src/routes/hooks/send-pending-welcomes.ts`, `supabase/functions/reset-client-password/`, `src/components/crm/ResetClientPasswordDialog.tsx`, `src/lib/email-templates/{client-credentials,client-password-reset,client-welcome}.tsx`.
+- Stripped reseller fields from `useSubscription.ts` (`SubscriptionRow`), `types/admin.ts` (`FinancialOverview.organizations.resellers`), `FinancialsPanel.tsx` hint copy, `OrgFeaturesPanel.tsx` (`OrgRow.is_reseller`), `supabase/functions/manage-org-features/index.ts` (select list), `supabase/functions/payments-webhook/index.ts` (3 sites), `supabase/functions/create-checkout/index.ts` (metadata stamps), `src/integrations/supabase/types.ts` (`mark_earning_paid` + `mark_payout_paid` RPC defs).
+- Marketing copy: `FeaturesHero.tsx` ("Built for resellers" → "Built for teams"), `featureBlocks.tsx` (eyebrow "White-label + reseller" → "True white-label"; reworded body), `FeaturesFaq.tsx` (deleted Q&A about reseller billing), `routes/features.tsx` meta, `branding-preview.tsx` ("your reseller landing page" → "your public landing page"), `types/quotes.ts` ("True white-label, not a reseller skin" → "True white-label"), 2 preview demo audience labels.
+- Comment refs (verify-grant, custom-hostnames, domain-health, GlobalErrorBoundary, lib/email/send, white-label-theme, outreach-email, cloudflare-env.d.ts) — reworded reseller → tenant where applicable.
+- `CLAUDE.md` + `AGENTS.md` "Lovable scaffold cleanup — delete confidently when dead" section already in place from earlier this session.
+
+#### Verification
+- `bun run typecheck` exit=0 after `rm src/routeTree.gen.ts && bun run build` (route tree regenerated clean).
+- `bun run build` ✓ built in 6.95s, no errors.
+- DB migrations applied via `supabase db push --linked --include-all`. Trigger fix unblocked smoke user mint immediately after.
+- Smoke END-TO-END NOT YET RUN. See below.
+
+#### Found (smoke blocker)
+- **Campaign builder smoke blocked at billing gate.** Fresh smoke tenant (`org 1c973d35-1855-4381-b6b7-106628d022b2`, owner `smoke-mpfq8oym@genesisx.test`) has no Stripe sub → `/campaigns/new` 302 to `/billing?required=%221%22`. Onboarding wizard (industry → brand color → lead-privacy) ran on first login, then billing gate blocked all CRM routes. Smoke ran headless via agent-browser, screenshot at `/tmp/campaign-smoke-blocked.png`.
+
+#### Manual follow-up (user)
+- Decide unblock path for smoke: (a) grant manual `subscriptions` row (`environment='manual', status='active'`) for smoke owner so they bypass billing — fastest, repeatable for future smokes; (b) mint-smoke-user.ts auto-grants manual sub on creation; (c) live Stripe sandbox checkout from the smoke user. (a) recommended.
+- Smoke seeded rows still in prod: smoke user `64ac2242-5e02-4ca5-a75c-c5e7d12f3da3`, org `1c973d35-…`, one lead `darsh.pod@gmail.com` tagged `smoke-campaign-20260521163648`. Cleanup deferred until smoke completes end-to-end.
+
+
 **Tags:** [audit] [lovable-migration]
 
 #### Found (verification — all shipped, no work needed)

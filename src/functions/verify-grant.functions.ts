@@ -16,7 +16,7 @@ export interface VerifyGrantResult {
 /**
  * Post-signup verification: confirms the signed-in user's organization
  * matches any pending_subscription_grants row for their email, and
- * self-heals (applies plan, reseller flag, quota, feature flags) if not.
+ * self-heals (applies plan, quota, feature flags) if not.
  *
  * Idempotent. Safe to call on every login — it no-ops when nothing is
  * missing or when no grant exists for the user's email.

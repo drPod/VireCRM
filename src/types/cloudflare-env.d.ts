@@ -17,7 +17,7 @@
  * triple-slash — both would clobber DOM globals.
  *
  * Audit verdict (2026-05-18): shim is permanent until first binding;
- * zero CF native bindings in `wrangler.jsonc` today, reseller stack runs
+ * zero CF native bindings in `wrangler.jsonc` today, tenant stack runs
  * over HTTP (Supabase / Resend / Anthropic / CF for SaaS REST). See
  * ISSUES.md `## Recent` + `docs/issues-archive/2026-05.md:148`.
  * Initial inventory: env-audit subagent run 2026-05-17, see

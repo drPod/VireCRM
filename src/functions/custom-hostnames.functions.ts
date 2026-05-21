@@ -16,7 +16,7 @@
  * Storage:
  *   - We persist only the CF-issued `id` (cf_hostname_id) on either the
  *     org_custom_domains row (multi-domain panel) or the organizations row
- *     (legacy reseller dialog). Validation records (TXT for ownership +
+ *     (single-domain fallback). Validation records (TXT for ownership +
  *     SSL DCV) are NOT mirrored — CF is source of truth, re-fetch on demand.
  */
 import { createServerFn } from "@tanstack/react-start";
@@ -150,7 +150,7 @@ function snapshotFromCf(payload: CfCustomHostnameResponse): CustomHostnameSnapsh
 /**
  * Find the row that should carry the cf_hostname_id for this (org, hostname)
  * pair. Prefers the org_custom_domains row (canonical multi-domain table);
- * falls back to organizations.custom_domain (legacy reseller flow).
+ * falls back to organizations.custom_domain (single-domain fallback).
  *
  * Returns null when no matching row exists — caller should reject up front
  * rather than provision a hostname we can't attribute later.

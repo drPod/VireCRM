@@ -21,7 +21,7 @@ export const Route = createFileRoute("/features")({
       {
         name: "description",
         content:
-          "VireCRM is the AI-native CRM your team will actually use — multi-channel inbox, AI lead scoring, command-bar orchestration, booking, analytics, and a first-class white-label reseller layer.",
+          "VireCRM is the AI-native CRM your team will actually use — multi-channel inbox, AI lead scoring, command-bar orchestration, booking, analytics, and a first-class white-label tenant layer.",
       },
       {
         property: "og:title",

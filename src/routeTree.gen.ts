@@ -28,7 +28,6 @@ import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as HooksSendPendingWelcomesRouteImport } from './routes/hooks/send-pending-welcomes'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
@@ -188,12 +187,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HooksSendPendingWelcomesRoute =
-  HooksSendPendingWelcomesRouteImport.update({
-    id: '/hooks/send-pending-welcomes',
-    path: '/hooks/send-pending-welcomes',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -579,7 +572,6 @@ export interface FileRoutesByFullPath {
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/campaigns/$id': typeof AppCampaignsIdRoute
   '/campaigns/new': typeof AppCampaignsNewRoute
@@ -664,7 +656,6 @@ export interface FileRoutesByTo {
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/campaigns/$id': typeof AppCampaignsIdRoute
   '/campaigns/new': typeof AppCampaignsNewRoute
@@ -751,7 +742,6 @@ export interface FileRoutesById {
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/_app/academy/$courseId': typeof AppAcademyCourseIdRoute
   '/_app/campaigns/$id': typeof AppCampaignsIdRoute
   '/_app/campaigns/new': typeof AppCampaignsNewRoute
@@ -838,7 +828,6 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
-    | '/hooks/send-pending-welcomes'
     | '/academy/$courseId'
     | '/campaigns/$id'
     | '/campaigns/new'
@@ -923,7 +912,6 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
-    | '/hooks/send-pending-welcomes'
     | '/academy/$courseId'
     | '/campaigns/$id'
     | '/campaigns/new'
@@ -1009,7 +997,6 @@ export interface FileRouteTypes {
     | '/book/$slug'
     | '/checkout/return'
     | '/email/unsubscribe'
-    | '/hooks/send-pending-welcomes'
     | '/_app/academy/$courseId'
     | '/_app/campaigns/$id'
     | '/_app/campaigns/new'
@@ -1064,7 +1051,6 @@ export interface RootRouteChildren {
   BookSlugRoute: typeof BookSlugRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
-  HooksSendPendingWelcomesRoute: typeof HooksSendPendingWelcomesRoute
   ApiPublicContactRoute: typeof ApiPublicContactRoute
   ApiEmailQueueProcessRoute: typeof ApiEmailQueueProcessRoute
   ApiEmailTransactionalSendRoute: typeof ApiEmailTransactionalSendRoute
@@ -1210,13 +1196,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hooks/send-pending-welcomes': {
-      id: '/hooks/send-pending-welcomes'
-      path: '/hooks/send-pending-welcomes'
-      fullPath: '/hooks/send-pending-welcomes'
-      preLoaderRoute: typeof HooksSendPendingWelcomesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/email/unsubscribe': {
@@ -1872,7 +1851,6 @@ const rootRouteChildren: RootRouteChildren = {
   BookSlugRoute: BookSlugRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
-  HooksSendPendingWelcomesRoute: HooksSendPendingWelcomesRoute,
   ApiPublicContactRoute: ApiPublicContactRoute,
   ApiEmailQueueProcessRoute: ApiEmailQueueProcessRoute,
   ApiEmailTransactionalSendRoute: ApiEmailTransactionalSendRoute,

@@ -26,10 +26,6 @@ const FAQS = [
     a: "We have a guided migration that handles contacts, deals, custom fields, notes, and historical activities for the three biggest CRMs. Most migrations land cleanly in under an hour. We don't charge for migration help — it's part of every plan.",
   },
   {
-    q: "How does billing work for resellers and their customers?",
-    a: "You get one VireCRM invoice per month covering all active customer workspaces. Each customer pays you on a billing schedule and price you control — via Stripe Connect inside your reseller dashboard. We never touch your customer's payment relationship.",
-  },
-  {
     q: "What's your refund policy?",
     a: "We don't offer cash refunds, but every paid plan has a 14-day no-questions money-back guarantee during onboarding. After that, you can cancel any time and we'll keep your data accessible for 90 days for export.",
   },

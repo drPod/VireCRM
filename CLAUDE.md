@@ -56,13 +56,13 @@ Migration log: `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Rece
 - Tenant gets: own user pool, own data, own theme (logo, colors, copy), own billing relationship with VireCRM.
 - Routing: custom hostnames CNAME at `customers.virecrm.com`. Cloudflare for SaaS catches them, proxies to this Worker. Worker reads `Host` header → org lookup via `get_org_by_domain` → renders white-labeled UI.
 
-### Legacy "reseller" code in repo — don't strip in audits
+### Lovable scaffold cleanup — delete confidently when dead
 
-Lovable scaffold included reseller-tier features that do not match the current business model: `is_reseller=true` org flag, `signup_under_reseller` SQL function, `reseller_payouts` + `reseller_plans` + `commission_rules` + `commission_earnings` tables, `r/$resellerSlug/signup.tsx` route, `BrandedSignup.tsx`. These represent a *possible future* sub-reseller model — not in use today.
+Lovable seeded reseller-tier scaffold not used by current business model: `is_reseller=true` org flag, `signup_under_reseller` SQL fn, `reseller_payouts` + `reseller_plans` + `commission_rules` + `commission_earnings` tables, `r/$resellerSlug/signup.tsx` route, `BrandedSignup.tsx`. Same situation for the "verticals" abstraction (Energy Hub / LOAs / Usage / Pricing / Contracts / Suppliers / Renewals / Solar Hub / Solar Projects) — Lovable's multi-industry placeholder, gated behind padlocks the only live client can't unlock.
 
-**Custom-hostname + white-label features ARE still core** (they power the premium tier directly). Surfaces that stay first-class regardless of reseller framing: `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/cf-for-saas-setup.md`.
+Audit confirms dead → delete. No "flag for review" gate. Note the removal in `ISSUES.md` `## Recent` with file list + commit sha so future audits can grep history.
 
-If an audit suggests killing "reseller-only" code, **don't unilaterally delete** — flag the candidate in `ISSUES.md` `## Open` under "Lovable cleanup follow-ups" for explicit review. Chesterton's fence.
+**Keep** (still core to premium tier, NOT scaffold): `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/cf-for-saas-setup.md`. Custom-hostname + white-label power the premium tier even with no resellers.
 
 ### Hostname plan (live 2026-05-20 — virecrm.com canonical, majix.ai 308-redirects at Worker)
 
@@ -83,7 +83,7 @@ Reserved subdomain labels (never tenant slugs, blocked at both DB + client layer
 
 Tenant theming: `DomainBrandingProvider` reads `window.location.hostname`, skips lookup for system hosts, otherwise calls `get_org_by_domain(host)`. RPC has two paths: (1) verified custom hostname via `org_custom_domains` join, (2) slug match for `<label>.virecrm.com`. Both return `json` blob with `id`, `slug`, `brand_name`, `logo_url`, `favicon_url`, `font_family`, `primary_color`, `secondary_color`, `accent_color`, `sidebar_color`, `button_color`, `is_reseller`, `support_email`, `verified`. VireCRM subdomains always return `verified=true` (own parent zone + wildcard cert).
 
-Reseller-named code (per "Legacy 'reseller' code" above) — don't unilaterally strip. White-label + custom-hostname features ARE core premium product even though no resellers exist; rest is dormant Lovable scaffold pending explicit cleanup pass.
+White-label + custom-hostname features ARE core premium product even though no resellers exist. Rest of reseller-named scaffold = delete per "Lovable scaffold cleanup" rule above.
 
 Prefer Supabase CLI (`supabase ...`) over MCP `mcp__plugin_supabase_supabase__*` tools — CLI authenticated via `SUPABASE_ACCESS_TOKEN` in `~/.zshrc`, costs no extra context tokens.
 

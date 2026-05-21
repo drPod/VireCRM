@@ -15,8 +15,6 @@ export type SubscriptionRow = {
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   environment: string;
-  attributed_reseller_id: string | null;
-  reseller_plan_id: string | null;
 };
 
 // Derive the active payments environment from the publishable Stripe token.

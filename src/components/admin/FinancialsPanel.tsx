@@ -221,7 +221,7 @@ export function FinancialsPanel() {
           icon={Building2}
           label="Customer orgs"
           value={String(orgs.total)}
-          hint={`${orgs.paying} paying · ${orgs.resellers} resellers`}
+          hint={`${orgs.paying} paying`}
         />
       </div>
 

@@ -4811,14 +4811,6 @@ export type Database = {
         Returns: Json
       }
       mark_domain_verified: { Args: { p_org_id: string }; Returns: Json }
-      mark_earning_paid: {
-        Args: { p_earning_id: string; p_payment_reference?: string }
-        Returns: Json
-      }
-      mark_payout_paid: {
-        Args: { p_payment_reference?: string; p_payout_id: string }
-        Returns: Json
-      }
       move_to_dlq: {
         Args: {
           dlq_name: string

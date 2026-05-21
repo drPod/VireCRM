@@ -20,13 +20,13 @@ OLD Lovable Supabase project dump, captured 2026-05-19. Four files: auth dump (4
 
 **Migration ran 2026-05-19, verified live 2026-05-22.** Ported to `coynbufhejaeuifpvmvw`: auth.users w/ preserved UUIDs + bcrypt, two tenants split cleanly (Crystal = `188c4869-…` slug `greenenergiai`; Caziah = `8b8c76ab-…` slug `caziah-cameron`, separate tenant), ~14k leads w/ xlsx-enriched energy fields on Caziah's broker book. Dumps stay around until Step 6 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` freezes old Lovable project + archives them. Recent verification: `ISSUES.md ## Recent` 2026-05-22 entry.
 
-### Legacy "reseller" code — don't strip in audits
+### Lovable scaffold cleanup — delete confidently when dead
 
-Lovable scaffold left reseller-tier features behind: `is_reseller` org flag, `signup_under_reseller` SQL fn, `reseller_payouts`/`reseller_plans`/`commission_rules`/`commission_earnings` tables, `r/$resellerSlug/signup.tsx` route, `BrandedSignup.tsx`. Not in use today.
+Lovable seeded reseller-tier scaffold not in use: `is_reseller` org flag, `signup_under_reseller` SQL fn, `reseller_payouts`/`reseller_plans`/`commission_rules`/`commission_earnings` tables, `r/$resellerSlug/signup.tsx` route, `BrandedSignup.tsx`. Same for the "verticals" abstraction (Energy Hub / LOAs / Usage / Pricing / Contracts / Suppliers / Renewals / Solar Hub / Solar Projects) — Lovable's multi-industry placeholder, padlocked, only live client can't unlock.
 
-**Custom-hostname + white-label surfaces ARE still core** (they power the premium tier directly): `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/`. Keep these.
+Audit confirms dead → delete. No "flag for review" gate. Note removal in `ISSUES.md` `## Recent` w/ file list + commit sha.
 
-Suspect a "reseller-only" file is dead → flag in `ISSUES.md` `## Open` "Lovable cleanup follow-ups" for review. Don't unilaterally delete. Chesterton's fence.
+**Keep** (core premium-tier surfaces, NOT scaffold): `CustomDomainsPanel`, `EditClientWhiteLabelDialog`, `DomainHealthPanel`, `src/functions/custom-hostnames.functions.ts`, `docs/custom-domains/`.
 
 ## File map
 

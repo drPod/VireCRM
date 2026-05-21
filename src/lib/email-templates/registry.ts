@@ -9,9 +9,6 @@ export interface TemplateEntry {
   to?: string;
 }
 
-import { template as clientCredentials } from "./client-credentials";
-import { template as clientPasswordReset } from "./client-password-reset";
-import { template as clientWelcome } from "./client-welcome";
 import { template as reviewRequest } from "./review-request";
 import { template as outreachEmail } from "./outreach-email";
 import { template as contactInquiry } from "./contact-inquiry";
@@ -26,9 +23,6 @@ import { template as quoteProposal } from "./quote-proposal";
  * Import and register new templates here after creating them in this directory.
  */
 export const TEMPLATES: Record<string, TemplateEntry> = {
-  "client-credentials": clientCredentials,
-  "client-password-reset": clientPasswordReset,
-  "client-welcome": clientWelcome,
   "review-request": reviewRequest,
   "outreach-email": outreachEmail,
   "contact-inquiry": contactInquiry,

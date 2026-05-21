@@ -11,7 +11,7 @@ interface SendTransactionalEmailParams {
    */
   fromName?: string;
   /**
-   * Optional Reply-To address. Use this so replies route to the reseller's
+   * Optional Reply-To address. Use this so replies route to the tenant's
    * support inbox instead of the platform default.
    */
   replyTo?: string;

@@ -12,7 +12,7 @@ const DEFAULT_SUPPORT_EMAIL = SUPPORT_EMAIL;
  * Resolves the support email for the current hostname. The boundary renders
  * ABOVE DomainBrandingProvider, so we can't use the context — we re-query the
  * same RPC directly. Falls back to the platform default for system hosts or
- * when no reseller branding is found / RPC fails.
+ * when no tenant branding is found / RPC fails.
  */
 function useResolvedSupportEmail(): string {
   const [email, setEmail] = useState<string>(DEFAULT_SUPPORT_EMAIL);

@@ -20,6 +20,6 @@ export const CAMPAIGNS: Campaign[] = [
   { id: "C-304", name: "Gym Owners — Black Friday Tease", status: "Scheduled", channel: "Email", audience: "Gym + fitness verticals", sent: 0, opened: 0, replied: 0, booked: 0, launched: "Nov 22" },
   { id: "C-305", name: "Insurance Brokers — Quarterly Check-in", status: "Paused", channel: "WhatsApp", audience: "Existing insurance customers", sent: 348, opened: 281, replied: 47, booked: 9, launched: "Apr 12" },
   { id: "C-306", name: "Logistics — Q1 Renewals", status: "Completed", channel: "Multi-channel", audience: "Logistics MRR <12mo", sent: 612, opened: 401, replied: 92, booked: 27, launched: "Jan 8" },
-  { id: "C-307", name: "Solar — White-label Demo Invite", status: "Active", channel: "Email", audience: "Solar resellers", sent: 184, opened: 122, replied: 28, booked: 7, launched: "May 10" },
+  { id: "C-307", name: "Solar — White-label Demo Invite", status: "Active", channel: "Email", audience: "Solar installers", sent: 184, opened: 122, replied: 28, booked: 7, launched: "May 10" },
   { id: "C-308", name: "Gym — Reactivation (lapsed)", status: "Draft", channel: "SMS", audience: "Gym leads · churned 60+d", sent: 0, opened: 0, replied: 0, booked: 0, launched: "—" },
 ];

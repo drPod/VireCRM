@@ -41,8 +41,6 @@ serve(async (req) => {
       userId,
       returnUrl,
       environment,
-      attributedResellerId,
-      resellerPlanId,
       organizationId,
     } = await req.json();
 
@@ -96,8 +94,6 @@ serve(async (req) => {
 
     const metadata: Record<string, string> = { priceId };
     if (userId) metadata.userId = userId;
-    if (attributedResellerId) metadata.attributedResellerId = attributedResellerId;
-    if (resellerPlanId) metadata.resellerPlanId = resellerPlanId;
     if (organizationId) metadata.organizationId = organizationId;
 
     const session = await stripe.checkout.sessions.create({

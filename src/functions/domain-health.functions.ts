@@ -74,7 +74,7 @@ async function probeHostname(hostname: string, domainId: string): Promise<Domain
       redirect: "follow",
       signal: controller.signal,
       headers: {
-        // Identify ourselves so reseller logs can attribute these probes.
+        // Identify ourselves so tenant logs can attribute these probes.
         "User-Agent": `VireCRMHealthCheck/1.0 (+https://${PLATFORM_DOMAIN})`,
         Accept: "text/html,*/*;q=0.5",
       },

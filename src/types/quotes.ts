@@ -62,7 +62,7 @@ export const DEFAULT_DIFFERENTIATORS: Differentiator[] = [
     body: "CRM, outreach, scheduling, pipeline, billing, and reporting in one place. No Zapier glue.",
   },
   {
-    title: "True white-label, not a reseller skin",
+    title: "True white-label",
     body: "Your domain, your branding, your login, your customers. VireCRM is invisible.",
   },
   {

@@ -187,11 +187,11 @@ export const FEATURES: FeatureSpec[] = [
   {
     id: "white-label",
     chapter: "scale",
-    eyebrow: "White-label + reseller",
+    eyebrow: "True white-label",
     icon: Shield,
-    title: <>Resell VireCRM as your own product.</>,
-    tagline: "Custom domains, custom theming, custom billing — per tenant.",
-    body: "Most CRMs treat white-label as an afterthought bolted onto an enterprise tier. We built VireCRM multi-tenant from day one. Each of your customers gets their own custom domain, logo, palette, email templates, and billing relationship with you. We never appear in their UI. You set pricing; we charge you wholesale per active workspace.",
+    title: <>Run VireCRM as your own product.</>,
+    tagline: "Custom domains, custom theming, custom billing.",
+    body: "Most CRMs treat white-label as an afterthought bolted onto an enterprise tier. We built VireCRM multi-tenant from day one. Your org gets its own custom domain, logo, palette, email templates, and billing relationship with VireCRM. We never appear in your customers' UI.",
     bullets: [
       {
         title: "Custom domains via Cloudflare for SaaS",

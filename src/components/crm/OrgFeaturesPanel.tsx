@@ -24,7 +24,6 @@ interface OrgRow {
   slug: string;
   brand_name: string | null;
   plan: string;
-  is_reseller: boolean;
 }
 
 interface FeatureRow {
@@ -202,7 +201,6 @@ export function OrgFeaturesPanel() {
                 <SelectItem key={o.id} value={o.id}>
                   {o.name}
                   {o.brand_name && o.brand_name !== o.name ? ` (${o.brand_name})` : ""}
-                  {o.is_reseller ? " — reseller" : ""}
                 </SelectItem>
               ))}
               {orgs.length === 0 && (

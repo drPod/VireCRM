@@ -6,7 +6,7 @@ const SITE_NAME = "VireCRM";
 interface OutreachEmailProps {
   /** AI-generated body text. Newlines become paragraph breaks. */
   body?: string;
-  /** Sender's brand name (org/reseller name shown in sign-off). */
+  /** Sender's brand name (org name shown in sign-off). */
   brandName?: string;
   /** Optional sender display name appended to the sign-off. */
   senderName?: string;
