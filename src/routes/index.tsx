@@ -3,6 +3,7 @@ import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Terminal } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { HeroSection } from "@/components/marketing/HeroSection";
+import { TrustStrip } from "@/components/marketing/TrustStrip";
 import { TwoWaysSection } from "@/components/marketing/TwoWaysSection";
 import { FeaturesSection } from "@/components/marketing/FeaturesSection";
 import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
@@ -50,6 +51,7 @@ function LandingPage() {
     <div className="min-h-screen">
       <MarketingHeader />
       <HeroSection />
+      <TrustStrip />
       <TwoWaysSection />
       <FeaturesSection />
       <HowItWorksSection />
