@@ -120,6 +120,27 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor AutoFindLeadsDialog god component
+**Tags:** [refactor] [god-components]
+
+Part of the 13-worker god-component split. Unit-7 owns `AutoFindLeadsDialog.tsx` (was 793 LOC). Public API preserved — same default export + props (`onLeadsImported`, `open`, `onOpenChange`, `hideTrigger`, `initialDescription`, `initialIndustry`); `LeadsPageContent.tsx` import untouched. Business logic preserved byte-for-byte: server-error sentinel parsing (`[CODE] message::{json}`), quota pre-flight gating (`outOfCredits`, `wouldExceedCap`), lead-import field truncation, sync-log recording.
+
+#### Shipped
+
+- `src/components/crm/AutoFindLeadsDialog.tsx` — slim container (793 → 176 LOC). Orchestrates the 5-way flow-state cascade (integration-missing / cap-reached / imported / pre-search / results), renders header + quota banner + BYO-key banner. All sub-views delegated.
+- `src/lib/auto-find-leads-helpers.ts` (new, 63 LOC) — `parseServerError` (extracts sentinel `[CODE] message::{json}`), `formatResetDate`, `nextMonthResetIso`, `AutoFindErrorCode` type, `INDUSTRY_PRESETS` + `PERSONA_PRESETS` const arrays.
+- `src/hooks/useAutoFindLeads.ts` (new, 278 LOC) — state container: form state (provider, domain, description, industry, persona, count), results state (suggestions, selected, loading, importing, imported), error/quota state (error, errorCode, quotaResetAt, usage). Owns `handleFind`, `handleImport`, `toggleSelect`, `toggleAll`, `reset`, `refreshUsage`. Exports `AutoFindProvider` + `UseAutoFindLeadsReturn` for sub-view consumption.
+- `src/components/crm/AutoFindLeadsSearchForm.tsx` (new, 251 LOC) — pre-search form: provider dropdown, optional company domain, optional business description, industry+persona pickers, count selector, inline error + pre-flight cap block + Find button. Consumes `flow` object directly to keep prop surface tight.
+- `src/components/crm/AutoFindLeadsImportFlow.tsx` (new, 112 LOC) — post-search list view: select-all checkbox, per-suggestion checkbox row (name/company/role/score/reason), auto-outreach toggle, Start Over + Import action bar.
+- `src/components/crm/AutoFindLeadsPanels.tsx` (new, 155 LOC) — three terminal-state panels: `IntegrationMissingPanel` (owner CTA to Settings → Integrations), `CapReachedPanel` (upgrade + BYO-key CTAs, retry-window notice), `ImportSuccessPanel` (Find More / Done).
+
+#### Verification
+
+- `bun run typecheck` — clean (only pre-existing baseline error `src/routes/hooks/send-pending-welcomes.ts(26,38)` unrelated to this work).
+- `bun run test` — 133/133 pass.
+- `bun run build` — 6.64s, no errors, `_app.leads-DvPyWqPi.js` bundle contains "Auto-Find Leads" string.
+- `bun run preview --port 4180` — incompatible with TanStack Start CF Workers preset (`dist/server/server.js` not emitted); fell back to dev-server + agent-browser smoke. `/leads` returned 200 + auth-loading skeleton screenshot. Login-redirect signal acceptable per recipe.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
