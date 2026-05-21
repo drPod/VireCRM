@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAutoOutreach } from "@/hooks/useAutoOutreach";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,9 +55,9 @@ export function useAutoFindLeads({
   const [imported, setImported] = useState(false);
   const [usage, setUsage] = useState<LeadUsage | null>(null);
 
-  const findLeads = useAuthedServerFn(findLeadsFn);
-  const getLeadUsage = useAuthedServerFn(getLeadUsageFn);
-  const recordImport = useAuthedServerFn(recordLeadImportFn);
+  const findLeads = useServerFn(findLeadsFn);
+  const getLeadUsage = useServerFn(getLeadUsageFn);
+  const recordImport = useServerFn(recordLeadImportFn);
 
   const refreshUsage = useCallback(async () => {
     if (!organization?.id) return;

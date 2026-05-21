@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { provisionCustomHostnameFn } from "@/functions/custom-hostnames.functions";
 import { isNotConfigured, describeError } from "@/lib/cf-saas-errors";
 import { HOSTNAME_RE, logEvent } from "@/components/crm/custom-domains.types";
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function DomainAddForm({ organizationId, onAdded, onAuditEvent }: Props) {
-  const provisionCf = useAuthedServerFn(provisionCustomHostnameFn);
+  const provisionCf = useServerFn(provisionCustomHostnameFn);
   const [newHost, setNewHost] = useState("");
   const [adding, setAdding] = useState(false);
 

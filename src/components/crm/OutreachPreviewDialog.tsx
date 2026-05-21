@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, Send, Sparkles } from "lucide-react";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   previewOutreachFn,
   sendOutreachWithContentFn,
@@ -50,9 +50,9 @@ export function OutreachPreviewDialog({
   onSent,
 }: OutreachPreviewDialogProps) {
   const { organization } = useAuth();
-  const preview = useAuthedServerFn(previewOutreachFn);
-  const send = useAuthedServerFn(sendOutreachWithContentFn);
-  const listTemplates = useAuthedServerFn(listOutreachTemplatesFn);
+  const preview = useServerFn(previewOutreachFn);
+  const send = useServerFn(sendOutreachWithContentFn);
+  const listTemplates = useServerFn(listOutreachTemplatesFn);
 
   const [templates, setTemplates] = useState<OutreachTemplate[]>([]);
   /** Either a template UUID, NO_TEMPLATE (AI from scratch), or TEMPLATE_ONLY (no AI). */

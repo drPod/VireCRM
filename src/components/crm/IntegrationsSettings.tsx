@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   getIntegrationFn,
   saveIntegrationFn,
@@ -36,12 +36,12 @@ export function IntegrationsSettings() {
   const { organization, role } = useAuth();
   const isOwner = role?.role === "owner";
 
-  const getIntegration = useAuthedServerFn(getIntegrationFn);
-  const saveIntegration = useAuthedServerFn(saveIntegrationFn);
-  const deleteIntegration = useAuthedServerFn(deleteIntegrationFn);
-  const testIntegration = useAuthedServerFn(testIntegrationFn);
-  const updateIntegrationConfig = useAuthedServerFn(updateIntegrationConfigFn);
-  const getLeadUsage = useAuthedServerFn(getLeadUsageFn);
+  const getIntegration = useServerFn(getIntegrationFn);
+  const saveIntegration = useServerFn(saveIntegrationFn);
+  const deleteIntegration = useServerFn(deleteIntegrationFn);
+  const testIntegration = useServerFn(testIntegrationFn);
+  const updateIntegrationConfig = useServerFn(updateIntegrationConfigFn);
+  const getLeadUsage = useServerFn(getLeadUsageFn);
 
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState<Record<Provider, ProviderStatus>>({

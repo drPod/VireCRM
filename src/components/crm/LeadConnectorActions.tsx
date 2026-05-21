@@ -9,7 +9,7 @@
  */
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { listEnabledConnectorsFn } from "@/functions/connectors.functions";
 import {
   sendSlackMessageFn,
@@ -91,15 +91,15 @@ export function LeadConnectorActions({
   onActed,
 }: LeadConnectorActionsProps) {
   const { organization } = useAuth();
-  const listEnabled = useAuthedServerFn(listEnabledConnectorsFn);
-  const listEmailProviders = useAuthedServerFn(listLeadEmailProvidersFn);
-  const sendSlack = useAuthedServerFn(sendSlackMessageFn);
-  const sendSms = useAuthedServerFn(sendTwilioSmsFn);
-  const sendOutlook = useAuthedServerFn(sendOutlookEmailFn);
-  const sendGmail = useAuthedServerFn(sendGmailFn);
-  const sendSendgrid = useAuthedServerFn(sendSendgridLeadEmailFn);
-  const createIssue = useAuthedServerFn(createLinearIssueFn);
-  const sendTeams = useAuthedServerFn(sendTeamsMessageFn);
+  const listEnabled = useServerFn(listEnabledConnectorsFn);
+  const listEmailProviders = useServerFn(listLeadEmailProvidersFn);
+  const sendSlack = useServerFn(sendSlackMessageFn);
+  const sendSms = useServerFn(sendTwilioSmsFn);
+  const sendOutlook = useServerFn(sendOutlookEmailFn);
+  const sendGmail = useServerFn(sendGmailFn);
+  const sendSendgrid = useServerFn(sendSendgridLeadEmailFn);
+  const createIssue = useServerFn(createLinearIssueFn);
+  const sendTeams = useServerFn(sendTeamsMessageFn);
 
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [emailProviders, setEmailProviders] = useState<LeadEmailProvider[]>([]);

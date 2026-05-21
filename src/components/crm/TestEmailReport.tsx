@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, CheckCircle2, AlertCircle, Clock, Ban, Zap, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useActionLock } from "@/hooks/useActionLock";
 import {
   sendQueuedTestEmailFn,
@@ -83,8 +83,8 @@ function statusBadge(status: TestEmailStatus["status"]) {
 }
 
 export function TestEmailReport() {
-  const sendFn = useAuthedServerFn(sendQueuedTestEmailFn);
-  const lookupFn = useAuthedServerFn(lookupTestEmailStatusFn);
+  const sendFn = useServerFn(sendQueuedTestEmailFn);
+  const lookupFn = useServerFn(lookupTestEmailStatusFn);
   const sendLock = useActionLock();
 
   const [to, setTo] = useState("");
