@@ -120,6 +120,37 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor ConnectorIntegrations god component
+**Tags:** [refactor] [god-components]
+
+Part of the parallel god-component refactor effort (13 workers, one PR per file). Unit-4 owns `src/components/crm/ConnectorIntegrations.tsx` (986 LOC). Splits the file by responsibility without changing the public API — `IntegrationsSettings.tsx` still imports `ConnectorIntegrations` unchanged. No business-logic rewrites; poller + retry semantics preserved byte-for-byte.
+
+#### Shipped
+
+- `src/components/crm/ConnectorIntegrations.tsx` — slimmed container, now 259 LOC. Owns auth wiring, the four orchestration handlers (`handleEnable`, `handleDisable`, `handleTest`, `handleSaveConfig`), the header explainer panel, and the grouped-by-category layout. Imports the new hook + presentational pieces.
+- `src/hooks/useConnectorStatus.ts` — new hook. Owns `statuses` state, the initial-load `refresh`, the toast-dedup `toastedConnectedRef`, and the 4s/12s background poller with 5-minute cap + visibility-pause. Returns `{ statuses, setStatuses, loading, refresh }`. Polling cadence + retry + Google connectedEmail re-poll logic preserved verbatim.
+- `src/components/crm/ConnectorCard.tsx` — extracted per-card component (formerly `ConnectorRow`). Renamed because `ProviderCard.tsx` is reserved for the BYO-key card (sibling worker territory). Holds per-card UI state (busy, editing, testResult etc.) and composes the new sub-components below.
+- `src/components/crm/ConnectorCategorySection.tsx` — pure presentational; renders one category header + grid of cards.
+- `src/components/crm/AwaitingAuthHelper.tsx` — moved verbatim from the bottom of `ConnectorIntegrations.tsx`.
+- `src/components/crm/ConnectorStatusBadge.tsx` — flattens the 4-level nested-ternary status badge into a single flat early-return cascade.
+- `src/components/crm/ConnectorConfigEditor.tsx` — controlled inline-config editor with on-blur validation. Card hoists the draft state so prerequisites stay reactive while typing.
+- `src/components/crm/ConnectorPrerequisitesBlock.tsx` — wraps the `PrerequisitesPanel` render + action-router switch.
+- `src/components/crm/ConnectorDisconnectDialog.tsx` — the disconnect confirmation `AlertDialog`.
+- `src/components/crm/ConnectorCardActions.tsx` — the docs-link + Test/Edit/Disconnect/Connect action row.
+- `src/components/crm/HubspotSyncButton.tsx` — extracted the HubSpot-only sync button + its inline `onClick` handler (was 27 LOC of nested async logic).
+- `src/lib/connectors/ai-prompt.ts` — new helper `buildConnectorConnectPrompt`. Single source of truth for the "ask your AI assistant to connect this" prompt string; was previously duplicated between `handleEnable` (auto-copy) and `AwaitingAuthHelper` (rendered + copy button).
+
+#### Verification
+
+- `bun run typecheck` — clean for refactored files (one pre-existing unrelated route-registry error in `src/routes/hooks/send-pending-welcomes.ts:26`; confirmed present on `HEAD` before changes).
+- `bun run test` — 133/133 pass.
+- `bun run build` — 6.54s, no errors.
+- Smoke via `wrangler dev --port 4177 --local` + `agent-browser`: `/settings` route resolves with title "VireCRM — Settings"; auth-gated skeleton renders correctly. Screenshot saved to `screenshots/unit-4.png`.
+
+#### Sizes
+
+- Container `ConnectorIntegrations.tsx`: 986 → 259 LOC (target <300).
+- All extracted pieces <250 LOC (largest = `ConnectorCard.tsx` at 232).
 ### 2026-05-22 — Refactor LeadsPageContent god component
 **Tags:** [refactor] [god-components]
 
