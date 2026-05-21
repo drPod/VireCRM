@@ -527,6 +527,12 @@ Step 6 = effectively done. Old Lovable project no longer accessible to user → 
 #### Shipped
 - `src/functions/outreach-preview.functions.ts:52,193` — `setResponseStatus(403)` before org-membership throws.
 - `src/functions/ai-advisor.functions.ts:28` — `setResponseStatus(403)` before org-membership throw.
+### 2026-05-22 — email-log + followup-suggestions: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [email]
+
+#### Shipped
+- `src/functions/email-log.functions.ts:56` — `setResponseStatus(403)` before owner-only throw.
+- `src/functions/send-followup-suggestions.functions.ts:44` — `setResponseStatus(403)` before org-membership throw.
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
