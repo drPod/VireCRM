@@ -14,20 +14,13 @@ import { TEMPLATES } from "@/lib/email-templates/registry";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
-const SENDER_DOMAIN = "notify.virecrm.com";
-const FROM_DOMAIN = "notify.virecrm.com";
+import { SENDER_DOMAIN, FROM_DOMAIN } from "@/config/domains";
 const FROM_DISPLAY_NAME = "VireCRM Contact Form";
 const REMINDER_DELAY_HOURS = 24;
 const REMINDER_COOLDOWN_HOURS = 24;
 const BATCH_LIMIT = 50;
 
-function generateToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+import { generateToken } from "@/lib/crypto";
 
 export const Route = createFileRoute("/api/public/hooks/contact-followup-reminders")({
   server: {

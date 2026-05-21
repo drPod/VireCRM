@@ -14,19 +14,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { TEMPLATES } from "@/lib/email-templates/registry";
-
-async function assertOwner(userId: string, organizationId: string) {
-  const { data: roleRow } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("organization_id", organizationId)
-    .eq("role", "owner")
-    .maybeSingle();
-  if (!roleRow) {
-    throw new Error("Only the organization owner can preview email templates.");
-  }
-}
+import { assertOwner } from "@/lib/auth-helpers";
 
 const listSchema = z.object({ organizationId: z.string().uuid() });
 
@@ -34,7 +22,7 @@ export const listEmailTemplatesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertOwner(context.userId, data.organizationId);
+    await assertOwner(supabaseAdmin, context.userId, data.organizationId);
 
     return Object.entries(TEMPLATES).map(([name, entry]) => ({
       name,
@@ -53,7 +41,7 @@ export const renderEmailTemplateFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof renderSchema>) => renderSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertOwner(context.userId, data.organizationId);
+    await assertOwner(supabaseAdmin, context.userId, data.organizationId);
 
     const entry = TEMPLATES[data.templateName];
     if (!entry) {

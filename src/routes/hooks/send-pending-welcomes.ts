@@ -4,22 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 
-// Match the constants used by the transactional send route.
-const SITE_NAME = "VireCRM";
-const SENDER_DOMAIN = "notify.virecrm.com";
-const FROM_DOMAIN = "notify.virecrm.com";
+import { SENDER_DOMAIN, FROM_DOMAIN, SITE_NAME } from "@/config/domains";
 
 const TEMPLATE_NAME = "client-welcome";
 const MAX_ATTEMPTS = 5;
 const BATCH_SIZE = 25;
 
-function generateToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+import { generateToken } from "@/lib/crypto";
 
 /**
  * Cron-triggered route that sends scheduled client welcome emails.

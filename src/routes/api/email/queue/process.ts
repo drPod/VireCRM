@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
 import { sendResendEmail } from "@/lib/resend";
+import { NOTIFY_DOMAIN } from "@/config/domains";
 
 const MAX_RETRIES = 5;
 const DEFAULT_BATCH_SIZE = 10;
@@ -240,7 +241,7 @@ export const Route = createFileRoute("/api/email/queue/process")({
               // unsubscribe token), Resend simply omits the List-Unsubscribe
               // headers — non-fatal.
               const unsubscribeUrl = payload.unsubscribe_token
-                ? `https://${payload.sender_domain ?? "notify.virecrm.com"}/unsubscribe?token=${encodeURIComponent(payload.unsubscribe_token)}`
+                ? `https://${payload.sender_domain ?? NOTIFY_DOMAIN}/unsubscribe?token=${encodeURIComponent(payload.unsubscribe_token)}`
                 : undefined;
 
               await sendResendEmail({

@@ -3,6 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { PLATFORM_DOMAIN } from "@/config/domains";
 
 /**
  * Send an admin quote/proposal to the recipient via the platform email queue.
@@ -94,7 +95,7 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
       requestOrigin ||
       process.env.SITE_URL ||
       process.env.PUBLISHED_URL ||
-      "https://virecrm.com";
+      `https://${PLATFORM_DOMAIN}`;
 
     const sendRes = await fetch(`${origin}/api/email/transactional/send`, {
       method: "POST",

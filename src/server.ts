@@ -14,6 +14,7 @@
  */
 import startEntry from "@tanstack/react-start/server-entry";
 import { runWithCloudflareContext } from "@/lib/cloudflare/context";
+import { MAJIX_AI_DOMAIN, PLATFORM_DOMAIN } from "@/config/domains";
 
 type DelegateFetch = (req: Request, env: unknown, ctx: unknown) => Promise<Response>;
 
@@ -25,11 +26,11 @@ export default {
   ): Promise<Response> {
     // 308-redirect all majix.ai traffic to virecrm.com equivalents.
     const dest = new URL(request.url);
-    if (dest.hostname === "majix.ai" || dest.hostname.endsWith(".majix.ai")) {
+    if (dest.hostname === MAJIX_AI_DOMAIN || dest.hostname.endsWith(`.${MAJIX_AI_DOMAIN}`)) {
       dest.hostname =
-        dest.hostname === "majix.ai"
-          ? "virecrm.com"
-          : dest.hostname.slice(0, -(".majix.ai".length)) + ".virecrm.com";
+        dest.hostname === MAJIX_AI_DOMAIN
+          ? PLATFORM_DOMAIN
+          : dest.hostname.slice(0, -(`.${MAJIX_AI_DOMAIN}`.length)) + `.${PLATFORM_DOMAIN}`;
       return Response.redirect(dest.toString(), 308);
     }
 

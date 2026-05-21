@@ -10,8 +10,7 @@ import {
   Text,
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
-
-const SITE_NAME = "VireCRM";
+import { SITE_NAME, PLATFORM_DOMAIN } from "@/config/domains";
 const REPLY_WINDOW = "within 24 hours";
 
 interface ContactAcknowledgmentProps {
@@ -28,7 +27,7 @@ interface ContactAcknowledgmentProps {
  */
 const ContactAcknowledgmentEmail = ({ name, message, pricingUrl }: ContactAcknowledgmentProps) => {
   const greeting = name ? `Hi ${name},` : "Hi there,";
-  const pricingHref = pricingUrl || "https://virecrm.com/pricing";
+  const pricingHref = pricingUrl || `https://${PLATFORM_DOMAIN}/pricing`;
 
   return (
     <Html lang="en" dir="ltr">
@@ -88,7 +87,7 @@ export const template = {
   previewData: {
     name: "Jane Smith",
     message: "Looking for a custom CRM with white-label branding for our solar sales team.",
-    pricingUrl: "https://virecrm.com/pricing",
+    pricingUrl: `https://${PLATFORM_DOMAIN}/pricing`,
   },
 } satisfies TemplateEntry;
 

@@ -15,8 +15,8 @@ import { keepAlive } from "@/lib/cloudflare/context";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
-const SENDER_DOMAIN = "notify.virecrm.com";
-const FROM_DOMAIN = "notify.virecrm.com";
+import { SENDER_DOMAIN, FROM_DOMAIN, PLATFORM_DOMAIN } from "@/config/domains";
+import { generateToken } from "@/lib/crypto";
 const FROM_DISPLAY_NAME = "VireCRM Contact Form";
 
 /**
@@ -70,13 +70,6 @@ const ContactSchema = z.object({
   }),
 });
 
-function generateToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
 
 function jsonError(message: string, status: number) {
   return Response.json({ success: false, error: message }, { status });
@@ -463,7 +456,7 @@ async function sendVisitorAcknowledgment(args: {
     unsubscribeToken = stored?.token ?? unsubscribeToken;
   }
 
-  const pricingUrl = origin ? `${origin}/pricing` : "https://virecrm.com/pricing";
+  const pricingUrl = origin ? `${origin}/pricing` : `https://${PLATFORM_DOMAIN}/pricing`;
   const ackData = {
     name: visitorName,
     message: visitorMessage,

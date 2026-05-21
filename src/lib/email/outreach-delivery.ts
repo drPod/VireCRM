@@ -7,12 +7,14 @@ import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
 import { template as outreachTemplate } from "@/lib/email-templates/outreach-email";
 import { sendResendEmail } from "@/lib/resend";
 import { sendSendgridEmail } from "@/lib/sendgrid";
+import { SUPPORT_EMAIL } from "@/config/support";
+import { LOGO_URL } from "@/config/domains";
 
 // VireCRM platform defaults — used when an org hasn't configured its own
 // brand assets. Replies are routed to the business inbox so leads can hit
 // "reply" and reach a real person.
-const GENESIS_DEFAULT_REPLY_TO = "support@virecrm.com";
-const GENESIS_DEFAULT_LOGO_URL = "https://virecrm.com/genesis-logo.png";
+const GENESIS_DEFAULT_REPLY_TO = SUPPORT_EMAIL;
+const GENESIS_DEFAULT_LOGO_URL = LOGO_URL;
 
 type ConnectorProvider = "gmail" | "microsoft_outlook";
 

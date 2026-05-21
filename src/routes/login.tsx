@@ -1,4 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { PLATFORM_HOSTS } from "@/config/hosts";
+import { MAJIX_AI_DOMAIN } from "@/config/domains";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +15,9 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { friendlyAuthError } from "@/lib/auth-errors";
 
-// Platform hosts where tenant users should be bounced to their org subdomain
-// after login. Subdomains (greenenergiai.virecrm.com) and custom domains are
-// already on the right origin — no redirect needed there.
-const PLATFORM_HOSTS = new Set(["virecrm.com", "www.virecrm.com", "app.virecrm.com"]);
-
 function isOnPlatformHost() {
   const h = window.location.hostname;
-  return PLATFORM_HOSTS.has(h) || h.endsWith(".majix.ai");
+  return PLATFORM_HOSTS.has(h) || h.endsWith(`.${MAJIX_AI_DOMAIN}`);
 }
 
 // Attempt to redirect the user to their org subdomain, passing session tokens

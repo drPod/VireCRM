@@ -20,18 +20,9 @@ import { render } from "@react-email/components";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-// Must match the constants baked into the transactional send route.
-const SITE_NAME = "VireCRM";
-const SENDER_DOMAIN = "notify.virecrm.com";
-const FROM_DOMAIN = "notify.virecrm.com";
+import { SENDER_DOMAIN, FROM_DOMAIN, SITE_NAME } from "@/config/domains";
+import { generateToken } from "@/lib/crypto";
 
-function generateToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
 
 export interface DispatchOutreachInput {
   templateName: string;

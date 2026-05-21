@@ -77,7 +77,7 @@ export const Route = createFileRoute("/pricing")({
               name: "How do I reach you?",
               acceptedAnswer: {
                 "@type": "Answer",
-                text: "Call or text us at +1 (940) 365-6600 or email support@virecrm.com. We typically reply within one business day.",
+                text: "Call or text us at +1 (540) 244-1130 or email darsh.pod@gmail.com. We typically reply within one business day.",
               },
             },
           ],
@@ -90,8 +90,8 @@ export const Route = createFileRoute("/pricing")({
           "@type": "LocalBusiness",
           name: "VireCRM",
           url: "https://virecrm.com/pricing",
-          telephone: "+1-940-365-6600",
-          email: "support@virecrm.com",
+          telephone: "+1-540-244-1130",
+          email: "darsh.pod@gmail.com",
           priceRange: "$97-$10000",
         }),
       },
@@ -153,10 +153,10 @@ function PricingPage() {
                     <>
                       Call or text us at{" "}
                       <a
-                        href="tel:+19403656600"
+                        href="tel:+15402441130"
                         className="font-medium text-primary hover:underline"
                       >
-                        +1 (940) 365-6600
+                        +1 (540) 244-1130
                       </a>{" "}
                       or email{" "}
                       <a href={SUPPORT_MAILTO} className="font-medium text-primary hover:underline">
@@ -188,10 +188,10 @@ function PricingPage() {
           </p>
           <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <a
-              href="tel:+19403656600"
+              href="tel:+15402441130"
               className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-5 py-2.5 text-sm font-medium text-foreground hover:bg-primary/20 transition-colors"
             >
-              <Phone className="h-4 w-4" aria-hidden="true" /> +1 (940) 365-6600
+              <Phone className="h-4 w-4" aria-hidden="true" /> +1 (540) 244-1130
             </a>
             <a
               href={SUPPORT_MAILTO}

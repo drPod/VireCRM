@@ -299,7 +299,7 @@ export function ContactForm() {
             id="phone"
             name="phone"
             type="tel"
-            placeholder="+1 (940) 365-6600"
+            placeholder="+1 (540) 244-1130"
             value={form.phone}
             onChange={(e) => handleChange("phone", e.target.value)}
             maxLength={50}

@@ -13,23 +13,13 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendResendEmail, verifyResendConnection } from "@/lib/resend";
+import { assertOwner } from "@/lib/auth-helpers";
 
 const PROVIDER = "resend" as const;
 // Stored in `api_key` to satisfy NOT NULL while signalling "managed by
 // platform, not a per-org secret". Previously read as `__lovable_connector__`;
 // kept the column unchanged so any existing rows continue to work.
 const KEY_SENTINEL = "__platform_managed__";
-
-async function assertOwner(userId: string, organizationId: string) {
-  const { data: roleRow } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("organization_id", organizationId)
-    .eq("role", "owner")
-    .maybeSingle();
-  if (!roleRow) throw new Error("Only the organization owner can manage Resend.");
-}
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -55,7 +45,7 @@ export const getResendStatusFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof getSchema>) => getSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     const connectorAvailable = !!process.env.RESEND_API_KEY;
 
@@ -101,7 +91,7 @@ export const saveResendSettingsFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof saveSchema>) => saveSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     if (!process.env.RESEND_API_KEY) {
       throw new Error(
@@ -136,7 +126,7 @@ export const testResendConnectionFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof testSchema>) => testSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     const verify = await verifyResendConnection();
     if (!verify.ok) {
@@ -160,7 +150,7 @@ export const disconnectResendFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof disconnectSchema>) => disconnectSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     const { error } = await supabaseAdmin
       .from("org_integrations")
@@ -183,7 +173,7 @@ export const sendResendTestEmailFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof testSendSchema>) => testSendSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     const { data: row } = await supabaseAdmin
       .from("org_integrations")

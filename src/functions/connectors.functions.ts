@@ -13,20 +13,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CONNECTORS, getConnector } from "@/lib/connectors/catalog";
 import { verifyConnectorCredentials, revokeConnectorCredentials } from "@/lib/connectors/gateway";
 import { recordConnectorActivity } from "./_connector-log";
+import { assertOwner } from "@/lib/auth-helpers";
 import { z } from "zod";
 
 const VALID_PROVIDERS = CONNECTORS.map((c) => c.id) as [string, ...string[]];
-
-async function assertOwner(userId: string, organizationId: string) {
-  const { data: roleRow } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("organization_id", organizationId)
-    .eq("role", "owner")
-    .maybeSingle();
-  if (!roleRow) throw new Error("Only the organization owner can manage integrations.");
-}
 
 // ----- LIST: returns one row per catalog entry with enabled/verified state -----
 const listSchema = z.object({ organizationId: z.string().uuid() });
@@ -47,7 +37,7 @@ export const listConnectorsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertOwner(context.userId, data.organizationId);
+    await assertOwner(supabaseAdmin, context.userId, data.organizationId);
 
     const { data: rows } = await supabaseAdmin
       .from("org_connectors")
@@ -218,7 +208,7 @@ export const enableConnectorFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof enableSchema>) => enableSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertOwner(context.userId, data.organizationId);
+    await assertOwner(supabaseAdmin, context.userId, data.organizationId);
 
     const meta = getConnector(data.provider);
     if (!meta) throw new Error(`Unknown connector: ${data.provider}`);
@@ -273,7 +263,7 @@ export const disableConnectorFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof disableSchema>) => disableSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertOwner(context.userId, data.organizationId);
+    await assertOwner(supabaseAdmin, context.userId, data.organizationId);
 
     const meta = getConnector(data.provider);
     if (!meta) throw new Error(`Unknown connector: ${data.provider}`);
@@ -329,7 +319,7 @@ export const updateConnectorConfigFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof configSchema>) => configSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertOwner(context.userId, data.organizationId);
+    await assertOwner(supabaseAdmin, context.userId, data.organizationId);
 
     const meta = getConnector(data.provider);
 
@@ -370,7 +360,7 @@ export const testConnectorFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof testSchema>) => testSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await assertOwner(context.userId, data.organizationId);
+    await assertOwner(supabaseAdmin, context.userId, data.organizationId);
 
     const meta = getConnector(data.provider);
     if (!meta) throw new Error(`Unknown connector: ${data.provider}`);

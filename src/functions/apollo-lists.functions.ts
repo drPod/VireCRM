@@ -13,6 +13,7 @@ import {
   type ApolloError,
   type ApolloPerson,
 } from "@/lib/apollo";
+import { assertOrgMember } from "@/lib/auth-helpers";
 import { z } from "zod";
 import { recordLeadSync } from "./_lead-sync-log";
 
@@ -55,17 +56,6 @@ async function getOrgApolloKey(organizationId: string): Promise<string> {
     );
   }
   return data.api_key;
-}
-
-async function assertOrgMember(supabase: typeof supabaseAdmin, userId: string, orgId: string) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!profile || profile.organization_id !== orgId) {
-    throw new Error("Unauthorized: not a member of this organization");
-  }
 }
 
 // ----- LIST AVAILABLE APOLLO LISTS -----

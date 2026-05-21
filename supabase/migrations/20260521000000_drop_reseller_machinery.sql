@@ -11,6 +11,12 @@ DROP TABLE IF EXISTS public.commission_rules CASCADE;
 DROP TABLE IF EXISTS public.reseller_payouts CASCADE;
 DROP TABLE IF EXISTS public.reseller_plans CASCADE;
 
+-- Drop RLS policies that reference columns being dropped (CASCADE won't cover these)
+DROP POLICY IF EXISTS "Reseller owners can view child orgs" ON public.organizations;
+DROP POLICY IF EXISTS "Reseller owners can update child orgs" ON public.organizations;
+DROP POLICY IF EXISTS "Reseller owners view attributed subscriptions" ON public.subscriptions;
+DROP POLICY IF EXISTS "Reseller owners view attributed transactions" ON public.transactions;
+
 -- Remove reseller columns from shared tables
 ALTER TABLE public.organizations DROP COLUMN IF EXISTS is_reseller;
 ALTER TABLE public.subscriptions DROP COLUMN IF EXISTS attributed_reseller_id;

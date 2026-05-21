@@ -43,10 +43,10 @@ function ContactPage() {
             <p className="mt-4 text-sm text-muted-foreground">
               Prefer to talk?{" "}
               <a
-                href="tel:+19403656600"
+                href="tel:+15402441130"
                 className="font-semibold text-foreground hover:text-primary"
               >
-                +1 (940) 365-6600
+                +1 (540) 244-1130
               </a>
             </p>
             <p className="mt-2 text-sm text-muted-foreground">

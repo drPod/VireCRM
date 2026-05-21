@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { PLATFORM_DOMAIN } from "@/config/domains";
 
 export type DomainHealthCheck = "https" | "ssl" | "app_match" | "redirect";
 
@@ -73,7 +74,7 @@ async function probeHostname(hostname: string, domainId: string): Promise<Domain
       signal: controller.signal,
       headers: {
         // Identify ourselves so reseller logs can attribute these probes.
-        "User-Agent": "VireCRMHealthCheck/1.0 (+https://virecrm.com)",
+        "User-Agent": `VireCRMHealthCheck/1.0 (+https://${PLATFORM_DOMAIN})`,
         Accept: "text/html,*/*;q=0.5",
       },
     });

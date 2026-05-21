@@ -23,6 +23,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { assertOrgMember } from "@/lib/auth-helpers";
 
 const CF_API_BASE = "https://api.cloudflare.com/client/v4";
 
@@ -146,17 +147,6 @@ function snapshotFromCf(payload: CfCustomHostnameResponse): CustomHostnameSnapsh
   };
 }
 
-async function assertOrgMembership(userId: string, organizationId: string): Promise<void> {
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!profile || profile.organization_id !== organizationId) {
-    throw new Error("Forbidden");
-  }
-}
-
 /**
  * Find the row that should carry the cf_hostname_id for this (org, hostname)
  * pair. Prefers the org_custom_domains row (canonical multi-domain table);
@@ -247,7 +237,7 @@ export const provisionCustomHostnameFn = createServerFn({ method: "POST" })
     const env = readCfEnv();
     if (!env) throw notConfiguredError();
 
-    await assertOrgMembership(context.userId, data.organizationId);
+    await assertOrgMember(supabaseAdmin, context.userId, data.organizationId);
 
     const storage = await locateStorage(data.organizationId, data.hostname);
     if (!storage) {
@@ -320,7 +310,7 @@ export const pollCustomHostnameStatusFn = createServerFn({ method: "POST" })
     const env = readCfEnv();
     if (!env) throw notConfiguredError();
 
-    await assertOrgMembership(context.userId, data.organizationId);
+    await assertOrgMember(supabaseAdmin, context.userId, data.organizationId);
 
     const storage = await locateStorage(data.organizationId, data.hostname);
     if (!storage) return null;
@@ -359,7 +349,7 @@ export const tearDownCustomHostnameFn = createServerFn({ method: "POST" })
     const env = readCfEnv();
     if (!env) throw notConfiguredError();
 
-    await assertOrgMembership(context.userId, data.organizationId);
+    await assertOrgMember(supabaseAdmin, context.userId, data.organizationId);
 
     const storage = await locateStorage(data.organizationId, data.hostname);
     if (!storage) return { ok: true };

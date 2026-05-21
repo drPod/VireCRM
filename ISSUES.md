@@ -91,6 +91,23 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-21 — Config + auth centralization (Phase A + B)
+**Tags:** [lovable-migration] [audit]
+
+#### Shipped
+- `src/config/domains.ts` — all domain/email constants (PLATFORM_DOMAIN, NOTIFY_DOMAIN, MAJIX_AI_DOMAIN, SENDER_DOMAIN, FROM_DOMAIN, SITE_NAME, LOGO_URL, OG_CARD_URL)
+- `src/config/hosts.ts` — SYSTEM_HOST_PATTERNS (full 11-pattern set), isSystemHost(), PLATFORM_HOSTS
+- `src/lib/crypto.ts` — shared generateToken() (was duplicated 6×)
+- `src/lib/auth-helpers.ts` — assertOrgMember + assertOwner (were duplicated across 6 function files)
+- `src/config/support.ts` — added SUPPORT_PHONE + SUPPORT_PHONE_E164; SUPPORT_EMAIL → darsh.pod@gmail.com
+- Updated 20+ files: all local constants/helpers replaced with imports from the above
+- Bug fixed: GlobalErrorBoundary had 8-pattern subset (missing .workers.dev, app/customers/notify virecrm hosts); now imports shared 11-pattern set
+- `src/functions/domain-health.functions.ts:77` — User-Agent now uses PLATFORM_DOMAIN
+- `src/lib/email-templates/contact-acknowledgment.tsx`, `credit-low-balance.tsx` — SITE_NAME + fallback URLs now use shared constants
+
+#### Verification
+- `bun run typecheck` → 0 new errors (3 pre-existing Stripe `mode` prop errors in PricingCards + _app.billing unrelated to this work)
+
 ### 2026-05-21 — Remove reseller CRM management routes
 **Tags:** [reseller] [frontend] [lovable-migration]
 

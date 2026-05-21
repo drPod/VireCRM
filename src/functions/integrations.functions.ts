@@ -10,6 +10,7 @@ import { verifyApolloKey } from "@/lib/apollo";
 import { verifyHunterKey } from "@/lib/hunter";
 import { verifySnovKey } from "@/lib/snov";
 import { verifySendgridKey } from "@/lib/sendgrid";
+import { assertOwner } from "@/lib/auth-helpers";
 import { z } from "zod";
 
 const SUPPORTED_PROVIDERS = ["apollo", "hunter", "snov", "sendgrid"] as const;
@@ -33,17 +34,6 @@ function maskKey(key: string): string {
   return `${key.slice(0, 4)}••••${key.slice(-4)}`;
 }
 
-async function assertOwner(userId: string, organizationId: string) {
-  const { data: roleRow } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("organization_id", organizationId)
-    .eq("role", "owner")
-    .maybeSingle();
-  if (!roleRow) throw new Error("Only the organization owner can manage integrations.");
-}
-
 // ----- GET integration status (no raw key) -----
 const getSchema = z.object({
   organizationId: z.string().uuid(),
@@ -55,7 +45,7 @@ export const getIntegrationFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof getSchema>) => getSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     const { data: row } = await supabaseAdmin
       .from("org_integrations")
@@ -87,7 +77,7 @@ export const saveIntegrationFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof saveSchema>) => saveSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     // Verify the key works BEFORE persisting — saves us from storing garbage.
     const verify = await verifyKey(data.provider, data.apiKey);
@@ -121,7 +111,7 @@ export const updateIntegrationConfigFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof updateConfigSchema>) => updateConfigSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     const { error } = await supabaseAdmin
       .from("org_integrations")
@@ -144,7 +134,7 @@ export const testIntegrationFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof testSchema>) => testSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     const { data: row } = await supabaseAdmin
       .from("org_integrations")
@@ -180,7 +170,7 @@ export const deleteIntegrationFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof deleteSchema>) => deleteSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    await assertOwner(userId, data.organizationId);
+    await assertOwner(supabaseAdmin, userId, data.organizationId);
 
     const { error } = await supabaseAdmin
       .from("org_integrations")

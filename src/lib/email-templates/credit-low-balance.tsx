@@ -10,8 +10,7 @@ import {
   Text,
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
-
-const SITE_NAME = "VireCRM";
+import { SITE_NAME, PLATFORM_DOMAIN } from "@/config/domains";
 
 interface CreditLowBalanceProps {
   organizationName?: string;
@@ -29,7 +28,7 @@ const CreditLowBalanceEmail = ({
   autoRechargeEnabled,
 }: CreditLowBalanceProps) => {
   const orgLine = organizationName ? ` for ${organizationName}` : "";
-  const href = billingUrl || "https://virecrm.com/billing";
+  const href = billingUrl || `https://${PLATFORM_DOMAIN}/billing`;
 
   return (
     <Html lang="en" dir="ltr">
@@ -87,7 +86,7 @@ export const template = {
     organizationName: "Acme Inc.",
     balance: 38,
     threshold: 50,
-    billingUrl: "https://virecrm.com/billing",
+    billingUrl: `https://${PLATFORM_DOMAIN}/billing`,
     autoRechargeEnabled: false,
   },
 } satisfies TemplateEntry;

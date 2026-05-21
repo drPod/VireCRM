@@ -1,4 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { SUPPORT_EMAIL } from "@/config/support";
+import { LOGO_URL, OG_CARD_URL } from "@/config/domains";
 import { useEffect } from "react";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WhiteLabelTheme } from "@/components/auth/WhiteLabelTheme";
@@ -71,7 +73,7 @@ export const Route = createRootRoute({
       },
       {
         property: "og:image",
-        content: "https://virecrm.com/og-card.png",
+        content: OG_CARD_URL,
       },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -82,7 +84,7 @@ export const Route = createRootRoute({
       },
       {
         name: "twitter:image",
-        content: "https://virecrm.com/og-card.png",
+        content: OG_CARD_URL,
       },
       {
         name: "twitter:image:alt",
@@ -109,13 +111,13 @@ export const Route = createRootRoute({
           "@type": "Organization",
           name: "VireCRM",
           url: "https://virecrm.com",
-          logo: "https://virecrm.com/genesis-logo.png",
+          logo: LOGO_URL,
           sameAs: [],
           contactPoint: {
             "@type": "ContactPoint",
-            telephone: "+1-940-365-6600",
+            telephone: "+1-540-244-1130",
             contactType: "customer support",
-            email: "support@virecrm.com",
+            email: SUPPORT_EMAIL,
           },
         }),
       },

@@ -39,10 +39,10 @@ export function MarketingFooter() {
                 Contact
               </Link>
               <a
-                href="tel:+19403656600"
+                href="tel:+15402441130"
                 className="text-sm text-muted-foreground hover:text-foreground"
               >
-                +1 (940) 365-6600
+                +1 (540) 244-1130
               </a>
             </div>
           </div>

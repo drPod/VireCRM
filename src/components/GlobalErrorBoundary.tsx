@@ -3,23 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ReportIssueDialog } from "@/components/ReportIssueDialog";
 import { handleAuthError } from "@/lib/server-fn-auth";
 import { SUPPORT_EMAIL } from "@/config/support";
+import { isSystemHost } from "@/config/hosts";
 
 const DEFAULT_SUPPORT_EMAIL = SUPPORT_EMAIL;
 
-// Hosts that always use the default support email (never resolve a reseller).
-const SYSTEM_HOST_PATTERNS = [
-  /\.lovable\.app$/i,
-  /\.lovable-project\.com$/i,
-  /\.lovableproject\.com$/i,
-  /^localhost$/i,
-  /^127\.0\.0\.1$/i,
-  /^virecrm\.com$/i,
-  /^www\.virecrm\.com$/i,
-];
-
-function isSystemHost(hostname: string): boolean {
-  return SYSTEM_HOST_PATTERNS.some((p) => p.test(hostname));
-}
 
 /**
  * Resolves the support email for the current hostname. The boundary renders
