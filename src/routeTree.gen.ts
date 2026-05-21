@@ -33,19 +33,15 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BookSlugRouteImport } from './routes/book.$slug'
 import { Route as ApiNotifyLowBalanceRouteImport } from './routes/api/notify-low-balance'
-import { Route as AppSolarRouteImport } from './routes/_app.solar'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSequencesRouteImport } from './routes/_app.sequences'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppReputationRouteImport } from './routes/_app.reputation'
-import { Route as AppRealEstateRouteImport } from './routes/_app.real-estate'
 import { Route as AppQaChecklistRouteImport } from './routes/_app.qa-checklist'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
-import { Route as AppInsuranceRouteImport } from './routes/_app.insurance'
-import { Route as AppGymRouteImport } from './routes/_app.gym'
 import { Route as AppFunnelsRouteImport } from './routes/_app.funnels'
 import { Route as AppFollowupInboxRouteImport } from './routes/_app.followup-inbox'
 import { Route as AppExpensesRouteImport } from './routes/_app.expenses'
@@ -68,12 +64,7 @@ import { Route as AppAcademyRouteImport } from './routes/_app.academy'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
 import { Route as ApiPublicContactRouteImport } from './routes/api/public/contact'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
-import { Route as AppSolarProjectsRouteImport } from './routes/_app.solar.projects'
 import { Route as AppSettingsBrandingPreviewRouteImport } from './routes/_app.settings.branding-preview'
-import { Route as AppRealEstateShowingsRouteImport } from './routes/_app.real-estate.showings'
-import { Route as AppRealEstateListingsRouteImport } from './routes/_app.real-estate.listings'
-import { Route as AppInsuranceQuotesRouteImport } from './routes/_app.insurance.quotes'
-import { Route as AppInsurancePoliciesRouteImport } from './routes/_app.insurance.policies'
 import { Route as AppEnergyUsageRouteImport } from './routes/_app.energy.usage'
 import { Route as AppEnergySuppliersRouteImport } from './routes/_app.energy.suppliers'
 import { Route as AppEnergyRenewalsRouteImport } from './routes/_app.energy.renewals'
@@ -214,11 +205,6 @@ const ApiNotifyLowBalanceRoute = ApiNotifyLowBalanceRouteImport.update({
   path: '/api/notify-low-balance',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppSolarRoute = AppSolarRouteImport.update({
-  id: '/solar',
-  path: '/solar',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -237,11 +223,6 @@ const AppRevenueRoute = AppRevenueRouteImport.update({
 const AppReputationRoute = AppReputationRouteImport.update({
   id: '/reputation',
   path: '/reputation',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRealEstateRoute = AppRealEstateRouteImport.update({
-  id: '/real-estate',
-  path: '/real-estate',
   getParentRoute: () => AppRoute,
 } as any)
 const AppQaChecklistRoute = AppQaChecklistRouteImport.update({
@@ -267,16 +248,6 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
 const AppInvoicesRoute = AppInvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInsuranceRoute = AppInsuranceRouteImport.update({
-  id: '/insurance',
-  path: '/insurance',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGymRoute = AppGymRouteImport.update({
-  id: '/gym',
-  path: '/gym',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFunnelsRoute = AppFunnelsRouteImport.update({
@@ -389,37 +360,12 @@ const AppWorkflowsWorkflowIdRoute = AppWorkflowsWorkflowIdRouteImport.update({
   path: '/workflows/$workflowId',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSolarProjectsRoute = AppSolarProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => AppSolarRoute,
-} as any)
 const AppSettingsBrandingPreviewRoute =
   AppSettingsBrandingPreviewRouteImport.update({
     id: '/branding-preview',
     path: '/branding-preview',
     getParentRoute: () => AppSettingsRoute,
   } as any)
-const AppRealEstateShowingsRoute = AppRealEstateShowingsRouteImport.update({
-  id: '/showings',
-  path: '/showings',
-  getParentRoute: () => AppRealEstateRoute,
-} as any)
-const AppRealEstateListingsRoute = AppRealEstateListingsRouteImport.update({
-  id: '/listings',
-  path: '/listings',
-  getParentRoute: () => AppRealEstateRoute,
-} as any)
-const AppInsuranceQuotesRoute = AppInsuranceQuotesRouteImport.update({
-  id: '/quotes',
-  path: '/quotes',
-  getParentRoute: () => AppInsuranceRoute,
-} as any)
-const AppInsurancePoliciesRoute = AppInsurancePoliciesRouteImport.update({
-  id: '/policies',
-  path: '/policies',
-  getParentRoute: () => AppInsuranceRoute,
-} as any)
 const AppEnergyUsageRoute = AppEnergyUsageRouteImport.update({
   id: '/usage',
   path: '/usage',
@@ -562,19 +508,15 @@ export interface FileRoutesByFullPath {
   '/expenses': typeof AppExpensesRoute
   '/followup-inbox': typeof AppFollowupInboxRoute
   '/funnels': typeof AppFunnelsRoute
-  '/gym': typeof AppGymRoute
-  '/insurance': typeof AppInsuranceRouteWithChildren
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/pipeline': typeof AppPipelineRoute
   '/qa-checklist': typeof AppQaChecklistRoute
-  '/real-estate': typeof AppRealEstateRouteWithChildren
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
-  '/solar': typeof AppSolarRouteWithChildren
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
@@ -590,12 +532,7 @@ export interface FileRoutesByFullPath {
   '/energy/renewals': typeof AppEnergyRenewalsRoute
   '/energy/suppliers': typeof AppEnergySuppliersRoute
   '/energy/usage': typeof AppEnergyUsageRoute
-  '/insurance/policies': typeof AppInsurancePoliciesRoute
-  '/insurance/quotes': typeof AppInsuranceQuotesRoute
-  '/real-estate/listings': typeof AppRealEstateListingsRoute
-  '/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
-  '/solar/projects': typeof AppSolarProjectsRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
@@ -647,19 +584,15 @@ export interface FileRoutesByTo {
   '/expenses': typeof AppExpensesRoute
   '/followup-inbox': typeof AppFollowupInboxRoute
   '/funnels': typeof AppFunnelsRoute
-  '/gym': typeof AppGymRoute
-  '/insurance': typeof AppInsuranceRouteWithChildren
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
   '/pipeline': typeof AppPipelineRoute
   '/qa-checklist': typeof AppQaChecklistRoute
-  '/real-estate': typeof AppRealEstateRouteWithChildren
   '/reputation': typeof AppReputationRoute
   '/revenue': typeof AppRevenueRoute
   '/sequences': typeof AppSequencesRoute
   '/settings': typeof AppSettingsRouteWithChildren
-  '/solar': typeof AppSolarRouteWithChildren
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
@@ -675,12 +608,7 @@ export interface FileRoutesByTo {
   '/energy/renewals': typeof AppEnergyRenewalsRoute
   '/energy/suppliers': typeof AppEnergySuppliersRoute
   '/energy/usage': typeof AppEnergyUsageRoute
-  '/insurance/policies': typeof AppInsurancePoliciesRoute
-  '/insurance/quotes': typeof AppInsuranceQuotesRoute
-  '/real-estate/listings': typeof AppRealEstateListingsRoute
-  '/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
-  '/solar/projects': typeof AppSolarProjectsRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
   '/workflows': typeof AppWorkflowsIndexRoute
@@ -734,19 +662,15 @@ export interface FileRoutesById {
   '/_app/expenses': typeof AppExpensesRoute
   '/_app/followup-inbox': typeof AppFollowupInboxRoute
   '/_app/funnels': typeof AppFunnelsRoute
-  '/_app/gym': typeof AppGymRoute
-  '/_app/insurance': typeof AppInsuranceRouteWithChildren
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
   '/_app/pipeline': typeof AppPipelineRoute
   '/_app/qa-checklist': typeof AppQaChecklistRoute
-  '/_app/real-estate': typeof AppRealEstateRouteWithChildren
   '/_app/reputation': typeof AppReputationRoute
   '/_app/revenue': typeof AppRevenueRoute
   '/_app/sequences': typeof AppSequencesRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
-  '/_app/solar': typeof AppSolarRouteWithChildren
   '/api/notify-low-balance': typeof ApiNotifyLowBalanceRoute
   '/book/$slug': typeof BookSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
@@ -762,12 +686,7 @@ export interface FileRoutesById {
   '/_app/energy/renewals': typeof AppEnergyRenewalsRoute
   '/_app/energy/suppliers': typeof AppEnergySuppliersRoute
   '/_app/energy/usage': typeof AppEnergyUsageRoute
-  '/_app/insurance/policies': typeof AppInsurancePoliciesRoute
-  '/_app/insurance/quotes': typeof AppInsuranceQuotesRoute
-  '/_app/real-estate/listings': typeof AppRealEstateListingsRoute
-  '/_app/real-estate/showings': typeof AppRealEstateShowingsRoute
   '/_app/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
-  '/_app/solar/projects': typeof AppSolarProjectsRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
@@ -821,19 +740,15 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/followup-inbox'
     | '/funnels'
-    | '/gym'
-    | '/insurance'
     | '/invoices'
     | '/leads'
     | '/messages'
     | '/pipeline'
     | '/qa-checklist'
-    | '/real-estate'
     | '/reputation'
     | '/revenue'
     | '/sequences'
     | '/settings'
-    | '/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
@@ -849,12 +764,7 @@ export interface FileRouteTypes {
     | '/energy/renewals'
     | '/energy/suppliers'
     | '/energy/usage'
-    | '/insurance/policies'
-    | '/insurance/quotes'
-    | '/real-estate/listings'
-    | '/real-estate/showings'
     | '/settings/branding-preview'
-    | '/solar/projects'
     | '/workflows/$workflowId'
     | '/api/public/contact'
     | '/workflows/'
@@ -906,19 +816,15 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/followup-inbox'
     | '/funnels'
-    | '/gym'
-    | '/insurance'
     | '/invoices'
     | '/leads'
     | '/messages'
     | '/pipeline'
     | '/qa-checklist'
-    | '/real-estate'
     | '/reputation'
     | '/revenue'
     | '/sequences'
     | '/settings'
-    | '/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
@@ -934,12 +840,7 @@ export interface FileRouteTypes {
     | '/energy/renewals'
     | '/energy/suppliers'
     | '/energy/usage'
-    | '/insurance/policies'
-    | '/insurance/quotes'
-    | '/real-estate/listings'
-    | '/real-estate/showings'
     | '/settings/branding-preview'
-    | '/solar/projects'
     | '/workflows/$workflowId'
     | '/api/public/contact'
     | '/workflows'
@@ -992,19 +893,15 @@ export interface FileRouteTypes {
     | '/_app/expenses'
     | '/_app/followup-inbox'
     | '/_app/funnels'
-    | '/_app/gym'
-    | '/_app/insurance'
     | '/_app/invoices'
     | '/_app/leads'
     | '/_app/messages'
     | '/_app/pipeline'
     | '/_app/qa-checklist'
-    | '/_app/real-estate'
     | '/_app/reputation'
     | '/_app/revenue'
     | '/_app/sequences'
     | '/_app/settings'
-    | '/_app/solar'
     | '/api/notify-low-balance'
     | '/book/$slug'
     | '/checkout/return'
@@ -1020,12 +917,7 @@ export interface FileRouteTypes {
     | '/_app/energy/renewals'
     | '/_app/energy/suppliers'
     | '/_app/energy/usage'
-    | '/_app/insurance/policies'
-    | '/_app/insurance/quotes'
-    | '/_app/real-estate/listings'
-    | '/_app/real-estate/showings'
     | '/_app/settings/branding-preview'
-    | '/_app/solar/projects'
     | '/_app/workflows/$workflowId'
     | '/api/public/contact'
     | '/_app/workflows/'
@@ -1247,13 +1139,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNotifyLowBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/solar': {
-      id: '/_app/solar'
-      path: '/solar'
-      fullPath: '/solar'
-      preLoaderRoute: typeof AppSolarRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -1280,13 +1165,6 @@ declare module '@tanstack/react-router' {
       path: '/reputation'
       fullPath: '/reputation'
       preLoaderRoute: typeof AppReputationRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/real-estate': {
-      id: '/_app/real-estate'
-      path: '/real-estate'
-      fullPath: '/real-estate'
-      preLoaderRoute: typeof AppRealEstateRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/qa-checklist': {
@@ -1322,20 +1200,6 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof AppInvoicesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/insurance': {
-      id: '/_app/insurance'
-      path: '/insurance'
-      fullPath: '/insurance'
-      preLoaderRoute: typeof AppInsuranceRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/gym': {
-      id: '/_app/gym'
-      path: '/gym'
-      fullPath: '/gym'
-      preLoaderRoute: typeof AppGymRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/funnels': {
@@ -1492,47 +1356,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkflowsWorkflowIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/solar/projects': {
-      id: '/_app/solar/projects'
-      path: '/projects'
-      fullPath: '/solar/projects'
-      preLoaderRoute: typeof AppSolarProjectsRouteImport
-      parentRoute: typeof AppSolarRoute
-    }
     '/_app/settings/branding-preview': {
       id: '/_app/settings/branding-preview'
       path: '/branding-preview'
       fullPath: '/settings/branding-preview'
       preLoaderRoute: typeof AppSettingsBrandingPreviewRouteImport
       parentRoute: typeof AppSettingsRoute
-    }
-    '/_app/real-estate/showings': {
-      id: '/_app/real-estate/showings'
-      path: '/showings'
-      fullPath: '/real-estate/showings'
-      preLoaderRoute: typeof AppRealEstateShowingsRouteImport
-      parentRoute: typeof AppRealEstateRoute
-    }
-    '/_app/real-estate/listings': {
-      id: '/_app/real-estate/listings'
-      path: '/listings'
-      fullPath: '/real-estate/listings'
-      preLoaderRoute: typeof AppRealEstateListingsRouteImport
-      parentRoute: typeof AppRealEstateRoute
-    }
-    '/_app/insurance/quotes': {
-      id: '/_app/insurance/quotes'
-      path: '/quotes'
-      fullPath: '/insurance/quotes'
-      preLoaderRoute: typeof AppInsuranceQuotesRouteImport
-      parentRoute: typeof AppInsuranceRoute
-    }
-    '/_app/insurance/policies': {
-      id: '/_app/insurance/policies'
-      path: '/policies'
-      fullPath: '/insurance/policies'
-      preLoaderRoute: typeof AppInsurancePoliciesRouteImport
-      parentRoute: typeof AppInsuranceRoute
     }
     '/_app/energy/usage': {
       id: '/_app/energy/usage'
@@ -1720,34 +1549,6 @@ const AppEnergyRouteWithChildren = AppEnergyRoute._addFileChildren(
   AppEnergyRouteChildren,
 )
 
-interface AppInsuranceRouteChildren {
-  AppInsurancePoliciesRoute: typeof AppInsurancePoliciesRoute
-  AppInsuranceQuotesRoute: typeof AppInsuranceQuotesRoute
-}
-
-const AppInsuranceRouteChildren: AppInsuranceRouteChildren = {
-  AppInsurancePoliciesRoute: AppInsurancePoliciesRoute,
-  AppInsuranceQuotesRoute: AppInsuranceQuotesRoute,
-}
-
-const AppInsuranceRouteWithChildren = AppInsuranceRoute._addFileChildren(
-  AppInsuranceRouteChildren,
-)
-
-interface AppRealEstateRouteChildren {
-  AppRealEstateListingsRoute: typeof AppRealEstateListingsRoute
-  AppRealEstateShowingsRoute: typeof AppRealEstateShowingsRoute
-}
-
-const AppRealEstateRouteChildren: AppRealEstateRouteChildren = {
-  AppRealEstateListingsRoute: AppRealEstateListingsRoute,
-  AppRealEstateShowingsRoute: AppRealEstateShowingsRoute,
-}
-
-const AppRealEstateRouteWithChildren = AppRealEstateRoute._addFileChildren(
-  AppRealEstateRouteChildren,
-)
-
 interface AppSettingsRouteChildren {
   AppSettingsBrandingPreviewRoute: typeof AppSettingsBrandingPreviewRoute
 }
@@ -1758,18 +1559,6 @@ const AppSettingsRouteChildren: AppSettingsRouteChildren = {
 
 const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
   AppSettingsRouteChildren,
-)
-
-interface AppSolarRouteChildren {
-  AppSolarProjectsRoute: typeof AppSolarProjectsRoute
-}
-
-const AppSolarRouteChildren: AppSolarRouteChildren = {
-  AppSolarProjectsRoute: AppSolarProjectsRoute,
-}
-
-const AppSolarRouteWithChildren = AppSolarRoute._addFileChildren(
-  AppSolarRouteChildren,
 )
 
 interface AppRouteChildren {
@@ -1792,19 +1581,15 @@ interface AppRouteChildren {
   AppExpensesRoute: typeof AppExpensesRoute
   AppFollowupInboxRoute: typeof AppFollowupInboxRoute
   AppFunnelsRoute: typeof AppFunnelsRoute
-  AppGymRoute: typeof AppGymRoute
-  AppInsuranceRoute: typeof AppInsuranceRouteWithChildren
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppMessagesRoute: typeof AppMessagesRoute
   AppPipelineRoute: typeof AppPipelineRoute
   AppQaChecklistRoute: typeof AppQaChecklistRoute
-  AppRealEstateRoute: typeof AppRealEstateRouteWithChildren
   AppReputationRoute: typeof AppReputationRoute
   AppRevenueRoute: typeof AppRevenueRoute
   AppSequencesRoute: typeof AppSequencesRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
-  AppSolarRoute: typeof AppSolarRouteWithChildren
   AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
   AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
 }
@@ -1829,19 +1614,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppExpensesRoute: AppExpensesRoute,
   AppFollowupInboxRoute: AppFollowupInboxRoute,
   AppFunnelsRoute: AppFunnelsRoute,
-  AppGymRoute: AppGymRoute,
-  AppInsuranceRoute: AppInsuranceRouteWithChildren,
   AppInvoicesRoute: AppInvoicesRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppMessagesRoute: AppMessagesRoute,
   AppPipelineRoute: AppPipelineRoute,
   AppQaChecklistRoute: AppQaChecklistRoute,
-  AppRealEstateRoute: AppRealEstateRouteWithChildren,
   AppReputationRoute: AppReputationRoute,
   AppRevenueRoute: AppRevenueRoute,
   AppSequencesRoute: AppSequencesRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
-  AppSolarRoute: AppSolarRouteWithChildren,
   AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
   AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
 }
