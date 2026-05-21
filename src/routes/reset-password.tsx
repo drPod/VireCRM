@@ -190,7 +190,7 @@ function ResetPasswordPage() {
               </ul>
             )}
 
-            <Button type="submit" variant="command" className="w-full" disabled={!canSubmit}>
+            <Button type="submit" className="w-full" disabled={!canSubmit}>
               {(loading || (!sessionReady && !sessionError)) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
