@@ -131,6 +131,37 @@ function LoginPage() {
       // the user is bounced to /billing?required=1 even though sign-in worked.
       await new Promise((r) => setTimeout(r, 50));
       toast.success("Welcome back!");
+
+      // On platform hosts (virecrm.com, app.virecrm.com, etc.), redirect tenant
+      // users to their org subdomain. localStorage is origin-scoped so the
+      // session won't carry over on a bare redirect — we pass the tokens in the
+      // URL hash. Supabase's detectSessionInUrl (default true) restores the
+      // session on the subdomain automatically, same as the OAuth flow.
+      const hostname = window.location.hostname;
+      const PLATFORM_HOSTS = new Set(["virecrm.com", "www.virecrm.com", "app.virecrm.com"]);
+      const isOnPlatformHost = PLATFORM_HOSTS.has(hostname) || hostname.endsWith(".majix.ai");
+
+      if (isOnPlatformHost) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("user_id", data.session.user.id)
+          .maybeSingle();
+        if (profileData?.organization_id) {
+          const { data: orgData } = await supabase
+            .from("organizations")
+            .select("slug")
+            .eq("id", profileData.organization_id)
+            .maybeSingle();
+          if (orgData?.slug) {
+            const { access_token, refresh_token, expires_in } = data.session;
+            const hash = `access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}&token_type=bearer`;
+            window.location.href = `https://${orgData.slug}.virecrm.com${returnTo}#${hash}`;
+            return;
+          }
+        }
+      }
+
       // Honor the ?redirect= param set by /_app's auth gate so the user lands
       // back on the page they originally tried to visit. Use window.location
       // instead of navigate() because returnTo may include search params that
