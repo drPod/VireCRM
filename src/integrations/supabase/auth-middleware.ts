@@ -1,5 +1,5 @@
 import { createMiddleware } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
+import { getRequest, setResponseStatus } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
@@ -17,21 +17,25 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
     const request = getRequest();
 
     if (!request?.headers) {
+      setResponseStatus(401);
       throw new Error("Unauthorized: No request headers available");
     }
 
     const authHeader = request.headers.get("authorization");
 
     if (!authHeader) {
+      setResponseStatus(401);
       throw new Error("Unauthorized: No authorization header provided");
     }
 
     if (!authHeader.startsWith("Bearer ")) {
+      setResponseStatus(401);
       throw new Error("Unauthorized: Only Bearer tokens are supported");
     }
 
     const token = authHeader.replace("Bearer ", "");
     if (!token) {
+      setResponseStatus(401);
       throw new Error("Unauthorized: No token provided");
     }
 
@@ -50,10 +54,12 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
 
     const { data, error } = await supabase.auth.getClaims(token);
     if (error || !data?.claims) {
+      setResponseStatus(401);
       throw new Error("Unauthorized: Invalid or expired token");
     }
 
     if (!data.claims.sub) {
+      setResponseStatus(401);
       throw new Error("Unauthorized: No user ID found in token");
     }
 
