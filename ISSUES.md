@@ -100,6 +100,16 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Unit tests for apollo-lists server fn
+**Tags:** [tests] [lead-sync] [apollo]
+
+#### Shipped
+- `src/functions/__tests__/apollo-lists.test.ts` — 13 unit tests covering `listApolloListsFn` + `importApolloListFn`. Mocks `@tanstack/react-start`'s `createServerFn` so chained `.middleware().inputValidator().handler(fn)` returns `fn` directly — handler is invoked with synthesized `{ data, context: { supabase, userId, claims } }` to exercise the real production code. Mocks `@/lib/connectors/apollo`, `@/lib/auth-helpers`, `@/integrations/supabase/auth-middleware`, `@/integrations/supabase/subscription-middleware`, `@/integrations/supabase/client.server` (recording chain w/ per-table handlers + rpc spy), and `../_lead-sync-log`. Coverage: list fetch + mapping, INTEGRATION_MISSING when no key, AUTH translation, quota reserve (`consume_platform_lead_quota` w/ slice-size `p_count`), quota_exceeded → ai_call_log row + QUOTA_EXCEEDED throw + sync log, reveal sequence + email-null tracking, CREDITS coded error, mid-import AUTH refund decrements `organizations.leads_used_this_period`, empty list short-circuit, partial when zero emails revealed, case-insensitive email dedupe.
+
+#### Verification
+- `bun run test src/functions/__tests__/apollo-lists.test.ts` — 13/13 green.
+- `bun run test` — full suite 156/156 green (6 files).
+
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
