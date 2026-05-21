@@ -127,6 +127,24 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 
 #### Manual follow-up (user)
 - None. Sibling units (vertical route deletes, marketing strip, DB migrations, docs) land separately per the Unit 0 coordinator brief.
+### 2026-05-22 — Remove VerticalsStrip from /features (single-vertical product)
+**Tags:** [frontend] [marketing] [lovable-migration]
+
+#### Shipped
+- `src/components/marketing/features/VerticalsStrip.tsx` — deleted. Hard-coded 6 industry cards (Energy / Solar / Real Estate / Insurance / Gym / General). Energy is only paying vertical post-Lovable scope-cut; single-card strip = awkward UX. Re-add when 2+ verticals exist.
+- `src/routes/features.tsx:11` — dropped `VerticalsStrip` import.
+- `src/routes/features.tsx:46` — dropped `{ id: "verticals", label: "Verticals" }` from `NAV_ITEMS` (anchor target gone w/ strip).
+- `src/routes/features.tsx:86` — dropped `<VerticalsStrip />` JSX between `<ComparisonTable />` and `<IntegrationsGrid />`.
+
+#### Verification
+- `grep -rn 'VerticalsStrip' src/` → 0 matches post-edit. Sole external ref is historical handoff `docs/handoffs/2026-05-18-features-preview-rebuild.md:28` (Unit 5 / out-of-scope).
+- `bun run typecheck` → exit 0.
+- `bunx eslint src/routes/features.tsx` → exit 0 (repo-wide `bun run lint` fails on pre-existing supabase-functions + vite.config.ts issues unrelated to this slice).
+- `bun run test` → 143/143 pass (vitest, 5 files).
+- `bun run build` → success, `features-*.js` chunk 92.53kB (down from prior bundle that included the strip).
+
+#### Manual follow-up (user)
+- None. Coordinator unit of larger non-energy-verticals strip batch (Units 1 / 2 / 4 / 5 owned by other workers).
 ### 2026-05-22 — Fix test typecheck + apollo-lists runtime after auth consolidation
 **Tags:** [tests] [typecheck] [apollo] [auth]
 
