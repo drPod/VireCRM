@@ -120,6 +120,13 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — outreach-preview + ai-advisor: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [outreach] [ai]
+
+#### Shipped
+- `src/functions/outreach-preview.functions.ts:52,193` — `setResponseStatus(403)` before org-membership throws.
+- `src/functions/ai-advisor.functions.ts:28` — `setResponseStatus(403)` before org-membership throw.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
