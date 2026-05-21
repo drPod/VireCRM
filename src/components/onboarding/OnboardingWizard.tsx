@@ -42,6 +42,10 @@ interface OnboardingWizardProps {
   currentBrandColor?: string | null;
   /** Prefill privacy toggle on re-run. */
   currentStrictIsolation?: boolean;
+  /** Whether the non-owner notice has already been dismissed (persisted in DB). */
+  noticeDismissed: boolean;
+  /** Called when the non-owner dismisses the notice — caller persists to DB. */
+  onDismissNotice: () => void;
 }
 
 export function OnboardingWizard({
@@ -51,6 +55,8 @@ export function OnboardingWizard({
   currentIndustry,
   currentBrandColor,
   currentStrictIsolation,
+  noticeDismissed,
+  onDismissNotice,
 }: OnboardingWizardProps) {
   // Owners pick their own industry template — used to be platform-admin-only,
   // which silently locked every real customer to "general" since they have no
@@ -67,23 +73,20 @@ export function OnboardingWizard({
   );
   const [strictIsolation, setStrictIsolation] = useState(currentStrictIsolation ?? false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Non-owners get a dismissible heads-up — they can still use the CRM
-  // while the owner finishes setup. We track dismissal in sessionStorage so
-  // it doesn't reappear on every navigation within the same session.
-  const dismissKey = `genesis:onboarding-notice-dismissed:${organizationId}`;
-  const [noticeOpen, setNoticeOpen] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.sessionStorage.getItem(dismissKey) !== "1";
-  });
+  // while the owner finishes setup. Dismissal is persisted to profiles.wizard_notice_dismissed
+  // so it survives page reloads and new sessions.
+  const [noticeOpen, setNoticeOpen] = useState(!noticeDismissed);
   if (!isOwner) {
     return (
       <Dialog
         open={noticeOpen}
         onOpenChange={(open) => {
           setNoticeOpen(open);
-          if (!open && typeof window !== "undefined") {
-            window.sessionStorage.setItem(dismissKey, "1");
+          if (!open) {
+            onDismissNotice();
           }
         }}
       >
@@ -91,7 +94,7 @@ export function OnboardingWizard({
           <DialogHeader>
             <DialogTitle>Setup still in progress</DialogTitle>
             <DialogDescription>
-              Your workspace owner hasn’t finished the initial setup yet. You can keep using the CRM
+              Your workspace owner hasn't finished the initial setup yet. You can keep using the CRM
               — some defaults (industry template, branding) may change once they complete it.
             </DialogDescription>
           </DialogHeader>
@@ -99,9 +102,7 @@ export function OnboardingWizard({
             <Button
               onClick={() => {
                 setNoticeOpen(false);
-                if (typeof window !== "undefined") {
-                  window.sessionStorage.setItem(dismissKey, "1");
-                }
+                onDismissNotice();
               }}
             >
               Got it
@@ -123,9 +124,12 @@ export function OnboardingWizard({
     setStep(1);
   };
 
+  const hexColorValid = brandColor.length === 0 || /^#[0-9a-fA-F]{6}$/.test(brandColor);
+
   const handleFinish = async () => {
     if (!selectedTemplate) return;
     setSaving(true);
+    setSaveError(null);
     try {
       // Owner sets industry_template + enabled_modules along with theme,
       // privacy, and the completion stamp. The DB trigger
@@ -149,7 +153,9 @@ export function OnboardingWizard({
       toast.success(`${selectedTemplate.name} workspace ready`);
       onComplete();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save setup");
+      const msg = err instanceof Error ? err.message : "Failed to save setup";
+      setSaveError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -174,31 +180,33 @@ export function OnboardingWizard({
 
         {/* Step 0 — industry template */}
         {step === 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-            {INDUSTRY_LIST.map((tmpl) => (
-              <button
-                key={tmpl.key}
-                onClick={() => handleSelectIndustry(tmpl.key)}
-                className="text-left rounded-lg border border-border bg-card hover:bg-accent/30 p-4 transition-colors group"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div
-                    className="h-8 w-8 rounded-md flex-shrink-0 ring-1 ring-border/50"
-                    style={{
-                      background: `linear-gradient(135deg, ${tmpl.theme.primary}, ${tmpl.theme.accent})`,
-                    }}
-                  />
-                  <div>
-                    <h3 className="font-semibold text-foreground">{tmpl.name}</h3>
-                    <p className="text-xs text-muted-foreground">{tmpl.tagline}</p>
+          <div className="max-h-[60vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+              {INDUSTRY_LIST.map((tmpl) => (
+                <button
+                  key={tmpl.key}
+                  onClick={() => handleSelectIndustry(tmpl.key)}
+                  className="text-left rounded-lg border border-border bg-card hover:bg-accent/30 p-4 transition-colors group"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className="h-8 w-8 rounded-md flex-shrink-0 ring-1 ring-border/50"
+                      style={{
+                        background: `linear-gradient(135deg, ${tmpl.theme.primary}, ${tmpl.theme.accent})`,
+                      }}
+                    />
+                    <div>
+                      <h3 className="font-semibold text-foreground">{tmpl.name}</h3>
+                      <p className="text-xs text-muted-foreground">{tmpl.tagline}</p>
+                    </div>
                   </div>
-                </div>
-                <p className="text-sm text-muted-foreground">{tmpl.description}</p>
-                <div className="mt-3 flex items-center text-xs text-primary opacity-0 group-hover:opacity-100 transition">
-                  Use this template <ChevronRight className="h-3 w-3 ml-1" />
-                </div>
-              </button>
-            ))}
+                  <p className="text-sm text-muted-foreground">{tmpl.description}</p>
+                  <div className="mt-3 flex items-center text-xs text-primary opacity-0 group-hover:opacity-100 transition">
+                    Use this template <ChevronRight className="h-3 w-3 ml-1" />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -216,13 +224,18 @@ export function OnboardingWizard({
                 onChange={(e) => setBrandColor(e.target.value)}
                 className="h-12 w-20 p-1 cursor-pointer"
               />
-              <Input
-                type="text"
-                value={brandColor}
-                onChange={(e) => setBrandColor(e.target.value)}
-                className="font-mono"
-                placeholder="#3b82f6"
-              />
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  value={brandColor}
+                  onChange={(e) => setBrandColor(e.target.value)}
+                  className="font-mono"
+                  placeholder="#3b82f6"
+                />
+                {brandColor.length > 0 && !hexColorValid && (
+                  <p className="text-xs text-destructive mt-1">Must be a valid hex color like #3b82f6</p>
+                )}
+              </div>
             </div>
             <div className="rounded-lg border border-border p-4 bg-muted/30">
               <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Preview</p>
@@ -237,7 +250,9 @@ export function OnboardingWizard({
               <Button variant="ghost" onClick={() => setStep(0)}>
                 Back
               </Button>
-              <Button onClick={() => setStep(2)}>Continue</Button>
+              <Button onClick={() => setStep(2)} disabled={!hexColorValid}>
+                Continue
+              </Button>
             </div>
           </div>
         )}
@@ -297,11 +312,19 @@ export function OnboardingWizard({
               <Button variant="ghost" onClick={() => setStep(1)} disabled={saving}>
                 Back
               </Button>
-              <Button onClick={handleFinish} disabled={saving}>
+              <Button onClick={() => void handleFinish()} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Finish setup
               </Button>
             </div>
+            {saveError && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-destructive">
+                <span>Save failed — {saveError}</span>
+                <Button size="sm" variant="outline" onClick={() => void handleFinish()}>
+                  Retry
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
