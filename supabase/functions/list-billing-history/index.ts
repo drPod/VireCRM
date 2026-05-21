@@ -21,6 +21,15 @@ interface BillingHistoryItem {
   receipt_url: string | null; // for one-off charges
 }
 
+interface BillingHistoryResponse {
+  items: BillingHistoryItem[];
+  has_more: boolean;
+  next_cursors: { invoice?: string; charge?: string };
+}
+
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 100;
+
 serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
@@ -39,8 +48,18 @@ serve(async (req) => {
       });
     }
 
-    const { environment } = await req.json().catch(() => ({}));
-    const env = (environment || "sandbox") as StripeEnv;
+    const body = (await req.json().catch(() => ({}))) as {
+      environment?: StripeEnv;
+      limit?: number;
+      starting_after_invoice?: string;
+      starting_after_charge?: string;
+    };
+    const env = (body.environment || "sandbox") as StripeEnv;
+    const rawLimit = Number.isFinite(body.limit) ? Number(body.limit) : DEFAULT_LIMIT;
+    const limit = Math.min(MAX_LIMIT, Math.max(1, Math.trunc(rawLimit)));
+    const startingAfterInvoice = body.starting_after_invoice;
+    const startingAfterCharge = body.starting_after_charge;
+
     const stripe = createStripeClient(env);
 
     // Find every Stripe customer the user has been billed under in this env.
@@ -58,18 +77,31 @@ serve(async (req) => {
     ) as string[];
 
     if (customerIds.length === 0) {
-      return new Response(JSON.stringify({ items: [] satisfies BillingHistoryItem[] }), {
+      const empty: BillingHistoryResponse = {
+        items: [],
+        has_more: false,
+        next_cursors: {},
+      };
+      return new Response(JSON.stringify(empty), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch up to 50 invoices + 50 charges per customer in parallel.
+    // Fetch up to `limit` invoices + `limit` charges per customer in parallel.
     // Invoices cover subscription billing; charges cover any one-off purchases.
     const invoicePromises = customerIds.map((cid) =>
-      stripe.invoices.list({ customer: cid, limit: 50 }),
+      stripe.invoices.list({
+        customer: cid,
+        limit,
+        ...(startingAfterInvoice && { starting_after: startingAfterInvoice }),
+      }),
     );
     const chargePromises = customerIds.map((cid) =>
-      stripe.charges.list({ customer: cid, limit: 50 }),
+      stripe.charges.list({
+        customer: cid,
+        limit,
+        ...(startingAfterCharge && { starting_after: startingAfterCharge }),
+      }),
     );
 
     const [invoiceResults, chargeResults] = await Promise.all([
@@ -129,7 +161,31 @@ serve(async (req) => {
     // Newest first
     items.sort((a, b) => b.created - a.created);
 
-    return new Response(JSON.stringify({ items }), {
+    const nextCursorFrom = <T extends { id?: string | null }>(
+      results: { has_more: boolean; data: T[] }[],
+    ): { hasMore: boolean; cursor: string | undefined } => {
+      const hasMore = results.some((r) => r.has_more);
+      if (!hasMore) return { hasMore, cursor: undefined };
+      const cursor = results
+        .map((r) => r.data[r.data.length - 1]?.id)
+        .filter((id): id is string => Boolean(id))
+        .pop();
+      return { hasMore, cursor };
+    };
+
+    const { hasMore: invoiceHasMore, cursor: lastInvoiceId } = nextCursorFrom(invoiceResults);
+    const { hasMore: chargeHasMore, cursor: lastChargeId } = nextCursorFrom(chargeResults);
+
+    const response: BillingHistoryResponse = {
+      items,
+      has_more: invoiceHasMore || chargeHasMore,
+      next_cursors: {
+        ...(lastInvoiceId && { invoice: lastInvoiceId }),
+        ...(lastChargeId && { charge: lastChargeId }),
+      },
+    };
+
+    return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
