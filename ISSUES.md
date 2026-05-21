@@ -41,8 +41,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 ### Out of scope (need product call)
 
 - [ ] `/clients` platform-admin tenant mgmt — single "Enable in Settings" CTA, full UI not wired (legacy Lovable reseller-style scaffold; in current model = Majix operator's tenant list). ~1-2 days. Reframe vs delete pending product call.
-- [ ] `/gym` member-health ingest UI — no way to add records. Need ingest UI or auto-populate-from-leads migration.
-- [ ] `/gym` doesn't use `IndustryHub` pattern like real-estate/insurance. Extend.
 - [ ] `/admin` gated 100% on platform-admin. Add "you would see X if admin" preview for docs.
 - [ ] `/dashboard credit usage` tier buttons (Starter/Growth/Pro/Ownership) — verify wiring (render w/o visible data binding).
 
@@ -99,6 +97,27 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 ## Recent
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
+
+### 2026-05-22 — Rip non-energy verticals (Lovable scaffold cleanup)
+**Tags:** [verticals] [lovable-cleanup] [scaffold]
+
+Energy = only paying client. Soft-strip non-energy verticals (solar, real-estate, insurance, gym, etc.) — narrow allowed values to `'energy'` only. Machinery (industry-template column, `IndustryHub` pattern, hub routes, padlock guards) stays; non-energy options gone from enums + UI + DB constraints.
+
+Coordinator batch — 5 sibling PRs landed in parallel. This entry covers the doc slice.
+
+#### Shipped
+- `ISSUES.md` `## Open` — removed two `/gym` Out-of-scope items (gym member-health ingest UI + `/gym` `IndustryHub` extension). Both moot once non-energy verticals stripped. Per rule 2, deleted rather than struck-through.
+- `README.md` — trimmed multi-vertical product positioning. Single-line "Built for commercial energy brokers." Surgical, no rewrite. (Search hit zero pre-existing vertical refs — README already energy-agnostic prose-wise; positioning slot added explicitly to anchor the new business reality.)
+- Sibling PRs: see batch session 2026-05-22 (Unit 1: routes-delete, Unit 2: types-narrow, Unit 3: marketing-strip, Unit 4: db-lock-to-energy, Unit 5: this doc update).
+
+#### Found
+- `CLAUDE.md` ~line 59 + `AGENTS.md` ~line 23 still carry the OLD "Legacy 'reseller' code — don't strip in audits" framing. Coordinator was expected to flip these to "Lovable scaffold cleanup — delete confidently when dead" BEFORE workers spawned; commit not yet present in this worktree's history. Flagged in PR description. Doc worker did not re-edit (out of slice).
+
+#### Verification
+- `bash scripts/lint-issues.sh` — exit 0 (run post-edit). Header count 45 → 46 (one new session).
+
+#### Manual follow-up (user)
+- Decide whether `CLAUDE.md` "Legacy 'reseller' code" section gets the same delete-confidently flip the verticals batch implies, or stays scoped to reseller-named code only.
 
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
