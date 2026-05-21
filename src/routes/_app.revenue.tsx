@@ -204,12 +204,6 @@ function RevenuePage() {
                     fill="oklch(0.7 0.18 30)"
                     radius={[4, 4, 0, 0]}
                   />
-                  <Bar
-                    dataKey="payouts"
-                    name="Payouts"
-                    fill="oklch(0.7 0.18 290)"
-                    radius={[4, 4, 0, 0]}
-                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -221,8 +215,7 @@ function RevenuePage() {
           <h2 className="text-base font-semibold text-foreground mb-2">12-month summary</h2>
           <PlRow label="Revenue" value={m.totalRevenueCents} positive />
           <PlRow label="Expenses" value={-m.totalExpensesCents} />
-          <PlRow label="Team payouts" value={-m.totalPayoutsCents} />
-          <div className="border-t border-border pt-3">
+<div className="border-t border-border pt-3">
             <PlRow
               label="Net Profit"
               value={m.netProfitCents}

@@ -6,7 +6,6 @@ export interface MonthBucket {
   monthKey: string; // "2025-01"
   revenue: number; // cents
   expenses: number; // cents
-  payouts: number; // cents
   deals: number;
 }
 
@@ -17,8 +16,7 @@ export interface RevenueMetrics {
   arrCents: number;
   totalRevenueCents: number; // last 12 months
   totalExpensesCents: number; // last 12 months
-  totalPayoutsCents: number; // last 12 months — pending + paid commission_earnings
-  netProfitCents: number; // revenue - expenses - payouts
+  netProfitCents: number; // revenue - expenses
   arpuCents: number; // avg revenue per closed deal (last 12 mo)
   closedDealCount: number; // last 12 months
   wonRate: number; // 0-1 — won / (won+lost) over last 12mo
@@ -31,7 +29,6 @@ const EMPTY: RevenueMetrics = {
   arrCents: 0,
   totalRevenueCents: 0,
   totalExpensesCents: 0,
-  totalPayoutsCents: 0,
   netProfitCents: 0,
   arpuCents: 0,
   closedDealCount: 0,
@@ -73,14 +70,13 @@ export function useRevenueMetrics(organizationId: string | undefined): RevenueMe
           monthKey: monthKey(d),
           revenue: 0,
           expenses: 0,
-          payouts: 0,
           deals: 0,
         };
         buckets.push(b);
         byKey.set(b.monthKey, b);
       }
 
-      const [wonLeadsRes, lostLeadsRes, expensesRes, earningsRes] = await Promise.all([
+      const [wonLeadsRes, lostLeadsRes, expensesRes] = await Promise.all([
         supabase
           .from("leads")
           .select("deal_value_cents, closed_at, status")
@@ -98,18 +94,12 @@ export function useRevenueMetrics(organizationId: string | undefined): RevenueMe
           .select("amount_cents, incurred_at")
           .eq("organization_id", organizationId)
           .gte("incurred_at", startDate),
-        supabase
-          .from("commission_earnings")
-          .select("commission_cents, created_at, status")
-          .eq("organization_id", organizationId)
-          .gte("created_at", startIso),
       ]);
 
       if (cancelled) return;
 
       let totalRevenue = 0;
       let totalExpenses = 0;
-      let totalPayouts = 0;
       let dealCount = 0;
       let currentMonthRevenue = 0;
       const currentKey = monthKey(now);
@@ -138,16 +128,6 @@ export function useRevenueMetrics(organizationId: string | undefined): RevenueMe
         totalExpenses += cents;
       });
 
-      (earningsRes.data || []).forEach((e) => {
-        if (e.status === "void") return;
-        const cents = Number(e.commission_cents || 0);
-        const d = new Date(e.created_at);
-        const k = monthKey(d);
-        const bucket = byKey.get(k);
-        if (bucket) bucket.payouts += cents;
-        totalPayouts += cents;
-      });
-
       const wonCount = wonLeadsRes.data?.length || 0;
       const lostCount = lostLeadsRes.data?.length || 0;
       const wonRate = wonCount + lostCount > 0 ? wonCount / (wonCount + lostCount) : 0;
@@ -162,8 +142,7 @@ export function useRevenueMetrics(organizationId: string | undefined): RevenueMe
         arrCents: arr,
         totalRevenueCents: totalRevenue,
         totalExpensesCents: totalExpenses,
-        totalPayoutsCents: totalPayouts,
-        netProfitCents: totalRevenue - totalExpenses - totalPayouts,
+        netProfitCents: totalRevenue - totalExpenses,
         arpuCents: dealCount > 0 ? Math.round(totalRevenue / dealCount) : 0,
         closedDealCount: dealCount,
         wonRate,

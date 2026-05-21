@@ -7,11 +7,10 @@ export interface VerifyGrantResult {
   applied: boolean;
   healed: boolean;
   reason?: string;
-  org_updates?: { plan?: string; is_reseller?: boolean; monthly_lead_quota?: number };
+  org_updates?: { plan?: string; monthly_lead_quota?: number };
   missing_features_added?: string[];
   total_features?: number;
   plan?: string;
-  is_reseller?: boolean;
 }
 
 /**
@@ -62,17 +61,15 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" })
     // 3. Check & heal org-level state.
     const { data: org } = await admin
       .from("organizations")
-      .select("plan, is_reseller, monthly_lead_quota")
+      .select("plan, monthly_lead_quota")
       .eq("id", orgId)
       .maybeSingle();
 
     const orgUpdates: {
       plan?: string;
-      is_reseller?: boolean;
       monthly_lead_quota?: number;
     } = {};
     if (org?.plan !== grant.plan) orgUpdates.plan = grant.plan;
-    if (org?.is_reseller !== grant.is_reseller) orgUpdates.is_reseller = grant.is_reseller;
     if ((org?.monthly_lead_quota ?? 0) < grant.monthly_lead_quota) {
       orgUpdates.monthly_lead_quota = grant.monthly_lead_quota;
     }
@@ -126,6 +123,5 @@ export const verifyAndApplyGrant = createServerFn({ method: "POST" })
       missing_features_added: missing,
       total_features: grant.feature_keys?.length ?? 0,
       plan: grant.plan,
-      is_reseller: grant.is_reseller,
     };
   });

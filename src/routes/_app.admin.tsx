@@ -85,7 +85,6 @@ interface AdminOrgRow {
   slug: string;
   industry_template: string | null;
   plan: string | null;
-  is_reseller: boolean | null;
   member_count: number;
   lead_count: number;
   created_at: string;
@@ -890,11 +889,6 @@ function OrganizationsPanel() {
                         <TableCell>
                           <div className="font-medium text-foreground">{org.name}</div>
                           <div className="font-mono text-xs text-muted-foreground">{org.slug}</div>
-                          {org.is_reseller ? (
-                            <Badge variant="secondary" className="mt-1 text-[10px]">
-                              Reseller
-                            </Badge>
-                          ) : null}
                         </TableCell>
                         <TableCell className="text-xs">
                           {org.owner_email ? (

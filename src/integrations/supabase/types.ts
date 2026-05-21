@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_quote_events: {
@@ -644,116 +619,6 @@ export type Database = {
             foreignKeyName: "client_stripe_accounts_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: true
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      commission_earnings: {
-        Row: {
-          commission_cents: number
-          created_at: string
-          currency: string
-          deal_value_cents: number
-          id: string
-          lead_id: string | null
-          notes: string | null
-          organization_id: string
-          paid_at: string | null
-          payment_reference: string | null
-          rule_snapshot: Json | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          commission_cents?: number
-          created_at?: string
-          currency?: string
-          deal_value_cents?: number
-          id?: string
-          lead_id?: string | null
-          notes?: string | null
-          organization_id: string
-          paid_at?: string | null
-          payment_reference?: string | null
-          rule_snapshot?: Json | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          commission_cents?: number
-          created_at?: string
-          currency?: string
-          deal_value_cents?: number
-          id?: string
-          lead_id?: string | null
-          notes?: string | null
-          organization_id?: string
-          paid_at?: string | null
-          payment_reference?: string | null
-          rule_snapshot?: Json | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "commission_earnings_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commission_earnings_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      commission_rules: {
-        Row: {
-          created_at: string
-          flat_cents: number
-          id: string
-          is_active: boolean
-          organization_id: string
-          percent: number
-          rule_type: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          flat_cents?: number
-          id?: string
-          is_active?: boolean
-          organization_id: string
-          percent?: number
-          rule_type?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          flat_cents?: number
-          id?: string
-          is_active?: boolean
-          organization_id?: string
-          percent?: number
-          rule_type?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "commission_rules_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -2799,7 +2664,6 @@ export type Database = {
           brand_name: string | null
           button_color: string | null
           cf_hostname_id: string | null
-          commission_rate: number
           created_at: string
           credit_period_start: string
           credits_used_this_period: number
@@ -2812,7 +2676,6 @@ export type Database = {
           font_family: string | null
           id: string
           industry_template: string
-          is_reseller: boolean
           lead_period_start: string
           leads_used_this_period: number
           logo_url: string | null
@@ -2842,7 +2705,6 @@ export type Database = {
           brand_name?: string | null
           button_color?: string | null
           cf_hostname_id?: string | null
-          commission_rate?: number
           created_at?: string
           credit_period_start?: string
           credits_used_this_period?: number
@@ -2855,7 +2717,6 @@ export type Database = {
           font_family?: string | null
           id?: string
           industry_template?: string
-          is_reseller?: boolean
           lead_period_start?: string
           leads_used_this_period?: number
           logo_url?: string | null
@@ -2885,7 +2746,6 @@ export type Database = {
           brand_name?: string | null
           button_color?: string | null
           cf_hostname_id?: string | null
-          commission_rate?: number
           created_at?: string
           credit_period_start?: string
           credits_used_this_period?: number
@@ -2898,7 +2758,6 @@ export type Database = {
           font_family?: string | null
           id?: string
           industry_template?: string
-          is_reseller?: boolean
           lead_period_start?: string
           leads_used_this_period?: number
           logo_url?: string | null
@@ -3240,70 +3099,6 @@ export type Database = {
           },
         ]
       }
-      payout_line_items: {
-        Row: {
-          amount_cents: number
-          base_cost_cents: number
-          client_name: string | null
-          client_org_id: string | null
-          commission_cents: number
-          created_at: string
-          id: string
-          markup_cents: number
-          payout_id: string
-          refund_transaction_id: string | null
-          subscription_id: string
-        }
-        Insert: {
-          amount_cents: number
-          base_cost_cents?: number
-          client_name?: string | null
-          client_org_id?: string | null
-          commission_cents: number
-          created_at?: string
-          id?: string
-          markup_cents?: number
-          payout_id: string
-          refund_transaction_id?: string | null
-          subscription_id: string
-        }
-        Update: {
-          amount_cents?: number
-          base_cost_cents?: number
-          client_name?: string | null
-          client_org_id?: string | null
-          commission_cents?: number
-          created_at?: string
-          id?: string
-          markup_cents?: number
-          payout_id?: string
-          refund_transaction_id?: string | null
-          subscription_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payout_line_items_client_org_id_fkey"
-            columns: ["client_org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payout_line_items_payout_id_fkey"
-            columns: ["payout_id"]
-            isOneToOne: false
-            referencedRelation: "reseller_payouts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payout_line_items_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       pending_subscription_grants: {
         Row: {
           consumed_at: string | null
@@ -3314,7 +3109,6 @@ export type Database = {
           feature_keys: string[]
           granted_by: string | null
           id: string
-          is_reseller: boolean
           monthly_lead_quota: number
           notes: string | null
           plan: string
@@ -3328,7 +3122,6 @@ export type Database = {
           feature_keys?: string[]
           granted_by?: string | null
           id?: string
-          is_reseller?: boolean
           monthly_lead_quota?: number
           notes?: string | null
           plan?: string
@@ -3342,78 +3135,11 @@ export type Database = {
           feature_keys?: string[]
           granted_by?: string | null
           id?: string
-          is_reseller?: boolean
           monthly_lead_quota?: number
           notes?: string | null
           plan?: string
         }
         Relationships: []
-      }
-      pending_welcome_emails: {
-        Row: {
-          attempts: number
-          brand_name: string | null
-          created_at: string
-          failed_at: string | null
-          full_name: string | null
-          id: string
-          last_error: string | null
-          login_url: string
-          organization_id: string
-          recipient_email: string
-          reseller_id: string
-          send_after: string
-          sent_at: string | null
-          user_id: string
-        }
-        Insert: {
-          attempts?: number
-          brand_name?: string | null
-          created_at?: string
-          failed_at?: string | null
-          full_name?: string | null
-          id?: string
-          last_error?: string | null
-          login_url: string
-          organization_id: string
-          recipient_email: string
-          reseller_id: string
-          send_after?: string
-          sent_at?: string | null
-          user_id: string
-        }
-        Update: {
-          attempts?: number
-          brand_name?: string | null
-          created_at?: string
-          failed_at?: string | null
-          full_name?: string | null
-          id?: string
-          last_error?: string | null
-          login_url?: string
-          organization_id?: string
-          recipient_email?: string
-          reseller_id?: string
-          send_after?: string
-          sent_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pending_welcome_emails_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_welcome_emails_reseller_id_fkey"
-            columns: ["reseller_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       platform_admins: {
         Row: {
@@ -3906,127 +3632,6 @@ export type Database = {
           },
         ]
       }
-      reseller_payouts: {
-        Row: {
-          active_client_count: number
-          commission_cents: number
-          commission_rate: number
-          created_at: string
-          currency: string
-          gross_revenue_cents: number
-          id: string
-          notes: string | null
-          paid_at: string | null
-          payment_reference: string | null
-          period_end: string
-          period_start: string
-          reseller_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          active_client_count?: number
-          commission_cents?: number
-          commission_rate: number
-          created_at?: string
-          currency?: string
-          gross_revenue_cents?: number
-          id?: string
-          notes?: string | null
-          paid_at?: string | null
-          payment_reference?: string | null
-          period_end: string
-          period_start: string
-          reseller_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          active_client_count?: number
-          commission_cents?: number
-          commission_rate?: number
-          created_at?: string
-          currency?: string
-          gross_revenue_cents?: number
-          id?: string
-          notes?: string | null
-          paid_at?: string | null
-          payment_reference?: string | null
-          period_end?: string
-          period_start?: string
-          reseller_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reseller_payouts_reseller_id_fkey"
-            columns: ["reseller_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reseller_plans: {
-        Row: {
-          base_cost_cents: number
-          base_price_id: string
-          created_at: string
-          currency: string
-          description: string | null
-          features: string[]
-          id: string
-          is_active: boolean
-          markup_percent: number
-          monthly_price_cents: number
-          name: string
-          reseller_id: string
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          base_cost_cents: number
-          base_price_id: string
-          created_at?: string
-          currency?: string
-          description?: string | null
-          features?: string[]
-          id?: string
-          is_active?: boolean
-          markup_percent?: number
-          monthly_price_cents: number
-          name: string
-          reseller_id: string
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          base_cost_cents?: number
-          base_price_id?: string
-          created_at?: string
-          currency?: string
-          description?: string | null
-          features?: string[]
-          id?: string
-          is_active?: boolean
-          markup_percent?: number
-          monthly_price_cents?: number
-          name?: string
-          reseller_id?: string
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reseller_plans_reseller_id_fkey"
-            columns: ["reseller_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       review_requests: {
         Row: {
           channel: string
@@ -4238,7 +3843,6 @@ export type Database = {
       }
       subscriptions: {
         Row: {
-          attributed_reseller_id: string | null
           cancel_at_period_end: boolean | null
           created_at: string | null
           current_period_end: string | null
@@ -4247,7 +3851,6 @@ export type Database = {
           id: string
           price_id: string
           product_id: string
-          reseller_plan_id: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -4255,7 +3858,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          attributed_reseller_id?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string | null
           current_period_end?: string | null
@@ -4264,7 +3866,6 @@ export type Database = {
           id?: string
           price_id: string
           product_id: string
-          reseller_plan_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -4272,7 +3873,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          attributed_reseller_id?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string | null
           current_period_end?: string | null
@@ -4281,29 +3881,13 @@ export type Database = {
           id?: string
           price_id?: string
           product_id?: string
-          reseller_plan_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "subscriptions_attributed_reseller_id_fkey"
-            columns: ["attributed_reseller_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscriptions_reseller_plan_id_fkey"
-            columns: ["reseller_plan_id"]
-            isOneToOne: false
-            referencedRelation: "reseller_plans"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       supplier_quotes: {
         Row: {
@@ -4593,14 +4177,12 @@ export type Database = {
       transactions: {
         Row: {
           amount_cents: number
-          attributed_reseller_id: string | null
           billed_at: string
           created_at: string
           currency: string
           environment: string
           id: string
           raw_payload: Json | null
-          reseller_plan_id: string | null
           status: string
           stripe_transaction_id: string | null
           subscription_id: string | null
@@ -4608,14 +4190,12 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
-          attributed_reseller_id?: string | null
           billed_at?: string
           created_at?: string
           currency?: string
           environment?: string
           id?: string
           raw_payload?: Json | null
-          reseller_plan_id?: string | null
           status?: string
           stripe_transaction_id?: string | null
           subscription_id?: string | null
@@ -4623,34 +4203,18 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
-          attributed_reseller_id?: string | null
           billed_at?: string
           created_at?: string
           currency?: string
           environment?: string
           id?: string
           raw_payload?: Json | null
-          reseller_plan_id?: string | null
           status?: string
           stripe_transaction_id?: string | null
           subscription_id?: string | null
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "transactions_attributed_reseller_id_fkey"
-            columns: ["attributed_reseller_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_reseller_plan_id_fkey"
-            columns: ["reseller_plan_id"]
-            isOneToOne: false
-            referencedRelation: "reseller_plans"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "transactions_subscription_id_fkey"
             columns: ["subscription_id"]
@@ -4981,7 +4545,6 @@ export type Database = {
           current_period_end: string
           id: string
           industry_template: string
-          is_reseller: boolean
           lead_count: number
           member_count: number
           name: string
@@ -5028,10 +4591,6 @@ export type Database = {
         Args: { p_custom_role_id: string; p_user_id: string }
         Returns: Json
       }
-      calculate_reseller_payouts: {
-        Args: { p_period_end: string; p_period_start: string }
-        Returns: Json
-      }
       check_and_mark_low_balance: { Args: { p_org_id: string }; Returns: Json }
       consume_credit:
         | { Args: { p_count?: number; p_org_id: string }; Returns: Json }
@@ -5076,31 +4635,6 @@ export type Database = {
       get_lead_usage: { Args: { p_org_id: string }; Returns: Json }
       get_org_by_domain: { Args: { p_hostname: string }; Returns: Json }
       get_pack_credit_balance: { Args: { p_org_id: string }; Returns: number }
-      get_reseller_branding: { Args: { p_slug: string }; Returns: Json }
-      get_reseller_clients: {
-        Args: { p_reseller_id: string }
-        Returns: {
-          brand_name: string
-          created_at: string
-          currency: string
-          id: string
-          last_activity: string
-          lead_count: number
-          markup_cents: number
-          member_count: number
-          monthly_price_cents: number
-          name: string
-          notes: string
-          plan: string
-          reseller_plan_name: string
-          slug: string
-          subscription_status: string
-        }[]
-      }
-      get_reseller_plan_public: {
-        Args: { p_plan_slug: string; p_reseller_slug: string }
-        Returns: Json
-      }
       get_user_org_id: { Args: { p_user_id: string }; Returns: string }
       grant_credit_pack:
         | {
@@ -5156,18 +4690,6 @@ export type Database = {
       increment_ai_tokens: { Args: { p_org_id: string }; Returns: undefined }
       is_platform_admin: { Args: { p_user_id: string }; Returns: boolean }
       lead_quota_for_plan: { Args: { p_plan: string }; Returns: number }
-      list_reseller_plans_public: {
-        Args: { p_reseller_slug: string }
-        Returns: {
-          currency: string
-          description: string
-          features: string[]
-          monthly_price_cents: number
-          name: string
-          plan_id: string
-          slug: string
-        }[]
-      }
       log_custom_domain_event: {
         Args: {
           p_details: Json
@@ -5228,10 +4750,6 @@ export type Database = {
           p_message?: string
           p_recipient_user_id: string
         }
-        Returns: Json
-      }
-      signup_under_reseller: {
-        Args: { p_company_name: string; p_reseller_slug: string }
         Returns: Json
       }
       unshare_lead: {
@@ -5390,9 +4908,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["owner", "manager", "sales_rep"],
