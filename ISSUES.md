@@ -521,6 +521,12 @@ Step 6 = effectively done. Old Lovable project no longer accessible to user → 
 - `src/functions/find-leads.functions.ts:72,526,573` — `setResponseStatus(403)` before each org-membership throw.
 - `src/functions/auto-outreach.functions.ts:69` — `setResponseStatus(403)` before org-membership throw.
 - Auth/authz failures now return proper status code instead of implicit 500.
+### 2026-05-22 — outreach-preview + ai-advisor: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [outreach] [ai]
+
+#### Shipped
+- `src/functions/outreach-preview.functions.ts:52,193` — `setResponseStatus(403)` before org-membership throws.
+- `src/functions/ai-advisor.functions.ts:28` — `setResponseStatus(403)` before org-membership throw.
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
