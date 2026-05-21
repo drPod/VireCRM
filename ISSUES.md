@@ -100,6 +100,16 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Unit tests for `src/lib/server-fn-auth.ts`
+**Tags:** [test] [auth]
+
+#### Shipped
+- `src/lib/__tests__/server-fn-auth.test.ts` — 19 tests across 4 describe blocks: `isAuthError` status/cause/regex matrix, `SessionExpiredError` shape, `handleAuthError` toast + redirect + 3s debounce + `/login` short-circuit + URL encoding of `next`, `getServerFnAuthHeaders` token forwarding + missing-session SessionExpiredError throw. Mocks `sonner.toast.error` and `supabase.auth.getSession`. Uses `vi.useFakeTimers()` to step past the 600ms redirect setTimeout deterministically. Module-level `lastSignInToastAt` reset via `vi.resetModules()` between tests so debounce doesn't bleed.
+
+#### Verification
+- `bun run test src/lib/__tests__/server-fn-auth.test.ts` — 19/19 green.
+- `bun run test` — full suite 162/162 green (6 files).
+
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
