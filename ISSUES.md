@@ -91,15 +91,26 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — list-billing-history pagination
-**Tags:** [stripe] [billing] [supabase] [pagination]
+### 2026-05-21 — payments-webhook hardening
+**Tags:** [stripe] [webhook] [hardening] [supabase]
 
 #### Shipped
-- `supabase/functions/list-billing-history/index.ts` — request body accepts `limit` (default 50, clamped [1,100]) + `starting_after_invoice` + `starting_after_charge` cursors; passes cursors through to `stripe.invoices.list` / `stripe.charges.list`; response now returns `{ items, has_more, next_cursors: { invoice?, charge? } }`. Empty-customer branch returns same shape. Backwards-compat: caller sending `{ environment }` or no body keeps prior limit=50 + no-cursor behavior. UI caller at `src/routes/_app.billing.tsx:617` untouched — `data?.items` still resolves.
+- `supabase/functions/payments-webhook/index.ts` — env-param strict-validate (lines 15-26): missing/invalid `?env=` now 400s instead of silently defaulting to sandbox
+- `supabase/functions/payments-webhook/index.ts` — `upsertSubscription` price/product cascade simplified (lines 329-332): drop `item.price.metadata.lovable_external_id` + `item.price.product.metadata.lovable_external_id` legs; cascade now `lookup_key → price.id` for priceId, string/object handling for productId
+- `supabase/functions/payments-webhook/index.ts` — new `recordWebhookFailure` helper + `WebhookFailureKind` type (lines 98-125): writes dead-letter row into `payment_webhook_failures` via service-role client
+- `supabase/functions/payments-webhook/index.ts` — `maybeGrantCreditPack` (lines 206-311): dead-letter inserts on missing-priceId (`credit_grant`), missing-orgId (`missing_org_id`), and `grant_credit_pack` RPC error (`rpc_error`)
+- `supabase/functions/payments-webhook/index.ts` — `upsertSubscription` (lines 313-392): dead-letter inserts on missing `userId` (`missing_user_id`) and on `profile.organization_id` lookup miss for active/trialing subs (`missing_org_id`); both also `console.error` for log surface
+- `supabase/migrations/20260521134144_payment_webhook_failures.sql` — new `payment_webhook_failures` table (uuid PK, event/object refs, failure_kind CHECK, raw_payload jsonb, replay columns, environment CHECK), two btree indexes (`created_at desc`, `failure_kind + created_at desc`), RLS enabled with `payment_webhook_failures_admin_select` policy gating SELECT to `is_platform_admin(auth.uid())` — no INSERT/UPDATE/DELETE policies (service-role writes only)
 
 #### Verification
-- `bun run typecheck` → exit 0 (pending — see commit log)
-- Live Stripe smoke skipped per recipe (requires deploy + real customer data)
+- `bun run typecheck` — exit 0
+- `grep lovable_external_id supabase/functions/payments-webhook/index.ts` — no matches
+- Migration file syntactically inspected; RLS + indexes present
+
+#### Manual follow-up (user)
+- Apply migration `20260521134144_payment_webhook_failures.sql` to live DB (`supabase db push` or via dashboard)
+- After apply, regen types: `bun run supabase:gen-types` (or equivalent) so `payment_webhook_failures` shows in `src/integrations/supabase/types.ts`
+- Build platform-admin triage UI to read + replay dead-letter rows (out of scope here)
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
