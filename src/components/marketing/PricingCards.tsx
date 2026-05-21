@@ -342,7 +342,6 @@ export function PricingCards() {
       return;
     }
     openCheckout({
-      mode: "price",
       priceId: tier.stripePriceId,
       customerEmail: user.email,
       userId: user.id,

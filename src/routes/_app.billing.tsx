@@ -273,7 +273,6 @@ function BillingPage() {
     (tier: PricingTier) => {
       if (!tier.stripePriceId || !user?.email) return;
       openCheckout({
-        mode: "price",
         priceId: tier.stripePriceId,
         customerEmail: user.email,
         userId: user.id,
@@ -326,7 +325,6 @@ function BillingPage() {
     if (loading || !user?.email || hasAccess || !search.plan || autoOpenedRef.current) return;
     autoOpenedRef.current = true;
     openCheckout({
-      mode: "price",
       priceId: search.plan,
       customerEmail: user.email,
       userId: user.id,

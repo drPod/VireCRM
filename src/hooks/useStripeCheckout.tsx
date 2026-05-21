@@ -64,11 +64,7 @@ export function useStripeCheckout() {
         </DialogHeader>
         {options && (
           <CheckoutBody
-            key={
-              options.mode === "price"
-                ? options.priceId
-                : `${options.resellerSlug}/${options.planSlug}`
-            }
+            key={options.priceId}
             options={options}
           />
         )}

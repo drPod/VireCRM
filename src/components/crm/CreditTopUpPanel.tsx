@@ -191,7 +191,6 @@ export function CreditTopUpPanel({
       return;
     }
     openCheckout({
-      mode: "price",
       priceId,
       userId,
       organizationId,

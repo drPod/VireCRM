@@ -42,7 +42,6 @@ import { Route as AppReputationRouteImport } from './routes/_app.reputation'
 import { Route as AppRealEstateRouteImport } from './routes/_app.real-estate'
 import { Route as AppQaChecklistRouteImport } from './routes/_app.qa-checklist'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
-import { Route as AppPayoutsRouteImport } from './routes/_app.payouts'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
 import { Route as AppLeadsRouteImport } from './routes/_app.leads'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
@@ -58,7 +57,6 @@ import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
 import { Route as AppContactSubmissionsRouteImport } from './routes/_app.contact-submissions'
 import { Route as AppCommandChatRouteImport } from './routes/_app.command-chat'
-import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppBookRouteImport } from './routes/_app.book'
@@ -68,9 +66,7 @@ import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
 import { Route as AppAdminRouteImport } from './routes/_app.admin'
 import { Route as AppAcademyRouteImport } from './routes/_app.academy'
-import { Route as RResellerSlugIndexRouteImport } from './routes/r.$resellerSlug.index'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
-import { Route as RResellerSlugSignupRouteImport } from './routes/r.$resellerSlug.signup'
 import { Route as ApiPublicContactRouteImport } from './routes/api/public/contact'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
 import { Route as AppSolarProjectsRouteImport } from './routes/_app.solar.projects'
@@ -86,10 +82,7 @@ import { Route as AppEnergyPricingRouteImport } from './routes/_app.energy.prici
 import { Route as AppEnergyLoaRouteImport } from './routes/_app.energy.loa'
 import { Route as AppEnergyCustomersRouteImport } from './routes/_app.energy.customers'
 import { Route as AppEnergyContractsRouteImport } from './routes/_app.energy.contracts'
-import { Route as AppClientsPlansRouteImport } from './routes/_app.clients.plans'
-import { Route as AppClientsPayoutsRouteImport } from './routes/_app.clients.payouts'
 import { Route as AppAcademyCourseIdRouteImport } from './routes/_app.academy.$courseId'
-import { Route as RResellerSlugCheckoutPlanSlugRouteImport } from './routes/r.$resellerSlug.checkout.$planSlug'
 import { Route as ApiPublicHooksRunWorkflowsRouteImport } from './routes/api/public/hooks/run-workflows'
 import { Route as ApiPublicHooksPurgeAuditLogRouteImport } from './routes/api/public/hooks/purge-audit-log'
 import { Route as ApiPublicHooksDispatchSequencesRouteImport } from './routes/api/public/hooks/dispatch-sequences'
@@ -264,11 +257,6 @@ const AppPipelineRoute = AppPipelineRouteImport.update({
   path: '/pipeline',
   getParentRoute: () => AppRoute,
 } as any)
-const AppPayoutsRoute = AppPayoutsRouteImport.update({
-  id: '/payouts',
-  path: '/payouts',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppMessagesRoute = AppMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
@@ -344,11 +332,6 @@ const AppCommandChatRoute = AppCommandChatRouteImport.update({
   path: '/command-chat',
   getParentRoute: () => AppRoute,
 } as any)
-const AppClientsRoute = AppClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppCampaignsRoute = AppCampaignsRouteImport.update({
   id: '/campaigns',
   path: '/campaigns',
@@ -394,20 +377,10 @@ const AppAcademyRoute = AppAcademyRouteImport.update({
   path: '/academy',
   getParentRoute: () => AppRoute,
 } as any)
-const RResellerSlugIndexRoute = RResellerSlugIndexRouteImport.update({
-  id: '/r/$resellerSlug/',
-  path: '/r/$resellerSlug/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppWorkflowsIndexRoute = AppWorkflowsIndexRouteImport.update({
   id: '/workflows/',
   path: '/workflows/',
   getParentRoute: () => AppRoute,
-} as any)
-const RResellerSlugSignupRoute = RResellerSlugSignupRouteImport.update({
-  id: '/r/$resellerSlug/signup',
-  path: '/r/$resellerSlug/signup',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicContactRoute = ApiPublicContactRouteImport.update({
   id: '/api/public/contact',
@@ -485,27 +458,11 @@ const AppEnergyContractsRoute = AppEnergyContractsRouteImport.update({
   path: '/contracts',
   getParentRoute: () => AppEnergyRoute,
 } as any)
-const AppClientsPlansRoute = AppClientsPlansRouteImport.update({
-  id: '/plans',
-  path: '/plans',
-  getParentRoute: () => AppClientsRoute,
-} as any)
-const AppClientsPayoutsRoute = AppClientsPayoutsRouteImport.update({
-  id: '/payouts',
-  path: '/payouts',
-  getParentRoute: () => AppClientsRoute,
-} as any)
 const AppAcademyCourseIdRoute = AppAcademyCourseIdRouteImport.update({
   id: '/$courseId',
   path: '/$courseId',
   getParentRoute: () => AppAcademyRoute,
 } as any)
-const RResellerSlugCheckoutPlanSlugRoute =
-  RResellerSlugCheckoutPlanSlugRouteImport.update({
-    id: '/r/$resellerSlug/checkout/$planSlug',
-    path: '/r/$resellerSlug/checkout/$planSlug',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicHooksRunWorkflowsRoute =
   ApiPublicHooksRunWorkflowsRouteImport.update({
     id: '/api/public/hooks/run-workflows',
@@ -582,7 +539,6 @@ export interface FileRoutesByFullPath {
   '/book': typeof AppBookRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
-  '/clients': typeof AppClientsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
@@ -598,7 +554,6 @@ export interface FileRoutesByFullPath {
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
-  '/payouts': typeof AppPayoutsRoute
   '/pipeline': typeof AppPipelineRoute
   '/qa-checklist': typeof AppQaChecklistRoute
   '/real-estate': typeof AppRealEstateRouteWithChildren
@@ -614,8 +569,6 @@ export interface FileRoutesByFullPath {
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
-  '/clients/payouts': typeof AppClientsPayoutsRoute
-  '/clients/plans': typeof AppClientsPlansRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
   '/energy/customers': typeof AppEnergyCustomersRoute
   '/energy/loa': typeof AppEnergyLoaRoute
@@ -631,9 +584,7 @@ export interface FileRoutesByFullPath {
   '/solar/projects': typeof AppSolarProjectsRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
-  '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
-  '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
   '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
   '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
   '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
@@ -642,7 +593,6 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
-  '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -672,7 +622,6 @@ export interface FileRoutesByTo {
   '/book': typeof AppBookRoute
   '/calendar': typeof AppCalendarRoute
   '/campaigns': typeof AppCampaignsRoute
-  '/clients': typeof AppClientsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
@@ -688,7 +637,6 @@ export interface FileRoutesByTo {
   '/invoices': typeof AppInvoicesRoute
   '/leads': typeof AppLeadsRoute
   '/messages': typeof AppMessagesRoute
-  '/payouts': typeof AppPayoutsRoute
   '/pipeline': typeof AppPipelineRoute
   '/qa-checklist': typeof AppQaChecklistRoute
   '/real-estate': typeof AppRealEstateRouteWithChildren
@@ -704,8 +652,6 @@ export interface FileRoutesByTo {
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/academy/$courseId': typeof AppAcademyCourseIdRoute
-  '/clients/payouts': typeof AppClientsPayoutsRoute
-  '/clients/plans': typeof AppClientsPlansRoute
   '/energy/contracts': typeof AppEnergyContractsRoute
   '/energy/customers': typeof AppEnergyCustomersRoute
   '/energy/loa': typeof AppEnergyLoaRoute
@@ -721,9 +667,7 @@ export interface FileRoutesByTo {
   '/solar/projects': typeof AppSolarProjectsRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
-  '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/workflows': typeof AppWorkflowsIndexRoute
-  '/r/$resellerSlug': typeof RResellerSlugIndexRoute
   '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
   '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
   '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
@@ -732,7 +676,6 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
-  '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -764,7 +707,6 @@ export interface FileRoutesById {
   '/_app/book': typeof AppBookRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/campaigns': typeof AppCampaignsRoute
-  '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/command-chat': typeof AppCommandChatRoute
   '/_app/contact-submissions': typeof AppContactSubmissionsRoute
   '/_app/conversations': typeof AppConversationsRoute
@@ -780,7 +722,6 @@ export interface FileRoutesById {
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/messages': typeof AppMessagesRoute
-  '/_app/payouts': typeof AppPayoutsRoute
   '/_app/pipeline': typeof AppPipelineRoute
   '/_app/qa-checklist': typeof AppQaChecklistRoute
   '/_app/real-estate': typeof AppRealEstateRouteWithChildren
@@ -796,8 +737,6 @@ export interface FileRoutesById {
   '/hooks/calculate-payouts': typeof HooksCalculatePayoutsRoute
   '/hooks/send-pending-welcomes': typeof HooksSendPendingWelcomesRoute
   '/_app/academy/$courseId': typeof AppAcademyCourseIdRoute
-  '/_app/clients/payouts': typeof AppClientsPayoutsRoute
-  '/_app/clients/plans': typeof AppClientsPlansRoute
   '/_app/energy/contracts': typeof AppEnergyContractsRoute
   '/_app/energy/customers': typeof AppEnergyCustomersRoute
   '/_app/energy/loa': typeof AppEnergyLoaRoute
@@ -813,9 +752,7 @@ export interface FileRoutesById {
   '/_app/solar/projects': typeof AppSolarProjectsRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
-  '/r/$resellerSlug/signup': typeof RResellerSlugSignupRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
-  '/r/$resellerSlug/': typeof RResellerSlugIndexRoute
   '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
   '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
   '/api/public/hooks/classify-contact-submissions': typeof ApiPublicHooksClassifyContactSubmissionsRoute
@@ -824,7 +761,6 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-sequences': typeof ApiPublicHooksDispatchSequencesRoute
   '/api/public/hooks/purge-audit-log': typeof ApiPublicHooksPurgeAuditLogRoute
   '/api/public/hooks/run-workflows': typeof ApiPublicHooksRunWorkflowsRoute
-  '/r/$resellerSlug/checkout/$planSlug': typeof RResellerSlugCheckoutPlanSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -905,9 +841,7 @@ export interface FileRouteTypes {
     | '/solar/projects'
     | '/workflows/$workflowId'
     | '/api/public/contact'
-    | '/r/$resellerSlug/signup'
     | '/workflows/'
-    | '/r/$resellerSlug/'
     | '/api/email/queue/process'
     | '/api/email/transactional/send'
     | '/api/public/hooks/classify-contact-submissions'
@@ -916,7 +850,6 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
-    | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -995,9 +928,7 @@ export interface FileRouteTypes {
     | '/solar/projects'
     | '/workflows/$workflowId'
     | '/api/public/contact'
-    | '/r/$resellerSlug/signup'
     | '/workflows'
-    | '/r/$resellerSlug'
     | '/api/email/queue/process'
     | '/api/email/transactional/send'
     | '/api/public/hooks/classify-contact-submissions'
@@ -1006,7 +937,6 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
-    | '/r/$resellerSlug/checkout/$planSlug'
   id:
     | '__root__'
     | '/'
@@ -1086,9 +1016,7 @@ export interface FileRouteTypes {
     | '/_app/solar/projects'
     | '/_app/workflows/$workflowId'
     | '/api/public/contact'
-    | '/r/$resellerSlug/signup'
     | '/_app/workflows/'
-    | '/r/$resellerSlug/'
     | '/api/email/queue/process'
     | '/api/email/transactional/send'
     | '/api/public/hooks/classify-contact-submissions'
@@ -1097,7 +1025,6 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-sequences'
     | '/api/public/hooks/purge-audit-log'
     | '/api/public/hooks/run-workflows'
-    | '/r/$resellerSlug/checkout/$planSlug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1127,8 +1054,6 @@ export interface RootRouteChildren {
   HooksCalculatePayoutsRoute: typeof HooksCalculatePayoutsRoute
   HooksSendPendingWelcomesRoute: typeof HooksSendPendingWelcomesRoute
   ApiPublicContactRoute: typeof ApiPublicContactRoute
-  RResellerSlugSignupRoute: typeof RResellerSlugSignupRoute
-  RResellerSlugIndexRoute: typeof RResellerSlugIndexRoute
   ApiEmailQueueProcessRoute: typeof ApiEmailQueueProcessRoute
   ApiEmailTransactionalSendRoute: typeof ApiEmailTransactionalSendRoute
   ApiPublicHooksClassifyContactSubmissionsRoute: typeof ApiPublicHooksClassifyContactSubmissionsRoute
@@ -1137,7 +1062,6 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchSequencesRoute: typeof ApiPublicHooksDispatchSequencesRoute
   ApiPublicHooksPurgeAuditLogRoute: typeof ApiPublicHooksPurgeAuditLogRoute
   ApiPublicHooksRunWorkflowsRoute: typeof ApiPublicHooksRunWorkflowsRoute
-  RResellerSlugCheckoutPlanSlugRoute: typeof RResellerSlugCheckoutPlanSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1555,26 +1479,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAcademyRouteImport
       parentRoute: typeof AppRoute
     }
-    '/r/$resellerSlug/': {
-      id: '/r/$resellerSlug/'
-      path: '/r/$resellerSlug'
-      fullPath: '/r/$resellerSlug/'
-      preLoaderRoute: typeof RResellerSlugIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app/workflows/': {
       id: '/_app/workflows/'
       path: '/workflows'
       fullPath: '/workflows/'
       preLoaderRoute: typeof AppWorkflowsIndexRouteImport
       parentRoute: typeof AppRoute
-    }
-    '/r/$resellerSlug/signup': {
-      id: '/r/$resellerSlug/signup'
-      path: '/r/$resellerSlug/signup'
-      fullPath: '/r/$resellerSlug/signup'
-      preLoaderRoute: typeof RResellerSlugSignupRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/public/contact': {
       id: '/api/public/contact'
@@ -1701,13 +1611,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/academy/$courseId'
       preLoaderRoute: typeof AppAcademyCourseIdRouteImport
       parentRoute: typeof AppAcademyRoute
-    }
-    '/r/$resellerSlug/checkout/$planSlug': {
-      id: '/r/$resellerSlug/checkout/$planSlug'
-      path: '/r/$resellerSlug/checkout/$planSlug'
-      fullPath: '/r/$resellerSlug/checkout/$planSlug'
-      preLoaderRoute: typeof RResellerSlugCheckoutPlanSlugRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/run-workflows': {
       id: '/api/public/hooks/run-workflows'
@@ -1977,8 +1880,6 @@ const rootRouteChildren: RootRouteChildren = {
   HooksCalculatePayoutsRoute: HooksCalculatePayoutsRoute,
   HooksSendPendingWelcomesRoute: HooksSendPendingWelcomesRoute,
   ApiPublicContactRoute: ApiPublicContactRoute,
-  RResellerSlugSignupRoute: RResellerSlugSignupRoute,
-  RResellerSlugIndexRoute: RResellerSlugIndexRoute,
   ApiEmailQueueProcessRoute: ApiEmailQueueProcessRoute,
   ApiEmailTransactionalSendRoute: ApiEmailTransactionalSendRoute,
   ApiPublicHooksClassifyContactSubmissionsRoute:
@@ -1989,7 +1890,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDispatchSequencesRoute: ApiPublicHooksDispatchSequencesRoute,
   ApiPublicHooksPurgeAuditLogRoute: ApiPublicHooksPurgeAuditLogRoute,
   ApiPublicHooksRunWorkflowsRoute: ApiPublicHooksRunWorkflowsRoute,
-  RResellerSlugCheckoutPlanSlugRoute: RResellerSlugCheckoutPlanSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
