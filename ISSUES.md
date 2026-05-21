@@ -21,8 +21,7 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Hostname rollout follow-ups (deploy landed 2026-05-18, see Recent).** Plan + migration + deploy + smoke all green. Two small things left:
   - [ ] **Verify direct-tenant signup persists `organizations.slug`** such that the new tenant's `<slug>.majix.ai` lookup resolves on first visit. `signup_under_reseller` already does; the direct (non-reseller) signup path needs a trace. If signup defers slug pick, document `app.majix.ai` as the post-signup landing until slug is chosen.
   - [ ] **Optional polish:** redirect `www.majix.ai` → `majix.ai` (308) to canonicalize the marketing URL. Currently both serve identical content from the same Worker — fine, just two URLs for the same surface.
-- [ ] **[green-energiai] Resume Crystal onboarding** — migration landed 2026-05-19, verified live 2026-05-22 (see Recent). Crystal's old UUID `7ba2ebfa-…` preserved + bcrypt password ported. Org structure (intentional): Crystal owns `188c4869-…` (slug `greenenergiai`, the greenenergiai tenant — 4793 leads from her own org's dump, no xlsx supplement); Caziah owns separate tenant `8b8c76ab-…` (slug `caziah-cameron`, 9198 leads w/ xlsx-enriched energy fields — his own broker book). Pick up at Step 5/8 of `docs/handoffs/2026-05-18-green-energiai-onboarding.md`: DM Crystal a sign-in link for `greenenergiai.virecrm.com`, walk her through energy-broker UI (Pipeline / Clients tabs). Caziah onboarding = separate track once he's ready.
-- [ ] **Freeze old Lovable Supabase project** — Step 6 of migration handoff. Sequence: (1) confirm Crystal + Caziah both signed in on new DB, (2) revoke service-role key on old project (rotates anon too — any client still pointing at old DB goes 401), (3) verify Lovable preview at `genesisx.space` is down (DNS already moved per 2026-05-18 work — re-verify), (4) optional: Supabase pause (one-way after 30d) vs delete.
+- [ ] **[caziah-cameron] Onboard Caziah Cameron** — separate tenant from greenenergiai per org-split decision. Owns `8b8c76ab-…` (slug `caziah-cameron`) w/ 9198 leads + xlsx-enriched energy fields (his broker book). Old DB had `has_password=false` (likely social/magic-link only) so no bcrypt to preserve — `last_sign_in_at` field carries old-DB value 2026-05-19 01:05 from dump, no new-DB sign-in yet. When user decides to bring him onboard: DM magic-link to `cameroncaziah@gmail.com` for `caziah-cameron.virecrm.com`. Optional: rename slug to something Caziah picks before sending the link.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -483,10 +482,17 @@ Mid-flight check that migration was already done. ISSUES.md `## Open` still list
 - `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` — appended today's verification log under Step 3+4, flagged slug-flip in post-port follow-ups, marked Caziah-spot-check + Crystal own-org-slug follow-ups resolved.
 - `CLAUDE.md` + `AGENTS.md` `### og_database/` section — past-tensed migration line, repointed at handoff doc + this `## Recent` entry. Files still gitignored + read-not-cat rule still applies (dumps stay around until Step 6 freezes old project, then can be archived).
 
-#### Open follow-ups (not done in this session)
+#### Step 5 + Step 6 closed (same session, 2026-05-22)
 
-- Step 5 (DM Crystal sign-in link for `greenenergiai.virecrm.com`) — moved into `## Open [green-energiai]` item.
-- Step 6 (freeze old Lovable project) — moved into `## Open` "User action required".
+User confirmed mid-session that (a) Crystal received sign-in link + likely already changed temp password and (b) old Lovable Supabase project is gone — outside user's control, nothing to freeze.
+
+DB verification:
+- `crystal@greenenergiai.com` `last_sign_in_at` = 2026-05-20 22:51:19, `updated_at` = 2026-05-20 22:51:39 (20s gap → password-change event). Step 5 ✓
+- `cameroncaziah@gmail.com` `last_sign_in_at` = 2026-05-19 01:05:22 (dump-ported old-DB value, not new-DB sign-in), `has_password=false`. Caziah hasn't signed in on new DB yet — handled as separate "[caziah-cameron] Onboard Caziah Cameron" item in `## Open`.
+
+Step 6 = effectively done. Old Lovable project no longer accessible to user → revoke-key / pause / delete steps moot. Dumps in `og_database/` stay locally as historical reference; can be archived/deleted at user's discretion (not blocked on anything).
+
+`## Open` post-closure: green-energiai onboarding item removed (Crystal live), freeze-old-Lovable item removed (project gone), replaced with single `[caziah-cameron] Onboard Caziah Cameron` item flagging the remaining tenant-onboarding decision.
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]

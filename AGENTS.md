@@ -16,7 +16,9 @@ Each tenant: own user pool, own data, own theme (logo, colors, copy), own billin
 
 ### `og_database/` — legacy Lovable Supabase dumps (gitignored, never push)
 
-User dumped the OLD Lovable Supabase project to `og_database/` on 2026-05-19 as source-of-truth for the data migration to the current `coynbufhejaeuifpvmvw` project. Four files: auth dump (47k, 23 users, bcrypt hashes + PII), schema dump (382k), two full dumps (3.4M each, schema + COPY data). **Gitignored — never commit.** Use targeted `grep` / `sed` not `cat` (auth dump is bcrypt PII). Real Green EnergiAi staff (crystal, erica, shelby, mleaverton) + Cameron Caziah live in the old DB. **`cameroncaziah@gmail.com` last signed in to the old project on 2026-05-19 01:05 — old project still live for at least one user. Migration is time-sensitive.** Full plan + Crystal duplicate-account note in `ISSUES.md ## Open` "Lovable → fixed-DB data migration" section.
+OLD Lovable Supabase project dump, captured 2026-05-19. Four files: auth dump (47k, 23 users, bcrypt + PII), schema dump (382k), two full dumps (3.4M each, schema + COPY data). **Gitignored — never commit.** Use targeted `grep` / `sed` not `cat` (auth dump is bcrypt PII).
+
+**Migration ran 2026-05-19, verified live 2026-05-22.** Ported to `coynbufhejaeuifpvmvw`: auth.users w/ preserved UUIDs + bcrypt, two tenants split cleanly (Crystal = `188c4869-…` slug `greenenergiai`; Caziah = `8b8c76ab-…` slug `caziah-cameron`, separate tenant), ~14k leads w/ xlsx-enriched energy fields on Caziah's broker book. Dumps stay around until Step 6 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` freezes old Lovable project + archives them. Recent verification: `ISSUES.md ## Recent` 2026-05-22 entry.
 
 ### Legacy "reseller" code — don't strip in audits
 

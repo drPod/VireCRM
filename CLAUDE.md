@@ -35,11 +35,13 @@ Host migration history: Vercel was abandoned because the Lovable Vite preset emi
 
 ### `og_database/` — legacy Lovable Supabase dumps (gitignored)
 
-User dumped the OLD Lovable Supabase project to `og_database/` on 2026-05-19 as the source-of-truth for the data migration to the current `coynbufhejaeuifpvmvw` project. Four files: `genesis_auth_data.sql`, `genesis_database_schema.sql`, `genesis_database_full.sql`, `genesis_database_full_with_auth.sql`. Folder gitignored — **never commit**. The auth dump contains bcrypt password hashes + PII for 23 users, including real Green EnergiAi staff (crystal, erica, shelby, mleaverton) and `cameroncaziah@gmail.com` who last signed in to the OLD project on 2026-05-19 01:05 (the old project is still live for at least one user — migration is time-sensitive).
+OLD Lovable Supabase project dump, captured 2026-05-19. Four files: `genesis_auth_data.sql` (47k, 23 auth.users w/ bcrypt + PII), `genesis_database_schema.sql` (382k), `genesis_database_full.sql` (3.4M), `genesis_database_full_with_auth.sql` (3.4M). Folder gitignored — **never commit**.
 
-**Reading from it is fine** (planning migration, schema diffs, account reconciliation) — `grep`, `head`, `wc -l` ok. **Don't `cat` the full file into context** — auth dump is 47k of bcrypt hashes and full dumps are 3.4M each. Use targeted `grep` or `sed` line ranges.
+**Migration ran 2026-05-19, verified live 2026-05-22.** Data ported to current `coynbufhejaeuifpvmvw` project: auth.users w/ preserved UUIDs + bcrypt passwords, two tenants split cleanly (Crystal owns `188c4869-…` slug `greenenergiai`, Caziah owns separate tenant `8b8c76ab-…` slug `caziah-cameron`), ~14k leads total w/ xlsx-enriched energy fields on Caziah's broker book. Dumps stay around until Step 6 of `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md` freezes the old Lovable project + archives them.
 
-Full migration plan + Crystal duplicate-account note in `ISSUES.md ## Open` "Lovable → fixed-DB data migration" section.
+**Reading from it is fine** (audit, reconciliation, post-port verification) — `grep`, `head`, `wc -l` ok. **Don't `cat` the full file into context** — auth dump is 47k of bcrypt hashes, full dumps 3.4M each. Use targeted `grep` or `sed` line ranges.
+
+Migration log: `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Recent verification record: `ISSUES.md ## Recent` 2026-05-22 entry.
 
 ## What this product is (business model)
 

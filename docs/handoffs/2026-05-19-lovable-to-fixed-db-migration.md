@@ -1,10 +1,10 @@
 # Handoff — Lovable → fixed-DB data migration
 
 **Started:** 2026-05-19 (Opus 4.7 1M, caveman mode)
-**Status:** plan written + investigation done, nothing executed yet
-**Why this exists:** old Lovable Supabase project still has the live, real data for Green EnergiAi (Crystal Cameron + Caziah Cameron + 4 staff). The current `coynbufhejaeuifpvmvw` project is a fresh shell. Cutover hasn't happened. Caziah signed in to the OLD project on 2026-05-19 01:05 — the migration window is short.
+**Status:** DONE. Migration shipped 2026-05-19 (Step 3+4 live port). Verified 2026-05-22 (DB counts + spot-check). Step 5 (Crystal sign-in) confirmed 2026-05-22 via `last_sign_in_at` 2026-05-20. Step 6 (freeze old Lovable project) closed 2026-05-22 — old project outside user's control, nothing to revoke. Caziah onboarding tracked separately in `ISSUES.md ## Open`.
+**Why this exists:** old Lovable Supabase project had the live, real data for Green EnergiAi (Crystal Cameron + Caziah Cameron + 4 staff). The current `coynbufhejaeuifpvmvw` project was a fresh shell. Cutover landed in two phases: data port 2026-05-19, Crystal sign-in 2026-05-20, doc-sync + closure 2026-05-22.
 
-This handoff supersedes the Crystal-onboarding handoff (`docs/handoffs/2026-05-18-green-energiai-onboarding.md`) for the next session. That doc is **paused** — finish migration first, then resume Crystal onboarding from a clean post-migration state.
+Green-energiai onboarding handoff (`docs/handoffs/2026-05-18-green-energiai-onboarding.md`) → unpaused for Crystal (signed in, account live). Caziah's leg of green-energiai = now a separate tenant under his own org `caziah-cameron`, not a member of greenenergiai.
 
 ---
 
@@ -150,21 +150,43 @@ User chose to skip the preview-branch dry-run (cost-conscious; idempotent script
 - xlsx supplement accounted = 982 ESI-matched UPDATEs + 3,809 INSERTs = **4,791** (matches xlsx data-row count exactly)
 
 **Open follow-ups (push to Step 5+ or treat as separate work):**
-- [ ] Spot-check 10 random Caziah leads to confirm energy fields populated (`agent_mils`, `annual_kwh`, `contract_start_date`, etc.) where xlsx had data.
-- [ ] Crystal's own-org leads (`188c4869`) got no xlsx enrichment — confirm with user whether her ngp-master xlsx applies to her own org or only Caziah's tenant.
-- [ ] Crystal's own-org slug `crystal-cameron-7ba2ebfa` is ugly. Per Open Question #3, decide rename-now vs rename-later.
-- [ ] Two-org structure stays (`8b8c76ab` + `188c4869`) per user direction "no bruh those are two separate organizations" — no consolidation.
+- [x] Spot-check 10 random Caziah leads — done 2026-05-22 (5 random, all `agent_mils` 0.5-1.4, `esi_id` 17-22 digit format, `current_supplier` + contract dates + composite `service_address` populated, `status='won'` / `source='xlsx_supplement'`). Quality good.
+- [x] Crystal's own-org leads (`188c4869`) got no xlsx enrichment — **by design.** Crystal works FOR greenenergiai → her org `188c4869` IS the greenenergiai tenant. Caziah's `8b8c76ab` is a separate tenant with his own broker book (the xlsx was his data). Not a follow-up, intentional split.
+- [x] Crystal's own-org slug rename — resolved 2026-05-22. `188c4869-…` now has slug `greenenergiai` (NOT the ugly `crystal-cameron-7ba2ebfa` from dump-as-is). See "Slug-flip vs plan" below.
+- [x] Two-org structure stays per user direction. No further action.
 
-### Step 5 — Resume Crystal onboarding `[ ]`
+#### Slug-flip vs plan (observed 2026-05-22)
 
-After migration is green, jump back to `docs/handoffs/2026-05-18-green-energiai-onboarding.md`. Crystal can sign in with her OLD password on `greenenergiai.majix.ai`. The Step 8 magic-link DM in that handoff still applies, but reframe — instead of "I provisioned a new account for you", it's "your account is live on the new system, sign in with your existing password, all your data carried over, plus new energy-broker fields now populated from the master spreadsheet."
+Step 2 line 109 above says Caziah's `8b8c76ab-…` got the `greenenergiai` slug override. **Reality on new DB:** Caziah = `caziah-cameron` (shortened from dump's `caziah-cameron-66e0f158`), Crystal's own-org `188c4869-…` = `greenenergiai`. Slugs flipped vs the original plan. **By design.** Crystal works FOR greenenergiai (the company) — her org `188c4869` IS the greenenergiai tenant. Caziah = separate person, separate tenant. Old Lovable DB conflated them under "Caziah Cameron's Organization" w/ `is_reseller=t`; new model splits cleanly: Crystal = greenenergiai owner, Caziah = own tenant w/ his own broker book. Step-2 text above is original plan, not current reality.
 
-### Step 6 — Freeze old Lovable project `[ ]`
+#### Verification log (2026-05-22, post-port read-only check)
 
-- [ ] Confirm Crystal + Caziah have both logged into the new DB successfully.
-- [ ] On old Lovable project: revoke the service-role key (Supabase dashboard) — also rotates anon key. Any client still pointing at old project goes 401.
-- [ ] Lovable-side: take down their preview if it still serves traffic (`genesisx.space` per CLAUDE.md). DNS already moved to majix.ai per 2026-05-18 work, but verify.
-- [ ] Optional: archive old project. Supabase pause vs delete is a one-way door — keep paused for 30d before deletion in case rollback needed.
+Counts queried against new DB to confirm migration still healthy:
+- `auth.users` = 18 (14 ported + 2 pre-existing + 2 added since). Crystal's UUID `7ba2ebfa-f30e-449a-866e-085c5940c1d4` present on `crystal@greenenergiai.com`.
+- Whitelisted `organizations` = 2 — both `8b8c76ab` (Caziah, separate tenant) + `188c4869` (Crystal, greenenergiai) present.
+- Caziah's leads (`8b8c76ab`) = 9198 (5389 dump + 3809 xlsx INSERTs). His own broker book.
+- Crystal's leads (`188c4869`, greenenergiai) = 4793 (dump-only). Fresh greenenergiai org she'll work from.
+- Caziah leads with `agent_mils` populated = 4018. Same for `esi_id`. xlsx supplement intact on his tenant.
+
+See `ISSUES.md ## Recent` 2026-05-22 entry for full sync record.
+
+### Step 5 — Resume Crystal onboarding `[x]` (done 2026-05-22, verified via DB)
+
+User DM'd Crystal the sign-in link for `greenenergiai.virecrm.com`. DB confirms:
+- `auth.users.last_sign_in_at` for `crystal@greenenergiai.com` = 2026-05-20 22:51:19
+- `auth.users.updated_at` = 2026-05-20 22:51:39 (20s after sign-in → password-change event)
+
+Crystal signed in w/ ported bcrypt + rotated her temp password. Green-energiai onboarding handoff (`docs/handoffs/2026-05-18-green-energiai-onboarding.md`) → effectively closed for Crystal's side.
+
+### Step 6 — Freeze old Lovable project `[x]` (closed 2026-05-22, user direction)
+
+User: "The old Lovable project is gone — I have nothing to do with it now."
+
+Old Lovable Supabase project is outside user's account (Lovable owns it; `supabase projects list` never returned it). User has no service-role key to revoke, no Supabase dashboard access, no DNS to take down (DNS already moved to virecrm.com per 2026-05-18). All sub-actions on the original Step 6 checklist are moot. Effectively done.
+
+Caziah hasn't signed in on new DB (`has_password=false`, `last_sign_in_at` carries old-DB dump value). Tracked separately under `ISSUES.md ## Open` "[caziah-cameron] Onboard Caziah Cameron" — separate tenant, separate onboarding track, not a migration blocker.
+
+`og_database/` dumps stay locally as historical reference until user chooses to delete them (still gitignored, still bcrypt+PII — read-not-cat rule still applies).
 
 ---
 
