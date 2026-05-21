@@ -91,26 +91,24 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — Split ImportLeadsDialog parsing into lib/import
+### 2026-05-21 — Split _app.admin.tsx into per-panel components
 **Tags:** [audit] [frontend]
 
 #### Shipped
-
-- `src/components/crm/ImportLeadsDialog.tsx` slimmed 1,155 → 503 lines. Dialog now keeps only UI + React state; all parsing/building logic moved to importable modules.
-- `src/types/import.ts` — `ParsedLead`, `ParseIssue`, `ParseOutcome`, `RawSheet`, `IndexMap`.
-- `src/lib/import/headers.ts` — header dictionaries (NAME_HEADERS, EMAIL_HEADERS, …), `VALID_STATUSES`, `EMAIL_RE`, `normalizeHeader`, plus a new `detectColumnIndices` helper that replaces the 17-line `findIndex` block duplicated across the CSV and XLSX parsers.
-- `src/lib/import/csv-parser.ts` — `parseCSV`, `parseCSVLine`.
-- `src/lib/import/xlsx-parser.ts` — `parseXLSX`.
-- `src/lib/import/field-parsers.ts` — `parseAnnualKwh`, `parseCostPerKwh`, `parseMils`, `parseContractDate`.
-- `src/lib/import/builder.ts` — `buildLeadsFromIndices`, `buildLeadsFromAiMapping`.
-- `src/lib/import/__tests__/field-parsers.test.ts` — spot tests for the loose energy-broker parsers (kWh suffix, UK-first dates, Crystal's cents/mils heuristic, Excel serials). 14 new tests.
+- `src/routes/_app.admin.tsx` — reduced 2729 → 147 lines (route shell + AdminConsole tabs only)
+- `src/components/admin/FinancialsPanel.tsx` (376 lines) — extracted financials tab; inline StatCard (Unit 6 owns shared one); replaced local formatMoney with `@/lib/money`
+- `src/components/admin/OrganizationsPanel.tsx` (501 lines) — orgs tab + inline OrgBillingDetails; consumes admin-utils helpers
+- `src/components/admin/UsersPanel.tsx` (123 lines) — users tab; pre-existing `(r: any)` cast on :37 preserved per mechanical-split rule
+- `src/components/admin/ContactSubmissionsPanel.tsx` (1275 lines) — submissions tab + SubmissionPaymentHistory + SubmissionInvoicePanel + SuggestionSignals + suggestPlanForSubmission/suggestAmount
+- `src/components/admin/TemplateAuditPanel.tsx` (216 lines) — template audit tab
+- `src/types/admin.ts` — shared admin types (AdminOrgRow, OrgBillingSnapshot, AdminProfileRow, AdminSubmissionRow, PlatformInvoiceRow, PaymentHistoryResult, FinancialOverview, TemplateAuditRow)
+- `src/lib/admin-utils.ts` — `formatPlanPrice`, `planBadgeVariant`, `subStatusVariant`
 
 #### Verification
-
-- `bun run typecheck` — clean.
-- `bun run test` — 133 passed (was 119; +14 from new field-parser suite). No other tests changed behavior.
-- `bun run lint` — no new violations in any of the new files or the slimmed dialog. Pre-existing `supabase/functions/**` + `vite.config.ts` errors untouched.
-- `bun run build` — Vite/Wrangler build green.
+- typecheck — `bun run typecheck` clean
+- tests — `bun run test` 119/119 pass
+- build — `bun run build` succeeds (6.67s)
+- lint — only error in changed files is pre-existing `any` cast in UsersPanel:37, preserved per pure-mechanical-split rule
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
