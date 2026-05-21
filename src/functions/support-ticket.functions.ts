@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Note: userId / organizationId are intentionally NOT accepted from the
@@ -16,7 +16,7 @@ const submitSchema = z.object({
 });
 
 export const submitSupportTicket = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: unknown) => submitSchema.parse(input))
   .handler(async ({ data, context }) => {
     try {

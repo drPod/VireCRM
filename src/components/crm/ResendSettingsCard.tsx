@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useActionLock } from "@/hooks/useActionLock";
 import { useConfirm } from "@/hooks/useConfirm";
 import { Card } from "@/components/ui/card";
@@ -65,11 +65,11 @@ export function ResendSettingsCard() {
   const { organization, role } = useAuth();
   const isOwner = role?.role === "owner";
 
-  const getStatus = useAuthedServerFn(getResendStatusFn);
-  const saveSettings = useAuthedServerFn(saveResendSettingsFn);
-  const testConnection = useAuthedServerFn(testResendConnectionFn);
-  const disconnect = useAuthedServerFn(disconnectResendFn);
-  const sendTest = useAuthedServerFn(sendResendTestEmailFn);
+  const getStatus = useServerFn(getResendStatusFn);
+  const saveSettings = useServerFn(saveResendSettingsFn);
+  const testConnection = useServerFn(testResendConnectionFn);
+  const disconnect = useServerFn(disconnectResendFn);
+  const sendTest = useServerFn(sendResendTestEmailFn);
 
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<ResendStatus | null>(null);

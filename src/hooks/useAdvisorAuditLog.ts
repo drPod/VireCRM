@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -24,8 +24,8 @@ export interface UseAdvisorAuditLogResult {
 
 export function useAdvisorAuditLog(): UseAdvisorAuditLogResult {
   const { organization } = useAuth();
-  const list = useAuthedServerFn(listAdvisorAuditFn);
-  const getRetention = useAuthedServerFn(getAuditRetentionFn);
+  const list = useServerFn(listAdvisorAuditFn);
+  const getRetention = useServerFn(getAuditRetentionFn);
 
   const [entries, setEntries] = useState<AdvisorAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);

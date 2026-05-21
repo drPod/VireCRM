@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import type { Database } from "@/integrations/supabase/types";
 
 export interface EmailLogEntry {
@@ -29,7 +29,7 @@ function extractMeta(metadata: unknown): { subject: string | null; body_preview:
 }
 
 export const listRecentEmailLogsFn = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .handler(async ({ context }): Promise<EmailLogEntry[]> => {
     const { supabase, userId } = context;
 
@@ -116,7 +116,7 @@ export const listRecentEmailLogsFn = createServerFn({ method: "GET" })
  * Verifies the recipient email belongs to a lead inside their org.
  */
 export const listLeadEmailLogsFn = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: unknown): { email: string } => {
     if (!input || typeof input !== "object") throw new Error("Invalid input");
     const { email } = input as { email?: unknown };

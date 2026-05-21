@@ -21,7 +21,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertOrgMember } from "@/lib/auth-helpers";
 
@@ -231,7 +231,7 @@ const lookupSchema = z.object({
  * scoped to the configured zone.
  */
 export const provisionCustomHostnameFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof provisionSchema>) => provisionSchema.parse(input))
   .handler(async ({ data, context }): Promise<CustomHostnameSnapshot> => {
     const env = readCfEnv();
@@ -304,7 +304,7 @@ async function readExistingCfHostnameId(storage: {
  * badges. Returns null when we've never provisioned this hostname.
  */
 export const pollCustomHostnameStatusFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof lookupSchema>) => lookupSchema.parse(input))
   .handler(async ({ data, context }): Promise<CustomHostnameSnapshot | null> => {
     const env = readCfEnv();
@@ -343,7 +343,7 @@ export const pollCustomHostnameStatusFn = createServerFn({ method: "POST" })
  * or was never provisioned to begin with.
  */
 export const tearDownCustomHostnameFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof lookupSchema>) => lookupSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const env = readCfEnv();

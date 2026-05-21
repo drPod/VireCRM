@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callAiWithFallback, DEFAULT_TEXT_MODELS } from "@/lib/ai-gateway";
 import { logAdvisorExecution } from "@/lib/advisor-audit";
@@ -38,7 +38,7 @@ export interface ExecuteCommandResponse {
 // ---------- Server function: AI plan + execute ----------
 
 export const executeCommandActionsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof executeSchema>) => executeSchema.parse(input))
   .handler(async ({ data, context }): Promise<ExecuteCommandResponse> => {
     const { supabase, userId } = context;
@@ -316,7 +316,7 @@ GUARDRAILS — you must obey:
  * replay has a fresh execution ID and timestamp.
  */
 export const replayCommandPlanFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof replaySchema>) => replaySchema.parse(input))
   .handler(async ({ data, context }): Promise<ExecuteCommandResponse> => {
     const { supabase, userId } = context;

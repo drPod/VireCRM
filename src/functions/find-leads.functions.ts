@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { searchApolloPeople, revealApolloEmail, type ApolloError } from "@/lib/connectors/apollo";
@@ -43,7 +43,7 @@ function codedError(code: FindLeadsErrorCode, msg: string, meta?: Record<string,
 }
 
 export const findLeadsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth, requireActiveSubscription])
+  .middleware([requireAuth, requireActiveSubscription])
   .inputValidator((input: z.infer<typeof findLeadsSchema>) => findLeadsSchema.parse(input))
   .handler(
     async ({
@@ -513,7 +513,7 @@ export interface LeadUsage {
 }
 
 export const getLeadUsageFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof usageSchema>) => usageSchema.parse(input))
   .handler(async ({ data, context }): Promise<LeadUsage> => {
     const { supabase, userId } = context;
@@ -559,7 +559,7 @@ const recordImportSchema = z.object({
 });
 
 export const recordLeadImportFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof recordImportSchema>) => recordImportSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const { supabase, userId } = context;

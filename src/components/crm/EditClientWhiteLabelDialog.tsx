@@ -29,7 +29,7 @@ import {
   tearDownCustomHostnameFn,
 } from "@/functions/custom-hostnames.functions";
 import { isNotConfigured, describeError } from "@/lib/cf-saas-errors";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 
 interface Props {
   open: boolean;
@@ -56,8 +56,8 @@ export function EditClientWhiteLabelDialog({
   clientName,
   onSaved,
 }: Props) {
-  const provisionCf = useAuthedServerFn(provisionCustomHostnameFn);
-  const tearDownCf = useAuthedServerFn(tearDownCustomHostnameFn);
+  const provisionCf = useServerFn(provisionCustomHostnameFn);
+  const tearDownCf = useServerFn(tearDownCustomHostnameFn);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
