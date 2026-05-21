@@ -3,6 +3,7 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import { Logo } from "@/components/Logo";
 import { BusinessEmailBanner } from "@/components/marketing/BusinessEmailBanner";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
@@ -28,10 +29,8 @@ export function MarketingHeader() {
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.65_0.16_320)] text-lg font-extrabold text-primary-foreground shadow-[0_0_14px_-2px_var(--color-primary)] transition-[box-shadow,transform] duration-300 hover:shadow-[0_0_24px_-2px_var(--color-primary)] hover:scale-105">
-              M
-            </span>
-            <span className="text-lg font-bold text-gradient-primary">VireCRM</span>
+            <Logo />
+            <span className="text-lg font-bold text-foreground">VireCRM</span>
           </Link>
 
           {/* Desktop Nav */}
