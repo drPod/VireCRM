@@ -106,6 +106,34 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 #### Shipped
 - `src/functions/__tests__/_lead-sync-log.test.ts` (new, 200 LOC) — 7 tests covering `recordLeadSync()` contract: happy path, snake_case row-shape mapping, default counters, optional `metadata` passthrough, DB-error swallowed w/ `console.error`, thrown-exception swallowed w/ `console.error`, `quota_exceeded` status. Mocks `supabaseAdmin.from().insert()` via `vi.mock` of `@/integrations/supabase/client.server`; module-scoped `inserted[]` captures each row. Direct insert mock (not chain-recording Proxy) because target only calls `.from().insert()` — no chain. `vi.mocked(console.error)` for typed mock access.
 - Full suite: `bun run test` → 6 files, 150 tests passing.
+### 2026-05-22 — Unit tests for `src/lib/server-fn-auth.ts`
+**Tags:** [test] [auth]
+
+#### Shipped
+- `src/lib/__tests__/server-fn-auth.test.ts` — 19 tests across 4 describe blocks: `isAuthError` status/cause/regex matrix, `SessionExpiredError` shape, `handleAuthError` toast + redirect + 3s debounce + `/login` short-circuit + URL encoding of `next`, `getServerFnAuthHeaders` token forwarding + missing-session SessionExpiredError throw. Mocks `sonner.toast.error` and `supabase.auth.getSession`. Uses `vi.useFakeTimers()` to step past the 600ms redirect setTimeout deterministically. Module-level `lastSignInToastAt` reset via `vi.resetModules()` between tests so debounce doesn't bleed.
+
+#### Verification
+- `bun run test src/lib/__tests__/server-fn-auth.test.ts` — 19/19 green.
+- `bun run test` — full suite 162/162 green (6 files).
+### 2026-05-22 — Unit tests for GlobalAuthErrorListener
+**Tags:** [tests] [auth]
+
+#### Shipped
+- `src/components/__tests__/GlobalAuthErrorListener.test.tsx` — 6 specs covering mount/unmount listener registration, listener-reference equality on cleanup (no leaks), and `handleAuthError` invocation for both auth-shaped + non-auth `unhandledrejection`/`error` events. Mount via `createRoot` inside React 19 `act()` since `@testing-library/react` not in this repo. Mocks `@/lib/server-fn-auth` via `vi.mock`.
+
+#### Verification
+- `bun run test src/components/__tests__/GlobalAuthErrorListener.test.tsx` — 6/6 green.
+- `bun run test` — full suite 6 files / 149 tests green.
+### 2026-05-22 — Unit tests for `src/lib/stripe.ts` (env detection + loader singleton)
+**Tags:** [tests] [billing] [stripe]
+
+#### Shipped
+- `src/lib/__tests__/stripe.test.ts` (new, 9 tests) — covers `getStripeEnvironment()` returning `live` only for `pk_live_*` prefix and `sandbox` for `pk_test_*` / empty / malformed; `isStripeConfigured()` true/false branches; `getStripe()` throw on missing token, `loadStripe` invocation with the configured key, and singleton memoization (same promise across 3 calls, `loadStripe` called exactly once).
+- Pattern: `vi.resetModules()` + dynamic `await import("../stripe")` per test because `clientToken` is captured at module-load from `import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN` (line 3 of `src/lib/stripe.ts`) and `stripePromise` is a module-level singleton. `@stripe/stripe-js` mocked module-wide so loader never hits the real script injection in jsdom.
+
+#### Verification
+- `bun run test src/lib/__tests__/stripe.test.ts` — 9/9 passing.
+- `bun run test` — full suite 152/152 passing across 6 files.
 ### 2026-05-22 — Consolidate three auth middleware patterns into `src/auth/`
 **Tags:** [refactor] [auth] [tanstack-start]
 
