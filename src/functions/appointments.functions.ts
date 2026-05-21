@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertOrgMember } from "@/lib/auth-helpers";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
@@ -149,21 +150,6 @@ function emptyAvailability(): Availability {
   }, {} as Availability);
 }
 
-async function ensureMember(
-  supabase: ReturnType<typeof createClient<Database>>,
-  userId: string,
-  organizationId: string,
-) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!profile || profile.organization_id !== organizationId) {
-    throw new Error("Unauthorized: not a member of this organization");
-  }
-}
-
 // ---------- Calendars ----------
 
 export const listCalendarsFn = createServerFn({ method: "POST" })
@@ -171,7 +157,7 @@ export const listCalendarsFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof orgScope>) => orgScope.parse(input))
   .handler(async ({ data, context }): Promise<CalendarRow[]> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { data: rows, error } = await supabase
       .from("calendars")
@@ -221,7 +207,7 @@ export const upsertCalendarFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<CalendarRow> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { id, organizationId, access_password, ...fields } = data;
 
@@ -285,7 +271,7 @@ export const deleteCalendarFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { error } = await supabase
       .from("calendars")
@@ -307,7 +293,7 @@ export const listAppointmentsFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<AppointmentRow[]> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     let q = supabase
       .from("appointments")
@@ -353,7 +339,7 @@ export const createAppointmentFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<AppointmentRow> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { data: row, error } = await supabase
       .from("appointments")
@@ -383,7 +369,7 @@ export const cancelAppointmentFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { error } = await supabase
       .from("appointments")

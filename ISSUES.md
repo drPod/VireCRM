@@ -91,6 +91,22 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-21 — Dedup ensureMember to assertOrgMember
+**Tags:** [audit] [security]
+
+#### Shipped
+- `src/functions/outreach-sequences.functions.ts:68` — deleted local `ensureMember(supabase: any, ...)`; imported `assertOrgMember` from `@/lib/auth-helpers`; swapped 11 call sites.
+- `src/functions/outreach-templates.functions.ts:56` — deleted local `ensureMember(supabase: any, ...)`; imported `assertOrgMember`; swapped 3 call sites.
+- `src/functions/appointments.functions.ts:152` — deleted local `ensureMember` (was typed against `ReturnType<typeof createClient<Database>>`); imported `assertOrgMember`; swapped 6 call sites.
+- Bodies of all three locals were byte-identical to canonical — same `profiles.organization_id` lookup, same error string ("Unauthorized: not a member of this organization"). No behavior change. Canonical is properly typed (`SupabaseClient`, no `any`), so refactor drops two `any` parameter types.
+
+#### Verification
+- `bun run typecheck` → clean.
+- `bun run test` → 119/119 passed.
+- `bun run build` → succeeded.
+- `bun run lint` → pre-existing errors only in changed files (prettier formatting + `any` casts in code paths I did not touch). Refactor introduced zero new lint errors.
+- Skipped browser e2e per unit recipe (server-function-only change, no UI render path).
+
 ### 2026-05-21 — Move misplaced server fns to src/functions/
 **Tags:** [audit] [lovable-migration]
 

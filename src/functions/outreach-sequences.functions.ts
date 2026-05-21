@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertOrgMember } from "@/lib/auth-helpers";
 import { z } from "zod";
 
 /**
@@ -65,17 +66,6 @@ export interface StepLogRow {
 const orgScope = z.object({ organizationId: z.string().uuid() });
 const seqScope = orgScope.extend({ sequenceId: z.string().uuid() });
 
-async function ensureMember(supabase: any, userId: string, organizationId: string) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!profile || profile.organization_id !== organizationId) {
-    throw new Error("Unauthorized: not a member of this organization");
-  }
-}
-
 // ---------- Sequences ----------
 
 export const listSequencesFn = createServerFn({ method: "POST" })
@@ -83,7 +73,7 @@ export const listSequencesFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof orgScope>) => orgScope.parse(input))
   .handler(async ({ data, context }): Promise<OutreachSequence[]> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { data: rows, error } = await supabase
       .from("outreach_sequences")
@@ -134,7 +124,7 @@ export const upsertSequenceFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<OutreachSequence> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { id, organizationId, ...fields } = data;
 
@@ -166,7 +156,7 @@ export const deleteSequenceFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { error } = await supabase
       .from("outreach_sequences")
@@ -184,7 +174,7 @@ export const listStepsFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
   .handler(async ({ data, context }): Promise<OutreachSequenceStep[]> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { data: rows, error } = await supabase
       .from("outreach_sequence_steps")
@@ -212,7 +202,7 @@ export const upsertStepFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof upsertStepSchema>) => upsertStepSchema.parse(input))
   .handler(async ({ data, context }): Promise<OutreachSequenceStep> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { id, organizationId, sequenceId, ...fields } = data;
     const payload = {
@@ -249,7 +239,7 @@ export const deleteStepFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { error } = await supabase
       .from("outreach_sequence_steps")
@@ -267,7 +257,7 @@ export const listEnrollmentsFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
   .handler(async ({ data, context }): Promise<SequenceEnrollment[]> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { data: rows, error } = await supabase
       .from("outreach_sequence_enrollments")
@@ -302,7 +292,7 @@ export const enrollLeadsFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof enrollSchema>) => enrollSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ enrolled: number }> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { data: firstStep } = await supabase
       .from("outreach_sequence_steps")
@@ -352,7 +342,7 @@ export const updateEnrollmentStatusFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const update: {
       status: string;
@@ -386,7 +376,7 @@ export const listSequenceLogFn = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof seqScope>) => seqScope.parse(input))
   .handler(async ({ data, context }): Promise<StepLogRow[]> => {
     const { supabase, userId } = context;
-    await ensureMember(supabase, userId, data.organizationId);
+    await assertOrgMember(supabase, userId, data.organizationId);
 
     const { data: rows, error } = await supabase
       .from("outreach_sequence_step_log")
