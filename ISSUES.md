@@ -100,6 +100,17 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Unit tests for `src/lib/auth-helpers.ts`
+**Tags:** [tests] [auth] [supabase]
+
+#### Shipped
+- `src/lib/__tests__/auth-helpers.test.ts` (new, 168 LOC) — 10 cases covering `assertOrgMember` + `assertOwner`. Per-test configurable recording-chain Supabase fake (Proxy-based, adapted from `pipeline-org-scoping.test.ts:54-62`). Asserts both throw semantics + query shape (table, `.eq()` filter args).
+- Happy paths, mismatched-org rejection, missing-row rejection, null `organization_id`, Supabase-error path (locks in current "data-only inspection" behaviour — error surfaces as the Unauthorized/not-owner message), empty-string orgId validation edges.
+
+#### Verification
+- `bun run test src/lib/__tests__/auth-helpers.test.ts` — 10/10 passed.
+- `bun run test` — full suite 153/153 passed across 6 files. No regression in `pipeline-org-scoping`, `pipeline-counts`, `submission-helpers`, or the other suites.
+
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
