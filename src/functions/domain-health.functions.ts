@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { PLATFORM_DOMAIN } from "@/config/domains";
@@ -263,7 +264,8 @@ export const checkDomainHealth = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!profile || profile.organization_id !== data.organizationId) {
-      throw new Response("Forbidden", { status: 403 });
+      setResponseStatus(403);
+      throw new Error("Forbidden");
     }
 
     const { data: domains, error } = await admin
@@ -274,7 +276,7 @@ export const checkDomainHealth = createServerFn({ method: "POST" })
       .order("created_at", { ascending: true });
 
     if (error) {
-      throw new Response(error.message, { status: 500 });
+      throw new Error(error.message);
     }
 
     const verified = (domains ?? []).filter((d) => d.verified_at);

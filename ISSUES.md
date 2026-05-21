@@ -120,6 +120,15 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — admin/platform server fns: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [admin]
+
+#### Shipped
+- `src/functions/quote-pdf.functions.ts:66,315` — `setResponseStatus(401)` before platform-admin auth throws.
+- `src/functions/admin-quote-email.functions.ts:46` — `setResponseStatus(401)` before platform-admin auth throw.
+- `src/functions/test-email.functions.ts:117` — `setResponseStatus(403)` before owner-only role throw.
+- Clients can now branch on 401 vs 403 vs 500 instead of seeing generic 500 for every failure.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
