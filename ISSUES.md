@@ -100,6 +100,25 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Unit tests for subscription-middleware (entitlement gate)
+**Tags:** [tests] [billing] [auth]
+
+#### Shipped
+- `src/integrations/supabase/__tests__/subscription-middleware.test.ts` — 25 tests covering `requireActiveSubscription`:
+  - Middleware shape: `createMiddleware({ type: "function" }).middleware([requireSupabaseAuth]).server(...)`, reads `context.userId`.
+  - Owner-level path: active/trialing with future or null `current_period_end` → allow; expired (past period_end) → 402.
+  - ACTIVE_STATUSES bucketing: `active` + `trialing` allowed, `past_due` / `canceled` / `incomplete` / `incomplete_expired` / `unpaid` blocked (excluded by DB `.in()` filter).
+  - Org-level fallback: no own sub + org owner has active sub → allow; scopes `user_roles` lookup by `organization_id` + `role="owner"`; blocks when org has no owners, profile missing, owner rows have null `user_id`, or no owners have active subs.
+  - Fail-closed (403): every DB error path — own-sub, profile, user_roles, owner-subs.
+
+#### Verification
+- `bun run test src/integrations/supabase/__tests__/subscription-middleware.test.ts` → 25/25 pass.
+- `bun run test` → 168/168 pass across 6 files.
+- `bun run typecheck` → clean.
+
+#### Manual follow-up (user)
+- None.
+
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
