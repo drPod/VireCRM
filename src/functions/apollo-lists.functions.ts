@@ -12,7 +12,7 @@ import {
   revealApolloEmail,
   type ApolloError,
   type ApolloPerson,
-} from "@/lib/apollo";
+} from "@/lib/connectors/apollo";
 import { assertOrgMember } from "@/lib/auth-helpers";
 import { z } from "zod";
 import { recordLeadSync } from "./_lead-sync-log";

@@ -2,9 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireActiveSubscription } from "@/integrations/supabase/subscription-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { searchApolloPeople, revealApolloEmail, type ApolloError } from "@/lib/apollo";
-import { searchHunterDomain, type HunterError } from "@/lib/hunter";
-import { searchSnovDomain, type SnovError } from "@/lib/snov";
+import { searchApolloPeople, revealApolloEmail, type ApolloError } from "@/lib/connectors/apollo";
+import { searchHunterDomain, type HunterError } from "@/lib/connectors/hunter";
+import { searchSnovDomain, type SnovError } from "@/lib/connectors/snov";
 import { z } from "zod";
 import { recordLeadSync } from "./_lead-sync-log";
 

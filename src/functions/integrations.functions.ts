@@ -6,9 +6,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { verifyApolloKey } from "@/lib/apollo";
-import { verifyHunterKey } from "@/lib/hunter";
-import { verifySnovKey } from "@/lib/snov";
+import { verifyApolloKey } from "@/lib/connectors/apollo";
+import { verifyHunterKey } from "@/lib/connectors/hunter";
+import { verifySnovKey } from "@/lib/connectors/snov";
 import { verifySendgridKey } from "@/lib/sendgrid";
 import { assertOwner } from "@/lib/auth-helpers";
 import { z } from "zod";
