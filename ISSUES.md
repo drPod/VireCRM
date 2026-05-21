@@ -109,6 +109,66 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 #### Verification
 - `bun run test src/functions/__tests__/apollo-lists.test.ts` — 13/13 green.
 - `bun run test` — full suite 156/156 green (6 files).
+### 2026-05-22 — Unit tests for subscription-middleware (entitlement gate)
+**Tags:** [tests] [billing] [auth]
+
+#### Shipped
+- `src/integrations/supabase/__tests__/subscription-middleware.test.ts` — 25 tests covering `requireActiveSubscription`:
+  - Middleware shape: `createMiddleware({ type: "function" }).middleware([requireSupabaseAuth]).server(...)`, reads `context.userId`.
+  - Owner-level path: active/trialing with future or null `current_period_end` → allow; expired (past period_end) → 402.
+  - ACTIVE_STATUSES bucketing: `active` + `trialing` allowed, `past_due` / `canceled` / `incomplete` / `incomplete_expired` / `unpaid` blocked (excluded by DB `.in()` filter).
+  - Org-level fallback: no own sub + org owner has active sub → allow; scopes `user_roles` lookup by `organization_id` + `role="owner"`; blocks when org has no owners, profile missing, owner rows have null `user_id`, or no owners have active subs.
+  - Fail-closed (403): every DB error path — own-sub, profile, user_roles, owner-subs.
+
+#### Verification
+- `bun run test src/integrations/supabase/__tests__/subscription-middleware.test.ts` → 25/25 pass.
+- `bun run test` → 168/168 pass across 6 files.
+- `bun run typecheck` → clean.
+### 2026-05-22 — B3 unit tests for billing proration estimator
+**Tags:** [test] [billing] [stripe]
+
+#### Shipped
+- `src/lib/billing-proration.ts` (new) — extracted pure `estimateProration` from inline def at `src/routes/_app.billing.tsx:64-82`. Same signature, same behaviour. `ProrationArgs` + `ProrationResult` interfaces exported alongside.
+- `src/routes/_app.billing.tsx` — inline function removed, replaced with `import { estimateProration } from "@/lib/billing-proration"`. Only call site at line ~294 unchanged.
+- `src/lib/__tests__/billing-proration.test.ts` (new) — 14 tests covering same-tier (zero), upgrade mid-cycle (proportional), downgrade (zero today), same-day switch (full delta), end-of-cycle (1 day remaining → small charge), missing/null/unparseable dates (null), degenerate cycle (end <= start → null), and cycleDays-min-1 clamp. Vitest fake timers freeze `Date.now()`.
+
+#### Verification
+- `bun run test` → 6 files / 157 tests pass (was 143, +14).
+- `bun run typecheck` → clean.
+### 2026-05-22 — Unit tests: `_lead-sync-log.ts` audit-writer
+**Tags:** [audit] [test]
+
+#### Shipped
+- `src/functions/__tests__/_lead-sync-log.test.ts` (new, 200 LOC) — 7 tests covering `recordLeadSync()` contract: happy path, snake_case row-shape mapping, default counters, optional `metadata` passthrough, DB-error swallowed w/ `console.error`, thrown-exception swallowed w/ `console.error`, `quota_exceeded` status. Mocks `supabaseAdmin.from().insert()` via `vi.mock` of `@/integrations/supabase/client.server`; module-scoped `inserted[]` captures each row. Direct insert mock (not chain-recording Proxy) because target only calls `.from().insert()` — no chain. `vi.mocked(console.error)` for typed mock access.
+- Full suite: `bun run test` → 6 files, 150 tests passing.
+### 2026-05-22 — Unit tests for `src/lib/server-fn-auth.ts`
+**Tags:** [test] [auth]
+
+#### Shipped
+- `src/lib/__tests__/server-fn-auth.test.ts` — 19 tests across 4 describe blocks: `isAuthError` status/cause/regex matrix, `SessionExpiredError` shape, `handleAuthError` toast + redirect + 3s debounce + `/login` short-circuit + URL encoding of `next`, `getServerFnAuthHeaders` token forwarding + missing-session SessionExpiredError throw. Mocks `sonner.toast.error` and `supabase.auth.getSession`. Uses `vi.useFakeTimers()` to step past the 600ms redirect setTimeout deterministically. Module-level `lastSignInToastAt` reset via `vi.resetModules()` between tests so debounce doesn't bleed.
+
+#### Verification
+- `bun run test src/lib/__tests__/server-fn-auth.test.ts` — 19/19 green.
+- `bun run test` — full suite 162/162 green (6 files).
+### 2026-05-22 — Unit tests for GlobalAuthErrorListener
+**Tags:** [tests] [auth]
+
+#### Shipped
+- `src/components/__tests__/GlobalAuthErrorListener.test.tsx` — 6 specs covering mount/unmount listener registration, listener-reference equality on cleanup (no leaks), and `handleAuthError` invocation for both auth-shaped + non-auth `unhandledrejection`/`error` events. Mount via `createRoot` inside React 19 `act()` since `@testing-library/react` not in this repo. Mocks `@/lib/server-fn-auth` via `vi.mock`.
+
+#### Verification
+- `bun run test src/components/__tests__/GlobalAuthErrorListener.test.tsx` — 6/6 green.
+- `bun run test` — full suite 6 files / 149 tests green.
+### 2026-05-22 — Unit tests for `src/lib/stripe.ts` (env detection + loader singleton)
+**Tags:** [tests] [billing] [stripe]
+
+#### Shipped
+- `src/lib/__tests__/stripe.test.ts` (new, 9 tests) — covers `getStripeEnvironment()` returning `live` only for `pk_live_*` prefix and `sandbox` for `pk_test_*` / empty / malformed; `isStripeConfigured()` true/false branches; `getStripe()` throw on missing token, `loadStripe` invocation with the configured key, and singleton memoization (same promise across 3 calls, `loadStripe` called exactly once).
+- Pattern: `vi.resetModules()` + dynamic `await import("../stripe")` per test because `clientToken` is captured at module-load from `import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN` (line 3 of `src/lib/stripe.ts`) and `stripePromise` is a module-level singleton. `@stripe/stripe-js` mocked module-wide so loader never hits the real script injection in jsdom.
+
+#### Verification
+- `bun run test src/lib/__tests__/stripe.test.ts` — 9/9 passing.
+- `bun run test` — full suite 152/152 passing across 6 files.
 ### 2026-05-22 — Consolidate three auth middleware patterns into `src/auth/`
 **Tags:** [refactor] [auth] [tanstack-start]
 
