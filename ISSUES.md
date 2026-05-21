@@ -100,6 +100,19 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Unit tests for GlobalAuthErrorListener
+**Tags:** [tests] [auth]
+
+#### Shipped
+- `src/components/__tests__/GlobalAuthErrorListener.test.tsx` — 6 specs covering mount/unmount listener registration, listener-reference equality on cleanup (no leaks), and `handleAuthError` invocation for both auth-shaped + non-auth `unhandledrejection`/`error` events. Mount via `createRoot` inside React 19 `act()` since `@testing-library/react` not in this repo. Mocks `@/lib/server-fn-auth` via `vi.mock`.
+
+#### Verification
+- `bun run test src/components/__tests__/GlobalAuthErrorListener.test.tsx` — 6/6 green.
+- `bun run test` — full suite 6 files / 149 tests green.
+
+#### Manual follow-up (user)
+- None.
+
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
