@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listConnectorsFn,
   refreshConnectorStatusFn,
@@ -38,8 +38,8 @@ export function useConnectorStatus({
   organizationId,
   isOwner,
 }: UseConnectorStatusArgs): UseConnectorStatusResult {
-  const listConnectors = useAuthedServerFn(listConnectorsFn);
-  const refreshConnectorStatus = useAuthedServerFn(refreshConnectorStatusFn);
+  const listConnectors = useServerFn(listConnectorsFn);
+  const refreshConnectorStatus = useServerFn(refreshConnectorStatusFn);
 
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState<Record<string, ConnectorStatus>>({});

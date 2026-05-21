@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Workflow, ExternalLink, Save } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   getN8nConfigFn,
   saveN8nConfigFn,
@@ -44,8 +44,8 @@ const ALL_TYPES: N8nActionType[] = [
 ];
 
 export function N8nWebhookSettings() {
-  const getConfig = useAuthedServerFn(getN8nConfigFn);
-  const saveConfig = useAuthedServerFn(saveN8nConfigFn);
+  const getConfig = useServerFn(getN8nConfigFn);
+  const saveConfig = useServerFn(saveN8nConfigFn);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

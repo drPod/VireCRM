@@ -9,7 +9,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { callGateway } from "@/lib/connectors/gateway";
 import { getConnector } from "@/lib/connectors/catalog";
@@ -91,7 +91,7 @@ const slackSchema = z.object({
 });
 
 export const sendSlackMessageFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof slackSchema>) => slackSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { meta } = await assertMemberAndConnector(context.userId, data.organizationId, "slack");
@@ -147,7 +147,7 @@ const teamsSchema = z.object({
 });
 
 export const sendTeamsMessageFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof teamsSchema>) => teamsSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { meta } = await assertMemberAndConnector(
@@ -203,7 +203,7 @@ const smsSchema = z.object({
 });
 
 export const sendTwilioSmsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof smsSchema>) => smsSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { meta, config } = await assertMemberAndConnector(
@@ -264,7 +264,7 @@ const outlookSchema = z.object({
 });
 
 export const sendOutlookEmailFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof outlookSchema>) => outlookSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { meta } = await assertMemberAndConnector(
@@ -335,7 +335,7 @@ const linearSchema = z.object({
 });
 
 export const createLinearIssueFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof linearSchema>) => linearSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { meta } = await assertMemberAndConnector(context.userId, data.organizationId, "linear");
@@ -406,7 +406,7 @@ const hubspotSchema = z.object({
 });
 
 export const importHubspotContactsFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof hubspotSchema>) => hubspotSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { meta } = await assertMemberAndConnector(context.userId, data.organizationId, "hubspot");
@@ -531,7 +531,7 @@ function buildGmailRawMessage(opts: { from?: string; to: string; subject: string
 }
 
 export const sendGmailFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof gmailSchema>) => gmailSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { meta, config } = await assertMemberAndConnector(
@@ -615,7 +615,7 @@ function plainTextToHtml(body: string): string {
 }
 
 export const sendSendgridLeadEmailFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof sendgridSchema>) => sendgridSchema.parse(input))
   .handler(async ({ data, context }) => {
     // Membership check
@@ -710,7 +710,7 @@ export interface LeadEmailProvider {
 }
 
 export const listLeadEmailProvidersFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof listEmailProvidersSchema>) =>
     listEmailProvidersSchema.parse(input),
   )
@@ -785,7 +785,7 @@ const sendTestEmailSchema = z.object({
 });
 
 export const sendTestEmailFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof sendTestEmailSchema>) => sendTestEmailSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ ok: true; messageId: string | null }> => {
     // Owner-only — same gate as the rest of the Integrations settings.

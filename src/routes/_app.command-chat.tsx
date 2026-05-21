@@ -11,7 +11,7 @@ import {
   Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { executeCommandFn, type CommandPlan } from "@/functions/command.functions";
 import {
   executeCommandActionsFn,
@@ -71,8 +71,8 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
 
 function CommandChat() {
   const router = useRouter();
-  const planFn = useAuthedServerFn(executeCommandFn);
-  const runFn = useAuthedServerFn(executeCommandActionsFn);
+  const planFn = useServerFn(executeCommandFn);
+  const runFn = useServerFn(executeCommandActionsFn);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
