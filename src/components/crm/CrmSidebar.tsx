@@ -22,7 +22,6 @@ import {
   Menu,
   X,
   TrendingUp,
-  Wallet,
   Inbox,
   Globe,
   Send,
@@ -91,8 +90,6 @@ export function CrmSidebar() {
 
   const brandName = organization?.brand_name || "VireCRM";
   const logoUrl = organization?.logo_url;
-  const isReseller = !!(organization as { is_reseller?: boolean } | null)?.is_reseller;
-  const isOwner = role?.role === "owner";
 
   // Industry-aware module list. The owner picks a template in onboarding;
   // we surface industry-specific modules + relabel "Leads" using that
@@ -211,7 +208,6 @@ export function CrmSidebar() {
       label: "Revenue",
       items: [
         { to: "/revenue", icon: TrendingUp, label: "Revenue" },
-        { to: "/payouts", icon: Wallet, label: "Payouts" },
         { to: "/expenses", icon: Receipt, label: "Expenses" },
         { to: "/invoices", icon: FileText, label: "Invoices" },
       ],
@@ -228,12 +224,6 @@ export function CrmSidebar() {
       items: [
         { to: "/academy", icon: GraduationCap, label: "Academy" },
         { to: "/billing", icon: CreditCard, label: "Billing" },
-        // Legacy reseller-mgmt page (Lovable scaffold). Renamed from "Clients"
-        // to avoid collision with the new universal `/book` Clients link in
-        // the Overview section. Underlying route + UI unchanged.
-        ...(isReseller && isOwner
-          ? [{ to: "/clients", icon: Building2, label: "Sub-accounts" }]
-          : []),
         ...(isPlatformAdmin ? [{ to: "/admin", icon: Crown, label: "Platform Admin" }] : []),
       ],
     },
