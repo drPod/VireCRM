@@ -106,6 +106,19 @@ export function CrmSidebar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
+  // Allow external callers (e.g. ProductTour) to open/close the drawer
+  // programmatically via custom events so tour highlights are visible on mobile.
+  useEffect(() => {
+    const openHandler = () => setMobileOpen(true);
+    const closeHandler = () => setMobileOpen(false);
+    window.addEventListener("virecrm:open-sidebar", openHandler);
+    window.addEventListener("virecrm:close-sidebar", closeHandler);
+    return () => {
+      window.removeEventListener("virecrm:open-sidebar", openHandler);
+      window.removeEventListener("virecrm:close-sidebar", closeHandler);
+    };
+  }, []);
+
   // Lock body scroll when drawer is open. Snapshot the original overflow once
   // on mount — recapturing per render risks stranding `hidden` if another
   // component (Radix Dialog, etc.) toggled overflow between drawer open/close.

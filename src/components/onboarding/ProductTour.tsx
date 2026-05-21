@@ -69,6 +69,23 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     if (open) setIndex(0);
   }, [open]);
 
+  // On mobile viewports, open the sidebar drawer so nav targets are in the DOM
+  // and visible when the tour runs. Close it again when the tour closes.
+  // Capture isMobile at effect run time so the cleanup uses the same value
+  // even if the user resizes between tour open and tour close.
+  useEffect(() => {
+    if (!open) return;
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile) {
+      window.dispatchEvent(new Event("virecrm:open-sidebar"));
+    }
+    return () => {
+      if (isMobile) {
+        window.dispatchEvent(new Event("virecrm:close-sidebar"));
+      }
+    };
+  }, [open]);
+
   // Track viewport size for repositioning.
   useEffect(() => {
     if (!open) return;
@@ -142,6 +159,11 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
   const total = steps.length;
   const isLast = index === total - 1;
 
+  // On narrow viewports cap the tooltip so it doesn't overflow the screen edge.
+  // Fall back to TOOLTIP_WIDTH when viewport hasn't been measured yet (w === 0).
+  const effectiveTooltipWidth =
+    viewport.w > 0 ? Math.min(TOOLTIP_WIDTH, viewport.w - 24) : TOOLTIP_WIDTH;
+
   // Compute tooltip position based on placement + viewport.
   const tooltipStyle: React.CSSProperties = (() => {
     if (isCenter || !rect) {
@@ -150,7 +172,7 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        width: TOOLTIP_WIDTH,
+        width: effectiveTooltipWidth,
         zIndex: 10001,
       };
     }
@@ -158,11 +180,11 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
     // Auto-flip if it would overflow.
     if (
       placement === "right" &&
-      rect.left + rect.width + TOOLTIP_GAP + TOOLTIP_WIDTH > viewport.w
+      rect.left + rect.width + TOOLTIP_GAP + effectiveTooltipWidth > viewport.w
     ) {
       placement = "left";
     }
-    if (placement === "left" && rect.left - TOOLTIP_GAP - TOOLTIP_WIDTH < 0) {
+    if (placement === "left" && rect.left - TOOLTIP_GAP - effectiveTooltipWidth < 0) {
       placement = "bottom";
     }
     if (placement === "bottom" && rect.top + rect.height + TOOLTIP_GAP + 180 > viewport.h) {
@@ -179,21 +201,21 @@ export function ProductTour({ steps, open, userId, onClose }: ProductTourProps) 
       left = rect.left + rect.width + TOOLTIP_GAP;
     } else if (placement === "left") {
       top = rect.top + rect.height / 2 - 90;
-      left = rect.left - TOOLTIP_GAP - TOOLTIP_WIDTH;
+      left = rect.left - TOOLTIP_GAP - effectiveTooltipWidth;
     } else if (placement === "bottom") {
       top = rect.top + rect.height + TOOLTIP_GAP;
-      left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+      left = rect.left + rect.width / 2 - effectiveTooltipWidth / 2;
     } else {
       top = rect.top - TOOLTIP_GAP - 180;
-      left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+      left = rect.left + rect.width / 2 - effectiveTooltipWidth / 2;
     }
     top = clamp(top, 12, viewport.h - 200);
-    left = clamp(left, 12, viewport.w - TOOLTIP_WIDTH - 12);
+    left = clamp(left, 12, viewport.w - effectiveTooltipWidth - 12);
     return {
       position: "fixed",
       top,
       left,
-      width: TOOLTIP_WIDTH,
+      width: effectiveTooltipWidth,
       zIndex: 10001,
     };
   })();
