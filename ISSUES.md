@@ -100,6 +100,21 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Fix test typecheck + apollo-lists runtime after auth consolidation
+**Tags:** [tests] [typecheck] [apollo] [auth]
+
+#### Shipped
+- `src/lib/__tests__/server-fn-auth.test.ts` — type `assignMock` as `Mock<(url: string | URL) => void>` so it unifies with `Location["assign"]`. Four `setLocation({ assign: assignMock })` sites now typecheck.
+- `src/components/__tests__/GlobalAuthErrorListener.test.tsx` — annotate `c` as `unknown[]` on six `addSpy.mock.calls.map/find` lambdas. Drops vitest 4 `Procedure | Constructable` calls-tuple inference issue.
+- `src/functions/__tests__/apollo-lists.test.ts` — type all spies with `Mock<(...args: any[]) => any>` alias so `.mock.calls[i]` destructures + spread-into-mock works. Add missing `vi.mock("@/auth/server", …)` (canonical path post commit `fe629ca`'s auth consolidation), add `createMiddleware` stub to `@tanstack/react-start` mock as defense-in-depth.
+
+#### Verification
+- `bun run typecheck` → clean (was 17 errors across the three files).
+- `bun run test` → 16 files / 280 tests pass (was 13 fails in apollo-lists).
+
+#### Found
+- Test was stale post-`fe629ca` (auth-middleware → `@/auth/server` consolidation). Three other apollo-style test files would have hit the same break — none currently exist, but watch for it next time the auth path moves.
+
 ### 2026-05-22 — Unit tests for public contact form handler (L4)
 **Tags:** [tests] [lead-sync] [public-api]
 

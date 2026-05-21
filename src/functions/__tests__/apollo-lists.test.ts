@@ -16,24 +16,42 @@
  *  - Sync log emission — `recordLeadSync` invoked on success, partial, and error.
  *  - Auth context — `assertOrgMember` reads userId from the synthesized context.
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
+
+// Loose-typed mock alias: lets `(...args: unknown[])` spread into the mock and
+// keeps `.mock.calls[i]` destructurable. Tests assert on values, not signatures.
+type AnyMock = Mock<(...args: any[]) => any>;
 
 // ---------- module-level mocks ----------
 // `createServerFn` returns a builder where each chained call returns the
 // builder, except `.handler(fn)` which returns `fn` itself. That lets the test
 // import `importApolloListFn` (etc.) and invoke it as a plain async function.
+// `createMiddleware` is exported (but not actually used in tests) because
+// `@/auth/server` and `@/integrations/supabase/subscription-middleware` are
+// fully mocked below — defensive in case any other transitive import touches it.
 vi.mock("@tanstack/react-start", () => {
   const builder = {
     middleware: () => builder,
     inputValidator: () => builder,
+    server: (fn: unknown) => fn,
     handler: (fn: unknown) => fn,
   };
-  return { createServerFn: () => builder };
+  return {
+    createServerFn: () => builder,
+    createMiddleware: () => builder,
+  };
 });
 
 // Auth + subscription middlewares: identity passthrough — we synthesize the
-// context manually when invoking the handler.
+// context manually when invoking the handler. Canonical home is `@/auth/server`
+// post the auth consolidation refactor (commit fe629ca); the shim path remains
+// mocked too in case anything still imports it.
+vi.mock("@/auth/server", () => ({
+  requireAuth: { __middleware: "auth" },
+  requireSupabaseAuth: { __middleware: "auth" },
+}));
 vi.mock("@/integrations/supabase/auth-middleware", () => ({
+  requireAuth: { __middleware: "auth" },
   requireSupabaseAuth: { __middleware: "auth" },
 }));
 vi.mock("@/integrations/supabase/subscription-middleware", () => ({
@@ -41,15 +59,15 @@ vi.mock("@/integrations/supabase/subscription-middleware", () => ({
 }));
 
 // Org-member assertion: configurable per-test via the spy below.
-const assertOrgMemberMock = vi.fn(async () => {});
+const assertOrgMemberMock: AnyMock = vi.fn(async () => {});
 vi.mock("@/lib/auth-helpers", () => ({
   assertOrgMember: (...args: unknown[]) => assertOrgMemberMock(...args),
 }));
 
 // Apollo connector: every fn is a vi.fn() so tests can program responses.
-const listApolloListsMock = vi.fn();
-const getApolloListMembersMock = vi.fn();
-const revealApolloEmailMock = vi.fn();
+const listApolloListsMock: AnyMock = vi.fn();
+const getApolloListMembersMock: AnyMock = vi.fn();
+const revealApolloEmailMock: AnyMock = vi.fn();
 vi.mock("@/lib/connectors/apollo", () => ({
   listApolloLists: (...a: unknown[]) => listApolloListsMock(...a),
   getApolloListMembers: (...a: unknown[]) => getApolloListMembersMock(...a),
@@ -57,7 +75,7 @@ vi.mock("@/lib/connectors/apollo", () => ({
 }));
 
 // Lead-sync log: spy only. Real impl just inserts into a table.
-const recordLeadSyncMock = vi.fn(async () => {});
+const recordLeadSyncMock: AnyMock = vi.fn(async () => {});
 vi.mock("../_lead-sync-log", () => ({
   recordLeadSync: (...a: unknown[]) => recordLeadSyncMock(...a),
 }));
@@ -81,7 +99,7 @@ type QueryHandler = (ops: Array<{ method: string; args: unknown[] }>) => {
 const tableHandlers = new Map<string, QueryHandler>();
 const insertedRows = new Map<string, unknown[][]>();
 const updatedRows: Array<{ table: string; values: unknown; ops: string[] }> = [];
-let rpcMock: ReturnType<typeof vi.fn>;
+let rpcMock: AnyMock;
 
 function setTableHandler(table: string, fn: QueryHandler) {
   tableHandlers.set(table, fn);
