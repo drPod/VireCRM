@@ -120,6 +120,34 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor TeamMembers god component
+**Tags:** [refactor] [god-components] [rbac]
+
+#### Shipped
+
+- `src/components/crm/TeamMembers.tsx` — slimmed 569 → 96 LOC. Now a pure composition shell: pulls auth state, calls `useTeamMembers(organization?.id)`, owns only `inviteOpen` + `removeTarget` local UI state, renders `MembersList` + `PendingInvitesList` + `InviteMemberDialog` + `RemoveMemberDialog`.
+- `src/components/crm/team-members.types.ts` (new, 27 LOC) — shared `AppRole`, `CustomRoleLite`, `Member`, `Invitation` types lifted out for re-use across the extracted components and hook.
+- `src/hooks/useTeamMembers.ts` (new, 116 LOC) — data hook. Owns `members`/`invitations`/`customRoles`/`loading` state + the parallel `profiles`/`user_roles`/`invitations`/`custom_roles` fetch. Derives `customRoleMap`, `assignableRoles`, `defaultRepRoleId` via `useMemo`. Exposes `reload` so children can refresh after mutations.
+- `src/lib/team-members-helpers.ts` (new, 42 LOC) — `buildInviteUrl(token)` + `resolveRoleLabel`/`memberRoleLabel`/`invitationRoleLabel` helpers. Unifies the duplicated `m.role === "owner" ? "Owner" : ...` ternary that appeared in both member + invitation paths.
+- `src/components/crm/MembersList.tsx` (new, 142 LOC) — active members table with owner-only role-assignment Select + remove button. Calls `assign_custom_role` RPC inline (semantics preserved byte-for-byte).
+- `src/components/crm/PendingInvitesList.tsx` (new, 86 LOC) — pending invites with copy-link + cancel actions. Calls `invitations.delete` RPC inline.
+- `src/components/crm/InviteMemberDialog.tsx` (new, 207 LOC) — invite form. Owns `inviteEmail`/`inviteCustomRoleId`/`inviting` state. Seeds the role picker via `useEffect` once `defaultRepRoleId` resolves (was previously side-effected inside the parent `loadData`). Calls `invitations.insert` + `sendTransactionalEmail` with identical args and error handling — toast copy preserved.
+- `src/components/crm/RemoveMemberDialog.tsx` (new, 69 LOC) — confirmation AlertDialog. Calls `remove_org_member` RPC.
+
+#### Verification
+
+- `bun run typecheck` — only the pre-existing `src/routes/hooks/send-pending-welcomes.ts:26` route-registry error (confirmed via `git stash` on a clean baseline). Nothing from this refactor.
+- Public API preserved: `TeamMembers` still default-exports from `src/components/crm/TeamMembers.tsx`, no props. `_app.settings.tsx` import unchanged.
+- Business-logic preserved byte-for-byte: invite email validation (`!email || !email.includes("@")`), role guard (`!chosen`), `invitations.insert` payload + `select("token").single()`, idempotency key `team-invite-${data.token}`, `sendTransactionalEmail` template + replyTo fallback, `assign_custom_role`/`remove_org_member` RPC contracts + `{ success, error? }` result handling.
+- LOC budget: container 96 (<300 target), every extracted file <250 (largest = `InviteMemberDialog.tsx` at 207).
+
+### 2026-05-22 — audit-retention + connector-actions: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [audit] [connectors]
+
+#### Shipped
+- `src/functions/audit-retention.functions.ts:87,118` — `setResponseStatus(403)` before owner-role throws.
+- `src/functions/connector-actions.functions.ts:58` — `setResponseStatus(403)` before org-membership throw in helper.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
