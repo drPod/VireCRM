@@ -5,6 +5,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SUPPORT_EMAIL } from "@/config/support";
 import {
   CreditCard,
   CheckCircle2,
@@ -162,22 +163,31 @@ function InlinePlans({
                 </li>
               ))}
             </ul>
-            <Button
-              variant={isCurrent ? "outline" : tier.highlighted ? "command" : "outline"}
-              size="sm"
-              className="mt-4 w-full"
-              disabled={isCurrent || isDowngrade}
-              onClick={() => onSelect(tier)}
-              title={
-                isCurrent
-                  ? "This is your current plan"
-                  : isDowngrade
-                    ? "Downgrade via the billing portal"
-                    : undefined
-              }
-            >
-              {isCurrent ? "Current plan" : isDowngrade ? "Downgrade in portal" : tier.cta}
-            </Button>
+            {isDowngrade ? (
+              <p className="mt-4 text-xs text-muted-foreground">
+                Downgrades issue a credit applied to your next invoice, not a refund today. To
+                downgrade, open the{" "}
+                <button
+                  type="button"
+                  onClick={openCustomerPortal}
+                  className="text-primary underline-offset-2 hover:underline"
+                >
+                  Stripe Billing Portal
+                </button>
+                .
+              </p>
+            ) : (
+              <Button
+                variant={isCurrent ? "outline" : tier.highlighted ? "command" : "outline"}
+                size="sm"
+                className="mt-4 w-full"
+                disabled={isCurrent}
+                onClick={() => onSelect(tier)}
+                title={isCurrent ? "This is your current plan" : undefined}
+              >
+                {isCurrent ? "Current plan" : tier.cta}
+              </Button>
+            )}
           </div>
         );
       })}
@@ -867,9 +877,23 @@ function PlanSwitchConfirmDialog({
                 </div>
               )}
 
-              {!switchSummary && (
+              {!switchSummary && pendingTier && parsePriceToNumber(pendingTier.price) === null && (
                 <p className="text-xs text-muted-foreground">
-                  This plan has custom pricing — you'll see the exact amount in checkout.
+                  Custom plans are invoiced after a sales call, not charged at checkout. Email{" "}
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}`}
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    {SUPPORT_EMAIL}
+                  </a>{" "}
+                  or visit{" "}
+                  <Link
+                    to="/contact"
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    /contact
+                  </Link>
+                  .
                 </p>
               )}
             </div>
