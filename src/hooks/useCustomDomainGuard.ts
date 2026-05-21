@@ -5,11 +5,10 @@ import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 /**
  * Marketing/legal pages on platform-owned hosts (genesisx, lovable.app, etc.)
  * should NEVER appear under a verified white-label custom domain — that would
- * leak our brand and platform pricing into the reseller's experience.
+ * leak VireCRM branding and platform pricing into a tenant's white-labeled experience.
  *
  * Use this hook on those routes: when the visitor is on a verified custom
- * domain, we silently redirect them back to "/" where DomainBrandingProvider
- * will render the reseller's BrandedSignup instead.
+ * domain, we silently redirect them back to "/".
  *
  * Returns `true` while the redirect is being decided so the caller can render
  * a brief loading state and avoid flashing the platform marketing chrome.

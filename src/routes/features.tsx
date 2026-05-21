@@ -11,7 +11,6 @@ import { ComparisonTable } from "@/components/marketing/features/ComparisonTable
 import { VerticalsStrip } from "@/components/marketing/features/VerticalsStrip";
 import { IntegrationsGrid } from "@/components/marketing/features/IntegrationsGrid";
 import { FeaturesFaq } from "@/components/marketing/features/FeaturesFaq";
-import { ResellerCta } from "@/components/marketing/features/ResellerCta";
 import { CHAPTERS, FEATURES } from "@/components/marketing/features/featureBlocks";
 
 export const Route = createFileRoute("/features")({
@@ -87,7 +86,6 @@ function FeaturesPage() {
       <VerticalsStrip />
       <IntegrationsGrid />
       <FeaturesFaq />
-      <ResellerCta />
       <MarketingFooter />
     </div>
   );

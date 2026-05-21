@@ -10,7 +10,6 @@ import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
 import { SocialProofSection } from "@/components/marketing/SocialProofSection";
 import { CtaSection } from "@/components/marketing/CtaSection";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
-import { BrandedSignup } from "@/components/marketing/BrandedSignup";
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -63,7 +62,7 @@ async function provisionAfterRedirect(navigate: ReturnType<typeof useNavigate>) 
 }
 
 function LandingPage() {
-  const { branding, loading, isCustomDomain } = useDomainBranding();
+  const { loading } = useDomainBranding();
   const navigate = useNavigate();
 
   // Handle the post-confirmation/OAuth provision flow
@@ -84,12 +83,6 @@ function LandingPage() {
         <p className="mt-4 text-sm font-medium text-muted-foreground">Loading VireCRM…</p>
       </div>
     );
-  }
-
-  // On a verified reseller custom domain, replace the marketing site
-  // with a branded signup form.
-  if (isCustomDomain && branding) {
-    return <BrandedSignup branding={branding} />;
   }
 
   return (
