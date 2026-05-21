@@ -97,10 +97,6 @@ export function ComparisonTable() {
       id="compare"
       className="relative scroll-mt-32 border-t border-border/60 py-20 sm:py-24"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-32 mx-auto h-[420px] w-[860px] section-aurora-reverse opacity-35"
-      />
       <div className="relative mx-auto max-w-5xl px-6">
         <div className="mx-auto max-w-3xl text-center">
           <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-primary">
