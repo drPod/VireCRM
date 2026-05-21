@@ -16,16 +16,12 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
 - [ ] **CF Workers Builds "Variables and secrets" panel** — manual dashboard check that no `LOVABLE_API_KEY` lingers (runtime `wrangler secret list` doesn't cover build-time). Dashboard → Workers & Pages → genesisxsx → Settings → Variables.
-- [ ] **[green-energiai] Resume Crystal onboarding at Step 5** — migration done 2026-05-19. Her UUID `7ba2ebfa-f30e-449a-866e-085c5940c1d4` + bcrypt hash + 4,793 leads on new DB. Resume from `docs/handoffs/2026-05-18-green-energiai-onboarding.md` Step 5. DM framing: "your account is live on the new system, sign in with your existing password, all your data carried over, plus energy-broker fields populated."
-
 ### Post-migration follow-ups (old Lovable DB)
 
 Migration ran 2026-05-19 session 5. 14 auth.users, 2 orgs, 10 profiles/roles, 13,991 leads ported. Script: `scripts/migrate-lovable-to-fixed.ts`. Handoff: `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`.
 
 - [ ] **Spot-check 10 Caziah leads** — confirm energy fields (`agent_mils`, `annual_kwh`, `contract_start_date`) populated where xlsx had data.
-- [ ] **Crystal own-org xlsx enrichment (Phase G)** — not run. Crystal's 4,793 leads in org `188c4869` got no xlsx enrichment (Phase F scoped to Caziah org only). Confirm: does her ngp-master xlsx apply to her own org too? If yes, run `bun scripts/migrate-lovable-to-fixed.ts --phase=G` (destructive REPLACE — see script comments).
-- [ ] **Crystal own-org slug rename** — `crystal-cameron-7ba2ebfa` is ugly. Product call: which subdomain does she want? Then `UPDATE organizations SET slug = '<chosen>' WHERE id = '188c4869-8bc4-438e-b746-c8f28e2932d2'`.
-- [ ] **Freeze old Lovable project** — after Crystal + Caziah both confirm on new DB: revoke old service-role key (Supabase dashboard), verify `genesisx.space` DNS not still serving old project.
+- [ ] **Freeze old Lovable project** — Crystal confirmed on new DB 2026-05-20. Caziah sign-in still unconfirmed. After Caziah confirms: revoke old service-role key (Supabase dashboard), verify `genesisx.space` DNS not still serving old project.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
@@ -102,6 +98,20 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-21 — Crystal sign-in confirmed; markdown cleanup
+**Tags:** [crystal] [auth] [docs]
+
+#### Verification
+- `POST /auth/v1/token` with temp pw `hSS1eLMQitFgJfdR` → `invalid_credentials` — confirms she changed her password.
+- Admin API `GET /auth/v1/admin/users/7ba2ebfa-…` → `last_sign_in_at=2026-05-20T22:51:19Z`, `must_change_password=null`. Forced PW change flow ran end-to-end in production.
+- `greenenergiai.virecrm.com` → org `188c4869-…` "Green EnergiAi", Crystal is `owner`, 4,793 leads. URL sent to Crystal is correct.
+- Org slug confirmed `greenenergiai` (not `crystal-cameron-7ba2ebfa` as earlier session entries noted — slug was renamed before Crystal's first sign-in).
+
+#### Shipped
+- `README.md` — deleted "Temporary credentials" section (Crystal rotated pw, temp pw dead).
+- `ISSUES.md ## Open` — removed stale Crystal onboarding + Phase G + slug-rename items (all resolved). Freeze old Lovable project item updated: Crystal confirmed, Caziah still pending.
+- `ISSUES.md ## Recent` — struck through: DM Crystal follow-ups (×2), "pending deploy" note, GCP test-user add (GCP now Production).
+
 ### 2026-05-20 — GCP OAuth → Production + legal pages rewrite
 **Tags:** [auth] [google-oauth] [legal]
 
@@ -140,7 +150,7 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 - Crystal login flow: forced PW change → dashboard → no billing bounce → energy sidebar unlocked.
 
 #### Manual follow-up (user)
-- Add `crystal@greenenergiai.com` to GCP OAuth test users: console.cloud.google.com → VireCRM Auth project → OAuth consent screen → Test users → Add.
+- ~~Add `crystal@greenenergiai.com` to GCP OAuth test users~~ — resolved 2026-05-21; GCP OAuth app moved to Production.
 
 ### 2026-05-20 — Fix auth + subscription middleware: throw new Response() → throw new Error()
 **Tags:** [bug] [auth] [supabase]
@@ -177,12 +187,12 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 
 #### Verification
 - `bun run typecheck` clean.
-- Manual flow pending deploy: Crystal signs in with temp pw → gate fires → `/change-password?forced=1` → sets pw → dashboard → no more redirect.
+- ~~Manual flow pending deploy: Crystal signs in with temp pw → gate fires → `/change-password?forced=1` → sets pw → dashboard → no more redirect.~~ Verified 2026-05-21 — Crystal signed in 2026-05-20 22:51 UTC, `must_change_password` cleared, flow confirmed end-to-end.
 
 #### Manual follow-up (user)
-- Push + deploy to production.
-- DM Crystal temp pw (`hSS1eLMQitFgJfdR`) after deploy confirms.
-- After Crystal signs in + resets pw, delete "Temporary credentials" section from `README.md`.
+- ~~Push + deploy to production.~~ Done.
+- ~~DM Crystal temp pw (`hSS1eLMQitFgJfdR`) after deploy confirms.~~ Done — she signed in + rotated pw 2026-05-20 22:51 UTC.
+- ~~After Crystal signs in + resets pw, delete "Temporary credentials" section from `README.md`.~~ Done.
 
 ### 2026-05-20 — Retire majix.ai: 308 redirect + full virecrm.com cleanup
 **Tags:** [virecrm] [rebrand] [cf-saas] [docs]
@@ -238,7 +248,7 @@ Continuation session: revalidated Phase G state end-to-end, then closed out the 
 #### Manual follow-up (user)
 
 - **Push ahead-of-origin commits** when ready. `git push` gated on user per CLAUDE.md shared-state rule.
-- **DM Crystal her temp pw** (`hSS1eLMQitFgJfdR`) — pending from prior session. After she signs in + rotates, delete the "Temporary credentials" section from `README.md`.
+- ~~**DM Crystal her temp pw** (`hSS1eLMQitFgJfdR`) — pending from prior session.~~ Done — Crystal signed in + rotated pw 2026-05-20 22:51 UTC.
 
 ### 2026-05-20 — Google OAuth setup (GCP + Supabase)
 **Tags:** [auth] [supabase] [google-oauth]
