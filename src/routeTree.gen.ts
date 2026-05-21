@@ -52,7 +52,6 @@ import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConversationsRouteImport } from './routes/_app.conversations'
 import { Route as AppContactSubmissionsRouteImport } from './routes/_app.contact-submissions'
 import { Route as AppCommandChatRouteImport } from './routes/_app.command-chat'
-import { Route as AppCampaignsRouteImport } from './routes/_app.campaigns'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppBookRouteImport } from './routes/_app.book'
 import { Route as AppBillingRouteImport } from './routes/_app.billing'
@@ -62,6 +61,7 @@ import { Route as AppAdvisorRouteImport } from './routes/_app.advisor'
 import { Route as AppAdminRouteImport } from './routes/_app.admin'
 import { Route as AppAcademyRouteImport } from './routes/_app.academy'
 import { Route as AppWorkflowsIndexRouteImport } from './routes/_app.workflows.index'
+import { Route as AppCampaignsIndexRouteImport } from './routes/_app.campaigns.index'
 import { Route as ApiPublicContactRouteImport } from './routes/api/public/contact'
 import { Route as AppWorkflowsWorkflowIdRouteImport } from './routes/_app.workflows.$workflowId'
 import { Route as AppSettingsBrandingPreviewRouteImport } from './routes/_app.settings.branding-preview'
@@ -300,11 +300,6 @@ const AppCommandChatRoute = AppCommandChatRouteImport.update({
   path: '/command-chat',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCampaignsRoute = AppCampaignsRouteImport.update({
-  id: '/campaigns',
-  path: '/campaigns',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -348,6 +343,11 @@ const AppAcademyRoute = AppAcademyRouteImport.update({
 const AppWorkflowsIndexRoute = AppWorkflowsIndexRouteImport.update({
   id: '/workflows/',
   path: '/workflows/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCampaignsIndexRoute = AppCampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiPublicContactRoute = ApiPublicContactRouteImport.update({
@@ -402,14 +402,14 @@ const AppEnergyContractsRoute = AppEnergyContractsRouteImport.update({
   getParentRoute: () => AppEnergyRoute,
 } as any)
 const AppCampaignsNewRoute = AppCampaignsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AppCampaignsRoute,
+  id: '/campaigns/new',
+  path: '/campaigns/new',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppCampaignsIdRoute = AppCampaignsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppCampaignsRoute,
+  id: '/campaigns/$id',
+  path: '/campaigns/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppAcademyCourseIdRoute = AppAcademyCourseIdRouteImport.update({
   id: '/$courseId',
@@ -497,7 +497,6 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AppBillingRoute
   '/book': typeof AppBookRoute
   '/calendar': typeof AppCalendarRoute
-  '/campaigns': typeof AppCampaignsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
@@ -535,6 +534,7 @@ export interface FileRoutesByFullPath {
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
+  '/campaigns/': typeof AppCampaignsIndexRoute
   '/workflows/': typeof AppWorkflowsIndexRoute
   '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
   '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
@@ -573,7 +573,6 @@ export interface FileRoutesByTo {
   '/billing': typeof AppBillingRoute
   '/book': typeof AppBookRoute
   '/calendar': typeof AppCalendarRoute
-  '/campaigns': typeof AppCampaignsRouteWithChildren
   '/command-chat': typeof AppCommandChatRoute
   '/contact-submissions': typeof AppContactSubmissionsRoute
   '/conversations': typeof AppConversationsRoute
@@ -611,6 +610,7 @@ export interface FileRoutesByTo {
   '/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
+  '/campaigns': typeof AppCampaignsIndexRoute
   '/workflows': typeof AppWorkflowsIndexRoute
   '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
   '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
@@ -651,7 +651,6 @@ export interface FileRoutesById {
   '/_app/billing': typeof AppBillingRoute
   '/_app/book': typeof AppBookRoute
   '/_app/calendar': typeof AppCalendarRoute
-  '/_app/campaigns': typeof AppCampaignsRouteWithChildren
   '/_app/command-chat': typeof AppCommandChatRoute
   '/_app/contact-submissions': typeof AppContactSubmissionsRoute
   '/_app/conversations': typeof AppConversationsRoute
@@ -689,6 +688,7 @@ export interface FileRoutesById {
   '/_app/settings/branding-preview': typeof AppSettingsBrandingPreviewRoute
   '/_app/workflows/$workflowId': typeof AppWorkflowsWorkflowIdRoute
   '/api/public/contact': typeof ApiPublicContactRoute
+  '/_app/campaigns/': typeof AppCampaignsIndexRoute
   '/_app/workflows/': typeof AppWorkflowsIndexRoute
   '/api/email/queue/process': typeof ApiEmailQueueProcessRoute
   '/api/email/transactional/send': typeof ApiEmailTransactionalSendRoute
@@ -729,7 +729,6 @@ export interface FileRouteTypes {
     | '/billing'
     | '/book'
     | '/calendar'
-    | '/campaigns'
     | '/command-chat'
     | '/contact-submissions'
     | '/conversations'
@@ -767,6 +766,7 @@ export interface FileRouteTypes {
     | '/settings/branding-preview'
     | '/workflows/$workflowId'
     | '/api/public/contact'
+    | '/campaigns/'
     | '/workflows/'
     | '/api/email/queue/process'
     | '/api/email/transactional/send'
@@ -805,7 +805,6 @@ export interface FileRouteTypes {
     | '/billing'
     | '/book'
     | '/calendar'
-    | '/campaigns'
     | '/command-chat'
     | '/contact-submissions'
     | '/conversations'
@@ -843,6 +842,7 @@ export interface FileRouteTypes {
     | '/settings/branding-preview'
     | '/workflows/$workflowId'
     | '/api/public/contact'
+    | '/campaigns'
     | '/workflows'
     | '/api/email/queue/process'
     | '/api/email/transactional/send'
@@ -882,7 +882,6 @@ export interface FileRouteTypes {
     | '/_app/billing'
     | '/_app/book'
     | '/_app/calendar'
-    | '/_app/campaigns'
     | '/_app/command-chat'
     | '/_app/contact-submissions'
     | '/_app/conversations'
@@ -920,6 +919,7 @@ export interface FileRouteTypes {
     | '/_app/settings/branding-preview'
     | '/_app/workflows/$workflowId'
     | '/api/public/contact'
+    | '/_app/campaigns/'
     | '/_app/workflows/'
     | '/api/email/queue/process'
     | '/api/email/transactional/send'
@@ -1272,13 +1272,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCommandChatRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/campaigns': {
-      id: '/_app/campaigns'
-      path: '/campaigns'
-      fullPath: '/campaigns'
-      preLoaderRoute: typeof AppCampaignsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/calendar': {
       id: '/_app/calendar'
       path: '/calendar'
@@ -1340,6 +1333,13 @@ declare module '@tanstack/react-router' {
       path: '/workflows'
       fullPath: '/workflows/'
       preLoaderRoute: typeof AppWorkflowsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/campaigns/': {
+      id: '/_app/campaigns/'
+      path: '/campaigns'
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof AppCampaignsIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/public/contact': {
@@ -1414,17 +1414,17 @@ declare module '@tanstack/react-router' {
     }
     '/_app/campaigns/new': {
       id: '/_app/campaigns/new'
-      path: '/new'
+      path: '/campaigns/new'
       fullPath: '/campaigns/new'
       preLoaderRoute: typeof AppCampaignsNewRouteImport
-      parentRoute: typeof AppCampaignsRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/campaigns/$id': {
       id: '/_app/campaigns/$id'
-      path: '/$id'
+      path: '/campaigns/$id'
       fullPath: '/campaigns/$id'
       preLoaderRoute: typeof AppCampaignsIdRouteImport
-      parentRoute: typeof AppCampaignsRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/academy/$courseId': {
       id: '/_app/academy/$courseId'
@@ -1511,20 +1511,6 @@ const AppAcademyRouteWithChildren = AppAcademyRoute._addFileChildren(
   AppAcademyRouteChildren,
 )
 
-interface AppCampaignsRouteChildren {
-  AppCampaignsIdRoute: typeof AppCampaignsIdRoute
-  AppCampaignsNewRoute: typeof AppCampaignsNewRoute
-}
-
-const AppCampaignsRouteChildren: AppCampaignsRouteChildren = {
-  AppCampaignsIdRoute: AppCampaignsIdRoute,
-  AppCampaignsNewRoute: AppCampaignsNewRoute,
-}
-
-const AppCampaignsRouteWithChildren = AppCampaignsRoute._addFileChildren(
-  AppCampaignsRouteChildren,
-)
-
 interface AppEnergyRouteChildren {
   AppEnergyContractsRoute: typeof AppEnergyContractsRoute
   AppEnergyCustomersRoute: typeof AppEnergyCustomersRoute
@@ -1570,7 +1556,6 @@ interface AppRouteChildren {
   AppBillingRoute: typeof AppBillingRoute
   AppBookRoute: typeof AppBookRoute
   AppCalendarRoute: typeof AppCalendarRoute
-  AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
   AppCommandChatRoute: typeof AppCommandChatRoute
   AppContactSubmissionsRoute: typeof AppContactSubmissionsRoute
   AppConversationsRoute: typeof AppConversationsRoute
@@ -1590,7 +1575,10 @@ interface AppRouteChildren {
   AppRevenueRoute: typeof AppRevenueRoute
   AppSequencesRoute: typeof AppSequencesRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppCampaignsIdRoute: typeof AppCampaignsIdRoute
+  AppCampaignsNewRoute: typeof AppCampaignsNewRoute
   AppWorkflowsWorkflowIdRoute: typeof AppWorkflowsWorkflowIdRoute
+  AppCampaignsIndexRoute: typeof AppCampaignsIndexRoute
   AppWorkflowsIndexRoute: typeof AppWorkflowsIndexRoute
 }
 
@@ -1603,7 +1591,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppBillingRoute: AppBillingRoute,
   AppBookRoute: AppBookRoute,
   AppCalendarRoute: AppCalendarRoute,
-  AppCampaignsRoute: AppCampaignsRouteWithChildren,
   AppCommandChatRoute: AppCommandChatRoute,
   AppContactSubmissionsRoute: AppContactSubmissionsRoute,
   AppConversationsRoute: AppConversationsRoute,
@@ -1623,7 +1610,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppRevenueRoute: AppRevenueRoute,
   AppSequencesRoute: AppSequencesRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppCampaignsIdRoute: AppCampaignsIdRoute,
+  AppCampaignsNewRoute: AppCampaignsNewRoute,
   AppWorkflowsWorkflowIdRoute: AppWorkflowsWorkflowIdRoute,
+  AppCampaignsIndexRoute: AppCampaignsIndexRoute,
   AppWorkflowsIndexRoute: AppWorkflowsIndexRoute,
 }
 

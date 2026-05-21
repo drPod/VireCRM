@@ -24,7 +24,7 @@ import { toast } from "sonner";
 
 type CampaignsSearch = { new?: boolean };
 
-export const Route = createFileRoute("/_app/campaigns")({
+export const Route = createFileRoute("/_app/campaigns/")({
   component: CampaignsPage,
   validateSearch: (search: Record<string, unknown>): CampaignsSearch => {
     const isNew =
