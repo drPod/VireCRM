@@ -8,21 +8,18 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
-import * as React from "react";
-import { render } from "@react-email/components";
 import { z } from "zod";
 import { TEMPLATES } from "@/lib/email-templates/registry";
+import { sendTransactionalEmail } from "@/lib/email/send-transactional";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
-import { SENDER_DOMAIN, FROM_DOMAIN } from "@/config/domains";
+import { PLATFORM_DOMAIN } from "@/config/domains";
 const FROM_DISPLAY_NAME = "VireCRM Billing";
 
 const BodySchema = z.object({
   organizationId: z.string().uuid(),
 });
-
-import { generateToken } from "@/lib/crypto";
 
 function jsonError(message: string, status: number) {
   return Response.json({ success: false, error: message }, { status });
@@ -132,14 +129,14 @@ export const Route = createFileRoute("/api/notify-low-balance")({
           return jsonError("No owner emails resolved", 500);
         }
 
-        // 7. Render template once.
+        // 7. Verify template exists before looping.
         const tpl = TEMPLATES["credit-low-balance"];
         if (!tpl) return jsonError("Email template misconfigured", 500);
 
         const billingUrl = (() => {
           const origin = request.headers.get("origin");
           if (origin) return `${origin}/billing`;
-          return "https://virecrm.com/billing";
+          return `https://${PLATFORM_DOMAIN}/billing`;
         })();
 
         const templateData = {
@@ -149,93 +146,22 @@ export const Route = createFileRoute("/api/notify-low-balance")({
           billingUrl,
           autoRechargeEnabled: !!settings?.auto_recharge_enabled,
         };
-        const element = React.createElement(tpl.component, templateData);
-        const html = await render(element);
-        const plainText = await render(element, { plainText: true });
-        const subject = typeof tpl.subject === "function" ? tpl.subject(templateData) : tpl.subject;
 
-        // 8. Enqueue per-recipient (skip suppressed).
+        // 8. Enqueue per-recipient via helper (suppression + token + render + enqueue).
         let queuedCount = 0;
         for (const recipient of recipients) {
-          const { data: suppressed } = await admin
-            .from("suppressed_emails")
-            .select("id")
-            .eq("email", recipient)
-            .maybeSingle();
-          if (suppressed) continue;
-
-          // Reuse-or-create unsubscribe token (one per email).
-          let unsubscribeToken: string;
-          const { data: existingToken } = await admin
-            .from("email_unsubscribe_tokens")
-            .select("token, used_at")
-            .eq("email", recipient)
-            .maybeSingle();
-          if (existingToken && !existingToken.used_at) {
-            unsubscribeToken = existingToken.token as string;
-          } else {
-            unsubscribeToken = generateToken();
-            await admin
-              .from("email_unsubscribe_tokens")
-              .upsert({ token: unsubscribeToken, email: recipient } as any, {
-                onConflict: "email",
-                ignoreDuplicates: true,
-              });
-            const { data: stored } = await admin
-              .from("email_unsubscribe_tokens")
-              .select("token")
-              .eq("email", recipient)
-              .maybeSingle();
-            unsubscribeToken = (stored?.token as string) ?? unsubscribeToken;
+          const result = await sendTransactionalEmail({
+            supabase: admin,
+            templateName: "credit-low-balance",
+            templateData,
+            recipientEmail: recipient,
+            fromName: FROM_DISPLAY_NAME,
+            idempotencyKey: `low-balance-${organizationId}-${Date.now()}-${recipient}`,
+          });
+          if (result.success) queuedCount++;
+          else if (result.reason === "enqueue_failed") {
+            console.error("notify-low-balance: enqueue failed", result.error);
           }
-
-          const messageId = crypto.randomUUID();
-          const idempotencyKey = `low-balance-${organizationId}-${Date.now()}-${recipient}`;
-
-          await admin.from("email_send_log").insert({
-            message_id: messageId,
-            template_name: "credit-low-balance",
-            recipient_email: recipient,
-            status: "pending",
-            metadata: {
-              subject,
-              organization_id: organizationId,
-              balance,
-              threshold,
-            },
-          } as any);
-
-          const { error: enqueueErr } = await admin.rpc("enqueue_email", {
-            queue_name: "transactional_emails",
-            payload: {
-              message_id: messageId,
-              to: recipient,
-              from: `${FROM_DISPLAY_NAME} <noreply@${FROM_DOMAIN}>`,
-              sender_domain: SENDER_DOMAIN,
-              subject,
-              body_preview: plainText.slice(0, 200),
-              html,
-              text: plainText,
-              purpose: "transactional",
-              label: "credit-low-balance",
-              idempotency_key: idempotencyKey,
-              unsubscribe_token: unsubscribeToken,
-              queued_at: new Date().toISOString(),
-            },
-          } as any);
-
-          if (enqueueErr) {
-            console.error("notify-low-balance: enqueue failed", enqueueErr);
-            await admin.from("email_send_log").insert({
-              message_id: messageId,
-              template_name: "credit-low-balance",
-              recipient_email: recipient,
-              status: "failed",
-              error_message: "Failed to enqueue low balance email",
-            } as any);
-            continue;
-          }
-          queuedCount++;
         }
 
         return Response.json({

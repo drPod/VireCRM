@@ -6,17 +6,15 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
-import * as React from "react";
-import { render } from "@react-email/components";
 import { z } from "zod";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 import { classifyAndStore } from "@/lib/contact/classify-submission";
 import { keepAlive } from "@/lib/cloudflare/context";
+import { sendTransactionalEmail } from "@/lib/email/send-transactional";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
-import { SENDER_DOMAIN, FROM_DOMAIN, PLATFORM_DOMAIN } from "@/config/domains";
-import { generateToken } from "@/lib/crypto";
+import { PLATFORM_DOMAIN } from "@/config/domains";
 const FROM_DISPLAY_NAME = "VireCRM Contact Form";
 
 /**
@@ -191,56 +189,10 @@ export const Route = createFileRoute("/api/public/contact")({
           return jsonError("Email template misconfigured", 500);
         }
 
-        // Test mode: redirect owner notifications to the sandbox inbox so
-        // QA can validate the full delivery path without paging the real
-        // owner. The original intended recipient is preserved in metadata.
         const testMode = getTestModeConfig();
         const intendedRecipient = template.to;
-        const recipient = testMode.enabled && testMode.inbox ? testMode.inbox : intendedRecipient;
-        const subjectPrefix = testMode.enabled ? "[TEST MODE] " : "";
 
-        // Skip if the (effective) inbox is on the suppression list.
-        const { data: suppressed } = await supabase
-          .from("suppressed_emails")
-          .select("id")
-          .eq("email", recipient.toLowerCase())
-          .maybeSingle();
-
-        if (suppressed) {
-          console.warn("contact: inbox is suppressed", { recipient, testMode: testMode.enabled });
-          // Surface a non-leaky error to the visitor.
-          return jsonError("We could not deliver your message right now.", 500);
-        }
-
-        // Reuse-or-create unsubscribe token (required by enqueue contract,
-        // even though the recipient is the site owner / sandbox inbox).
-        let unsubscribeToken: string;
-        const { data: existingToken } = await supabase
-          .from("email_unsubscribe_tokens")
-          .select("token, used_at")
-          .eq("email", recipient.toLowerCase())
-          .maybeSingle();
-
-        if (existingToken && !existingToken.used_at) {
-          unsubscribeToken = existingToken.token;
-        } else {
-          unsubscribeToken = generateToken();
-          await supabase
-            .from("email_unsubscribe_tokens")
-            .upsert({ token: unsubscribeToken, email: recipient.toLowerCase() } as any, {
-              onConflict: "email",
-              ignoreDuplicates: true,
-            });
-          const { data: stored } = await supabase
-            .from("email_unsubscribe_tokens")
-            .select("token")
-            .eq("email", recipient.toLowerCase())
-            .maybeSingle();
-          unsubscribeToken = stored?.token ?? unsubscribeToken;
-        }
-
-        // Render React Email template -> HTML + plain text
-        const templateData = {
+        const ownerTemplateData = {
           name: payload.name,
           email: payload.email,
           company: payload.company || null,
@@ -248,17 +200,7 @@ export const Route = createFileRoute("/api/public/contact")({
           budget: payload.budget || null,
           message: payload.message,
         };
-        const element = React.createElement(template.component, templateData);
-        const html = await render(element);
-        const plainText = await render(element, { plainText: true });
-        const baseSubject =
-          typeof template.subject === "function"
-            ? template.subject(templateData)
-            : template.subject;
-        const subject = `${subjectPrefix}${baseSubject}`;
-
-        const messageId = crypto.randomUUID();
-        const idempotencyKey = `contact-${messageId}`;
+        const ownerIdempotencyKey = `contact-${crypto.randomUUID()}`;
 
         // Persist the submission to the CRM audit table for follow-up.
         // Failure here must NEVER block delivery — log and continue.
@@ -278,7 +220,7 @@ export const Route = createFileRoute("/api/public/contact")({
             user_agent: userAgent,
             origin,
             test_mode: testMode.enabled,
-            message_id: messageId,
+            message_id: ownerIdempotencyKey,
             status: "received",
             metadata: {
               intended_recipient: testMode.enabled ? intendedRecipient : undefined,
@@ -313,52 +255,21 @@ export const Route = createFileRoute("/api/public/contact")({
           await keepAlive(classifyPromise);
         }
 
-        // Stamp the log row with the IP so the rate limiter above can see it.
-        await supabase.from("email_send_log").insert({
-          message_id: messageId,
-          template_name: "contact-inquiry",
-          recipient_email: recipient,
-          status: "pending",
-          metadata: {
-            subject,
-            body_preview: plainText.replace(/\s+/g, " ").trim().slice(0, 200),
-            visitor_email: payload.email,
-            test_mode: testMode.enabled,
-            intended_recipient: testMode.enabled ? intendedRecipient : undefined,
-          },
-          error_message: `ip:${ip}`,
-        } as any);
+        const ownerResult = await sendTransactionalEmail({
+          supabase,
+          templateName: "contact-inquiry",
+          templateData: ownerTemplateData,
+          fromName: FROM_DISPLAY_NAME,
+          replyTo: payload.email,
+          idempotencyKey: ownerIdempotencyKey,
+        });
 
-        const { error: enqueueErr } = await supabase.rpc("enqueue_email", {
-          queue_name: "transactional_emails",
-          payload: {
-            message_id: messageId,
-            to: recipient,
-            from: `${FROM_DISPLAY_NAME} <noreply@${FROM_DOMAIN}>`,
-            sender_domain: SENDER_DOMAIN,
-            subject,
-            body_preview: plainText.slice(0, 200),
-            html,
-            text: plainText,
-            purpose: "transactional",
-            label: testMode.enabled ? "contact-inquiry-test" : "contact-inquiry",
-            idempotency_key: idempotencyKey,
-            unsubscribe_token: unsubscribeToken,
-            // Replies route back to the visitor.
-            reply_to: payload.email,
-            queued_at: new Date().toISOString(),
-          },
-        } as any);
-
-        if (enqueueErr) {
-          console.error("contact: enqueue failed", enqueueErr);
-          await supabase.from("email_send_log").insert({
-            message_id: messageId,
-            template_name: "contact-inquiry",
-            recipient_email: recipient,
-            status: "failed",
-            error_message: "Failed to enqueue contact inquiry",
-          } as any);
+        if (!ownerResult.success) {
+          if (ownerResult.reason === "suppressed") {
+            console.warn("contact: inbox is suppressed", { testMode: testMode.enabled });
+            return jsonError("We could not deliver your message right now.", 500);
+          }
+          console.error("contact: enqueue failed", ownerResult.error);
           return jsonError("We could not deliver your message right now.", 500);
         }
 
@@ -407,53 +318,10 @@ async function sendVisitorAcknowledgment(args: {
 }) {
   const { supabase, visitorName, visitorEmail, visitorMessage, origin } = args;
 
-  // Test mode: redirect the visitor acknowledgment to the sandbox inbox so
-  // QA isn't sent to a real visitor while we're validating delivery. The
-  // intended visitor address is preserved in metadata.
-  const testMode = getTestModeConfig();
-  const intendedRecipient = visitorEmail.toLowerCase();
-  const recipient =
-    testMode.enabled && testMode.inbox ? testMode.inbox.toLowerCase() : intendedRecipient;
-  const subjectPrefix = testMode.enabled ? "[TEST MODE] " : "";
-
-  // Don't email recipients who previously unsubscribed/bounced.
-  const { data: suppressed } = await supabase
-    .from("suppressed_emails")
-    .select("id")
-    .eq("email", recipient)
-    .maybeSingle();
-  if (suppressed) return;
-
   const ackTemplate = TEMPLATES["contact-acknowledgment"];
   if (!ackTemplate) {
     console.warn("contact: acknowledgment template missing — skipping");
     return;
-  }
-
-  // One-token-per-recipient mapping (required by enqueue contract).
-  let unsubscribeToken: string;
-  const { data: existingToken } = await supabase
-    .from("email_unsubscribe_tokens")
-    .select("token, used_at")
-    .eq("email", recipient)
-    .maybeSingle();
-
-  if (existingToken && !existingToken.used_at) {
-    unsubscribeToken = existingToken.token;
-  } else {
-    unsubscribeToken = generateToken();
-    await supabase
-      .from("email_unsubscribe_tokens")
-      .upsert({ token: unsubscribeToken, email: recipient } as any, {
-        onConflict: "email",
-        ignoreDuplicates: true,
-      });
-    const { data: stored } = await supabase
-      .from("email_unsubscribe_tokens")
-      .select("token")
-      .eq("email", recipient)
-      .maybeSingle();
-    unsubscribeToken = stored?.token ?? unsubscribeToken;
   }
 
   const pricingUrl = origin ? `${origin}/pricing` : `https://${PLATFORM_DOMAIN}/pricing`;
@@ -463,55 +331,16 @@ async function sendVisitorAcknowledgment(args: {
     pricingUrl,
   };
 
-  const ackElement = React.createElement(ackTemplate.component, ackData);
-  const ackHtml = await render(ackElement);
-  const ackText = await render(ackElement, { plainText: true });
-  const baseAckSubject =
-    typeof ackTemplate.subject === "function" ? ackTemplate.subject(ackData) : ackTemplate.subject;
-  const ackSubject = `${subjectPrefix}${baseAckSubject}`;
+  const ackResult = await sendTransactionalEmail({
+    supabase,
+    templateName: "contact-acknowledgment",
+    templateData: ackData,
+    recipientEmail: visitorEmail,
+    fromName: FROM_DISPLAY_NAME,
+    idempotencyKey: `contact-ack-${crypto.randomUUID()}`,
+  });
 
-  const ackMessageId = crypto.randomUUID();
-
-  await supabase.from("email_send_log").insert({
-    message_id: ackMessageId,
-    template_name: "contact-acknowledgment",
-    recipient_email: recipient,
-    status: "pending",
-    metadata: {
-      subject: ackSubject,
-      body_preview: ackText.replace(/\s+/g, " ").trim().slice(0, 200),
-      test_mode: testMode.enabled,
-      intended_recipient: testMode.enabled ? intendedRecipient : undefined,
-    },
-  } as any);
-
-  const { error: ackEnqueueErr } = await supabase.rpc("enqueue_email", {
-    queue_name: "transactional_emails",
-    payload: {
-      message_id: ackMessageId,
-      to: recipient,
-      from: `${FROM_DISPLAY_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
-      subject: ackSubject,
-      body_preview: ackText.slice(0, 200),
-      html: ackHtml,
-      text: ackText,
-      purpose: "transactional",
-      label: testMode.enabled ? "contact-acknowledgment-test" : "contact-acknowledgment",
-      idempotency_key: `contact-ack-${ackMessageId}`,
-      unsubscribe_token: unsubscribeToken,
-      queued_at: new Date().toISOString(),
-    },
-  } as any);
-
-  if (ackEnqueueErr) {
-    console.warn("contact: ack enqueue failed (non-fatal)", ackEnqueueErr);
-    await supabase.from("email_send_log").insert({
-      message_id: ackMessageId,
-      template_name: "contact-acknowledgment",
-      recipient_email: recipient,
-      status: "failed",
-      error_message: "Failed to enqueue acknowledgment",
-    } as any);
+  if (!ackResult.success && ackResult.reason !== "suppressed") {
+    console.warn("contact: ack enqueue failed (non-fatal)", ackResult.error);
   }
 }

@@ -1,10 +1,7 @@
-import * as React from "react";
-import { render } from "@react-email/components";
 import { createClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
 import { TEMPLATES } from "@/lib/email-templates/registry";
-
-import { SENDER_DOMAIN, FROM_DOMAIN, SITE_NAME } from "@/config/domains";
+import { sendTransactionalEmail } from "@/lib/email/send-transactional";
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return "***";
@@ -12,8 +9,6 @@ function redactEmail(email: string | null | undefined): string {
   if (!localPart || !domain) return "***";
   return `${localPart[0]}***@${domain}`;
 }
-
-import { generateToken } from "@/lib/crypto";
 
 export const Route = createFileRoute("/api/email/transactional/send")({
   server: {
@@ -49,7 +44,6 @@ export const Route = createFileRoute("/api/email/transactional/send")({
         let templateName: string;
         let recipientEmail: string;
         let idempotencyKey: string;
-        let messageId: string;
         let templateData: Record<string, any> = {};
         let fromName: string | null = null;
         let replyTo: string | null = null;
@@ -57,7 +51,7 @@ export const Route = createFileRoute("/api/email/transactional/send")({
           const body = await request.json();
           templateName = body.templateName || body.template_name;
           recipientEmail = body.recipientEmail || body.recipient_email;
-          messageId = crypto.randomUUID();
+          const messageId = crypto.randomUUID();
           idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId;
           if (body.templateData && typeof body.templateData === "object") {
             templateData = body.templateData;
@@ -111,193 +105,34 @@ export const Route = createFileRoute("/api/email/transactional/send")({
           );
         }
 
-        // 2. Check suppression list (fail-closed: if we can't verify, don't send)
-        const { data: suppressed, error: suppressionError } = await supabase
-          .from("suppressed_emails")
-          .select("id")
-          .eq("email", effectiveRecipient.toLowerCase())
-          .maybeSingle();
-
-        if (suppressionError) {
-          console.error("Suppression check failed — refusing to send", {
-            error: suppressionError,
-            recipient_redacted: redactEmail(effectiveRecipient),
-          });
-          return Response.json({ error: "Failed to verify suppression status" }, { status: 500 });
-        }
-
-        if (suppressed) {
-          // Log the suppressed attempt
-          await supabase.from("email_send_log").insert({
-            message_id: messageId,
-            template_name: templateName,
-            recipient_email: effectiveRecipient,
-            status: "suppressed",
-          });
-
-          if (import.meta.env.DEV) {
-            console.log("Email suppressed", {
-              templateName,
-              recipient_redacted: redactEmail(effectiveRecipient),
-            });
-          }
-          return Response.json({ success: false, reason: "email_suppressed" });
-        }
-
-        // 3. Get or create unsubscribe token (one token per email address)
-        const normalizedEmail = effectiveRecipient.toLowerCase();
-        let unsubscribeToken: string;
-
-        // Check for existing token for this email
-        const { data: existingToken, error: tokenLookupError } = await supabase
-          .from("email_unsubscribe_tokens")
-          .select("token, used_at")
-          .eq("email", normalizedEmail)
-          .maybeSingle();
-
-        if (tokenLookupError) {
-          console.error("Token lookup failed", {
-            error: tokenLookupError,
-            email_redacted: redactEmail(normalizedEmail),
-          });
-          await supabase.from("email_send_log").insert({
-            message_id: messageId,
-            template_name: templateName,
-            recipient_email: effectiveRecipient,
-            status: "failed",
-            error_message: "Failed to look up unsubscribe token",
-          });
-          return Response.json({ error: "Failed to prepare email" }, { status: 500 });
-        }
-
-        if (existingToken && !existingToken.used_at) {
-          // Reuse existing unused token
-          unsubscribeToken = existingToken.token;
-        } else if (!existingToken) {
-          // Create new token — upsert handles concurrent inserts gracefully
-          unsubscribeToken = generateToken();
-          const { error: tokenError } = await supabase
-            .from("email_unsubscribe_tokens")
-            .upsert(
-              { token: unsubscribeToken, email: normalizedEmail },
-              { onConflict: "email", ignoreDuplicates: true },
-            );
-
-          if (tokenError) {
-            console.error("Failed to create unsubscribe token", {
-              error: tokenError,
-            });
-            await supabase.from("email_send_log").insert({
-              message_id: messageId,
-              template_name: templateName,
-              recipient_email: effectiveRecipient,
-              status: "failed",
-              error_message: "Failed to create unsubscribe token",
-            });
-            return Response.json({ error: "Failed to prepare email" }, { status: 500 });
-          }
-
-          // If another request raced us, our upsert was silently ignored.
-          // Re-read to get the actual stored token.
-          const { data: storedToken, error: reReadError } = await supabase
-            .from("email_unsubscribe_tokens")
-            .select("token")
-            .eq("email", normalizedEmail)
-            .maybeSingle();
-
-          if (reReadError || !storedToken) {
-            console.error("Failed to read back unsubscribe token after upsert", {
-              error: reReadError,
-              email_redacted: redactEmail(normalizedEmail),
-            });
-            await supabase.from("email_send_log").insert({
-              message_id: messageId,
-              template_name: templateName,
-              recipient_email: effectiveRecipient,
-              status: "failed",
-              error_message: "Failed to confirm unsubscribe token storage",
-            });
-            return Response.json({ error: "Failed to prepare email" }, { status: 500 });
-          }
-          unsubscribeToken = storedToken.token;
-        } else {
-          // Token exists but is already used — email should have been caught by suppression check above.
-          // This is a safety fallback; log and skip sending.
-          console.warn("Unsubscribe token already used but email not suppressed", {
-            email_redacted: redactEmail(normalizedEmail),
-          });
-          await supabase.from("email_send_log").insert({
-            message_id: messageId,
-            template_name: templateName,
-            recipient_email: effectiveRecipient,
-            status: "suppressed",
-            error_message: "Unsubscribe token used but email missing from suppressed list",
-          });
-          return Response.json({ success: false, reason: "email_suppressed" });
-        }
-
-        // 4. Render React Email template to HTML and plain text
-        const element = React.createElement(template.component, templateData);
-        const html = await render(element);
-        const plainText = await render(element, { plainText: true });
-
-        // Resolve subject — supports static string or dynamic function
-        const resolvedSubject =
-          typeof template.subject === "function"
-            ? template.subject(templateData)
-            : template.subject;
-
-        // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
-        // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
-
-        // Build a short body preview from the plain-text render (collapse whitespace, cap length)
-        const bodyPreview = plainText.replace(/\s+/g, " ").trim().slice(0, 200);
-
-        // Log pending BEFORE enqueue so we have a record even if enqueue crashes
-        await supabase.from("email_send_log").insert({
-          message_id: messageId,
-          template_name: templateName,
-          recipient_email: effectiveRecipient,
-          status: "pending",
-          metadata: { subject: resolvedSubject, body_preview: bodyPreview },
+        // 2–5. Suppression check, token management, render, enqueue — delegated to helper.
+        const sendResult = await sendTransactionalEmail({
+          supabase,
+          templateName,
+          templateData,
+          recipientEmail: recipientEmail || undefined,
+          fromName,
+          replyTo,
+          idempotencyKey,
         });
 
-        const fromDisplayName = fromName ?? SITE_NAME;
-        const { error: enqueueError } = await supabase.rpc("enqueue_email", {
-          queue_name: "transactional_emails",
-          payload: {
-            message_id: messageId,
-            to: effectiveRecipient,
-            from: `${fromDisplayName} <noreply@${FROM_DOMAIN}>`,
-            sender_domain: SENDER_DOMAIN,
-            subject: resolvedSubject,
-            body_preview: bodyPreview,
-            html,
-            text: plainText,
-            purpose: "transactional",
-            label: templateName,
-            idempotency_key: idempotencyKey,
-            unsubscribe_token: unsubscribeToken,
-            reply_to: replyTo ?? undefined,
-            queued_at: new Date().toISOString(),
-          },
-        });
-
-        if (enqueueError) {
+        if (!sendResult.success) {
+          if (sendResult.reason === "suppressed") {
+            if (import.meta.env.DEV) {
+              console.log("Email suppressed", {
+                templateName,
+                recipient_redacted: redactEmail(effectiveRecipient),
+              });
+            }
+            return Response.json({ success: false, reason: "email_suppressed" });
+          }
+          if (sendResult.reason === "template_not_found") {
+            return Response.json({ error: sendResult.error }, { status: 404 });
+          }
           console.error("Failed to enqueue email", {
-            error: enqueueError,
             templateName,
             recipient_redacted: redactEmail(effectiveRecipient),
           });
-
-          await supabase.from("email_send_log").insert({
-            message_id: messageId,
-            template_name: templateName,
-            recipient_email: effectiveRecipient,
-            status: "failed",
-            error_message: "Failed to enqueue email",
-          });
-
           return Response.json({ error: "Failed to enqueue email" }, { status: 500 });
         }
 

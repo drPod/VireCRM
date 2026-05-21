@@ -8,19 +8,15 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import * as React from "react";
-import { render } from "@react-email/components";
 import { TEMPLATES } from "@/lib/email-templates/registry";
+import { sendTransactionalEmail } from "@/lib/email/send-transactional";
 
 type AdminClient = SupabaseClient<any, any, any, any, any>;
 
-import { SENDER_DOMAIN, FROM_DOMAIN } from "@/config/domains";
 const FROM_DISPLAY_NAME = "VireCRM Contact Form";
 const REMINDER_DELAY_HOURS = 24;
 const REMINDER_COOLDOWN_HOURS = 24;
 const BATCH_LIMIT = 50;
-
-import { generateToken } from "@/lib/crypto";
 
 export const Route = createFileRoute("/api/public/hooks/contact-followup-reminders")({
   server: {
@@ -37,11 +33,11 @@ export const Route = createFileRoute("/api/public/hooks/contact-followup-reminde
         }
         const supabase = createClient(SUPABASE_URL, SERVICE_KEY) as AdminClient;
 
-        const template = TEMPLATES["contact-followup-reminder"];
-        if (!template || !template.to) {
+        const templateDef = TEMPLATES["contact-followup-reminder"];
+        if (!templateDef?.to) {
           return Response.json({ error: "Reminder template misconfigured" }, { status: 500 });
         }
-        const recipient = template.to;
+        const recipient = templateDef.to;
 
         const now = Date.now();
         const olderThan = new Date(now - REMINDER_DELAY_HOURS * 3600 * 1000).toISOString();
@@ -70,7 +66,7 @@ export const Route = createFileRoute("/api/public/hooks/contact-followup-reminde
           return Response.json({ ok: true, reminded: 0, ran_at: new Date().toISOString() });
         }
 
-        // Skip if owner inbox is suppressed.
+        // Fast-path: skip if owner inbox is suppressed (avoids DB work per-candidate).
         const { data: suppressed } = await supabase
           .from("suppressed_emails")
           .select("id")
@@ -78,31 +74,6 @@ export const Route = createFileRoute("/api/public/hooks/contact-followup-reminde
           .maybeSingle();
         if (suppressed) {
           return Response.json({ ok: true, reminded: 0, note: "Owner inbox suppressed" });
-        }
-
-        // Reuse-or-create unsubscribe token for the owner inbox.
-        let unsubscribeToken: string;
-        const { data: existingToken } = await supabase
-          .from("email_unsubscribe_tokens")
-          .select("token, used_at")
-          .eq("email", recipient.toLowerCase())
-          .maybeSingle();
-        if (existingToken && !existingToken.used_at) {
-          unsubscribeToken = existingToken.token;
-        } else {
-          unsubscribeToken = generateToken();
-          await supabase
-            .from("email_unsubscribe_tokens")
-            .upsert({ token: unsubscribeToken, email: recipient.toLowerCase() } as any, {
-              onConflict: "email",
-              ignoreDuplicates: true,
-            });
-          const { data: stored } = await supabase
-            .from("email_unsubscribe_tokens")
-            .select("token")
-            .eq("email", recipient.toLowerCase())
-            .maybeSingle();
-          unsubscribeToken = stored?.token ?? unsubscribeToken;
         }
 
         let remindedCount = 0;
@@ -113,77 +84,35 @@ export const Route = createFileRoute("/api/public/hooks/contact-followup-reminde
             const hoursElapsed = Math.floor(
               (now - new Date(sub.created_at).getTime()) / (3600 * 1000),
             );
-            const data = {
-              name: sub.name,
-              email: sub.email,
-              company: sub.company,
-              phone: sub.phone,
-              budget: sub.budget,
-              message: sub.message,
-              receivedAt: new Date(sub.created_at).toISOString(),
-              hoursElapsed,
-            };
-            const element = React.createElement(template.component, data);
-            const html = await render(element);
-            const text = await render(element, { plainText: true });
-            const subject =
-              typeof template.subject === "function" ? template.subject(data) : template.subject;
 
-            const messageId = crypto.randomUUID();
-            const idempotencyKey = `contact-reminder-${sub.id}-${Math.floor(now / (3600 * 1000 * REMINDER_COOLDOWN_HOURS))}`;
-
-            await supabase.from("email_send_log").insert({
-              message_id: messageId,
-              template_name: "contact-followup-reminder",
-              recipient_email: recipient,
-              status: "pending",
-              metadata: {
-                subject,
-                body_preview: text.replace(/\s+/g, " ").trim().slice(0, 200),
-                contact_submission_id: sub.id,
-                hours_elapsed: hoursElapsed,
+            const result = await sendTransactionalEmail({
+              supabase,
+              templateName: "contact-followup-reminder",
+              templateData: {
+                name: sub.name,
+                email: sub.email,
+                company: sub.company,
+                phone: sub.phone,
+                budget: sub.budget,
+                message: sub.message,
+                receivedAt: new Date(sub.created_at).toISOString(),
+                hoursElapsed,
               },
-            } as any);
+              fromName: FROM_DISPLAY_NAME,
+              replyTo: sub.email,
+              idempotencyKey: `contact-reminder-${sub.id}-${Math.floor(now / (3600 * 1000 * REMINDER_COOLDOWN_HOURS))}`,
+            });
 
-            const { error: enqueueErr } = await supabase.rpc("enqueue_email", {
-              queue_name: "transactional_emails",
-              payload: {
-                message_id: messageId,
-                to: recipient,
-                from: `${FROM_DISPLAY_NAME} <noreply@${FROM_DOMAIN}>`,
-                sender_domain: SENDER_DOMAIN,
-                subject,
-                body_preview: text.slice(0, 200),
-                html,
-                text,
-                purpose: "transactional",
-                label: "contact-followup-reminder",
-                idempotency_key: idempotencyKey,
-                unsubscribe_token: unsubscribeToken,
-                reply_to: sub.email,
-                queued_at: new Date().toISOString(),
-              },
-            } as any);
-
-            if (enqueueErr) {
-              errors.push({ id: sub.id, error: enqueueErr.message });
-              await supabase.from("email_send_log").insert({
-                message_id: messageId,
-                template_name: "contact-followup-reminder",
-                recipient_email: recipient,
-                status: "failed",
-                error_message: "Failed to enqueue follow-up reminder",
-              } as any);
-              continue;
+            if (result.success) {
+              // Stamp the submission so we don't re-fire for another 24h.
+              await supabase
+                .from("contact_submissions")
+                .update({ last_reminder_at: new Date().toISOString() } as any)
+                .eq("id", sub.id);
+              remindedCount += 1;
+            } else if (result.reason !== "suppressed") {
+              errors.push({ id: sub.id, error: result.error ?? result.reason });
             }
-
-            // Stamp the submission so we don't re-fire for another 24h.
-            await supabase
-              .from("contact_submissions")
-              .update({ last_reminder_at: new Date().toISOString() } as any)
-              .eq("id", sub.id);
-
-            remindedCount += 1;
           } catch (err) {
             errors.push({
               id: sub.id,
