@@ -114,6 +114,33 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 
 #### Found (no work needed)
 - Honeypot has two layers: Zod schema `website: z.string().max(0)` rejects bot fills with 400, then the post-parse `if (payload.website.length > 0)` silent-success branch is unreachable (dead code). Test documents both. Not flagging for removal — defense-in-depth is intentional even if redundant.
+### 2026-05-22 — Unit tests for `src/lib/auth-helpers.ts`
+**Tags:** [tests] [auth] [supabase]
+
+#### Shipped
+- `src/lib/__tests__/auth-helpers.test.ts` (new, 168 LOC) — 10 cases covering `assertOrgMember` + `assertOwner`. Per-test configurable recording-chain Supabase fake (Proxy-based, adapted from `pipeline-org-scoping.test.ts:54-62`). Asserts both throw semantics + query shape (table, `.eq()` filter args).
+- Happy paths, mismatched-org rejection, missing-row rejection, null `organization_id`, Supabase-error path (locks in current "data-only inspection" behaviour — error surfaces as the Unauthorized/not-owner message), empty-string orgId validation edges.
+
+#### Verification
+- `bun run test src/lib/__tests__/auth-helpers.test.ts` — 10/10 passed.
+- `bun run test` — full suite 153/153 passed across 6 files. No regression in `pipeline-org-scoping`, `pipeline-counts`, `submission-helpers`, or the other suites.
+### 2026-05-22 — CI workflow added (GitHub Actions test.yml)
+**Tags:** [ci] [docs]
+
+#### Shipped
+- `.github/workflows/test.yml` — new. Triggers on `pull_request` (all branches) + `push` to `main`. Job runs ubuntu-latest, 10 min timeout: checkout → setup-bun@v2 (pinned `1.3.10` matching local that generated `bun.lock` `lockfileVersion: 1`) → setup-node@v4 (Node 22) → `bun install --frozen-lockfile` → `bun run typecheck` → `bun run lint` (continue-on-error, see below) → `bun run test`.
+
+#### Found
+- `bun run lint` currently reports **4925 problems** (4890 errors, 35 warnings) on `main` — pre-existing Lovable scaffold debt. Largest offenders: `@typescript-eslint/no-explicit-any` across `supabase/functions/payments-webhook/index.ts`, `supabase/functions/verify-checkout-session/index.ts`, and prettier drift. Workflow marks lint step `continue-on-error: true` w/ inline `TODO(lovable-cleanup)` so PRs aren't blocked. Drop the flag once backlog clears.
+
+#### Verification
+- `bun install --frozen-lockfile` — clean (653 packages, 3.42s).
+- `bun run typecheck` — exit 0.
+- `bun run test` — 5 files / 143 tests passed (679ms).
+- `bun x js-yaml .github/workflows/test.yml` — parses cleanly.
+
+#### Manual follow-up (user)
+- None.
 
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
