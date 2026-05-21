@@ -6,11 +6,51 @@ import { Label } from "@/components/ui/label";
 import { Terminal, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { useDomainBranding } from "@/components/auth/DomainBrandingProvider";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { friendlyAuthError } from "@/lib/auth-errors";
+
+// Platform hosts where tenant users should be bounced to their org subdomain
+// after login. Subdomains (greenenergiai.virecrm.com) and custom domains are
+// already on the right origin — no redirect needed there.
+const PLATFORM_HOSTS = new Set(["virecrm.com", "www.virecrm.com", "app.virecrm.com"]);
+
+function isOnPlatformHost() {
+  const h = window.location.hostname;
+  return PLATFORM_HOSTS.has(h) || h.endsWith(".majix.ai");
+}
+
+// Attempt to redirect the user to their org subdomain, passing session tokens
+// as a URL hash so Supabase's detectSessionInUrl restores the session on the
+// new origin (localStorage is origin-scoped; a bare redirect would log them out).
+// Returns true if a redirect was triggered (caller should stop further nav).
+// Skips redirect for platform_admin users — they stay on app.virecrm.com.
+async function maybeRedirectToOrgSubdomain(session: Session, returnTo: string): Promise<boolean> {
+  if (!isOnPlatformHost()) return false;
+  if (session.user.user_metadata?.platform_admin) return false;
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+  if (!profileData?.organization_id) return false;
+
+  const { data: orgData } = await supabase
+    .from("organizations")
+    .select("slug")
+    .eq("id", profileData.organization_id)
+    .maybeSingle();
+  if (!orgData?.slug) return false;
+
+  const { access_token, refresh_token, expires_in } = session;
+  const hash = `access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}&token_type=bearer`;
+  window.location.href = `https://${orgData.slug}.virecrm.com${returnTo}#${hash}`;
+  return true;
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -88,10 +128,13 @@ function LoginPage() {
       } else {
         toast.success("Already signed in. Redirecting…");
       }
-      // Small delay so the toast is visible before the hard navigation.
-      setTimeout(() => {
-        window.location.href = returnTo;
-      }, 600);
+      // Attempt subdomain redirect first; fall back to local navigation.
+      const redirected = await maybeRedirectToOrgSubdomain(data.session, returnTo);
+      if (!redirected) {
+        setTimeout(() => {
+          window.location.href = returnTo;
+        }, 600);
+      }
     };
     void handle();
   }, [returnTo]);
@@ -132,41 +175,13 @@ function LoginPage() {
       await new Promise((r) => setTimeout(r, 50));
       toast.success("Welcome back!");
 
-      // On platform hosts (virecrm.com, app.virecrm.com, etc.), redirect tenant
-      // users to their org subdomain. localStorage is origin-scoped so the
-      // session won't carry over on a bare redirect — we pass the tokens in the
-      // URL hash. Supabase's detectSessionInUrl (default true) restores the
-      // session on the subdomain automatically, same as the OAuth flow.
-      const hostname = window.location.hostname;
-      const PLATFORM_HOSTS = new Set(["virecrm.com", "www.virecrm.com", "app.virecrm.com"]);
-      const isOnPlatformHost = PLATFORM_HOSTS.has(hostname) || hostname.endsWith(".majix.ai");
-
-      if (isOnPlatformHost) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("organization_id")
-          .eq("user_id", data.session.user.id)
-          .maybeSingle();
-        if (profileData?.organization_id) {
-          const { data: orgData } = await supabase
-            .from("organizations")
-            .select("slug")
-            .eq("id", profileData.organization_id)
-            .maybeSingle();
-          if (orgData?.slug) {
-            const { access_token, refresh_token, expires_in } = data.session;
-            const hash = `access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}&token_type=bearer`;
-            window.location.href = `https://${orgData.slug}.virecrm.com${returnTo}#${hash}`;
-            return;
-          }
-        }
-      }
-
+      // Attempt subdomain redirect first; fall back to local navigation.
       // Honor the ?redirect= param set by /_app's auth gate so the user lands
       // back on the page they originally tried to visit. Use window.location
       // instead of navigate() because returnTo may include search params that
       // the typed router won't accept positionally.
-      window.location.href = returnTo;
+      const redirected = await maybeRedirectToOrgSubdomain(data.session, returnTo);
+      if (!redirected) window.location.href = returnTo;
     } catch (err: unknown) {
       toast.error(friendlyAuthError(err, "Login failed"));
     } finally {
