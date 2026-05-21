@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { GettingStartedChecklist } from "@/components/onboarding/GettingStartedChecklist";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   Users,
@@ -87,6 +89,28 @@ export function CrmSidebar() {
   const { subscription } = useSubscription(user?.id);
   const { isAdmin: isPlatformAdmin } = usePlatformAdmin();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Checklist state — columns added by migration 20260521000003. Fetched once
+  // per user session; optimistic updates happen inside GettingStartedChecklist.
+  // Columns aren't in generated types yet (migration not pushed to remote), so
+  // we cast the query result to bypass the type system.
+  const [checklistCompleted, setChecklistCompleted] = useState<string[]>([]);
+  const [checklistDismissedAt, setChecklistDismissedAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await (supabase
+        .from("profiles")
+        .select("checklist_items_completed, checklist_dismissed_at" as unknown as "*")
+        .eq("user_id", user.id)
+        .maybeSingle() as unknown as Promise<{ data: Record<string, unknown> | null }>);
+      if (cancelled || !data) return;
+      setChecklistCompleted(Array.isArray(data.checklist_items_completed) ? (data.checklist_items_completed as string[]) : []);
+      setChecklistDismissedAt(typeof data.checklist_dismissed_at === "string" ? data.checklist_dismissed_at : null);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const brandName = organization?.brand_name || "VireCRM";
   const logoUrl = organization?.logo_url;
@@ -364,6 +388,15 @@ export function CrmSidebar() {
           );
         })}
       </nav>
+
+      {/* Getting Started checklist — shown until dismissed or all 5 done */}
+      {user?.id && checklistDismissedAt === null && (
+        <GettingStartedChecklist
+          userId={user.id}
+          completedItems={checklistCompleted}
+          dismissedAt={checklistDismissedAt}
+        />
+      )}
 
       {/* Plan badge + footer actions */}
       <div className="space-y-1 border-t border-sidebar-border p-3">
