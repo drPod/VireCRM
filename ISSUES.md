@@ -16,19 +16,16 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
 - [ ] **CF Workers Builds "Variables and secrets" panel** — manual dashboard check that no `LOVABLE_API_KEY` lingers (runtime `wrangler secret list` doesn't cover build-time). Dashboard → Workers & Pages → genesisxsx → Settings → Variables.
-- [ ] **[green-energiai] Onboard Crystal Cameron + energy-broker CRM build-out** — **PAUSED 2026-05-19.** Steps 0-6 shipped on 2026-05-18 (`30f3a54`, `e0ada67`, `554580a`, `4635496`, `4b6f75e`, `1448353`, `6399b7b`, `286cd81`) but invalidated by 2026-05-19 discovery — old Lovable DB still live, Crystal's auth.users row preserved there (`7ba2ebfa-…`), session-1 provisioning created a DUPLICATE on new DB (`b5ae0c3e-…`), session-2 xlsx-import wrote 3850 rows with broken column mapping. **Migration must run FIRST** (`docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`). Resume Crystal onboarding at Step 5 of `docs/handoffs/2026-05-18-green-energiai-onboarding.md` AFTER migration lands — by then her UUID/password/data already on new DB, energy fields already populated from xlsx supplement pass.
+- [ ] **[green-energiai] Resume Crystal onboarding at Step 5** — migration done 2026-05-19. Her UUID `7ba2ebfa-f30e-449a-866e-085c5940c1d4` + bcrypt hash + 4,793 leads on new DB. Resume from `docs/handoffs/2026-05-18-green-energiai-onboarding.md` Step 5. DM framing: "your account is live on the new system, sign in with your existing password, all your data carried over, plus energy-broker fields populated."
 
-### Lovable → fixed-DB data migration
+### Post-migration follow-ups (old Lovable DB)
 
-- [ ] **Migrate live data from old Lovable Supabase project to current `coynbufhejaeuifpvmvw` project.** Full plan in `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`. Strategy = enrich, not replace: old DB is truth for users + lead UUIDs; xlsx is supplement for the energy-broker fields the old importer dropped. User dumped the old project to `og_database/` on 2026-05-19 (gitignored, never push — bcrypt password hashes + PII). Contents:
-  - `genesis_auth_data.sql` (47k) — 23 `auth.users` rows
-  - `genesis_database_schema.sql` (382k) — schema-only
-  - `genesis_database_full.sql` (3.4M) — schema + `COPY public.* FROM stdin` data sections
-  - `genesis_database_full_with_auth.sql` (3.4M) — everything (auth + public)
-  - **Caziah Cameron (`cameroncaziah@gmail.com`) last signed in on the OLD project at 2026-05-19 01:05** — the old project is still live for at least one user. Migration window is short; cut over before a stale-DB writes get lost.
-  - **Crystal Cameron (`crystal@greenenergiai.com`) already exists on the OLD project** with `auth.users.id = 7ba2ebfa-f30e-449a-866e-085c5940c1d4` confirmed 2026-04-23 16:37. The 2026-05-18 session-1 provisioning created a DUPLICATE on the new DB with `id = b5ae0c3e-1655-48d5-b211-a9fd55aaafea`. Decide before DM-ing her: either (a) delete the new-DB Crystal and port the old-DB row over (preserves UUID, keeps any historical references) or (b) keep the new-DB Crystal and write off the old account.
-  - Real-looking accounts in old DB: 4 `@greenenergiai.com` staff (crystal, erica, shelby, mleaverton), 2 founder addresses (`ethansereti`, `esereti22`), `cameroncaziah`, plus 6 other gmail/personal addresses (`alexanderjakari`, `caziahbankss`, `davioncarr60`, `info.solace05`, `jesaira.lifosjoe12`, `paparusse02`, `primeframem`). Plus 5 test/audit users to skip.
-  - Plan TBD: write a one-shot migration script that connects to BOTH projects, transforms old → new schema where shapes diverged (e.g. the energy_broker_fields migration `20260518200618_*` added columns the old DB didn't have), inserts via service-role on new project. Auth-user import via Supabase Admin API (`POST /auth/v1/admin/users` with `password_hash` to preserve bcrypt). Then freeze old project + redirect any lingering DNS.
+Migration ran 2026-05-19 session 5. 14 auth.users, 2 orgs, 10 profiles/roles, 13,991 leads ported. Script: `scripts/migrate-lovable-to-fixed.ts`. Handoff: `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`.
+
+- [ ] **Spot-check 10 Caziah leads** — confirm energy fields (`agent_mils`, `annual_kwh`, `contract_start_date`) populated where xlsx had data.
+- [ ] **Crystal own-org xlsx enrichment (Phase G)** — not run. Crystal's 4,793 leads in org `188c4869` got no xlsx enrichment (Phase F scoped to Caziah org only). Confirm: does her ngp-master xlsx apply to her own org too? If yes, run `bun scripts/migrate-lovable-to-fixed.ts --phase=G` (destructive REPLACE — see script comments).
+- [ ] **Crystal own-org slug rename** — `crystal-cameron-7ba2ebfa` is ugly. Product call: which subdomain does she want? Then `UPDATE organizations SET slug = '<chosen>' WHERE id = '188c4869-8bc4-438e-b746-c8f28e2932d2'`.
+- [ ] **Freeze old Lovable project** — after Crystal + Caziah both confirm on new DB: revoke old service-role key (Supabase dashboard), verify `genesisx.space` DNS not still serving old project.
 
 ### Phase 2 — Lovable cleanup follow-ups
 
