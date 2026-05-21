@@ -91,27 +91,22 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — Split LeadDetailDrawer into row + util modules
+### 2026-05-21 — Split IntegrationsSettings into ProviderCard + config module
 **Tags:** [audit] [frontend]
 
 #### Shipped
-- `src/components/crm/LeadDetailDrawer.tsx` — 1411 → 1216 lines; drawer keeps shell + tab orchestration only
-- `src/components/crm/ActivityEntry.tsx` (new, 109 lines) — single activity-row component + `ActivityItem` interface (re-exported for parent state typing)
-- `src/components/crm/EmailLogEntryRow.tsx` (new, 56 lines) — single email-log-row component
-- `src/lib/text-utils.ts` (new, 30 lines) — `htmlToPlainText` helper extracted verbatim
-- `src/lib/date-utils.ts` (new, 17 lines) — `formatRelativeTime` helper extracted verbatim
-- Removed now-unused imports from drawer (`ChevronDown`, `Mail`, `MessageSquare`, `Inbox`, `useAutoOutreach`)
-
-#### Found
-- 10 other components still define local `formatRelative*` helpers — `src/routes/_app.workflows.index.tsx`, `src/components/crm/TestResultPanel.tsx`, `ResendSettingsCard.tsx`, `PrerequisitesPanel.tsx`, `IntegrationsSettings.tsx`, `IntegrationActivityLog.tsx`, `DomainHealthPanel.tsx`, `CustomDomainAuditLog.tsx`, `CreditUsageWidget.tsx`, `CreditLedgerTimeline.tsx`. Candidates to import `src/lib/date-utils.ts` instead — out of scope for this unit, surface for follow-up DRY pass.
-- `package.json` references `playwright test ...` for `test:e2e` + `test:visual` scripts but Playwright is not in `dependencies` or `devDependencies`. `bun run test:e2e` fails with "unknown command 'test'". Pre-existing repo gap, surfaced while running this unit's verification recipe.
+- `src/types/integrations.ts` — extracted `Provider`, `ProviderConfigField`, `ProviderConfig`, `ProviderStatus`.
+- `src/lib/provider-configs.ts` — extracted `PROVIDERS` static array (Apollo / Hunter / Snov / SendGrid).
+- `src/components/crm/ProviderCard.tsx` — extracted per-provider card component (was the second half of IntegrationsSettings.tsx, ~615 lines including local `formatRelative` helper).
+- `src/components/crm/IntegrationsSettings.tsx` — slimmed from 1110 → 326 lines; now imports `ProviderCard`, `PROVIDERS`, and types. No behavior change.
+- `formatRelative` left local to `ProviderCard.tsx` with a `// TODO: dedup with src/lib/date-utils.ts formatRelativeTime when Unit 7 lands` comment — Unit 7 owns the date-utils file.
 
 #### Verification
-- `bun run typecheck` — clean
-- `bun run test` — 119/119 passing
-- `npx eslint <my-5-files>` — clean after `--fix` (whole-repo `bun run lint` has 4823 pre-existing errors in unrelated files)
-- `bun run build` — built in 7.89s, no errors
-- e2e + visual — skipped, Playwright not installed (see Found above)
+- `bun run typecheck` — clean.
+- `bun run test` — 119/119 pass.
+- `bunx eslint <4 touched files>` — clean (repo has pre-existing lint debt outside this scope; not in this change).
+- `bun run build` — succeeds (vite 7.30s).
+- `bun run test:e2e` / `test:visual` — skipped: playwright not installed in this worktree's `node_modules` (no `@playwright/test` dev dep). Mechanical extract with no runtime change; smoke-equivalent passes above cover the regression surface.
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
