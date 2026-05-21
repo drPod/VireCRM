@@ -39,6 +39,15 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      # ISSUES.md structural lint. Catches orphan #### subsections, missing
+      # **Tags:** lines, and archive candidates >14d old. Local enforcement is
+      # via .githooks/pre-commit but only fires for devs who ran
+      # scripts/install-hooks.sh; CI catches PRs from agents/worktrees that
+      # bypass the local hook. Script exits non-zero on errors only — archive
+      # warnings stay non-blocking.
+      - name: ISSUES.md lint
+        run: bash scripts/lint-issues.sh
+
       # Lint currently has ~4.9k pre-existing errors on main (mostly @typescript-eslint
       # rules in supabase/functions/* + prettier drift). Tracked as Lovable-cleanup
       # tech debt — failing CI on it would block every PR. Surface the failures

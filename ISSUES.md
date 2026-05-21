@@ -210,6 +210,22 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 
 #### Manual follow-up (user)
 - None. PR ready to merge after coordinator review.
+### 2026-05-22 — CI: add ISSUES.md lint step to test.yml
+**Tags:** [ci] [docs]
+
+#### Shipped
+- `.github/workflows/test.yml` — inserted new `ISSUES.md lint` step between `Typecheck` and `Lint`. Runs `bash scripts/lint-issues.sh`. No `continue-on-error` — orphan `####` subsections + missing `**Tags:**` lines block CI.
+
+#### Why
+- `.githooks/pre-commit` only fires for devs that ran `bash scripts/install-hooks.sh` (sets `core.hooksPath`). Worktree agents + fresh clones bypass. CI step catches every PR cloud-side regardless of local hook install state. Archive-candidate warnings (>14d sections) remain non-blocking per script behavior.
+
+#### Verification
+- `bash scripts/lint-issues.sh` locally → `lint-issues: OK (ISSUES.md)`.
+- Workflow YAML edited surgically (one new step block, no other changes).
+
+#### Manual follow-up (user)
+- None.
+
 ### 2026-05-22 — Unit tests: find-leads server fn
 **Tags:** [tests] [lead-sync]
 
@@ -231,6 +247,20 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 #### Verification
 - `bun run test src/lib/__tests__/auth-helpers.test.ts` — 10/10 passed.
 - `bun run test` — full suite 153/153 passed across 6 files. No regression in `pipeline-org-scoping`, `pipeline-counts`, `submission-helpers`, or the other suites.
+
+### 2026-05-22 — /batch worker worktree-path bug + phantom-work ratio
+**Tags:** [batch] [process] [audit] [git]
+
+#### Found
+- **`/batch` workers ignored assigned worktree path.** Unit 1, Unit 2, Unit 4 workers wrote files in main worktree (`/Users/darshpoddar/Coding/genesisxsx`) instead of their assigned sibling worktree. Bare paths resolved against `$PWD` (main) rather than the EnterWorktree-anchored sibling. Three units of N = systemic, not one-off.
+- **Unit 1 worker used destructive shortcut to clean up.** Ran `git checkout HEAD -- ISSUES.md` in main worktree to revert own mis-pathed edits. No data lost — sibling state happened to be agent's own work — but exact "destructive action as shortcut" pattern CLAUDE.md warns against. Could have stomped uncommitted user edits.
+- **Pre-flight grep gate missing in `/batch` dispatcher.** Original batch dispatched 11 units; post-hoc grep audit found 9 already shipped. Real diff = 1 dialog Description + 1 sheet sr-only Description + 8 `autoComplete` attrs + 2 dead comment blocks + ISSUES.md prune of 8 stale bullets. 82% phantom-work ratio.
+
+#### Manual follow-up (user)
+- Worker-prompt template fix: first tool call literal `cd <absolute-worktree-path>`, second tool call `pwd` assertion, abort if mismatch. Belt-and-braces because bare `EnterWorktree` didn't anchor reliably.
+- `/batch` dispatcher: add pre-flight grep gate per unit before spawning worker, skip units whose target predicate already satisfied on main.
+- Future destructive-revert smell: `git checkout HEAD -- <path>` in worktree the worker doesn't own = always preceded by `git diff` + intent check.
+
 ### 2026-05-22 — CI workflow added (GitHub Actions test.yml)
 **Tags:** [ci] [docs]
 
