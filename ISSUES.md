@@ -120,6 +120,32 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor CustomDomainsPanel god component
+**Tags:** [refactor] [god-components] [cf-saas]
+
+Split `src/components/crm/CustomDomainsPanel.tsx` (922 LOC, unit-5 of a 13-way parallel split) into per-seam units. Public API frozen: both `CustomDomainsPanel` and `CustomDomainsSection` re-exported from the original path. Business logic preserved byte-for-byte — retry timings (`RETRY_DELAYS_MS`), every `logEvent` call site, the auto-verify state machine, and the audit-tick wiring all intact.
+
+#### Shipped
+
+- `src/components/crm/custom-domains.types.ts` (NEW, 81 LOC) — shared types (`DomainRow`, `OwnerRow`, `AutoState`, `DomainEventType`, `DomainEventStatus`) + constants (`HOSTNAME_RE`, `RETRY_DELAYS_MS`) + the `logEvent` audit RPC wrapper.
+- `src/hooks/useAutoVerifyDomain.ts` (NEW, 261 LOC) — DNS verification state machine + timer lifecycle + the per-row retry schedule. Exposes `{ autoState, startAutoVerify, runAttempt, cancelRow }` to the container. Memoizes `runAttempt`/`startAutoVerify`/`clearTimer`/`updateAuto` via `useCallback`. Filter-effect for orphaned rows now bails when nothing changed (small efficiency win vs original unconditional `setAutoState`).
+- `src/components/crm/DomainAddForm.tsx` (NEW, 121 LOC) — input + Add button + the `handleAdd` flow including the post-add Cloudflare-for-SaaS provision call (`provisionCustomHostnameFn` via `useAuthedServerFn`). Best-effort 503-on-not-configured semantics preserved.
+- `src/components/crm/DomainListRow.tsx` (NEW, 202 LOC) — single row UI: badges, action buttons, two-step DNS instructions with verification-token copy, embedded `AutoStatusBlock` renderer for the auto-verify status block.
+- `src/components/crm/CustomDomainsPanel.tsx` (354 LOC, from 922) — container only: feature-flag gate, role-based owner allow-list, refresh of `org_custom_domains` + owner profiles, `handleSetPrimary`/`handleRemove`/`handleVerifyNow` (kept here because they read `busyId`, `organizationId`, `refresh`, `bumpAudit` directly). Still above the <300 soft target by 54 LOC because the byte-for-byte audit-log call constraint means each error branch keeps its own full `logEvent({...})` payload.
+- `src/lib/dns-check.ts` — added `lookupTxtToken(hostname, token)` next to the existing `lookupDns` so the auto-verify hook reuses the shared DNS-over-HTTPS module. Original `lookupTxt` semantics preserved (no multi-chunk TXT join — would have been a behavior change).
+
+#### Verification
+
+- `bun run typecheck` — clean.
+- `bun run test` — 133/133 pass.
+- `bun run build` — 7.66s, no errors. `dist/server/assets/_app.settings-brVJXcoF.js` contains all three new component identifiers (`DomainAddForm`, `DomainListRow`, `useAutoVerifyDomain`), confirming the settings route bundles the split correctly.
+- `bun run lint` — pre-existing baseline (4810 errors repo-wide); none introduced by this work. `bunx prettier --write` applied to the six touched files.
+- agent-browser e2e step blocked by an unrelated `vite preview` server-entry resolution issue in TanStack Start (`dist/server/server.js` not generated). Per recipe fallback: bundle check confirms the split modules ship.
+
+#### Notes for follow-up
+
+- Pre-existing bug not in scope: `CustomDomainsPanel` bumps `auditTick` after every `logEvent` but never passes it down to `CustomDomainAuditLog` (`refreshKey` prop). The audit log doesn't refresh on action. Left as-is — outside the refactor mandate.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
