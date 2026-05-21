@@ -120,6 +120,27 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor CreditTopUpPanel god component
+**Tags:** [refactor] [god-components] [stripe]
+
+Unit-6 of the 13-way god-component refactor. `src/components/crm/CreditTopUpPanel.tsx` was 800 LOC mixing credit balance load + 4 pack cards + auto-recharge (with two AlertDialog confirms) + low-balance settings + notify endpoint + Stripe checkout. Public API frozen — default export name preserved, `CREDIT_PACKS` re-exported for `CreditLedgerTimeline`.
+
+#### Shipped
+- `src/lib/credit-packs.ts` — new. Owns `CREDIT_PACKS` catalog, `CreditPack` type, `DEFAULT_AUTO_PACK`, `formatPackPrice`, `perCredit`, `packLabel`. Whole-dollar `formatPackPrice` kept distinct from `lib/money.ts` `formatMoney` (which produces `$15.00` not `$15`).
+- `src/components/crm/credit-top-up.types.ts` — `PackBalance`, `AutoRechargeSettings`, `LowBalanceSettings`.
+- `src/hooks/useCreditBalance.ts` — loads packs + settings in one round-trip; exposes balance, auto/lowBalance state + setters, saved-card hint, `reload`.
+- `src/components/crm/CreditPackCard.tsx` — single pack tile (40 LOC).
+- `src/components/crm/AutoRechargePanel.tsx` — switch + inline settings + persist mutation + toast cascade. Delegates both confirms to dialog file (231 LOC).
+- `src/components/crm/AutoRechargeConfirmDialogs.tsx` — `EnableAutoRechargeDialog` + `DisableAutoRechargeDialog`. Pulled out to keep AutoRechargePanel <250.
+- `src/components/crm/LowBalancePanel.tsx` — settings UI + `Run check now` test button. Exports `callLowBalanceNotifyEndpoint` so the container can re-use it for the auto-evaluate effect.
+- `src/components/crm/CreditTopUpPanel.tsx` — 800 → 149 LOC slim container. Wires hook + child panels, owns the once-per-mount auto-evaluate effect (preserved verbatim, no business-logic rewrite), Stripe checkout dispatch unchanged.
+
+#### Verification
+- `bun run typecheck` — no new errors (one pre-existing baseline error in `src/routes/hooks/send-pending-welcomes.ts` unchanged on `main`).
+- `bun run build` — succeeded, `_app.billing` chunk emitted with "Buy more credits", "Auto-recharge", "Low-balance email alert" strings all present (bundle grep).
+- `bun run test` — 133/133 unit tests pass.
+- `vite preview` route smoke skipped: TanStack Start preview-server errors with `dist/server/server.js` ESM module-not-found unrelated to refactor (same on baseline). Recipe permits bundle-check fallback.
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
