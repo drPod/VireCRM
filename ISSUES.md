@@ -91,22 +91,26 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
-### 2026-05-21 — Split IntegrationsSettings into ProviderCard + config module
+### 2026-05-21 — Split ImportLeadsDialog parsing into lib/import
 **Tags:** [audit] [frontend]
 
 #### Shipped
-- `src/types/integrations.ts` — extracted `Provider`, `ProviderConfigField`, `ProviderConfig`, `ProviderStatus`.
-- `src/lib/provider-configs.ts` — extracted `PROVIDERS` static array (Apollo / Hunter / Snov / SendGrid).
-- `src/components/crm/ProviderCard.tsx` — extracted per-provider card component (was the second half of IntegrationsSettings.tsx, ~615 lines including local `formatRelative` helper).
-- `src/components/crm/IntegrationsSettings.tsx` — slimmed from 1110 → 326 lines; now imports `ProviderCard`, `PROVIDERS`, and types. No behavior change.
-- `formatRelative` left local to `ProviderCard.tsx` with a `// TODO: dedup with src/lib/date-utils.ts formatRelativeTime when Unit 7 lands` comment — Unit 7 owns the date-utils file.
+
+- `src/components/crm/ImportLeadsDialog.tsx` slimmed 1,155 → 503 lines. Dialog now keeps only UI + React state; all parsing/building logic moved to importable modules.
+- `src/types/import.ts` — `ParsedLead`, `ParseIssue`, `ParseOutcome`, `RawSheet`, `IndexMap`.
+- `src/lib/import/headers.ts` — header dictionaries (NAME_HEADERS, EMAIL_HEADERS, …), `VALID_STATUSES`, `EMAIL_RE`, `normalizeHeader`, plus a new `detectColumnIndices` helper that replaces the 17-line `findIndex` block duplicated across the CSV and XLSX parsers.
+- `src/lib/import/csv-parser.ts` — `parseCSV`, `parseCSVLine`.
+- `src/lib/import/xlsx-parser.ts` — `parseXLSX`.
+- `src/lib/import/field-parsers.ts` — `parseAnnualKwh`, `parseCostPerKwh`, `parseMils`, `parseContractDate`.
+- `src/lib/import/builder.ts` — `buildLeadsFromIndices`, `buildLeadsFromAiMapping`.
+- `src/lib/import/__tests__/field-parsers.test.ts` — spot tests for the loose energy-broker parsers (kWh suffix, UK-first dates, Crystal's cents/mils heuristic, Excel serials). 14 new tests.
 
 #### Verification
+
 - `bun run typecheck` — clean.
-- `bun run test` — 119/119 pass.
-- `bunx eslint <4 touched files>` — clean (repo has pre-existing lint debt outside this scope; not in this change).
-- `bun run build` — succeeds (vite 7.30s).
-- `bun run test:e2e` / `test:visual` — skipped: playwright not installed in this worktree's `node_modules` (no `@playwright/test` dev dep). Mechanical extract with no runtime change; smoke-equivalent passes above cover the regression surface.
+- `bun run test` — 133 passed (was 119; +14 from new field-parser suite). No other tests changed behavior.
+- `bun run lint` — no new violations in any of the new files or the slimmed dialog. Pre-existing `supabase/functions/**` + `vite.config.ts` errors untouched.
+- `bun run build` — Vite/Wrangler build green.
 
 ### 2026-05-21 — Config + auth centralization (Phase A + B)
 **Tags:** [lovable-migration] [audit]
