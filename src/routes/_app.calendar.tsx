@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Link } from "@tanstack/react-router";
 import { NewTaskDialog } from "@/components/crm/NewTaskDialog";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { completeTaskWithAiFn } from "@/functions/complete-task.functions";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { toast } from "sonner";
@@ -70,7 +70,7 @@ function CalendarPage() {
   const [dialogDefaultDate, setDialogDefaultDate] = useState<Date | undefined>(undefined);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const completeTask = useAuthedServerFn(completeTaskWithAiFn);
+  const completeTask = useServerFn(completeTaskWithAiFn);
   const isOwner = role?.role === "owner";
   const [cursor, setCursor] = useState(() => {
     const d = new Date();

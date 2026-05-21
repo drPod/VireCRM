@@ -21,7 +21,7 @@ import {
   BulkApplyTemplateDialog,
   type BulkRecipient,
 } from "@/components/crm/BulkApplyTemplateDialog";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import { sendFollowupSuggestionsFn } from "@/functions/send-followup-suggestions.functions";
 
 interface Suggestion {
@@ -61,7 +61,7 @@ const STATUS_TABS: { key: Suggestion["status"] | "all"; label: string }[] = [
 
 function FollowupInbox() {
   const { user, organization } = useAuth();
-  const sendBulk = useAuthedServerFn(sendFollowupSuggestionsFn);
+  const sendBulk = useServerFn(sendFollowupSuggestionsFn);
   const [approving, setApproving] = useState(false);
   const [tab, setTab] = useState<Suggestion["status"] | "all">("pending");
   const [items, setItems] = useState<Suggestion[]>([]);

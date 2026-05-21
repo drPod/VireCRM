@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { setResponseStatus } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { dispatchOutreachEmail } from "@/lib/email/dispatch-outreach";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -16,7 +16,7 @@ const sendInputSchema = z.object({
 });
 
 export const sendQueuedTestEmailFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof sendInputSchema>) => sendInputSchema.parse(input))
   .handler(
     async ({
@@ -95,7 +95,7 @@ const lookupSchema = z.object({
  * raw email_send_log status into the UI's lifecycle vocabulary.
  */
 export const lookupTestEmailStatusFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof lookupSchema>) => lookupSchema.parse(input))
   .handler(async ({ data, context }): Promise<TestEmailStatus[]> => {
     const { userId, supabase } = context;
