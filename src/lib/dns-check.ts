@@ -21,8 +21,7 @@
 // `VITE_CF_FALLBACK_HOSTNAME` overrides the default below so the runtime
 // target can be flipped without a code change.
 export const REQUIRED_CNAME_TARGET =
-  (import.meta.env.VITE_CF_FALLBACK_HOSTNAME as string | undefined) ??
-  "customers.virecrm.com";
+  (import.meta.env.VITE_CF_FALLBACK_HOSTNAME as string | undefined) ?? "customers.virecrm.com";
 
 // Prefix for the app-level ownership TXT record tenants must publish.
 // e.g. _virecrm.crm.acmecorp.com = virecrm-verify-<token>
@@ -49,6 +48,31 @@ export async function lookupDns(name: string, type: DnsType): Promise<string[]> 
   if (!res.ok) return [];
   const json = (await res.json()) as DnsResponse;
   return (json.Answer || []).map((a) => a.data.replace(/^"|"$/g, "").replace(/" "/g, ""));
+}
+
+/**
+ * Lookup the per-org verification TXT at `_virecrm.<hostname>` and report whether
+ * it contains the issued token. Used by the auto-verify state machine in
+ * CustomDomainsPanel — surfaces a transport error separately from "not found yet"
+ * so callers can decide whether to log a DNS failure vs a soft retry.
+ */
+export async function lookupTxtToken(
+  hostname: string,
+  token: string,
+): Promise<{ found: boolean; error: string | null }> {
+  try {
+    const lookup = `${TXT_VERIFICATION_PREFIX}.${hostname}`;
+    const res = await fetch(
+      `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(lookup)}&type=TXT`,
+      { headers: { Accept: "application/dns-json" } },
+    );
+    if (!res.ok) return { found: false, error: `DNS lookup failed (${res.status})` };
+    const dns = (await res.json()) as { Answer?: { data: string }[] };
+    const records = (dns.Answer || []).map((a) => a.data.replace(/^"|"$/g, ""));
+    return { found: records.some((r) => r.includes(token)), error: null };
+  } catch (err) {
+    return { found: false, error: err instanceof Error ? err.message : "DNS lookup failed" };
+  }
 }
 
 export type CheckStatus = "pass" | "fail" | "warn" | "info";
