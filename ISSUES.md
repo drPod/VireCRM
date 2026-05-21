@@ -100,6 +100,24 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — CI workflow added (GitHub Actions test.yml)
+**Tags:** [ci] [docs]
+
+#### Shipped
+- `.github/workflows/test.yml` — new. Triggers on `pull_request` (all branches) + `push` to `main`. Job runs ubuntu-latest, 10 min timeout: checkout → setup-bun@v2 (pinned `1.3.10` matching local that generated `bun.lock` `lockfileVersion: 1`) → setup-node@v4 (Node 22) → `bun install --frozen-lockfile` → `bun run typecheck` → `bun run lint` (continue-on-error, see below) → `bun run test`.
+
+#### Found
+- `bun run lint` currently reports **4925 problems** (4890 errors, 35 warnings) on `main` — pre-existing Lovable scaffold debt. Largest offenders: `@typescript-eslint/no-explicit-any` across `supabase/functions/payments-webhook/index.ts`, `supabase/functions/verify-checkout-session/index.ts`, and prettier drift. Workflow marks lint step `continue-on-error: true` w/ inline `TODO(lovable-cleanup)` so PRs aren't blocked. Drop the flag once backlog clears.
+
+#### Verification
+- `bun install --frozen-lockfile` — clean (653 packages, 3.42s).
+- `bun run typecheck` — exit 0.
+- `bun run test` — 5 files / 143 tests passed (679ms).
+- `bun x js-yaml .github/workflows/test.yml` — parses cleanly.
+
+#### Manual follow-up (user)
+- None.
+
 ### 2026-05-22 — Phase 2 Lovable cleanup audit + ISSUES.md hygiene
 **Tags:** [audit] [lovable-migration]
 
