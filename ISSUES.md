@@ -91,6 +91,16 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-21 — Move misplaced server fns to src/functions/
+**Tags:** [audit] [lovable-migration]
+
+#### Shipped
+- `git mv src/lib/admin-quote-email.functions.ts → src/functions/admin-quote-email.functions.ts`
+- `git mv src/lib/quote-pdf.functions.ts → src/functions/quote-pdf.functions.ts`
+- `git mv src/lib/test-account.functions.ts → src/functions/test-account.functions.ts`
+- Updated 2 import sites: `src/components/admin/QuotesPanel.tsx` (lines 60-61), `src/components/admin/TestAccountButton.tsx` (line 26) — `@/lib/...` → `@/functions/...`
+- Rationale: all three use `createServerFn` and belonged in `src/functions/` per repo convention; history preserved via `git mv`
+
 ### 2026-05-21 — Move connector clients to lib/connectors
 **Tags:** [audit] [lovable-migration]
 

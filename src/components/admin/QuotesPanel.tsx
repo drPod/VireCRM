@@ -57,8 +57,8 @@ import {
 } from "lucide-react";
 import { Sparkles, Download } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { regenerateQuotePdf, getQuotePdfSignedUrl } from "@/lib/quote-pdf.functions";
-import { sendAdminQuoteEmail } from "@/lib/admin-quote-email.functions";
+import { regenerateQuotePdf, getQuotePdfSignedUrl } from "@/functions/quote-pdf.functions";
+import { sendAdminQuoteEmail } from "@/functions/admin-quote-email.functions";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 
