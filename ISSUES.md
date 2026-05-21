@@ -100,6 +100,12 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Unit tests: `_lead-sync-log.ts` audit-writer
+**Tags:** [audit] [test]
+
+#### Shipped
+- `src/functions/__tests__/_lead-sync-log.test.ts` (new, 200 LOC) — 7 tests covering `recordLeadSync()` contract: happy path, snake_case row-shape mapping, default counters, optional `metadata` passthrough, DB-error swallowed w/ `console.error`, thrown-exception swallowed w/ `console.error`, `quota_exceeded` status. Mocks `supabaseAdmin.from().insert()` via `vi.mock` of `@/integrations/supabase/client.server`; module-scoped `inserted[]` captures each row. Direct insert mock (not chain-recording Proxy) because target only calls `.from().insert()` — no chain. `vi.mocked(console.error)` for typed mock access.
+- Full suite: `bun run test` → 6 files, 150 tests passing.
 ### 2026-05-22 — Unit tests for `src/lib/server-fn-auth.ts`
 **Tags:** [test] [auth]
 
