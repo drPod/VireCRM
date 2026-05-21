@@ -24,7 +24,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
-import { crmTiers, whiteLabelTiers, type PricingTier } from "@/components/marketing/PricingCards";
+import { crmTiers, type PricingTier } from "@/components/marketing/PricingCards";
 import {
   clearOverrides,
   formatCentsForDisplay,
@@ -37,7 +37,7 @@ type CheckStatus = "match" | "within-tolerance" | "mismatch" | "missing" | "erro
 
 interface CheckRow {
   tier: PricingTier;
-  group: "CRM" | "White-Label";
+  group: "CRM";
   status: CheckStatus;
   expectedCents: number | null;
   stripeCents: number | null;
@@ -114,10 +114,10 @@ export function PriceConsistencyCheck() {
     return () => window.removeEventListener("virecrm:pricing-overrides-changed", sync);
   }, []);
 
-  const tiers: { tier: PricingTier; group: CheckRow["group"] }[] = [
-    ...crmTiers.map((t) => ({ tier: t, group: "CRM" as const })),
-    ...whiteLabelTiers.map((t) => ({ tier: t, group: "White-Label" as const })),
-  ];
+  const tiers: { tier: PricingTier; group: CheckRow["group"] }[] = crmTiers.map((t) => ({
+    tier: t,
+    group: "CRM" as const,
+  }));
 
   /** Tolerance in cents. Empty / invalid input = 0 (strict equality). */
   const toleranceCents = (() => {

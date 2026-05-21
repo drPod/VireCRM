@@ -317,9 +317,6 @@ export function ContactForm() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="custom-crm">Custom CRM build</SelectItem>
-              <SelectItem value="white-label">White-label / reseller</SelectItem>
-              <SelectItem value="full-ownership">Full ownership / source code</SelectItem>
-              <SelectItem value="enterprise">Custom Enterprise</SelectItem>
               <SelectItem value="integration">Custom integration</SelectItem>
               <SelectItem value="other">Something else</SelectItem>
             </SelectContent>
@@ -332,8 +329,8 @@ export function ContactForm() {
               <SelectValue placeholder="Select a budget range" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="under-14k">Under $14,000</SelectItem>
-              <SelectItem value="14k">$14,000 — Custom Enterprise</SelectItem>
+              <SelectItem value="under-5k">Under $5,000</SelectItem>
+              <SelectItem value="5k-14k">$5,000 – $14,000</SelectItem>
               <SelectItem value="14k-25k">$14,000 – $25,000</SelectItem>
               <SelectItem value="25k+">$25,000+</SelectItem>
               <SelectItem value="unsure">Not sure yet</SelectItem>
