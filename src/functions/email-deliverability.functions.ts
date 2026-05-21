@@ -19,6 +19,7 @@
  * deliverability for replies and outreach.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseStatus } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
@@ -414,7 +415,8 @@ export const checkEmailDeliverability = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (!profile || profile.organization_id !== data.organizationId) {
-      throw new Response("Forbidden", { status: 403 });
+      setResponseStatus(403);
+      throw new Error("Forbidden");
     }
 
     // Pick the domain to inspect. Prefer the configured business email

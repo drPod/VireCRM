@@ -500,6 +500,14 @@ Step 6 = effectively done. Old Lovable project no longer accessible to user → 
 - `src/integrations/supabase/subscription-middleware.ts` lines 43/63/75 — `setResponseStatus(403)` before "Subscription check failed" (fail-closed entitlement DB error). Lines 83-85 — `setResponseStatus(402)` before "Subscription required" (Payment Required).
 - Errors now serialize with proper HTTP status — clients can branch on 401 vs 402 vs 403 instead of seeing generic 500.
 - Cleared stale `## Open` "Bugs found, not fixed" bullet that mis-described auth-middleware as using `throw new Response()` (it always used `throw new Error()`); real gap was missing status codes, now fixed.
+### 2026-05-22 — admin/platform server fns: proper HTTP status codes
+**Tags:** [bug] [tanstack-start] [admin]
+
+#### Shipped
+- `src/functions/quote-pdf.functions.ts:66,315` — `setResponseStatus(401)` before platform-admin auth throws.
+- `src/functions/admin-quote-email.functions.ts:46` — `setResponseStatus(401)` before platform-admin auth throw.
+- `src/functions/test-email.functions.ts:117` — `setResponseStatus(403)` before owner-only role throw.
+- Clients can now branch on 401 vs 403 vs 500 instead of seeing generic 500 for every failure.
 
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
