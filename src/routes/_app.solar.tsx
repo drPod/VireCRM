@@ -73,9 +73,7 @@ export function IndustryHub({ industry }: IndustryHubProps) {
           <p className="text-sm text-muted-foreground">{template.tagline}</p>
         </div>
         <Button size="sm" variant="outline" asChild>
-          <Link to="/leads">
-            Open {template.terminology.leadPlural}
-          </Link>
+          <Link to="/leads">Open {template.terminology.leadPlural}</Link>
         </Button>
       </header>
 
@@ -130,8 +128,9 @@ export function IndustryHub({ industry }: IndustryHubProps) {
 
 export const Route = createFileRoute("/_app/solar")({
   component: () => (
-    <IndustryGate industry="solar">
-      <IndustryHub industry="solar" />
+    // Cast: "solar" dropped from IndustryKey; route file pending delete.
+    <IndustryGate industry={"solar" as IndustryKey}>
+      <IndustryHub industry={"solar" as IndustryKey} />
     </IndustryGate>
   ),
 });

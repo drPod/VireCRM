@@ -11,10 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { IndustryGate } from "@/components/crm/IndustryGate";
+import type { IndustryKey } from "@/lib/industry-templates";
 
 export const Route = createFileRoute("/_app/gym")({
   component: () => (
-    <IndustryGate industry="gym">
+    // Cast: "gym" is no longer in IndustryKey. Route file is queued for
+    // deletion under the single-vertical (energy) cleanup batch; this cast
+    // keeps the worktree compiling until that delete lands.
+    <IndustryGate industry={"gym" as IndustryKey}>
       <GymDashboard />
     </IndustryGate>
   ),

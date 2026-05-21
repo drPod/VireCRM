@@ -16,7 +16,7 @@
     "test:visual:update": "playwright test tests/visual --update-snapshots",
     "test:visual:ui": "playwright test --ui",
     "test:e2e": "playwright test tests/e2e",
-    "test:e2e:industry": "playwright test tests/e2e/industry-switching.spec.ts",
+    "test:e2e:energy": "playwright test tests/e2e/energy-vertical.spec.ts",
     "clean": "rm -rf node_modules/.vite node_modules/.cache .tanstack dist .vinxi src/routeTree.gen.ts tsconfig.tsbuildinfo .tsbuildinfo",
     "typecheck": "tsc --noEmit",
     "typecheck:fresh": "bun run clean && tsc --noEmit"

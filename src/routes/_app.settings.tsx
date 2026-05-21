@@ -11,18 +11,18 @@ import { IntegrationsSettings } from "@/components/crm/IntegrationsSettings";
 import { N8nWebhookSettings } from "@/components/crm/N8nWebhookSettings";
 import { OutreachTemplatesManager } from "@/components/crm/OutreachTemplatesManager";
 import { StripeConnectCard } from "@/components/crm/StripeConnectCard";
-import { IndustryTemplatePanel } from "@/components/onboarding/IndustryTemplatePanel";
-import { IndustryTemplatePicker } from "@/components/onboarding/IndustryTemplatePicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard, Sparkles, Lock } from "lucide-react";
+import { Users, Palette, Mail, Plug, FileText, Shield, CreditCard, Lock } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { usePlatformAdmin } from "@/hooks/usePlatformAdmin";
 import { SecuritySettings } from "@/components/crm/SecuritySettings";
 
 // Tab keys mirror the TabsTrigger `value` attrs below. Kept in sync manually
 // so the URL ?tab= param can deep-link straight to a section (e.g. Publish in
-// Settings → ?tab=branding from the branding preview page, or the
-// IndustryGate empty state → ?tab=industry).
+// Settings → ?tab=branding from the branding preview page). The "industry"
+// key is retained on the search-schema side because legacy IndustryGate links
+// still deep-link to ?tab=industry; the tab itself was removed (only one
+// industry remains) so we silently fall through to the default "team" tab.
 const TAB_KEYS = [
   "team",
   "roles",
@@ -57,7 +57,10 @@ function SettingsPage() {
   const { isAdmin: isPlatformAdmin } = usePlatformAdmin();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/settings" });
-  const activeTab = search.tab ?? "team";
+  // "industry" was a real tab before the single-vertical narrow; legacy links
+  // (e.g. from IndustryGate) still point at it. Map back to "team" so the
+  // settings page never renders an empty tab body.
+  const activeTab = search.tab === "industry" ? "team" : (search.tab ?? "team");
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -72,7 +75,10 @@ function SettingsPage() {
         value={activeTab}
         onValueChange={(v) =>
           navigate({
-            search: (prev) => ({ ...prev, tab: v === "team" ? undefined : (v as (typeof TAB_KEYS)[number]) }),
+            search: (prev) => ({
+              ...prev,
+              tab: v === "team" ? undefined : (v as (typeof TAB_KEYS)[number]),
+            }),
             replace: true,
           })
         }
@@ -94,10 +100,6 @@ function SettingsPage() {
           <TabsTrigger value="branding" className="gap-2">
             <Palette className="h-4 w-4" />
             White-Label
-          </TabsTrigger>
-          <TabsTrigger value="industry" className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Industry
           </TabsTrigger>
           <TabsTrigger value="emails" className="gap-2">
             <Mail className="h-4 w-4" />
@@ -135,12 +137,7 @@ function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="branding" className="space-y-6">
-          {isPlatformAdmin && <IndustryTemplatePanel />}
           <WhiteLabelSettings />
-        </TabsContent>
-
-        <TabsContent value="industry" className="space-y-6">
-          <IndustryTemplatePicker />
         </TabsContent>
 
         <TabsContent value="emails" className="space-y-6">

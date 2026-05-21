@@ -32,16 +32,11 @@ import {
   DollarSign,
   FileSignature,
   RefreshCw,
-  Sun as SunIcon,
-  Home,
-  Shield,
   Crown,
-  Dumbbell,
   GraduationCap,
   Bot,
   HelpCircle,
   CalendarCheck,
-  Lock,
   Briefcase,
   type LucideIcon,
 } from "lucide-react";
@@ -58,13 +53,6 @@ type NavItem = {
   to: string;
   icon: LucideIcon;
   label: string;
-  /**
-   * Optional industry key that "owns" this nav item. When set and it doesn't
-   * match the org's active template, the link renders muted with a lock icon
-   * — still clickable so customers can discover the vertical exists and walk
-   * into the IndustryGate empty state that explains how to switch templates.
-   */
-  industry?: import("@/lib/industry-templates").IndustryKey;
 };
 type NavSection = { label: string; items: NavItem[] };
 
@@ -106,10 +94,18 @@ export function CrmSidebar() {
         .eq("user_id", user.id)
         .maybeSingle() as unknown as Promise<{ data: Record<string, unknown> | null }>);
       if (cancelled || !data) return;
-      setChecklistCompleted(Array.isArray(data.checklist_items_completed) ? (data.checklist_items_completed as string[]) : []);
-      setChecklistDismissedAt(typeof data.checklist_dismissed_at === "string" ? data.checklist_dismissed_at : null);
+      setChecklistCompleted(
+        Array.isArray(data.checklist_items_completed)
+          ? (data.checklist_items_completed as string[])
+          : [],
+      );
+      setChecklistDismissedAt(
+        typeof data.checklist_dismissed_at === "string" ? data.checklist_dismissed_at : null,
+      );
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   const brandName = organization?.brand_name || "VireCRM";
@@ -159,44 +155,18 @@ export function CrmSidebar() {
     document.body.style.overflow = mobileOpen ? "hidden" : originalOverflowRef.current;
   }, [mobileOpen]);
 
-  // All five vertical sections render regardless of the org's active template.
-  // The matching template's items render normal/active styling; the others
-  // render muted with a lock icon. Customers can still click them and walk
-  // into the `<IndustryGate>` empty state, which explains how to switch
-  // templates from /settings — defeats the old "verticals are invisible
-  // until a platform admin grants them" trap.
+  // Energy is the only vertical. Other Lovable-scaffold verticals (solar /
+  // real_estate / insurance / gym) were dropped — they padlocked the energy
+  // UI without ever being paid for. Adding a new vertical: widen IndustryKey,
+  // append entries here, drop in matching routes.
   const industryItems: NavItem[] = [
-    { to: "/energy", icon: Zap, label: "Energy Hub", industry: "energy" },
-    { to: "/energy/loa", icon: FileText, label: "LOAs", industry: "energy" },
-    { to: "/energy/usage", icon: Gauge, label: "Usage", industry: "energy" },
-    { to: "/energy/pricing", icon: DollarSign, label: "Pricing", industry: "energy" },
-    { to: "/energy/contracts", icon: FileSignature, label: "Contracts", industry: "energy" },
-    { to: "/energy/suppliers", icon: Building2, label: "Suppliers", industry: "energy" },
-    { to: "/energy/renewals", icon: RefreshCw, label: "Renewals", industry: "energy" },
-    { to: "/solar", icon: SunIcon, label: "Solar Hub", industry: "solar" },
-    { to: "/solar/projects", icon: FileSignature, label: "Solar Projects", industry: "solar" },
-    { to: "/real-estate", icon: Home, label: "Real Estate Hub", industry: "real_estate" },
-    {
-      to: "/real-estate/listings",
-      icon: FileText,
-      label: "Listings",
-      industry: "real_estate",
-    },
-    {
-      to: "/real-estate/showings",
-      icon: CalendarDays,
-      label: "Showings",
-      industry: "real_estate",
-    },
-    { to: "/insurance", icon: Shield, label: "Insurance Hub", industry: "insurance" },
-    { to: "/insurance/quotes", icon: FileText, label: "Quotes", industry: "insurance" },
-    {
-      to: "/insurance/policies",
-      icon: FileSignature,
-      label: "Policies",
-      industry: "insurance",
-    },
-    { to: "/gym", icon: Dumbbell, label: "Member Health", industry: "gym" },
+    { to: "/energy", icon: Zap, label: "Energy Hub" },
+    { to: "/energy/loa", icon: FileText, label: "LOAs" },
+    { to: "/energy/usage", icon: Gauge, label: "Usage" },
+    { to: "/energy/pricing", icon: DollarSign, label: "Pricing" },
+    { to: "/energy/contracts", icon: FileSignature, label: "Contracts" },
+    { to: "/energy/suppliers", icon: Building2, label: "Suppliers" },
+    { to: "/energy/renewals", icon: RefreshCw, label: "Renewals" },
   ];
 
   const sections: NavSection[] = [
@@ -279,12 +249,6 @@ export function CrmSidebar() {
   const renderNavLink = (item: NavItem) => {
     const isActive = location.pathname === item.to;
     const tourId = `nav-${item.to.replace(/^\//, "").replace(/\//g, "-")}`;
-    // A vertical item is "locked" when it belongs to a different industry
-    // template than the org's active one. We still render it (so customers
-    // discover the vertical exists) but mute the styling and append a lock
-    // icon. The route itself is wrapped in <IndustryGate> which catches the
-    // click and explains how to switch templates.
-    const isLockedVertical = !!item.industry && item.industry !== template.key;
     return (
       <Link
         key={item.to}
@@ -292,14 +256,10 @@ export function CrmSidebar() {
         data-tour={tourId}
         onClick={() => setMobileOpen(false)}
         aria-current={isActive ? "page" : undefined}
-        aria-disabled={isLockedVertical || undefined}
-        title={isLockedVertical ? `${item.label} — switch industry to unlock` : undefined}
         className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-[background-color,color,transform] duration-200 ease-out transform-gpu ${
           isActive
             ? "bg-sidebar-accent text-sidebar-primary-foreground"
-            : isLockedVertical
-              ? "text-sidebar-foreground/40 hover:text-sidebar-foreground/65 hover:bg-sidebar-accent/30 hover:translate-x-0.5"
-              : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground hover:translate-x-0.5"
+            : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground hover:translate-x-0.5"
         }`}
       >
         {/* Active indicator bar — animate width+opacity only, never `all`. */}
@@ -313,15 +273,10 @@ export function CrmSidebar() {
           className={`h-4 w-4 shrink-0 transition-[color,transform] duration-200 ease-out group-hover:scale-110 transform-gpu ${
             isActive
               ? "scale-110 text-sidebar-primary"
-              : isLockedVertical
-                ? "text-sidebar-foreground/35 group-hover:text-sidebar-foreground/55"
-                : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
+              : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
           }`}
         />
         <span className="truncate">{item.label}</span>
-        {isLockedVertical && (
-          <Lock aria-hidden className="ml-auto h-3 w-3 shrink-0 opacity-70" />
-        )}
       </Link>
     );
   };
