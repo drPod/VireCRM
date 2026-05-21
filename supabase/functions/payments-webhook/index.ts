@@ -13,7 +13,17 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const env = (url.searchParams.get("env") || "sandbox") as StripeEnv;
+  const envParam = url.searchParams.get("env");
+  if (envParam !== "sandbox" && envParam !== "live") {
+    console.error("Webhook env param invalid or missing:", envParam);
+    return new Response(
+      JSON.stringify({
+        error: "Missing or invalid ?env query param (must be 'sandbox' or 'live')",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+  const env: StripeEnv = envParam;
 
   try {
     const event = await verifyWebhook(req, env);
@@ -38,11 +48,11 @@ serve(async (req) => {
 
     switch (event.type) {
       case "checkout.session.completed":
-        await handleCheckoutCompleted(event.data.object, env);
+        await handleCheckoutCompleted(event.data.object, env, event);
         break;
       case "customer.subscription.created":
       case "customer.subscription.updated":
-        await upsertSubscription(event.data.object, env);
+        await upsertSubscription(event.data.object, env, event);
         break;
       case "customer.subscription.deleted":
         await markSubscriptionDeleted(event.data.object, env);
@@ -84,6 +94,33 @@ const CREDIT_PACK_PRICES: Record<string, number> = {
   credit_pack_large_onetime: 2000,
   credit_pack_bulk_onetime: 10000,
 };
+
+type WebhookFailureKind = "credit_grant" | "missing_user_id" | "missing_org_id" | "rpc_error";
+
+// Insert a dead-letter row so platform admins can triage / replay broken
+// webhook deliveries instead of them disappearing into stderr.
+async function recordWebhookFailure(params: {
+  env: StripeEnv;
+  event: { id?: string; type?: string };
+  failureKind: WebhookFailureKind;
+  stripeObjectId?: string | null;
+  errorMessage?: string | null;
+  rawPayload: unknown;
+}) {
+  const { env, event, failureKind, stripeObjectId, errorMessage, rawPayload } = params;
+  const { error } = await supabase.from("payment_webhook_failures").insert({
+    event_id: event?.id ?? null,
+    event_type: event?.type ?? "unknown",
+    stripe_object_id: stripeObjectId ?? null,
+    failure_kind: failureKind,
+    error_message: errorMessage ?? null,
+    raw_payload: rawPayload,
+    environment: env,
+  });
+  if (error) {
+    console.error("[webhook-failure] failed to log dead-letter row", error);
+  }
+}
 
 async function maybeMarkAdminQuotePaid(session: any, env: StripeEnv) {
   const quoteId = session.metadata?.admin_quote_id;
@@ -130,7 +167,7 @@ async function maybeMarkAdminQuotePaid(session: any, env: StripeEnv) {
   return true;
 }
 
-async function handleCheckoutCompleted(session: any, env: StripeEnv) {
+async function handleCheckoutCompleted(session: any, env: StripeEnv, event: any) {
   // Admin (Super Admin) quote payment — short-circuit.
   if (await maybeMarkAdminQuotePaid(session, env)) return;
 
@@ -160,11 +197,16 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     // Credit pack purchase? Grant credits to the org. We rely on the
     // session.metadata.priceId stamped at checkout creation, falling back
     // to expanding line_items if absent.
-    await maybeGrantCreditPack(session, env, userId);
+    await maybeGrantCreditPack(session, env, userId, event);
   }
 }
 
-async function maybeGrantCreditPack(session: any, env: StripeEnv, userId: string | null) {
+async function maybeGrantCreditPack(
+  session: any,
+  env: StripeEnv,
+  userId: string | null,
+  event: any,
+) {
   try {
     const orgId = session.metadata?.organizationId || null;
     const priceKey: string | null = session.metadata?.priceId || null;
@@ -175,6 +217,14 @@ async function maybeGrantCreditPack(session: any, env: StripeEnv, userId: string
       // a stripe API call to resolve. To keep webhook fast and avoid extra
       // gateway calls, require the metadata stamp from create-checkout.
       console.log("[credit-pack] skip — no priceId on session metadata", session.id);
+      await recordWebhookFailure({
+        env,
+        event,
+        failureKind: "credit_grant",
+        stripeObjectId: session.id ?? null,
+        errorMessage: "no priceId on session metadata",
+        rawPayload: session,
+      });
       return;
     }
 
@@ -183,6 +233,14 @@ async function maybeGrantCreditPack(session: any, env: StripeEnv, userId: string
 
     if (!orgId) {
       console.error("[credit-pack] missing organizationId on session", session.id);
+      await recordWebhookFailure({
+        env,
+        event,
+        failureKind: "missing_org_id",
+        stripeObjectId: session.id ?? null,
+        errorMessage: `missing organizationId on credit-pack session (priceKey=${priceKey})`,
+        rawPayload: session,
+      });
       return;
     }
 
@@ -231,6 +289,14 @@ async function maybeGrantCreditPack(session: any, env: StripeEnv, userId: string
 
     if (error) {
       console.error("[credit-pack] grant_credit_pack failed", error);
+      await recordWebhookFailure({
+        env,
+        event,
+        failureKind: "rpc_error",
+        stripeObjectId: session.id ?? null,
+        errorMessage: error.message ?? String(error),
+        rawPayload: session,
+      });
     } else {
       console.log("[credit-pack] granted", credits, "credits to org", orgId, data);
     }
@@ -239,19 +305,25 @@ async function maybeGrantCreditPack(session: any, env: StripeEnv, userId: string
   }
 }
 
-async function upsertSubscription(subscription: any, env: StripeEnv) {
+async function upsertSubscription(subscription: any, env: StripeEnv, event: any) {
   const userId = subscription.metadata?.userId;
   if (!userId) {
     console.error("No userId in subscription metadata");
+    await recordWebhookFailure({
+      env,
+      event,
+      failureKind: "missing_user_id",
+      stripeObjectId: subscription.id ?? null,
+      errorMessage: "subscription.metadata.userId missing",
+      rawPayload: subscription,
+    });
     return;
   }
 
   const item = subscription.items?.data?.[0];
-  const priceId =
-    item?.price?.metadata?.lovable_external_id || item?.price?.lookup_key || item?.price?.id;
+  const priceId = item?.price?.lookup_key || item?.price?.id;
   const productId =
-    item?.price?.product?.metadata?.lovable_external_id ||
-    (typeof item?.price?.product === "string" ? item.price.product : item?.price?.product?.id);
+    typeof item?.price?.product === "string" ? item.price.product : item?.price?.product?.id;
 
   const periodStart = subscription.current_period_start;
   const periodEnd = subscription.current_period_end;
@@ -289,6 +361,21 @@ async function upsertSubscription(subscription: any, env: StripeEnv) {
         await supabase.rpc("apply_credit_plan", {
           p_org_id: profile.organization_id,
           p_price_key: priceId,
+        });
+      } else {
+        console.error(
+          "[credit-plan] profile.organization_id not found for user",
+          userId,
+          "subscription",
+          subscription.id,
+        );
+        await recordWebhookFailure({
+          env,
+          event,
+          failureKind: "missing_org_id",
+          stripeObjectId: subscription.id ?? null,
+          errorMessage: `profile.organization_id not found for user ${userId}`,
+          rawPayload: subscription,
         });
       }
     } catch (e) {
