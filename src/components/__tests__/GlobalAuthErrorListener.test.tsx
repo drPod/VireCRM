@@ -61,7 +61,7 @@ describe("GlobalAuthErrorListener", () => {
   it("registers unhandledrejection + error listeners on mount", () => {
     const { container, root } = mount();
 
-    const events = addSpy.mock.calls.map((c) => c[0]);
+    const events = addSpy.mock.calls.map((c: unknown[]) => c[0]);
     expect(events).toContain("unhandledrejection");
     expect(events).toContain("error");
 
@@ -73,23 +73,23 @@ describe("GlobalAuthErrorListener", () => {
 
     // Capture the exact handler refs registered so we can match them on removal.
     const rejectionCall = addSpy.mock.calls.find(
-      (c) => c[0] === "unhandledrejection",
+      (c: unknown[]) => c[0] === "unhandledrejection",
     );
-    const errorCall = addSpy.mock.calls.find((c) => c[0] === "error");
+    const errorCall = addSpy.mock.calls.find((c: unknown[]) => c[0] === "error");
     expect(rejectionCall).toBeDefined();
     expect(errorCall).toBeDefined();
 
     unmount(root, container);
 
-    const removed = removeSpy.mock.calls.map((c) => c[0]);
+    const removed = removeSpy.mock.calls.map((c: unknown[]) => c[0]);
     expect(removed).toContain("unhandledrejection");
     expect(removed).toContain("error");
 
     // Same handler reference must come off — otherwise the listener leaks.
     const removedRejection = removeSpy.mock.calls.find(
-      (c) => c[0] === "unhandledrejection",
+      (c: unknown[]) => c[0] === "unhandledrejection",
     );
-    const removedError = removeSpy.mock.calls.find((c) => c[0] === "error");
+    const removedError = removeSpy.mock.calls.find((c: unknown[]) => c[0] === "error");
     expect(removedRejection?.[1]).toBe(rejectionCall?.[1]);
     expect(removedError?.[1]).toBe(errorCall?.[1]);
   });
