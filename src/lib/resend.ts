@@ -1,13 +1,9 @@
 /**
- * Resend client — calls the Resend SDK directly. `RESEND_API_KEY` is set as a
- * Worker secret (`wrangler secret put RESEND_API_KEY`).
- *
- * Phase 1 migration: previously routed through the Lovable Connector Gateway
- * (`connector-gateway.lovable.dev/resend`). Now talks to Resend's API directly
- * via `resend@6.x` SDK.
+ * Resend client — calls the Resend SDK (`resend@6.x`) directly. `RESEND_API_KEY`
+ * is set as a Worker secret (`wrangler secret put RESEND_API_KEY`).
  *
  * Per-org settings (verified `from` address, optional `reply_to`) live in
- * `org_integrations.config` under provider = 'resend' — unchanged.
+ * `org_integrations.config` under provider = 'resend'.
  *
  * Docs: https://resend.com/docs/api-reference/emails/send-email
  */

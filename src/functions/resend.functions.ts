@@ -17,8 +17,7 @@ import { assertOwner } from "@/lib/auth-helpers";
 
 const PROVIDER = "resend" as const;
 // Stored in `api_key` to satisfy NOT NULL while signalling "managed by
-// platform, not a per-org secret". Previously read as `__lovable_connector__`;
-// kept the column unchanged so any existing rows continue to work.
+// platform, not a per-org secret".
 const KEY_SENTINEL = "__platform_managed__";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
