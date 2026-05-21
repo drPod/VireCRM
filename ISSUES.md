@@ -16,13 +16,6 @@ Outstanding action items. Removed when shipped. Strike-through belongs in `## Re
 - [ ] **Smoke user cleanup:** `bun run scripts/mint-smoke-user.ts --cleanup-all-smoke` (or `userId 516e90e0-b537-4506-90bd-134dc5d5cb81`).
 - [ ] **`/features` content slots** — 5–8 customer logos for above-fold logo bar. Testimonial pull-quote (sentence + name + role + company). Decide: comparison-table competitor labels generic ("Generic CRM" / "White-label rivals") or named (HubSpot/Pipedrive/GoHighLevel)?
 - [ ] **CF Workers Builds "Variables and secrets" panel** — manual dashboard check that no `LOVABLE_API_KEY` lingers (runtime `wrangler secret list` doesn't cover build-time). Dashboard → Workers & Pages → genesisxsx → Settings → Variables.
-### Post-migration follow-ups (old Lovable DB)
-
-Migration ran 2026-05-19 session 5. 14 auth.users, 2 orgs, 10 profiles/roles, 13,991 leads ported. Script: `scripts/migrate-lovable-to-fixed.ts`. Handoff: `docs/handoffs/2026-05-19-lovable-to-fixed-db-migration.md`.
-
-- [ ] **Spot-check 10 Caziah leads** — confirm energy fields (`agent_mils`, `annual_kwh`, `contract_start_date`) populated where xlsx had data.
-- [ ] **Freeze old Lovable project** — Crystal confirmed on new DB 2026-05-20. Caziah sign-in still unconfirmed. After Caziah confirms: revoke old service-role key (Supabase dashboard), verify `genesisx.space` DNS not still serving old project.
-
 ### Phase 2 — Lovable cleanup follow-ups
 
 - [ ] **Connector OAuth proxy** — replace `src/lib/connectors/gateway.ts` stub (currently throws `ConnectorNotConfiguredError(503)` at line 41). Nango or hand-rolled. Apollo/Slack/Gmail/Twilio/Sendgrid integrations dark until done.
