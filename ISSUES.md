@@ -120,6 +120,28 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor AdvisorAuditLog god component
+**Tags:** [refactor] [god-components] [advisor]
+
+Split `src/components/crm/AdvisorAuditLog.tsx` (656 LOC) into a thin container plus four single-responsibility units. Public API (default export + zero props) preserved — `_app.dashboard.tsx` import unchanged.
+
+#### Shipped
+
+- `src/components/crm/AdvisorAuditLog.tsx` — container shrunk to 262 LOC. Composes the row + filters + settings panel; owns toolbar (phase tabs, filter/settings/refresh buttons), filter state, `userOptions`/`filteredEntries`/`stats` memos, and `handleReplay`.
+- `src/components/crm/AdvisorAuditEntryRow.tsx` (171 LOC) — single audit-log row with expandable body (CRM updates, replay button, JSON plan details). Pure presentational, receives `entry`, open/replaying state, and callbacks.
+- `src/components/crm/AdvisorAuditFiltersPanel.tsx` (145 LOC) — search + user/status/date filters + clear-all UI. Stateless, all values driven via props.
+- `src/components/crm/AdvisorAuditSettingsPanel.tsx` (98 LOC) — retention input, total/oldest stats, purge/save buttons. Owner-gating preserved.
+- `src/hooks/useAdvisorAuditLog.ts` (74 LOC) — entries + loading + phase + retention + memberNames + unified `refresh` (parallel list + getRetention, matches original). Phase change triggers refresh via existing effect.
+- `src/hooks/useRetentionSettings.ts` (90 LOC) — retentionInput state + save/purge handlers + toasts. Resets input on every refresh via `[retention]` effect to preserve original byte-for-byte clobber behavior.
+- `src/lib/advisor-audit-utils.ts` (31 LOC) — extracted `timeAgo()` + `entryStatusMatches()`. `timeAgo` is intentionally NOT folded into `formatRelativeTime` in `date-utils.ts`: seconds granularity + locale-string fallback at 24h vs the general utility's 30-day fallback.
+- `src/components/crm/advisor-audit.types.ts` — shared `StatusFilter` + `PhaseFilter` string unions.
+
+#### Verification
+
+- `bun run typecheck` — 0 new errors. Pre-existing unrelated error in `src/routes/hooks/send-pending-welcomes.ts:26` (confirmed identical before + after via stash).
+- `bun run build` — TBD before PR push.
+- Browser walk — TBD via worker recipe (login redirect = OK signal, route is auth-gated).
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
