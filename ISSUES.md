@@ -120,6 +120,34 @@ If you're editing a prior session (e.g. striking through a resolved finding), st
 
 Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/issues-archive/2026-05.md`.
 
+### 2026-05-22 — Refactor ProviderCard god component
+**Tags:** [refactor] [god-components]
+
+Part of the 13-unit god-component refactor sweep. Unit-9 owns `src/components/crm/ProviderCard.tsx` (666 LOC). Container kept as orchestrator; public API (default export + prop shape) unchanged so `IntegrationsSettings` import stays intact.
+
+#### Shipped
+
+- `src/components/crm/ProviderCard.tsx` — slimmed 666 → 328 LOC. Removed inline credential editor JSX, setup-steps renderer, settings-fields renderer, prerequisites block, header, disconnect dialog, test/edit/disconnect action row. Kept orchestrator state + handlers (save, remove, save-settings, focus management, edit) + local `formatRelative` (TODO already flagged for unit-7 dedup).
+- `src/components/crm/ProviderCardHeader.tsx` (40 LOC) — extracted name + connected-badge + VerifiedExplainer + Get-API-key link.
+- `src/components/crm/ProviderSetupSteps.tsx` (39 LOC) — extracted "How to set up …" numbered-list block.
+- `src/components/crm/ProviderCredentialForm.tsx` (125 LOC) — extracted single-field / two-field credential inputs + Connect/Save/Cancel buttons + storage notice. Accepts refs for focus management from the parent.
+- `src/components/crm/ProviderSettingsFields.tsx` (95 LOC) — extracted non-secret settings panel with per-field touched validation + Save button.
+- `src/components/crm/ProviderPrerequisites.tsx` (71 LOC) — extracted prerequisite derivation + PrerequisitesPanel wiring, with `PrerequisiteActionId` type for the discriminated callback union.
+- `src/components/crm/ProviderConnectedActions.tsx` (52 LOC) — extracted Test / Edit / Disconnect button row.
+- `src/components/crm/ProviderDisconnectDialog.tsx` (54 LOC) — extracted disconnect confirmation `AlertDialog`.
+- `src/components/crm/provider-card.types.ts` (20 LOC) — shared `SettingsDraft` / `TouchedSettings` types + `seedSettingsDraft` helper used by hook + container.
+- `src/hooks/useProviderValidation.ts` (72 LOC) — extracted settings draft + touched-blur state + reseed effect + `validateDraft` wiring.
+- `src/hooks/useProviderTestFlow.ts` (79 LOC) — extracted `useActionLock` + `testResult` state + `lastVerifiedAt` hydration effect + `handleTest` flow (toast wiring preserved byte-for-byte).
+
+No business-logic rewrites. Test flow + validation semantics preserved. No new deps. Reseller code left alone.
+
+#### Verification
+
+- `bun run typecheck` — clean (only pre-existing unrelated `send-pending-welcomes` route-id error).
+- `bun run test` — 133 passed (4 files).
+- `bun run build` — clean; settings bundle contains all 9 extracted components (`grep -c` returned 19 references).
+- E2E preview server fell back to bundle check (Worker bundle 500s under `vite preview` without CF bindings, per recipe).
+
 ### 2026-05-19 — Pricing trim + WhiteLabel section removed (PR unit-3)
 **Tags:** [marketing] [pricing] [whitelabel] [stripe]
 
