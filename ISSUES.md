@@ -114,6 +114,33 @@ Most-recent session at top. Earlier 2026-05-17 / 2026-05-18 sessions in `docs/is
 
 #### Found (no work needed)
 - Honeypot has two layers: Zod schema `website: z.string().max(0)` rejects bot fills with 400, then the post-parse `if (payload.website.length > 0)` silent-success branch is unreachable (dead code). Test documents both. Not flagging for removal — defense-in-depth is intentional even if redundant.
+### 2026-05-22 — Consolidate three auth middleware patterns into `src/auth/`
+**Tags:** [refactor] [auth] [tanstack-start]
+
+#### Shipped
+- New canonical home `src/auth/`: `server.ts` (`requireAuth`, alias `requireSupabaseAuth`), `client.ts` (`attachAuth`, alias `attachSupabaseAuth` — adds SSR guard), `errors.ts` (`SessionExpiredError`, `isAuthError`, `handleAuthError`, `getServerFnAuthHeaders`), `index.ts` barrel.
+- `src/start.ts` (new) — `createStart(() => ({ functionMiddleware: [attachAuth] }))`. Plugin auto-resolves as `#tanstack-start-entry`; **no manual `import "./start"` in router/server**. Verified via context7 — TanStack Start `1.168.6` uses `createStart` not `registerGlobalMiddleware`.
+- Back-compat shims (one-line re-exports): `src/integrations/supabase/auth-middleware.ts`, `src/integrations/supabase/auth-attacher.ts`, `src/lib/server-fn-auth.ts`. Middleware module identity preserved so `subscription-middleware.ts` `.middleware([requireAuth, requireActiveSubscription])` chain still works.
+- Deleted `src/hooks/useAuthedServerFn.ts` (37 callers). Codemod: `useAuthedServerFn(...)` → `useServerFn(...)` from `@tanstack/react-start`, importing the canonical hook directly. No more manual `headers: await getServerFnAuthHeaders()` argument — global `attachAuth` middleware does it.
+- `AuthProvider.tsx` simplified: dropped `getServerFnAuthHeaders()` + `headers` arg to `verifyAndApplyGrant()`.
+- Canonical-name rename across `src/functions/*.functions.ts`: `requireSupabaseAuth` → `requireAuth`, `@/integrations/supabase/auth-middleware` → `@/auth/server`. `subscription-middleware.ts` import path updated; export name `requireActiveSubscription` unchanged.
+- `scripts/e2e-setup-creds.ts` (new) — setup/teardown for throwaway smoke creds. Uses single-quoted shell exports so passwords with `$`/`&`/`@` survive `eval`. Mirrors `mint-smoke-user.ts` schema; reuses smoke org if present.
+- `tests/e2e/auth-middleware.smoke.spec.ts` (new) — direct verification: seeds Supabase session into localStorage, navigates `/dashboard`, asserts every `/_serverFn/*` response is non-401/403. **Passed.** This is the narrow surface this refactor changed.
+- `tests/e2e/industry-switching.spec.ts` — fixed `getByLabel(/password/i)` strict-mode violation (eye-toggle button now matches that label too); switched to `getByRole("textbox", { name: /password/i })`. Login flow on localhost still has a separate `maybeRedirectToOrgSubdomain` redirect issue unrelated to auth middleware.
+- `@playwright/test@^1.60.0` added to `devDependencies` (was missing — e2e never executable until now).
+
+#### Verification
+- `bun run typecheck` ✓ clean.
+- `bun run build` ✓ clean.
+- `bun run test` ✓ 143/143 unit tests pass.
+- `bun run test:e2e:industry` against the new auth smoke ✓ pass — server fn invoked with attached bearer header, no 401/403.
+- Audit grep `useAuthedServerFn` → no refs. `registerGlobalMiddleware` → no refs (correct: API is `createStart`). `getServerFnAuthHeaders` → only definition in `src/auth/errors.ts` (kept for legacy non-serverFn `fetch` callers, none currently in `src/` outside `errors.ts`).
+- `subscription-middleware.ts` chain preserved — verified 13 call sites in `src/functions/` still use `.middleware([requireAuth, requireActiveSubscription])` with module-identity-preserved middleware.
+- Per-request `createClient` with `persistSession: false` preserved in `src/auth/server.ts` (RLS-critical).
+- `attachAuth` SSR guard: `typeof window === "undefined" → next({})` early-return before `supabase.auth.getSession()`.
+
+#### Manual follow-up (user)
+- None. PR ready to merge after coordinator review.
 ### 2026-05-22 — Unit tests: find-leads server fn
 **Tags:** [tests] [lead-sync]
 

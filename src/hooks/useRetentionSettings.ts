@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useAuthedServerFn } from "@/hooks/useAuthedServerFn";
+import { useServerFn } from "@tanstack/react-start";
 import {
   updateAuditRetentionFn,
   purgeAuditLogNowFn,
@@ -25,8 +25,8 @@ export function useRetentionSettings({
   retention,
   refresh,
 }: UseRetentionSettingsArgs): UseRetentionSettingsResult {
-  const updateRetention = useAuthedServerFn(updateAuditRetentionFn);
-  const purgeNow = useAuthedServerFn(purgeAuditLogNowFn);
+  const updateRetention = useServerFn(updateAuditRetentionFn);
+  const purgeNow = useServerFn(purgeAuditLogNowFn);
 
   const [retentionInput, setRetentionInput] = useState<string>("90");
   const [savingRetention, setSavingRetention] = useState(false);

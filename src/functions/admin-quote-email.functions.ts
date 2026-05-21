@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest, setResponseStatus } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { PLATFORM_DOMAIN } from "@/config/domains";
 
@@ -36,7 +36,7 @@ const formatMoney = (cents: number, currency = "usd") =>
   }).format(cents / 100);
 
 export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof inputSchema>) => inputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
@@ -84,7 +84,7 @@ export const sendAdminQuoteEmail = createServerFn({ method: "POST" })
     const totalFormatted = formatMoney(quote.total_cents, quote.currency);
 
     // 5. Call the transactional send route. We re-use the caller's bearer
-    // token (already validated by requireSupabaseAuth) so the send route
+    // token (already validated by requireAuth) so the send route
     // accepts the request and runs its suppression + enqueue logic.
     const incoming = getRequest();
     const accessToken = incoming?.headers

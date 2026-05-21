@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export interface VerifyGrantResult {
@@ -22,7 +22,7 @@ export interface VerifyGrantResult {
  * missing or when no grant exists for the user's email.
  */
 export const verifyAndApplyGrant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .handler(async ({ context }): Promise<VerifyGrantResult> => {
     const userId = context.userId;
     const email = (context.claims.email as string | undefined)?.toLowerCase();

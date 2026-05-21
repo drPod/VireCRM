@@ -11,7 +11,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { render } from "@react-email/components";
 import { createElement } from "react";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAuth } from "@/auth/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 import { assertOwner } from "@/lib/auth-helpers";
@@ -19,7 +19,7 @@ import { assertOwner } from "@/lib/auth-helpers";
 const listSchema = z.object({ organizationId: z.string().uuid() });
 
 export const listEmailTemplatesFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof listSchema>) => listSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertOwner(supabaseAdmin, context.userId, data.organizationId);
@@ -38,7 +38,7 @@ const renderSchema = z.object({
 });
 
 export const renderEmailTemplateFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAuth])
   .inputValidator((input: z.infer<typeof renderSchema>) => renderSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertOwner(supabaseAdmin, context.userId, data.organizationId);
