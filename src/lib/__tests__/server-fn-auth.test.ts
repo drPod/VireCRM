@@ -9,7 +9,9 @@
  * Module-level state (`lastSignInToastAt`) is reset via `vi.resetModules()`
  * between scenarios so debounce timing doesn't bleed across tests.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
+
+type AssignMock = Mock<(url: string | URL) => void>;
 
 // --- Shared mocks ---------------------------------------------------------
 
@@ -147,11 +149,11 @@ describe("SessionExpiredError", () => {
 // --- handleAuthError ------------------------------------------------------
 
 describe("handleAuthError", () => {
-  let assignMock: ReturnType<typeof vi.fn>;
+  let assignMock: AssignMock;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    assignMock = vi.fn();
+    assignMock = vi.fn<(url: string | URL) => void>();
     setLocation({ pathname: "/dashboard", search: "?foo=bar", assign: assignMock });
   });
 
@@ -229,11 +231,11 @@ describe("handleAuthError", () => {
 // --- getServerFnAuthHeaders ----------------------------------------------
 
 describe("getServerFnAuthHeaders", () => {
-  let assignMock: ReturnType<typeof vi.fn>;
+  let assignMock: AssignMock;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    assignMock = vi.fn();
+    assignMock = vi.fn<(url: string | URL) => void>();
     setLocation({ pathname: "/dashboard", assign: assignMock });
   });
 
