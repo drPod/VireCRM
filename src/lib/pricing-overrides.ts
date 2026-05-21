@@ -35,8 +35,6 @@ const STALE_OVERRIDE_KEYS = new Set<string>([
   "crm_starter_monthly",
   "crm_growth_monthly",
   "crm_pro_monthly",
-  "lease_starter_monthly",
-  "lease_pro_monthly",
 ]);
 
 export function loadOverrides(): PriceOverrideMap {
