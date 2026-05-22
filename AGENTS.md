@@ -8,10 +8,9 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 
 ## Read order
 
-1. `README.md` — product context + architecture decision + rationale
+1. `README.md` — product context + why-not-GHL + domain
 2. `CLAUDE.md` — agent conventions, stack invariants, what NOT to do
-3. `TASKS.md` — phased backlog, what's done, what's next
-4. `docs/decisions/` — 10 load-bearing picks (read the one you're touching)
+3. `docs/decisions/` — 10 load-bearing picks (read the one you're touching)
 
 ## Architecture in one line
 

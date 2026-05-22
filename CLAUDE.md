@@ -4,8 +4,7 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 
 **Read these first, in order:**
 1. `README.md` — what we're building + why
-2. `TASKS.md` — phased build plan, what's done, what's next
-3. `docs/decisions/` — 10 load-bearing picks + rationale (read the one you're touching)
+2. `docs/decisions/` — 10 load-bearing picks + rationale (read the one you're touching)
 
 ## Architecture (do not relitigate without cause)
 

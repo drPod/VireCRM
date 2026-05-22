@@ -28,7 +28,7 @@ She was on Go High Level and walked away. The point of this build is to fix the 
 
 ## The master list (source of truth: `Copy of NGP MASTER LIST - Copy.xlsx`)
 
-Every field in her sheet must round-trip from spreadsheet → database → UI without loss. Each row is a deal/contract attached to a meter at a specific service address. The xlsx has 83 columns and 5,445 data rows — the canonical column-by-column mapping (every xlsx column → target Airtable table.field, including the ones the customer doesn't manually enter but the import must preserve) lives at [`docs/decisions/06-domain-schema.md`](docs/decisions/06-domain-schema.md). The summary below covers the **customer-visible** required fields; the schema also captures contract lifecycle (lost/drop reasons, live status, post-live completion), dual-agent attribution, billing-vs-estimated annual quantity variance, and aggregator/sub-broker commission chains.
+Every field in her sheet must round-trip from spreadsheet → database → UI without loss. Each row is a deal/contract attached to a meter at a specific service address. The xlsx has 83 columns and 5,445 data rows — the canonical column-by-column mapping (every xlsx column → target table.field, including the ones the customer doesn't manually enter but the import must preserve) lives at [`docs/decisions/06-domain-schema.md`](docs/decisions/06-domain-schema.md). The summary below covers the **customer-visible** required fields; the schema also captures contract lifecycle (lost/drop reasons, live status, post-live completion), dual-agent attribution, billing-vs-estimated annual quantity variance, and aggregator/sub-broker commission chains.
 
 ### Required import fields
 
@@ -82,35 +82,9 @@ TCV must be displayed on each closed deal and aggregated on the agent / customer
 
 The CEO wants email tied to deals. Build an **Outlook integration** for her!
 
-## Architecture
+## Architecture + stack
 
-This is **Project B**: a CRM-as-a-service product on `virecrm.com`. Greenergiai is customer #1 at `greenenergiai.virecrm.com`. More tenants come later.
-
-Decision: **Airtable-as-backend for v1, migrate to Supabase Postgres at customer 10-20 (or first scaling pain).** Speed-to-first-customer wins over architectural purity. Reversible by design.
-
-```
-greenenergiai.virecrm.com (TanStack Start SPA)
-  ↓
-Cloudflare Worker (auth, RLS, caching, Outlook OAuth, batching)
-  ↓
-Airtable API (one base per customer, single service PAT)
-```
-
-Why this hits fast + Project B + reversible:
-
-- **Fast.** Schema = MCP clicks. Formulas (TCV, renewal-days, rollups) native. Kanban view native. Days to her seeing live data, not weeks.
-- **Project B.** Custom frontend keeps brand + URL + per-tenant routing. Customer never touches airtable.com.
-- **Reversible.** Worker abstracts Airtable. Migration day = swap one module. Frontend unchanged.
-
-## Stack
-
-- **Frontend:** TanStack Start (React + Vite + file-based routing + SSR). Inherited from the prior Lovable scaffold and kept.
-- **Backend:** Airtable (workspace `wspBUTSYGFioquhDD`). One base per tenant. Schema mutations via API. Single service PAT held by the Worker — customers never get an Airtable seat.
-- **API layer:** Cloudflare Worker (`src/server.ts`). Handles auth, per-tenant routing by Host header, RLS, caching, batching against Airtable's 5 req/sec limit, Outlook OAuth.
-- **Auth (for our app users):** Supabase Auth (`coynbufhejaeuifpvmvw.supabase.co`). Customer Postgres is *not* the data store right now — it just holds users + sessions until we migrate the domain data off Airtable.
-- **Payments:** Stripe (account `51TYVK6`, currently test-mode key `pk_test_REPLACE_ME` — needs replacing from dashboard).
-- **Deploy:** Cloudflare Workers via Wrangler. Routes in `wrangler.jsonc` cover `virecrm.com` (canonical) and `majix.ai/*` (308 → virecrm). Wildcard `*.virecrm.com/*` carries the tenant subdomains.
-- **Package manager:** Bun only. Foreign lockfiles git-ignored.
+See [`CLAUDE.md`](CLAUDE.md) for stack invariants and [`docs/decisions/`](docs/decisions/) for the 10 load-bearing picks (data backend, frontend, auth, multi-tenancy, Outlook, domain schema, caching, migration triggers, payments, consistency).
 
 ## Future / probable features (lower confidence, surface in next call with her)
 
