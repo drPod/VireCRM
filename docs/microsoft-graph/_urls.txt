@@ -1,0 +1,16 @@
+# Microsoft Graph docs — origin URLs
+# Snapshot: 2026-05-22
+# Origin root: https://learn.microsoft.com/en-us/graph
+# Note: server-rendered HTML stored verbatim (no md conversion — would
+#       lose code-tab metadata). Byte counts below catch upstream drift.
+
+auth-v2-user.md  <-  https://learn.microsoft.com/en-us/graph/auth-v2-user  (73140 bytes)
+auth-concepts.md  <-  https://learn.microsoft.com/en-us/graph/auth/auth-concepts  (59166 bytes)
+api-user-sendmail.md  <-  https://learn.microsoft.com/en-us/graph/api/user-sendmail  (100461 bytes)
+api-user-list-messages.md  <-  https://learn.microsoft.com/en-us/graph/api/user-list-messages  (63486 bytes)
+webhooks.md  <-  https://learn.microsoft.com/en-us/graph/change-notifications-overview  (87730 bytes)
+subscription-post-subscriptions.md  <-  https://learn.microsoft.com/en-us/graph/api/subscription-post-subscriptions  (96821 bytes)
+api-user-list-events.md  <-  https://learn.microsoft.com/en-us/graph/api/user-list-events  (65947 bytes)
+outlook-large-attachments.md  <-  https://learn.microsoft.com/en-us/graph/outlook-large-attachments  (89429 bytes)
+throttling.md  <-  https://learn.microsoft.com/en-us/graph/throttling  (53710 bytes)
+permissions-reference.md  <-  https://learn.microsoft.com/en-us/graph/permissions-reference  (816060 bytes)
