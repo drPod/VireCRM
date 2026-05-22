@@ -1,8 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "genesisxsx",
-  "main": "./src/server.ts",
-  "compatibility_date": "2026-05-17",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-05-22",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
@@ -15,9 +15,17 @@
     "SUPABASE_URL": "https://coynbufhejaeuifpvmvw.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AfxTcWiGW7j882pfkhPhwg_hKKdSAW2"
   },
+  // Hyperdrive binding for Supabase Postgres.
+  // Replace `id` with the real one from: `bunx wrangler hyperdrive create genesisxsx-pg-staging --connection-string=...`
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "REPLACE_ME"
+    }
+  ],
   // Route table: virecrm.com (canonical) + majix.ai (legacy, kept so the Worker
   // receives those requests and can issue 308 redirects to virecrm.com equivalents).
-  // src/server.ts fires the redirect before any app logic.
+  // workers/app.ts fires the redirect before any app logic.
   // Wildcard `*.majix.ai/*` does NOT match the apex — apex needs its own row.
   // More-specific patterns (app/www/customers) win over wildcard at the edge.
   // CF for SaaS custom hostnames: CNAME → customers.virecrm.com.
