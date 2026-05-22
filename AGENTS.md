@@ -38,7 +38,11 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 
 ## Tool routing
 
-- Schema + data ops on Postgres → Drizzle CLI + `psql` + Supabase Studio. Project `coynbufhejaeuifpvmvw`.
+- Schema + data ops on Postgres → Drizzle CLI + `psql` + Supabase Studio. Project `coynbufhejaeuifpvmvw`. Bun scripts in `package.json`:
+  - `bun run db:generate` — diff schema files → new migration in `drizzle/`
+  - `bun run db:migrate` — apply pending migrations to `DATABASE_URL`
+  - `bun run db:push` — push schema directly (dev only)
+  - `bun run db:studio` — open Drizzle Studio
 - Library docs — read local mirror first under `docs/<lib>/` (9 libs mirrored 2026-05-22: react-router-v7, cloudflare-vite-plugin, wrangler, supabase, stripe-node, microsoft-graph, hono, drizzle, dnd-kit). Each has a `README.md` fat router. Refresh via `scripts/sync-<lib>-docs.sh`. Fall through to `context7` MCP only if mirror lacks coverage.
 - Live state (versions, vendor changes, CVE) → curl `endoflife.date` or WebSearch per `~/.claude/rules/lookups.md`.
 - Browser verification → `~/.claude/rules/browser.md`.

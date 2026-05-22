@@ -270,7 +270,7 @@ Schema lives in `src/server/db/schema.ts` (Drizzle). Migrations committed. No cl
   - `agents` — `id`, `tenant_id`, `name`, `email`, `house_split_pct numeric(5,2)`, `user_id` FK → `auth.users` (for the agent's own login).
   - `loas` — `id`, `tenant_id`, `customer_id` FK, `storage_path text` (Supabase Storage key), `signed_date`, `expiration_date`.
   - `commission_statements` — `id`, `tenant_id`, `supplier_id` FK, `period_month date`, `storage_path text`, `total_paid numeric`.
-  - `suppliers` — `id`, `tenant_id` (nullable: global REP list + tenant overrides), `name`.
+  - `suppliers` — `id`, `tenant_id` (nullable: global REP list + tenant overrides), `name`. **[SUPERSEDED by Doc 06 — collapsed to text field on `Contracts.supplier` + `CommissionStatements.supplier`; not built as standalone table. Current scaffold in `workers/db/schema/` follows Doc 06.]**
 - [ ] **RLS policies.** Every table: `USING (tenant_id = (SELECT (auth.jwt() ->> 'tenant_id')::uuid))`. Index `tenant_id` on every table.
 - [ ] **Suppliers seed.** Curated TX REP list as `tenant_id NULL` global rows.
 - [ ] **Sanity-check schema** with Darsh before importing data.
