@@ -5,6 +5,10 @@
   "scripts": {
     "build": "react-router build",
     "cf-typegen": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
     "deploy": "react-router build && wrangler deploy",
     "dev": "bash -c 'set -a; [ -f .dev.vars ] && . .dev.vars; set +a; react-router dev'",
     "postinstall": "wrangler types",
