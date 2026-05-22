@@ -11,11 +11,11 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 1. `README.md` — product context + architecture decision + rationale
 2. `CLAUDE.md` — agent conventions, stack invariants, what NOT to do
 3. `TASKS.md` — phased backlog, what's done, what's next
-4. `HANDOFF.md` — most recent session state, immediate next steps
+4. `docs/decisions/` — 10 load-bearing picks (read the one you're touching)
 
 ## Architecture in one line
 
-`SPA (TanStack Start) → CF Worker → Airtable API`. Worker = only Airtable client. Supabase Auth for users. Migrate to Postgres at scale.
+`SPA (React Router v7) → CF Worker → Supabase Postgres (via Hyperdrive)`. Worker = only Postgres client. Supabase Auth for users + tenants via RLS on `tenant_id`.
 
 ## Domain quick-ref
 
@@ -26,7 +26,7 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 | EAC | Estimated Annual Consumption (kWh). Signing-time estimate. |
 | AQ / Billing AQ | Annual Quantity (kWh). Actual billed. Drives commission. |
 | Mils | Thousandths of a dollar per kWh. Agent commission unit. xlsx "Unit Uplift". |
-| TCV | Total Contract Value. `Gross = Annual Usage × Term yrs × Mils ÷ 1000`. `Net = Gross − Lost`. |
+| TCV | Total Contract Value. `Gross = Annual Usage × Term yrs × Mils ÷ 1000`. `Net = Gross − Lost`. Postgres `GENERATED` column. |
 | REP | Retail Electric Provider. Supplier on contract. |
 | LOA | Letter of Authorization. Required before quoting (In Pricing stage). |
 | Drop | Supplier kicks customer off mid-contract. Distinct from "lost." |
@@ -39,18 +39,20 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 
 ## Tool routing
 
-- Schema + data ops on Airtable → `mcp__airtable__*` tools, workspace `wspBUTSYGFioquhDD`.
-- Library docs (TanStack, Wrangler, Supabase, Stripe, MS Graph) → `context7` MCP.
+- Schema + data ops on Postgres → Drizzle CLI + `psql` + Supabase Studio. Project `coynbufhejaeuifpvmvw`.
+- Library docs (React Router v7, `@cloudflare/vite-plugin`, Wrangler, `@supabase/server`, Stripe Node, MS Graph, Hono, Drizzle) → `context7` MCP.
 - Live state (versions, vendor changes, CVE) → curl `endoflife.date` or WebSearch per `~/.claude/rules/lookups.md`.
 - Browser verification → `~/.claude/rules/browser.md`.
 
 ## Stack invariants
 
-- **Bun only.** Foreign lockfiles git-ignored.
-- **TanStack Start kept** (existing scaffold).
-- **CF Workers deploy.** No long-running Node procs.
-- **Airtable backend** (do not migrate to Postgres without explicit decision).
-- **No generic OSS CRM fork.** Atomic / Twenty / NextCRM all evaluated, all rejected.
+- **Bun preferred.** CF build image has all 4 PMs. Don't silently strip foreign lockfiles.
+- **React Router v7 framework mode** + `@cloudflare/vite-plugin` GA.
+- **CF Workers deploy.** `nodejs_compat` on.
+- **Supabase Postgres backend** (day 1). No Airtable. Drizzle migrations checked in.
+- **Supabase Auth.** Asymmetric JWT, verified in Worker via `@supabase/server`. NEVER HS256.
+- **Tenant claim = `app_metadata.tenant_id` only** (server-write). RLS on every domain table.
+- **No generic OSS CRM fork.** Atomic / Twenty / NextCRM all evaluated, all rejected (Doc 01 + 10). `@dnd-kit/core` for Kanban.
 
 ## Don't touch
 
@@ -62,11 +64,11 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 
 | Type | Location |
 |---|---|
-| Code | `src/` (created next session) |
+| Code | `src/` |
 | Worker entrypoint | `src/server.ts` (referenced in `wrangler.jsonc`) |
-| Airtable client | `src/server/airtable.ts` (planned) |
-| Migration scripts | `scripts/` (planned) |
+| Postgres schema + migrations | `src/server/db/` (Drizzle) |
+| Migration scripts (one-shot xlsx → Postgres) | `scripts/` |
 | Vendor doc mirrors | `docs/<lib>/` |
-| Field mapping spec | `docs/decisions/06-domain-schema.md` §1 (canonical 83-col → table.field table) |
+| Field mapping spec | `docs/decisions/06-domain-schema.md` §1 (canonical 83-col → table.field) |
 | Architectural decisions | `docs/decisions/<NN>-<topic>.md` |
 | Issues / runbook | `ISSUES.md` (running build log, append findings) |
