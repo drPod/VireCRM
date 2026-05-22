@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, date, index } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, date, index, uniqueIndex } from "drizzle-orm/pg-core";
 import {
   createdAt,
   id,
@@ -42,7 +42,7 @@ export const deals = pgTable(
     index("deals_tenant_idx").on(t.tenantId, t.id),
     index("deals_tenant_customer_idx").on(t.tenantId, t.customerId),
     index("deals_tenant_stage_idx").on(t.tenantId, t.stage),
-    index("deals_tenant_external_sale_idx").on(t.tenantId, t.externalSaleId),
+    uniqueIndex("deals_tenant_external_sale_idx").on(t.tenantId, t.externalSaleId),
     tenantIsolationPolicy("deals"),
   ],
 ).enableRLS();
