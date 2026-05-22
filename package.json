@@ -6,7 +6,7 @@
     "build": "react-router build",
     "cf-typegen": "wrangler types",
     "deploy": "react-router build && wrangler deploy",
-    "dev": "react-router dev",
+    "dev": "bash -c 'set -a; [ -f .dev.vars ] && . .dev.vars; set +a; react-router dev'",
     "postinstall": "wrangler types",
     "preview": "react-router build && vite preview",
     "typecheck": "wrangler types && react-router typegen && tsc -b"
