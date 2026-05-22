@@ -1,0 +1,28 @@
+# Supabase docs mirror — provenance
+# Snapshot: 2026-05-22
+# Re-fetch via: bash scripts/sync-supabase-docs.sh
+#
+# Status legend: OK | DROPPED-404 | CONTEXT7 | UPSTREAM
+
+# Upstream llms.txt navigation index (small, lists every Supabase doc)
+llms-index.md            OK         https://supabase.com/llms.txt
+
+# Page-by-page canonical guides — Supabase serves raw markdown via .md suffix
+creating-a-client.md     OK         https://supabase.com/docs/guides/auth/server-side/creating-a-client.md
+jwts.md                  OK         https://supabase.com/docs/guides/auth/jwts.md
+row-level-security.md    OK         https://supabase.com/docs/guides/database/postgres/row-level-security.md
+storage.md               OK         https://supabase.com/docs/guides/storage.md
+vault.md                 OK         https://supabase.com/docs/guides/database/vault.md
+
+# JS reference initializing page — no .md endpoint, returns 404
+# Dropped from shell sync; covered by reference.md (context7) instead.
+# Last probed: 2026-05-22
+# initializing.md        DROPPED-404 https://supabase.com/docs/reference/javascript/initializing.md
+
+# Context7-generated reference covering @supabase/supabase-js + @supabase/ssr APIs
+# (auth, JWT verification, RLS, SSR setup). Regenerate via Claude Code context7 MCP.
+reference.md             CONTEXT7   /supabase/supabase-js + /supabase/ssr
+
+# llms-full.txt skipped — upstream serves 9.1 MB single dump, exceeds
+# the ~100-500 KB mirror budget recommended in ~/.claude/rules/docs.md.
+# llms-full.md           UPSTREAM   https://supabase.com/llms-full.txt
