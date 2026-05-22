@@ -1,17 +1,18 @@
 import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
 
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
-  ];
+export function meta() {
+  return [{ title: "genesisxsx" }];
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  return { message: `genesisxsx — ${context.cloudflare.env.SUPABASE_URL}` };
+  return { supabaseUrl: context.cloudflare.env.SUPABASE_URL };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  return <Welcome message={loaderData.message} />;
+  return (
+    <main style={{ fontFamily: "system-ui", padding: 24 }}>
+      <h1>genesisxsx</h1>
+      <p>Worker up. Supabase: {loaderData.supabaseUrl}</p>
+    </main>
+  );
 }
