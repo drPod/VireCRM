@@ -25,6 +25,14 @@ yarn.lock
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
+.dev.vars.*
+.mf
+worker-configuration.d.ts
+
+# React Router v7 framework mode build output
+/.react-router/
+/build/
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*

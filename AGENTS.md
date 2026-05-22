@@ -63,9 +63,10 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 
 | Type | Location |
 |---|---|
-| Code | `src/` |
-| Worker entrypoint | `src/server.ts` (referenced in `wrangler.jsonc`) |
-| Postgres schema + migrations | `src/server/db/` (Drizzle) |
+| SPA code | `app/` (React Router v7 framework mode — routes, root, entry) |
+| Worker entrypoint | `workers/app.ts` (referenced in `wrangler.jsonc`) |
+| Worker route handlers / APIs | `workers/api/` |
+| Postgres schema + migrations | `workers/db/` (Drizzle; `schema/` + `index.ts`) |
 | Migration scripts (one-shot xlsx → Postgres) | `scripts/` |
 | Vendor doc mirrors | `docs/<lib>/` |
 | Field mapping spec | `docs/decisions/06-domain-schema.md` §1 (canonical 83-col → table.field) |
