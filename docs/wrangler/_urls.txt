@@ -1,0 +1,10 @@
+# llms-wrangler.md slice source
+https://developers.cloudflare.com/llms-full.txt
+
+# Canonical sub-pages (developers.cloudflare.com/<path>/index.md)
+https://developers.cloudflare.com/workers/wrangler/commands/ -> wrangler-commands.md
+https://developers.cloudflare.com/workers/wrangler/configuration/ -> wrangler-configuration.md
+https://developers.cloudflare.com/workers/wrangler/system-environment-variables/ -> wrangler-system-environment-variables.md
+https://developers.cloudflare.com/workers/configuration/secrets/ -> workers-configuration-secrets.md
+https://developers.cloudflare.com/workers/configuration/routing/ -> workers-configuration-routing.md
+https://developers.cloudflare.com/workers/configuration/compatibility-dates/ -> workers-configuration-compatibility-dates.md

@@ -1,0 +1,13 @@
+https://developers.cloudflare.com/llms-full.txt
+https://developers.cloudflare.com/workers/vite-plugin/get-started/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/api/index.md
+https://developers.cloudflare.com/workers/vite-plugin/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/vite-environments/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/cloudflare-environments/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/secrets/index.md
+https://developers.cloudflare.com/workers/vite-plugin/tutorial/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/migrating-from-wrangler-dev/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/non-javascript-modules/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/static-assets/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/programmatic-configuration/index.md
+https://developers.cloudflare.com/workers/vite-plugin/reference/debugging/index.md

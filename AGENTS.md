@@ -39,7 +39,7 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 ## Tool routing
 
 - Schema + data ops on Postgres → Drizzle CLI + `psql` + Supabase Studio. Project `coynbufhejaeuifpvmvw`.
-- Library docs (React Router v7, `@cloudflare/vite-plugin`, Wrangler, `@supabase/server`, Stripe Node, MS Graph, Hono, Drizzle) → `context7` MCP.
+- Library docs — read local mirror first under `docs/<lib>/` (9 libs mirrored 2026-05-22: react-router-v7, cloudflare-vite-plugin, wrangler, supabase, stripe-node, microsoft-graph, hono, drizzle, dnd-kit). Each has a `README.md` fat router. Refresh via `scripts/sync-<lib>-docs.sh`. Fall through to `context7` MCP only if mirror lacks coverage.
 - Live state (versions, vendor changes, CVE) → curl `endoflife.date` or WebSearch per `~/.claude/rules/lookups.md`.
 - Browser verification → `~/.claude/rules/browser.md`.
 

@@ -128,7 +128,7 @@ Rejected and why (don't re-propose):
 ## Tool routing
 
 - **Postgres schema/data** → Drizzle CLI + `psql` + Supabase Studio. Project `coynbufhejaeuifpvmvw`.
-- **Lib docs** (React Router v7, `@cloudflare/vite-plugin`, Wrangler, `@supabase/server`, Supabase JS, Stripe Node, MS Graph, Hono, Drizzle) → `context7` MCP.
+- **Lib docs** — read local vendor mirror first: `docs/react-router-v7/`, `docs/cloudflare-vite-plugin/`, `docs/wrangler/`, `docs/supabase/`, `docs/stripe-node/`, `docs/microsoft-graph/`, `docs/hono/`, `docs/drizzle/`, `docs/dnd-kit/`. Each ships `README.md` (fat router) + `llms-full.txt` / `reference.md` / per-page scrapes + `_snapshot_date.txt`. Refresh via `scripts/sync-<lib>-docs.sh`. Fall through to `context7` MCP only when mirror lacks the topic.
 - **Cross-repo search** → delphi.
 - **Browser verification** → see `~/.claude/rules/browser.md`.
 - **Live state** (Node LTS, Supabase API changes, Stripe API versions) → curl endoflife / WebSearch per `~/.claude/rules/lookups.md`.

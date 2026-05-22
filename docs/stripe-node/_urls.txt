@@ -1,0 +1,11 @@
+https://docs.stripe.com/llms.txt                                  -> llms.txt
+https://docs.stripe.com/sdks.md                                    -> sdks-node.md
+https://docs.stripe.com/get-started/development-environment.md     -> development-environment.md
+https://docs.stripe.com/webhooks/signatures.md                     -> webhooks-signatures.md
+https://docs.stripe.com/payments/checkout.md                       -> payments-checkout.md
+https://docs.stripe.com/tax.md                                     -> tax.md
+
+# context7 chunks (regenerate via Claude Code MCP, not curl):
+#   libraryId: /stripe/stripe-node
+#   topic:     webhook signature verification cloudflare workers fetch http client async constructEvent createSubtleCryptoProvider
+#   output:    reference.md
