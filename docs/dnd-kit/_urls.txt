@@ -1,0 +1,33 @@
+# @dnd-kit/core@6.3.1 — pinned per CLAUDE.md stack invariants
+# snapshot: 2026-05-22
+
+# GitHub raw at tag @dnd-kit/core@6.3.1
+https://raw.githubusercontent.com/clauderic/dnd-kit/%40dnd-kit/core%406.3.1/README.md
+https://raw.githubusercontent.com/clauderic/dnd-kit/%40dnd-kit/core%406.3.1/packages/core/README.md
+https://raw.githubusercontent.com/clauderic/dnd-kit/%40dnd-kit/core%406.3.1/packages/sortable/README.md
+https://raw.githubusercontent.com/clauderic/dnd-kit/%40dnd-kit/core%406.3.1/packages/modifiers/README.md
+https://raw.githubusercontent.com/clauderic/dnd-kit/%40dnd-kit/core%406.3.1/packages/utilities/README.md
+https://raw.githubusercontent.com/clauderic/dnd-kit/%40dnd-kit/core%406.3.1/packages/accessibility/README.md
+https://raw.githubusercontent.com/clauderic/dnd-kit/%40dnd-kit/core%406.3.1/packages/core/CHANGELOG.md
+
+# Legacy site (v6 docs)
+https://dndkit.com/legacy/introduction/getting-started/
+https://dndkit.com/legacy/introduction/installation/
+https://dndkit.com/legacy/api-documentation/context-provider/dnd-context/
+https://dndkit.com/legacy/api-documentation/context-provider/collision-detection-algorithms/
+https://dndkit.com/legacy/api-documentation/context-provider/use-dnd-monitor/
+https://dndkit.com/legacy/api-documentation/draggable/
+https://dndkit.com/legacy/api-documentation/draggable/use-draggable/
+https://dndkit.com/legacy/api-documentation/draggable/drag-overlay/
+https://dndkit.com/legacy/api-documentation/droppable/
+https://dndkit.com/legacy/api-documentation/droppable/use-droppable/
+https://dndkit.com/legacy/api-documentation/sensors/
+https://dndkit.com/legacy/api-documentation/sensors/pointer/
+https://dndkit.com/legacy/api-documentation/sensors/keyboard/
+https://dndkit.com/legacy/api-documentation/sensors/mouse/
+https://dndkit.com/legacy/api-documentation/sensors/touch/
+https://dndkit.com/legacy/api-documentation/modifiers/
+https://dndkit.com/legacy/guides/accessibility/
+
+# context7 (regenerated separately via MCP)
+# /clauderic/dnd-kit  → reference.md
