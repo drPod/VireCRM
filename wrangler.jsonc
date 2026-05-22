@@ -15,12 +15,12 @@
     "SUPABASE_URL": "https://coynbufhejaeuifpvmvw.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AfxTcWiGW7j882pfkhPhwg_hKKdSAW2"
   },
-  // Hyperdrive binding for Supabase Postgres.
-  // Replace `id` with the real one from: `bunx wrangler hyperdrive create genesisxsx-pg-staging --connection-string=...`
+  // Hyperdrive binding for Supabase Postgres (transaction-mode pooler, port 6543).
+  // Provisioned via: bunx wrangler hyperdrive create genesisxsx-pg --connection-string=...
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "REPLACE_ME"
+      "id": "3399659bd468472f95348dfead3072ac"
     }
   ],
   // Route table: virecrm.com (canonical) + majix.ai (legacy, kept so the Worker

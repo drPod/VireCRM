@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { sql } from "drizzle-orm";
 import { makeDb } from "../db";
 
-export const api = new Hono<{ Bindings: Env }>();
+export const api = new Hono<{ Bindings: Env }>().basePath("/api");
 
 api.get("/health", (c) => c.json({ ok: true }));
 
