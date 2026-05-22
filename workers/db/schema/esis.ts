@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, numeric, index } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, numeric, index, uniqueIndex } from "drizzle-orm/pg-core";
 import {
   createdAt,
   id,
@@ -26,7 +26,7 @@ export const esis = pgTable(
   },
   (t) => [
     index("esis_tenant_idx").on(t.tenantId, t.id),
-    index("esis_tenant_esi_id_idx").on(t.tenantId, t.esiId),
+    uniqueIndex("esis_tenant_esi_id_idx").on(t.tenantId, t.esiId),
     index("esis_tenant_service_address_idx").on(t.tenantId, t.serviceAddressId),
     tenantIsolationPolicy("esis"),
   ],

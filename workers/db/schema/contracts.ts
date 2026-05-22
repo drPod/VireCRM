@@ -56,10 +56,12 @@ export const contracts = pgTable(
     grossTcv: numeric("gross_tcv", { precision: 20, scale: 2 }).generatedAlwaysAs(
       (): SQL => sql`COALESCE(${contracts.annualUsageKwh}, 0) * COALESCE((${contracts.endDate} - ${contracts.startDate})::numeric / 365.25, 0) * COALESCE(${contracts.agentMils}, 0) / 1000`,
     ),
+    grossTcvXlsx: numeric("gross_tcv_xlsx", { precision: 20, scale: 2 }),
     lostTcv: numeric("lost_tcv", { precision: 20, scale: 2 }),
     netTcv: numeric("net_tcv", { precision: 20, scale: 2 }).generatedAlwaysAs(
       (): SQL => sql`COALESCE(${contracts.annualUsageKwh}, 0) * COALESCE((${contracts.endDate} - ${contracts.startDate})::numeric / 365.25, 0) * COALESCE(${contracts.agentMils}, 0) / 1000 - COALESCE(${contracts.lostTcv}, 0)`,
     ),
+    netTcvXlsx: numeric("net_tcv_xlsx", { precision: 20, scale: 2 }),
     aqLoss: numeric("aq_loss", { precision: 20, scale: 4 }),
     aqGain: numeric("aq_gain", { precision: 20, scale: 4 }),
     netAq: numeric("net_aq", { precision: 20, scale: 4 }).generatedAlwaysAs(
