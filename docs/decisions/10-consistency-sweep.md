@@ -160,9 +160,8 @@ Phase 1 creates the table, Phase 4 enforces the gate. Coherent. No fix.
 
 - `.gitignore:72-77` — blocks `og_database/`, `*.sql.dump`, `*.pgdump`.
 - `AGENTS.md:50` — "`og_database/`, `*.sql.dump`, `*.pgdump` — legacy Lovable Supabase dumps with PII. Never commit."
-- Comment in .gitignore says "See ISSUES.md 'Lovable → fixed-DB data migration' Open item." But there is no `ISSUES.md` in the repo at `597ed28` — that's a stale reference to a file from before the nuke.
 
-**Fix:** either remove the `ISSUES.md` cross-ref from `.gitignore` comment, or note in `HANDOFF.md` that ISSUES.md will be reseeded when build starts (per the global memory note "ISSUES.md is the running build log").
+**Fix:** none needed — gitignore + AGENTS.md entries are self-explanatory.
 
 ### F15. `customers.virecrm.com` route in wrangler — referenced but ambiguous
 
@@ -445,18 +444,7 @@ The writing-style rule lives in `~/.claude/CLAUDE.md` — don't restate.
 
 ### .gitignore
 
-**Optional fix to line 74:**
-
-```
-# See ISSUES.md "Lovable → fixed-DB data migration" Open item.
-```
-
-reword to:
-
-```
-# Legacy from pre-nuke Lovable Supabase migration. ISSUES.md (running build log)
-# will be reseeded in the rebuild; this comment is a forward-reference.
-```
+**Commit as-is.** `og_database/`, `*.sql.dump`, `*.pgdump` rules are self-explanatory.
 
 ## Out of scope
 

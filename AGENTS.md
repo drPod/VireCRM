@@ -75,4 +75,3 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 | Vendor doc mirrors | `docs/<lib>/` |
 | Field mapping spec | `docs/decisions/06-domain-schema.md` §1 (canonical 83-col → table.field) |
 | Architectural decisions | `docs/decisions/<NN>-<topic>.md` |
-| Issues / runbook | `ISSUES.md` (running build log, append findings) |
