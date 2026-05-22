@@ -22,16 +22,18 @@ Conventions:
 Map her master sheet to first-class tables, not a generic Contact/Custom-Field shape. Created via MCP `create_base` + `create_table` + `create_field`.
 
 - [ ] **Create base `greenergiai`** in workspace `wspBUTSYGFioquhDD`.
-- [ ] **Tables + fields:**
-  - `Customers` — Name, Primary Title, Primary Phone, Primary Email, Notes, linked → Service Addresses, linked → LOAs.
-  - `Service Addresses` — Street, City, State, ZIP, linked → Customer, linked → ESIs.
-  - `ESIs` — ESI Number (string `1044…`), Annual Usage kWh, linked → Service Address, linked → Current Contract.
-  - `Contracts` — Supplier (REP, single-select from REP list), Start Date, End Date, Term Months (formula from dates), Cost per kWh, Agent Mils, Status (single-select: `pending` / `active` / `expired` / `lost`), TCV (formula = Annual Usage × Term Years × Agent Mils ÷ 1000), linked → ESI, linked → Deal.
-  - `Deals` — Deal Name, Stage (single-select: `Lead` / `Qualified` / `In Pricing` / `Sent` / `Won` / `Lost`), linked → Customer, linked → Owner (Agent), linked → Contract (set on Won).
-  - `Agents` — Name, Email, House Split %, linked → Deals owned.
+- [ ] **Tables + fields (9-table v1, expanded per `docs/decisions/06-domain-schema.md`):**
+  - `Customers` — Name, Primary Contact Name, Primary Title, Primary Phone, Primary Email, Notes, SIC Code, Business Type, Customer Category, Region, County, Credit Score, Annual Revenue, External Customer Id, linked → Service Addresses, linked → LOAs, linked → Deals.
+  - `Service Addresses` — Street No, Street Name, Address 1, Address 2, City, State, ZIP, County, Govt Area, linked → Customer, linked → ESIs.
+  - `ESIs` — ESI ID (string, 17–22 digit, Oncor prefix `1044372…`), Physical Meter Serial (distinct from ESI ID — xlsx `Meter Id`), EAC kWh (estimated), Billing AQ kWh (actual annual), Annual Usage kWh, linked → Service Address, linked → Current Contract.
+  - `Contracts` — Supplier (REP single-select), Supply Type (`Electricity`/`Gas`), Start Date, End Date, Term Months (formula), Cost per kWh, Agent Mils (Unit Uplift), Currency (default USD), FX Rate (default 1.0), Pipeline Status (single-select: `pending`/`active`/`expired`/`lost`), Is Live (boolean), Sale Type (`Acquisition`/`Renewal`), Lost Date, Lost Reason (single-select), Lost Before Start (boolean), Lost After Live (boolean), Completed Post Live (boolean), Drop Date, Drop Reason, Nomination, Payment Term, Resold Status (single-select), Is Resold (boolean), Resold From Contract (self-link), Gross TCV (formula = Annual Usage × Term Years × Agent Mils ÷ 1000), Lost TCV, Net TCV (formula = Gross − Lost), AQ Loss, AQ Gain, Net AQ (formula), linked → ESI, linked → Deal.
+  - `Deals` — Deal Name, External Sale Id, Sale Date, Stage (single-select: `Lead`/`Qualified`/`In Pricing`/`Sent`/`Won`/`Lost`), Sale Status (single-select: `Approved`/`Pending`/`Lost` — orthogonal to Stage), Objection Status, Objection Type (`PreLive`/`DuringLive`/`none`), Source of Lead (single-select), linked → Customer, linked → Primary Agent (Agents), linked → Secondary Agent (Agents), linked → Contract (set on Won).
+  - `Agents` — Name, Email, House Split %, linked → Deals (as primary), linked → Deals (as secondary).
   - `LOAs` — PDF attachment, Signed Date, Expiration, linked → Customer.
-  - `Commission Statements` — Supplier, Period, PDF attachment, Total Paid, linked → Contracts paid in this statement, Reconciliation Status (formula).
-- [ ] **Single-select option lists.** Suppliers (REPs) populated from a curated TX-energy list. Deal stages locked.
+  - `Commission Statements` — Supplier, Period, PDF attachment, Expected Amount (formula = Billing AQ × Mils ÷ 1000), Received Amount, Outstanding Amount, Net Outstanding Amount, Agent Comms Paid, Agent Comms Outstanding, Reconciliation Status (formula), linked → Contract (per-line-item).
+  - `AggregatorPayouts` (NEW) — Aggregator Name, Aggregator Comm %, Period, linked → Contract. Empty table if broker is never sub-broker; future-proof.
+- [ ] **Single-select option lists.** Suppliers (REPs) populated from curated TX-energy list. Deal stages locked. Lost Reason / Drop Reason / Source of Lead / Customer Category populated from xlsx distinct values during migration design.
+- [ ] **Defer to Phase 4 if Phase 1 time-pressed:** `ContractEvents` (append-only audit log of `went_live` / `dropped` / `lost` / `renewed` transitions). v0 substitute = booleans on `Contracts` (Lost After Live, Completed Post Live).
 - [ ] **Sanity-check schema** with Darsh before importing data.
 
 ## Phase 1.5 — Worker data layer
@@ -47,8 +49,9 @@ The Worker is the only Airtable client. Frontend talks to Worker, never to Airta
 
 One-time launch task — not a recurring user-facing import UI. Run once, she sees her data live.
 
-- [ ] **Parse `Copy of NGP MASTER LIST - Copy.xlsx`** in a Bun script. Inspect headers, dump first 20 rows, confirm column→table mapping with Darsh before any write.
-- [ ] **Field mapping spec.** Document each xlsx column → target Airtable table.field in `docs/migration/field-map.md`.
+- [ ] **Parse `Copy of NGP MASTER LIST - Copy.xlsx`** in a Bun script. 83 columns, 5445 data rows, single `Company = NGP-Americas` value (drop). Header `Customer Name` duplicated at col AJ — skip on import. Headers + first 20 rows inspected in `docs/decisions/06-domain-schema.md` §1.
+- [ ] **Field mapping spec.** Source of truth lives at `docs/decisions/06-domain-schema.md` §1 (75/83 cols map cleanly, 1 dropped constant, 1 dropped duplicate, 6 deferred COVID/historical metrics). Migration script implements that mapping verbatim.
+- [ ] **Normalize on import.** xlsx `Meter Number` → `ESIs.ESI ID`. xlsx `Meter Id` → `ESIs.Physical Meter Serial` (distinct field). Dates → ISO. Mils stored as numeric (not pre-divided by 1000). `Pri Agent` + `Sec Agent` → two separate links on Deal.
 - [ ] **Migration script.** Idempotent. Reads xlsx, normalizes (ESI string, dates ISO, dollar amounts), writes via Airtable API in batches of 10 (respects 5 req/sec). Logs row-by-row "what failed and why."
 - [ ] **Spot-check 5 customer records in UI** before declaring import done.
 - [ ] **Backfill two years of historical clients** via same script.

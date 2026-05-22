@@ -28,7 +28,7 @@ She was on Go High Level and walked away. The point of this build is to fix the 
 
 ## The master list (source of truth: `Copy of NGP MASTER LIST - Copy.xlsx`)
 
-Every field below must round-trip from spreadsheet → database → UI without loss. Each row in her sheet is a deal/contract attached to a meter at a specific service address.
+Every field in her sheet must round-trip from spreadsheet → database → UI without loss. Each row is a deal/contract attached to a meter at a specific service address. The xlsx has 83 columns and 5,445 data rows — the canonical column-by-column mapping (every xlsx column → target Airtable table.field, including the ones the customer doesn't manually enter but the import must preserve) lives at [`docs/decisions/06-domain-schema.md`](docs/decisions/06-domain-schema.md). The summary below covers the **customer-visible** required fields; the schema also captures contract lifecycle (lost/drop reasons, live status, post-live completion), dual-agent attribution, billing-vs-estimated annual quantity variance, and aggregator/sub-broker commission chains.
 
 ### Required import fields
 
@@ -36,17 +36,21 @@ Every field below must round-trip from spreadsheet → database → UI without l
 |---|---|
 | **Deal Name** | Human label for the deal record |
 | **Customer Name** | Business / account holder |
-| **Title** | Contact's title at the customer org |
+| **Primary Contact Name + Title** | The human at the customer org (xlsx `contact_person` + `designation`) |
 | **Phone** | Contact phone |
 | **Email** | Contact email |
-| **Service Address(es)** | One or more per customer |
-| **ESI Number** | Electric Service Identifier — the Texas meter number, mostly prefixed `1044...` (Oncor territory). **One ESI per service address**, every address must show its ESI. Non-negotiable — this is how every other system in the energy business looks a meter up. |
-| **Annual Usage** | kWh/yr at the meter |
-| **Mils** | Agent commission in mils (thousandths of a dollar) per kWh — see "Agent mils" below |
-| **Supplier** | Electricity supplier on the contract (e.g. retail electric provider) |
-| **Contract Start Date** | |
-| **Contract End Date** | |
-| **Cost per kWh** | Supplier rate on the contract |
+| **Service Address(es)** | One or more per customer; split into street_no / street_name / address_1 / address_2 / city / state / ZIP / county |
+| **ESI ID** | Electric Service Identifier — ERCOT's unique 17–22-digit identifier for the service address, prefixed `1044372…` for Oncor territory (or `1017699…` for East TX). **One ESI per service address**, every address must show its ESI. Non-negotiable — this is how every external system (REPs, TDUs, ERCOT lookups) looks a meter up. The xlsx labels this "Meter Number" colloquially, but the canonical industry term is ESI ID and that's what we use across the schema, UI, and any external integration. The ESI ID is tied to the service address and persists through meter replacements. |
+| **Physical Meter Serial** | Optional — the device serial printed on the physical meter. **Distinct from ESI ID**; changes when the meter is swapped. The xlsx captures this as "Meter Id" and we preserve it for cross-reference with supplier invoices. |
+| **Annual Usage / EAC / Billing AQ** | Three related fields. Annual Usage is the current snapshot, EAC (Estimated Annual Consumption) is set at contract signing, and Billing AQ (Annual Quantity) is the actual billed annual volume. Commissions are paid against Billing AQ in practice, and the EAC-vs-Billing variance drives most reconciliation work. |
+| **Mils** | Agent commission in mils (thousandths of a dollar) per kWh — see "Agent mils" below. The xlsx labels this "Unit Uplift." |
+| **Supplier** | REP (Retail Electric Provider) on the contract |
+| **Contract Start Date / End Date** | |
+| **Cost per kWh** | Supplier base rate on the contract |
+| **Primary Agent + Secondary Agent** | Every deal can carry two agents. The xlsx has `Pri Agent` and `Sec Agent` columns; both must round-trip. A single-agent assignment would silently drop the second agent on most rows. |
+| **Sale Status / Pipeline Stage / Live Status / Lost & Drop reasons** | The schema tracks contract lifecycle across four orthogonal dimensions, not one status field. See `docs/decisions/06-domain-schema.md` §5. |
+| **Aggregator Name + Aggregator Comm %** | When the broker operates as a sub-broker under a larger aggregator, the upstream commission percentage is tracked per contract. |
+| **Commission accounting** | Received Amount, Outstanding Amount, Comms Paid / Outstanding (broker → agent) — full reconciliation against the expected commission (Billing AQ × Mils ÷ 1000). Not optional; this is how she actually gets paid and reconciles against supplier statements. |
 
 ## Pipeline + tabs
 
