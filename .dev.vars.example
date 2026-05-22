@@ -1,0 +1,8 @@
+# Copy to .dev.vars (gitignored) and fill in real values.
+# Sourced into env by the `dev` script in package.json before `react-router dev`.
+
+# Hyperdrive local emulation — vite-plugin reads this env var when the
+# wrangler.jsonc hyperdrive binding name == HYPERDRIVE. Point at the same
+# Supabase pooler URL Hyperdrive uses in prod (transaction mode, port 6543).
+# Get it from: Supabase Dashboard → Project Settings → Database → Connection string → Transaction pooler.
+CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="postgresql://postgres.<project-ref>:<password>@aws-1-<region>.pooler.supabase.com:6543/postgres"
