@@ -34,21 +34,32 @@ Rejected and why (don't re-propose):
 
 ## Domain glossary (memorize)
 
-- **ESI** — Electric Service Identifier. TX meter number, mostly prefixed `1044…` (Oncor territory). Universal key in TX energy. One ESI per service address. First-class entity, never a custom field.
-- **Mils** — thousandths of a dollar per kWh. Agent commission unit. `1 mil = $0.001/kWh`.
-- **TCV** — Total Contract Value. Formula: `Annual Usage (kWh) × Term (years) × Agent Mils ÷ 1000`. Computed in Airtable formula field.
+- **ESI ID** — Electric Service Identifier. Canonical name. xlsx label "Meter Number" = colloquial. 17–22 digits. Oncor prefix `1044372…` (East TX = `1017699…`). Tied to service address, not device. Universal key in TX energy. One ESI per service address. First-class entity, never a custom field.
+- **Physical Meter Serial** — distinct from ESI ID. Device serial printed on meter. Changes on meter swap. xlsx `Meter Id`. Preserve for supplier-invoice cross-reference.
+- **EAC** — Estimated Annual Consumption (kWh). Set at contract signing.
+- **AQ** / **Billing AQ** — Annual Quantity (kWh). Billing AQ = actual billed annual volume. **Commission paid against Billing AQ, not EAC.** Variance = #1 source of reconciliation disputes.
+- **Mils** — thousandths of a dollar per kWh. Agent commission unit. `1 mil = $0.001/kWh`. xlsx label = "Unit Uplift".
+- **TCV** — Total Contract Value. `Gross TCV = Annual Usage × Term Years × Agent Mils ÷ 1000`. `Net TCV = Gross − Lost`. Airtable formula fields.
 - **REP** — Retail Electric Provider. Supplier on a contract.
 - **LOA** — Letter of Authorization. Customer-signed doc letting broker pull usage + shop on their behalf. Required before any "In Pricing" stage.
-- **Drop** — supplier kicks customer off contract. Rare but tracked.
+- **Drop** — supplier kicks customer off contract mid-term. TX industry term. Distinct from "lost" (customer leaves). Drop = supplier action.
+- **Aggregator** — upstream broker. When she's a sub-broker, takes % cut. xlsx cols `Agg Name` + `Agg Comm %`. Tracked in `AggregatorPayouts` table.
+- **Pri/Sec Agent** — dual-agent attribution. Every deal can carry 2 agents. `Deals.Primary Agent` + `Deals.Secondary Agent`. Never collapse.
+- **Sale Status vs Pipeline Stage** — orthogonal. Sale Status = `Approved`/`Pending`/`Lost`. Stage = pipeline location.
+- **Is Live** — contract reached start date + billing began. Distinct from Pipeline Status = `active` (signed but maybe future-dated).
 - **In Pricing** — pipeline stage where deal is being quoted across REPs. Pre-won.
 - **Current Clients** — view of customers with at least one `active` contract. Deal graduates here on close-won.
 
 ## Conventions
 
-- **Schema-first.** Domain entities (Customer / ServiceAddress / ESI / Contract / Deal / Agent / LOA / CommissionStatement) are real Airtable tables, not custom fields on a generic Contact.
-- **Worker is the auth + RLS boundary.** Never expose Airtable PAT to frontend. Never trust JWT tenant claim without verification.
-- **Idempotent writes.** Airtable has no transactions. Close-deal flow must tolerate retry without duplicating state.
-- **Batch reads/writes.** 10 records/req. Cache hot reads in Worker. 5 req/sec per base is the hard ceiling.
+- **Schema-first.** 9 domain tables (Customer / ServiceAddress / ESI / Contract / Deal / Agent / LOA / CommissionStatement / AggregatorPayouts). Real Airtable tables, not custom fields on a generic Contact. Full spec: `docs/decisions/06-domain-schema.md`.
+- **Round-trip 83 xlsx cols.** Migration drops 1 constant (`Company`) + 1 duplicate (`Customer Name` at col AJ). 6 COVID/historical metrics deferred. 75 round-trip. No silent column drops.
+- **ESI ID canonical, not "Meter Number".** Import normalizes xlsx `Meter Number` → `ESIs.ESI ID`. xlsx `Meter Id` → `ESIs.Physical Meter Serial` (separate field).
+- **Dual-agent deals.** `Deals.Primary Agent` + `Deals.Secondary Agent`. Never fold to one.
+- **Contract lifecycle = 4 dims.** Pipeline Status (`pending`/`active`/`expired`/`lost`) + Is Live (boolean) + Lost path (Lost Date / Reason / Before Start / After Live) + Drop path (Drop Date / Reason). Don't collapse.
+- **Worker is auth + RLS boundary.** Never expose Airtable PAT to frontend. Never trust JWT tenant claim without verification.
+- **Idempotent writes.** Airtable has no transactions. Close-deal flow + migration must tolerate retry without duplicating state. Use `External Sale Id` / `External Customer Id` as natural keys.
+- **Batch reads/writes.** 10 records/req. Cache hot reads in Worker. 5 req/sec per base is hard ceiling.
 - **Webhooks expire 7 days.** Cron-refresh, don't assume they live forever.
 
 ## What to NOT do

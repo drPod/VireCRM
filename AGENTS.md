@@ -21,11 +21,19 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 
 | Term | Meaning |
 |---|---|
-| ESI | Electric Service Identifier. TX meter number, prefix `1044…`. Universal key. |
-| Mils | Thousandths of a dollar per kWh. Agent commission unit. |
-| TCV | Total Contract Value. `Annual Usage × Term yrs × Mils ÷ 1000`. |
+| ESI ID | Electric Service Identifier. Canonical name (xlsx label "Meter Number" colloquial). 17–22 digit. Oncor prefix `1044372…`. Universal key. Tied to service address, not device. |
+| Physical Meter Serial | Device serial printed on meter. Distinct from ESI ID. xlsx `Meter Id`. |
+| EAC | Estimated Annual Consumption (kWh). Signing-time estimate. |
+| AQ / Billing AQ | Annual Quantity (kWh). Actual billed. Drives commission. |
+| Mils | Thousandths of a dollar per kWh. Agent commission unit. xlsx "Unit Uplift". |
+| TCV | Total Contract Value. `Gross = Annual Usage × Term yrs × Mils ÷ 1000`. `Net = Gross − Lost`. |
 | REP | Retail Electric Provider. Supplier on contract. |
 | LOA | Letter of Authorization. Required before quoting (In Pricing stage). |
+| Drop | Supplier kicks customer off mid-contract. Distinct from "lost." |
+| Aggregator | Upstream broker; takes % when we're sub-broker. xlsx `Agg Name` + `Agg Comm %`. |
+| Pri/Sec Agent | Two agents per deal. `Primary Agent` + `Secondary Agent` on Deals. |
+| Sale Status vs Stage | Orthogonal. Sale Status = `Approved`/`Pending`/`Lost`. Stage = pipeline location. |
+| Is Live | Contract reached start date + billing began. Distinct from Pipeline Status = `active`. |
 | In Pricing | Pre-won pipeline stage. Deal being quoted across REPs. |
 | Current Clients | Customers with ≥1 active contract. Auto-populated on close-won. |
 
@@ -59,5 +67,6 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 | Airtable client | `src/server/airtable.ts` (planned) |
 | Migration scripts | `scripts/` (planned) |
 | Vendor doc mirrors | `docs/<lib>/` |
-| Field mapping spec | `docs/migration/field-map.md` (planned) |
+| Field mapping spec | `docs/decisions/06-domain-schema.md` §1 (canonical 83-col → table.field table) |
+| Architectural decisions | `docs/decisions/<NN>-<topic>.md` |
 | Issues / runbook | `ISSUES.md` (running build log, append findings) |
