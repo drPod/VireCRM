@@ -133,17 +133,23 @@ Rejected and why (don't re-propose):
 - Don't ship without verifying Supabase JWT signature in Worker.
 - Don't click-build Postgres schema. Drizzle migrations checked in.
 
-## Verify before claiming done — concrete gates
+## Verify before claiming done — enforced gates
 
-Scripts in `scripts/` enforce the rule. Run before declaring done:
+Static-contract gates are **enforced** at three layers, not advised. The harness will refuse to let you stop or commit with a broken tree.
 
-- **`bash scripts/agent-check.sh`** — typecheck gate. Run after any multi-file TS write. Catches hallucinated imports, broken types.
-- **`bash scripts/check-schema-drift.sh`** — drizzle schema-vs-migration check. Run after editing `workers/db/schema/*.ts`. Catches schema TS edit without `bun run db:generate`.
-- **`bash scripts/check-worker-config.sh`** — wrangler binding check. Run after editing `wrangler.jsonc` OR adding `c.env.X` ref in Worker code. Catches binding referenced but not declared.
-- **`bash scripts/check-build.sh`** — full build smoke test (~30s). Run after editing Vite / Tailwind / React Router config or routes. Catches directive errors, vite plugin failures, route config drift.
-- **`bash scripts/sync-npm-types.sh`** — refresh `docs/_npm-types/`. Run after `bun install` adds new pkg. Otherwise runs via `postinstall`.
+1. **Claude Code Stop hook** — `.claude/settings.json` → `scripts/hook-stop-typecheck.sh` → `scripts/check-all.sh`. Every stop attempt runs `check-all.sh`; exit 2 blocks the stop when any gate fails.
+2. **Git pre-commit hook** — `.githooks/pre-commit` (wired by `prepare` script → `core.hooksPath`). Blocks `git commit` for any agent or human when `agent-check.sh` (plus schema-drift / worker-config when their paths are staged) fails. Bypass: `git commit --no-verify` (visible in shell history).
+3. **CI** — `.github/workflows/checks.yml`. Runs all 4 gates on every PR + `main` push.
 
-Rationale + 3 failure modes: `docs/agent-prevention.md`.
+Run manually for tight feedback (or `bash scripts/check-all.sh` to dispatch only the gates whose triggers match your working-tree changes):
+
+- `bash scripts/agent-check.sh` — typecheck (`wrangler types` + `react-router typegen` + `tsc -b`).
+- `bash scripts/check-schema-drift.sh` — Drizzle schema TS vs committed migration.
+- `bash scripts/check-worker-config.sh` — `c.env.X` references resolve in `wrangler.jsonc`.
+- `bash scripts/check-build.sh` — full Vite build smoke test (~30s; CI only).
+- `bash scripts/sync-npm-types.sh` — refresh `docs/_npm-types/<pkg>/` after `bun add`. Auto via `postinstall`.
+
+Layer map, hallucination-class coverage, Phase 1.5 incident: `docs/agent-prevention.md`.
 
 ## Tool routing
 

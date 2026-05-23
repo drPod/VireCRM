@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Cross-harness commit gate. Blocks ANY committer (human, Claude Code,
+# Cursor, Aider, Copilot, ...) when the static contracts are violated.
+#
+# Wired via `git config core.hooksPath .githooks` — set by the `prepare`
+# script in package.json on `bun install`.
+#
+# Runs the cheap gates locally. `check-build.sh` is deliberately left to
+# CI — it's ~30s and would be intolerable on every commit. `check-worker-
+# config.sh` ships under agent-check (Path B falls through to tsc when
+# wrangler dry-run isn't available, which is the common dev case).
+set -uo pipefail
+
+repo="$(git rev-parse --show-toplevel)"
+cd "${repo}"
+
+echo "[pre-commit] static contract gate"
+
+fail() {
+  echo
+  echo "pre-commit: BLOCKED — $1" >&2
+  echo "            Bypass (only when you know what you're doing): git commit --no-verify" >&2
+  exit 1
+}
+
+bash scripts/agent-check.sh || fail "typecheck failed"
+
+# Only run schema-drift when a schema file is in the index — otherwise we
+# pay the drizzle-kit cost on every commit for no reason.
+if git diff --cached --name-only | grep -qE '^workers/db/schema/.+\.ts$|^drizzle/'; then
+  bash scripts/check-schema-drift.sh || fail "schema drift — run 'bun run db:generate' and stage the result"
+fi
+
+# Only run worker-config check when wrangler.jsonc or workers/ TS is staged.
+if git diff --cached --name-only | grep -qE '^wrangler\.jsonc$|^workers/.+\.ts$'; then
+  bash scripts/check-worker-config.sh || fail "worker config / binding drift"
+fi
+
+echo "[pre-commit] all gates PASS"

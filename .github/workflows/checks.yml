@@ -1,0 +1,41 @@
+name: checks
+
+# Third (last) enforcement layer for the agent-prevention scaffold.
+# Layer 1: .claude/settings.json Stop hook (Claude Code only).
+# Layer 2: .githooks/pre-commit (any local commit, cross-harness).
+# Layer 3: this workflow (PRs + main pushes, unbypassable).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: install
+        run: bun install --frozen-lockfile
+
+      - name: typecheck gate (agent-check.sh)
+        run: bash scripts/agent-check.sh
+
+      - name: schema drift gate (check-schema-drift.sh)
+        run: bash scripts/check-schema-drift.sh
+
+      - name: worker config / binding gate (check-worker-config.sh)
+        run: bash scripts/check-worker-config.sh
+
+      - name: build smoke gate (check-build.sh)
+        run: bash scripts/check-build.sh
