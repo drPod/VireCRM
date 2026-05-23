@@ -1,23 +1,30 @@
 import { Hono } from "hono";
-import { sql } from "drizzle-orm";
-import { makeDb } from "../db";
+import { requestId } from "hono/request-id";
+import type { HonoEnv } from "./types";
+import { corsMiddleware } from "./middleware/cors";
+import { errorBoundary } from "./middleware/error-boundary";
+import { jwtVerify } from "./middleware/jwt-verify";
+import { tenantContext } from "./middleware/tenant-context";
+import { healthRoutes } from "./routes/health";
+import { customersRoutes } from "./routes/customers";
 
-export const api = new Hono<{ Bindings: Env }>().basePath("/api");
+// Middleware order (every protected request):
+//   cors → request-id → error-boundary → jwt-verify → tenant-context → handler
+//
+// cors first so OPTIONS preflight short-circuits with no auth check (otherwise
+// browsers see 401 on preflight and never send the real request). request-id +
+// error-boundary apply to /health too so 500s and tracing aren't auth-gated.
+export const api = new Hono<HonoEnv>().basePath("/api");
 
-api.get("/health", (c) => c.json({ ok: true }));
+api.use("*", corsMiddleware);
+api.use("*", requestId());
+api.use("*", errorBoundary);
 
-api.get("/db-ping", async (c) => {
-  try {
-    const db = makeDb(c.env);
-    const result = await db.execute(sql`SELECT 1 AS one`);
-    return c.json({ ok: true, result });
-  } catch (err) {
-    return c.json(
-      {
-        ok: false,
-        error: err instanceof Error ? err.message : String(err),
-      },
-      500,
-    );
-  }
-});
+api.route("/health", healthRoutes);
+
+const protectedApi = new Hono<HonoEnv>();
+protectedApi.use("*", jwtVerify);
+protectedApi.use("*", tenantContext);
+protectedApi.route("/customers", customersRoutes);
+
+api.route("/", protectedApi);

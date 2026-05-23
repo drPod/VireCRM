@@ -23,6 +23,16 @@
       "id": "3399659bd468472f95348dfead3072ac"
     }
   ],
+  // KV cache: tenant lookups (`tenant:by-sub:*`) + cold-isolate read-through.
+  // TTL 10s (per-isolate LRU) / 60s (KV minimum). Miniflare auto-provisions
+  // local KV under `.wrangler/state/v3/kv/`; the `id` below is only used at
+  // prod deploy. Create via: bunx wrangler kv namespace create CACHE
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "REPLACE_BEFORE_FIRST_PROD_DEPLOY"
+    }
+  ],
   // Route table: virecrm.com (canonical) + majix.ai (legacy, kept so the Worker
   // receives those requests and can issue 308 redirects to virecrm.com equivalents).
   // workers/app.ts fires the redirect before any app logic.

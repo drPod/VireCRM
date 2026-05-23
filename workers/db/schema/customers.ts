@@ -37,6 +37,11 @@ export const customers = pgTable(
   },
   (t) => [
     index("customers_tenant_idx").on(t.tenantId, t.id),
+    index("customers_tenant_created_idx").on(
+      t.tenantId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
     uniqueIndex("customers_tenant_external_idx").on(
       t.tenantId,
       t.externalCustomerId,
