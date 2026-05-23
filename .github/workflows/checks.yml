@@ -39,3 +39,6 @@ jobs:
 
       - name: build smoke gate (check-build.sh)
         run: bash scripts/check-build.sh
+
+      - name: vitest
+        run: bun run test
