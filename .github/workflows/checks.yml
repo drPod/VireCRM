@@ -40,6 +40,9 @@ jobs:
       - name: build smoke gate (check-build.sh)
         run: bash scripts/check-build.sh
 
+      - name: bundle size gate (check-bundle-size.sh)
+        run: bash scripts/check-bundle-size.sh
+
       - name: vitest
         run: bun run test
 
