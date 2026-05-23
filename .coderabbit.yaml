@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit configuration for genesisxsx.
+# Docs: https://docs.coderabbit.ai/guides/configure-coderabbit
+# Note: the CodeRabbit GitHub App must be installed at
+# https://github.com/apps/coderabbitai for this config to take effect.
+language: en-US
+early_access: false
+reviews:
+  profile: chill
+  high_level_summary: true
+  path_filters:
+    - "!docs/_npm-types/**"
+    - "!dist/**"
+    - "!docs/**/llms-full.txt"
+    - "!og_database/**"
+    - "!.wrangler/**"
+chat:
+  auto_reply: true
