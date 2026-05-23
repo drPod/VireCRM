@@ -1,5 +1,7 @@
 # 04 — Auth provider: Supabase Auth
 
+> **⚠ Agent-authored.** Drafted by AI agents from research + conversation context. Expect AI-pattern reasoning, **and expect baked-in assumptions** — agents make assumptions constantly (about scale, intent, prior art, constraints) and confidence does not equal correctness. Do not blindly follow this doc; verify load-bearing claims, assumptions included, before relying on them.
+
 Vetting record for the auth-provider decision made in `CLAUDE.md` (§Architecture) and `wrangler.jsonc` (`SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` in `vars`).
 
 Dated 2026-05-22. Stack picks fixed for this unit: Airtable backend, TanStack Start + CF Workers + Bun, Stripe payments, MS Graph for Outlook.
