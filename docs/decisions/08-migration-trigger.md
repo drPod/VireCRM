@@ -1,5 +1,7 @@
 # 08 — Migration trigger + reversibility claim
 
+> **⚠ Agent-authored.** Drafted by AI agents from research + conversation context. Expect AI-pattern reasoning, **and expect baked-in assumptions** — agents make assumptions constantly (about scale, intent, prior art, constraints) and confidence does not equal correctness. Do not blindly follow this doc; verify load-bearing claims, assumptions included, before relying on them.
+
 > **Unit:** 08 of 10 in the vet pass. Vetting the Airtable → Postgres migration plan locked into `README.md` (lines 85, 99, 106) and `CLAUDE.md` (§Architecture).
 > **Date:** 2026-05-22.
 > **Author:** parallel subagent, reporting to main vet loop.
