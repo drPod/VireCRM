@@ -1,5 +1,7 @@
 # genesisxsx — agent conventions
 
+> **⚠ Agent-authored.** Drafted by AI agents from conversation context + source-file inspection + web research. Expect AI-pattern reasoning and unverified assumptions. Treat load-bearing claims as starting points to verify, not facts. Edits welcome.
+
 CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commercial electricity broker) at `greenenergiai.virecrm.com`.
 
 **Read these first, in order:**
@@ -68,7 +70,7 @@ Rejected and why (don't re-propose):
 ### Schema + data
 
 - **9 domain tables.** Customer / ServiceAddress / ESI / Contract / Deal / Agent / LOA / CommissionStatement / AggregatorPayouts. Full spec: `docs/decisions/06-domain-schema.md`.
-- **Round-trip 83 xlsx cols.** 1 dropped (`Company` constant), 1 dropped (duplicate `Customer Name` at col AJ). 6 COVID/historical metrics deferred. 75 round-trip. No silent column drops.
+- **Round-trip 84 xlsx cols (4,792 rows).** 1 dropped (`Company` constant A), 1 dropped (duplicate `Customer Name` AJ), 1 dropped (empty `CF`). 6 COVID/historical metrics deferred. 75 round-trip. No silent column drops. Canonical counts from `scripts/inspect-xlsx.ts`; re-run when source xlsx replaced.
 - **ESI ID canonical, not "Meter Number".** Import normalizes xlsx `Meter Number` → `ESIs.ESI ID`. xlsx `Meter Id` → `ESIs.Physical Meter Serial` (separate field).
 - **Dual-agent deals.** `Deals.Primary Agent` + `Deals.Secondary Agent`. Never fold to one.
 - **Contract lifecycle = 4 dims.** Pipeline Status (`pending`/`active`/`expired`/`lost`) + Is Live (boolean) + Lost path (Lost Date / Reason / Before Start / After Live) + Drop path (Drop Date / Reason). Don't collapse.
@@ -83,6 +85,12 @@ Rejected and why (don't re-propose):
 - **RLS on every domain table.** Wrap `(SELECT auth.uid())` in policies to memoize.
 - **Two audiences, two subdomains.** `<tenant>.virecrm.com` = broker admin. `customers.virecrm.com` = end-customer portal (scope TBD).
 - **Supabase enforces global email uniqueness.** One email = one user globally; flag if user crosses tenants.
+
+### UI
+
+- **Display values verbatim from the database.** No display-coercion (e.g. don't render stored `Non-HH` as `Electricity`). Round-trip principle extends to render layer.
+- **Every domain label with non-obvious meaning gets a hover tooltip.** Trigger via `<abbr title>` or shadcn `Tooltip` — define the term plus where it came from. Required for at least: `ESI ID`, `Physical Meter Serial`, `EAC`, `AQ`, `Billing AQ`, `Mils`, `TCV`, `Gross TCV`, `Net TCV`, `Lost TCV`, `REP`, `LOA`, `Drop`, `Aggregator`, `Pri/Sec Agent`, `Is Live`, `In Pricing`, `Sale Status`, `Pipeline Stage`, `Non-HH`, `Nomination`, `SIC Code`, `Govt Area`, `Acq/Ren`, `Resold Status`. Canonical definitions live in this file's Domain glossary — UI strings stay in sync with it.
+- **UK-origin labels rendered as-is + tooltip explains.** `Non-HH` (UK Non-Half-Hourly small-commercial electricity), `EAC`, `AQ`, `Nomination`, `Govt Area`, `SIC Code` — store and display as the xlsx encoded them. Doc 06 §3.
 
 ### Cache + rate
 
@@ -125,10 +133,24 @@ Rejected and why (don't re-propose):
 - Don't ship without verifying Supabase JWT signature in Worker.
 - Don't click-build Postgres schema. Drizzle migrations checked in.
 
+## Verify before claiming done — concrete gates
+
+Scripts in `scripts/` enforce the rule. Run before declaring done:
+
+- **`bash scripts/agent-check.sh`** — typecheck gate. Run after any multi-file TS write. Catches hallucinated imports, broken types.
+- **`bash scripts/check-schema-drift.sh`** — drizzle schema-vs-migration check. Run after editing `workers/db/schema/*.ts`. Catches schema TS edit without `bun run db:generate`.
+- **`bash scripts/check-worker-config.sh`** — wrangler binding check. Run after editing `wrangler.jsonc` OR adding `c.env.X` ref in Worker code. Catches binding referenced but not declared.
+- **`bash scripts/check-build.sh`** — full build smoke test (~30s). Run after editing Vite / Tailwind / React Router config or routes. Catches directive errors, vite plugin failures, route config drift.
+- **`bash scripts/sync-npm-types.sh`** — refresh `docs/_npm-types/`. Run after `bun install` adds new pkg. Otherwise runs via `postinstall`.
+
+Rationale + 3 failure modes: `docs/agent-prevention.md`.
+
 ## Tool routing
 
 - **Postgres schema/data** → Drizzle CLI + `psql` + Supabase Studio. Project `coynbufhejaeuifpvmvw`.
 - **Lib docs** — read local vendor mirror first: `docs/react-router-v7/`, `docs/cloudflare-vite-plugin/`, `docs/wrangler/`, `docs/supabase/`, `docs/stripe-node/`, `docs/microsoft-graph/`, `docs/hono/`, `docs/drizzle/`, `docs/dnd-kit/`. Each ships `README.md` (fat router) + `llms-full.txt` / `reference.md` / per-page scrapes + `_snapshot_date.txt`. Refresh via `scripts/sync-<lib>-docs.sh`. Fall through to `context7` MCP only when mirror lacks the topic.
+- **npm package types** (named imports, type symbols, function signatures) → read `docs/_npm-types/<pkg>/` first (`/` in pkg name → `__`, e.g. `@supabase/server` → `@supabase__server`). Mirrors `node_modules/<pkg>/**/*.d.{ts,cts,mts}` so `grep -r 'JWTClaims' docs/_npm-types/@supabase__server/` finds actual export. Distinct from `docs/<lib>/` (product docs — usage + concepts, no `.d.ts`). Refresh via `bash scripts/sync-npm-types.sh` (runs on `postinstall`).
+- **Audit subagents** — subagent auditing code (imports, schema, config) MUST run `bash scripts/agent-check.sh` AND grep `docs/_npm-types/<pkg>/` for every named import before reporting "imports clean." Vibes audits insufficient — `tsc -b` catches in 2s what 3 parallel grep-based audits miss.
 - **Cross-repo search** → delphi.
 - **Browser verification** → see `~/.claude/rules/browser.md`.
 - **Live state** (Node LTS, Supabase API changes, Stripe API versions) → curl endoflife / WebSearch per `~/.claude/rules/lookups.md`.
