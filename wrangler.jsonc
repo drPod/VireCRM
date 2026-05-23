@@ -30,7 +30,7 @@
   "kv_namespaces": [
     {
       "binding": "CACHE",
-      "id": "REPLACE_BEFORE_FIRST_PROD_DEPLOY"
+      "id": "2134b5fc4983485eaaa40edaa18a6ef0"
     }
   ],
   // Route table: virecrm.com (canonical) + majix.ai (legacy, kept so the Worker
