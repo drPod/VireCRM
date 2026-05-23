@@ -1,5 +1,7 @@
 # 06 — Domain schema fit vs xlsx
 
+> **⚠ Agent-authored.** Drafted by AI agents from xlsx-inspection output + research + conversation context. Expect AI-pattern reasoning, **and expect baked-in assumptions** — agents make assumptions constantly (about scale, intent, prior art, constraints) and confidence does not equal correctness. Do not blindly follow this doc; verify load-bearing claims, assumptions included, before relying on them.
+
 ## Verdict
 
 **Modify, don't replace.** The 8-table model in `TASKS.md` Phase 1 captures the right entities (Customer / Service Address / ESI / Contract / Deal / Agent / LOA / Commission Statement) and is structurally correct. But it is **under-specified** against the actual data she's bringing in: the xlsx has 83 columns, ~14 of which carry signal the current schema would silently drop. The single biggest sins are (a) one-agent-per-deal where xlsx clearly records two, (b) one-status-field where xlsx tracks four orthogonal lifecycle dimensions, (c) no aggregator/sub-broker chain, and (d) no usage-vs-billed reconciliation fields that drive commission disputes in TX energy.

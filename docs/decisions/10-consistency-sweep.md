@@ -1,5 +1,7 @@
 # 10 — Consistency sweep + rephrase prep
 
+> **⚠ Agent-authored.** Drafted by AI agents from research + conversation context. Expect AI-pattern reasoning, **and expect baked-in assumptions** — agents make assumptions constantly (about scale, intent, prior art, constraints) and confidence does not equal correctness. Do not blindly follow this doc; verify load-bearing claims, assumptions included, before relying on them.
+
 **Unit:** 10 of 10. Internal coherence check across the five planning docs at `597ed28 primitive plan`. Not vetting decisions against the outside world — units 1-9 do that. This unit asks: do the docs agree with themselves?
 
 ## Verdict (per issue area)
