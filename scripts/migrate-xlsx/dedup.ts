@@ -9,7 +9,7 @@ import { agents, serviceAddresses } from "../../workers/db/schema";
 import type { TransformedRow } from "./types";
 import type { TxLike } from "./load";
 
-export function normalize(s: string | null | undefined): string {
+function normalize(s: string | null | undefined): string {
   if (!s) return "";
   return s.toUpperCase().replace(/[^A-Z0-9|]/g, "").replace(/\s+/g, "");
 }

@@ -48,7 +48,7 @@ export async function extractXlsx(path: string): Promise<ExtractResult> {
   };
 }
 
-export function colLetter(n: number): string {
+function colLetter(n: number): string {
   let s = "";
   while (n > 0) {
     const m = (n - 1) % 26;

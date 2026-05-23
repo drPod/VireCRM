@@ -140,5 +140,3 @@ export interface Summary {
   status: "PASS" | "FAIL";
   failureReason?: string;
 }
-
-export type TableName = keyof Summary["tables"];

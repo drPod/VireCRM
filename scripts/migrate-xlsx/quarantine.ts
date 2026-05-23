@@ -12,7 +12,6 @@ export class QuarantineSink {
   private stream: WriteStream;
   private _count = 0;
   private _errorCount = 0;
-  private _warnCount = 0;
 
   constructor(public readonly path: string) {
     mkdirSync(dirname(path), { recursive: true });
@@ -22,7 +21,6 @@ export class QuarantineSink {
   write(record: QuarantineRecord): void {
     this._count++;
     if (record.severity === "error") this._errorCount++;
-    else this._warnCount++;
     this.stream.write(JSON.stringify(record) + "\n");
     process.stderr.write(
       `[row ${record.rowNumber}] ${record.severity.toUpperCase()} ` +
@@ -41,9 +39,6 @@ export class QuarantineSink {
   }
   get errorCount(): number {
     return this._errorCount;
-  }
-  get warnCount(): number {
-    return this._warnCount;
   }
 
   async close(): Promise<void> {
