@@ -91,3 +91,6 @@ supabase/.temp/
 og_database/
 *.sql.dump
 *.pgdump
+
+# Migration scratch dir — xlsx quarantine JSONL holds rawValue PII.
+tmp/

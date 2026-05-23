@@ -22,6 +22,20 @@
       "when": 1779512935272,
       "tag": "0002_customers_cursor_index",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779534522445,
+      "tag": "0003_phase_2_natural_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779537082614,
+      "tag": "0004_fix_commission_null_propagation",
+      "breakpoints": true
     }
   ]
 }
