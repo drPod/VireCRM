@@ -42,3 +42,7 @@ jobs:
 
       - name: vitest
         run: bun run test
+
+      - name: knip dead-code report (check-knip.sh, warn-only)
+        run: bash scripts/check-knip.sh
+        continue-on-error: true

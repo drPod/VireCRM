@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "app/root.tsx",
+    "app/routes/**/*.{ts,tsx}",
+    "workers/app.ts",
+    "vitest.config.ts",
+    "react-router.config.ts",
+    "scripts/inspect-xlsx.ts"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "workers/**/*.ts",
+    "scripts/**/*.ts"
+  ],
+  "ignore": [
+    "app/+types/**",
+    "worker-configuration.d.ts",
+    "docs/**"
+  ],
+  "ignoreDependencies": []
+}
