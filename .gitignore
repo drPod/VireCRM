@@ -78,6 +78,12 @@ supabase/.temp/
 *.xls
 *.csv
 
+# npm .d.ts mirror (docs/_npm-types/) — ground-truth named exports for agents.
+# Force-tracked because the bare `dist` rule above otherwise eats vendor `dist/`
+# subdirs (e.g. node_modules/@supabase/server/dist/index.d.mts).
+!docs/_npm-types/
+!docs/_npm-types/**
+
 # Legacy Lovable Supabase dumps (auth.users with bcrypt hashes + PII).
 # Used as reference for the old→new project data migration. NEVER push.
 og_database/
