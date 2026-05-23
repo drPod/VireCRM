@@ -1,5 +1,7 @@
 # 02 — Frontend + Runtime + Package Manager
 
+> **⚠ Agent-authored.** Drafted by AI agents from research + conversation context. Expect AI-pattern reasoning, **and expect baked-in assumptions** — agents make assumptions constantly (about scale, intent, prior art, constraints) and confidence does not equal correctness. Do not blindly follow this doc; verify load-bearing claims, assumptions included, before relying on them.
+
 **Status:** vetted 2026-05-22
 **Scope:** the three coupled choices the prior agent locked into `README.md`, `CLAUDE.md`, `AGENTS.md`: frontend framework, runtime/deploy target, package manager.
 
