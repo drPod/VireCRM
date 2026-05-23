@@ -59,12 +59,16 @@ worker-configuration.d.ts
 !.env.example
 
 # Claude Code: ignore local state, but DO commit project-scoped skills,
-# hooks, and settings.json so teammates share the same automations.
-# settings.local.json stays ignored (per-user overrides).
+# hooks, settings.json, and hookify rule files so teammates share the same
+# automations. settings.local.json stays ignored (per-user overrides).
+# Hookify's `.local.md` naming convention normally implies per-user files,
+# but for this repo the rules are project invariants (Phase 1.5 prevention
+# scaffold) and must ship with every clone.
 .claude/*
 !.claude/skills/
 !.claude/hooks/
 !.claude/settings.json
+!.claude/hookify.*.local.md
 
 # Supabase CLI temp
 supabase/.temp/
