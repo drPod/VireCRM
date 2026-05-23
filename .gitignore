@@ -69,6 +69,9 @@ worker-configuration.d.ts
 !.claude/hooks/
 !.claude/settings.json
 !.claude/hookify.*.local.md
+# Runtime artifact: Claude Code scheduled-task PID lock. Already covered by
+# .claude/* above; listed explicitly for clarity.
+.claude/scheduled_tasks.lock
 
 # Supabase CLI temp
 supabase/.temp/
