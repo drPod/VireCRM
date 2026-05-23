@@ -4,7 +4,7 @@
 
 ## Verdict
 
-**Modify, don't replace.** The 8-table model in `TASKS.md` Phase 1 captures the right entities (Customer / Service Address / ESI / Contract / Deal / Agent / LOA / Commission Statement) and is structurally correct. But it is **under-specified** against the actual data she's bringing in: the xlsx has 83 columns, ~14 of which carry signal the current schema would silently drop. The single biggest sins are (a) one-agent-per-deal where xlsx clearly records two, (b) one-status-field where xlsx tracks four orthogonal lifecycle dimensions, (c) no aggregator/sub-broker chain, and (d) no usage-vs-billed reconciliation fields that drive commission disputes in TX energy.
+**Modify, don't replace.** The 8-table model in `TASKS.md` Phase 1 captures the right entities (Customer / Service Address / ESI / Contract / Deal / Agent / LOA / Commission Statement) and is structurally correct. But it is **under-specified** against the actual data she's bringing in: the xlsx has 84 columns × 4,792 data rows (per 2026-05-23 `scripts/inspect-xlsx.ts` run), ~14 of which carry signal the current schema would silently drop. The single biggest sins are (a) one-agent-per-deal where xlsx clearly records two, (b) one-status-field where xlsx tracks four orthogonal lifecycle dimensions, (c) no aggregator/sub-broker chain, and (d) no usage-vs-billed reconciliation fields that drive commission disputes in TX energy.
 
 Fix list is targeted: expand `Deals` (dual agent + lost reason/date), expand `Contracts` (billing vs estimated AQ, contract state machine), add an `AggregatorPayouts` table or fields to `CommissionStatements`, and add a small `ContractEvents` audit table for lifecycle. LOA and Commission Statement stay as their own tables (commissions especially — too much accounting weight to inline).
 
@@ -38,9 +38,9 @@ Promote the schema to a **9-table model** with the following deltas vs the exist
 
 ## Evidence
 
-### §1 — All 83 xlsx columns mapped
+### §1 — All 84 xlsx columns mapped
 
-Column letter, header, target table.field. Rows derived from `Copy of NGP MASTER LIST - Copy.xlsx` (5446 rows, single `Company = NGP-Americas` value, range `A1:CE5446`). Verified by parsing `xl/sharedStrings.xml` and `xl/worksheets/sheet1.xml` directly.
+Column letter, header, target table.field. Rows derived from `Copy of NGP MASTER LIST - Copy.xlsx`. Canonical counts (2026-05-23 `scripts/inspect-xlsx.ts` via ExcelJS `actualRowCount` / `actualColumnCount`): **4,792 data rows × 84 columns**. Column `CF` exists but is fully empty across all rows. Single `Company = NGP-Americas` value across all populated rows. Re-run the inspect script whenever the source xlsx is replaced and update this section.
 
 | # | Col | xlsx header | Target | Notes |
 |---|---|---|---|---|
@@ -49,28 +49,28 @@ Column letter, header, target table.field. Rows derived from `Copy of NGP MASTER
 | 3 | C | Sale Date | `Deals.Sale Date` | |
 | 4 | D | Customer Name | `Customers.Name` | |
 | 5 | E | Meter Number | `ESIs.ESI ID` | Industry-canonical = ESI ID, per Evidence §2. xlsx "Meter Number" is colloquial. |
-| 6 | F | Supply Type | `Contracts.Supply Type` | Single-select: `Electricity` (v1), `Gas` (future). |
+| 6 | F | Supply Type | `Contracts.Supply Type` | Single-select. v1 source values observed: `Non-HH`, `Gas` (no `Electricity` rows present). `Non-HH` = UK "Non Half-Hourly" small-commercial electricity meter classification (xlsx UK origin per §3) — preserve verbatim; do not coerce to `Electricity` without explicit decision. Migration must quarantine the 7 polluted free-text entries the 2026-05-23 inspect run found in this column (e.g. `Emailed Erica- 10.31.2023`). |
 | 7 | G | Unit Uplift | `Contracts.Agent Mils` | "Unit uplift" = uplift per unit (kWh) = mils. Already in schema. |
 | 8 | H | EAC AQ | `ESIs.EAC kWh` | Estimated Annual Consumption (UK term, kept for migration). |
-| 9 | I | Meter Consumption | `ESIs.Annual Usage kWh` | Already in schema (Annual Usage). Reconcile with EAC. |
+| 9 | I | Meter Consumption | `ESIs.Annual Usage kWh` | Already in schema (Annual Usage). Reconcile with EAC. **v1 source: literal `-` in every row** (data likely stripped pre-export, not absent from the business). Migration coerces `-` → NULL; client populates via UI or supplier ingest post-launch. CRM operates with or without. |
 | 10 | J | Start Date | `Contracts.Start Date` | |
 | 11 | K | End Date | `Contracts.End Date` | |
 | 12 | L | Currency | `Contracts.Currency` | Default USD. Field exists for portability. |
 | 13 | M | Gross TCV | `Contracts.Gross TCV` | Formula in v1 (Annual Usage × Term × Mils ÷ 1000). Store xlsx value for cross-check during migration. |
-| 14 | N | Lost TCV | `Contracts.Lost TCV` | TCV component lost to early termination / partial drop. |
+| 14 | N | Lost TCV | `Contracts.Lost TCV` | TCV component lost to early termination / partial drop. **v1 source: `0` in every row** (data likely scrubbed pre-export). Schema preserved; client populates via UI. CRM operates with or without. |
 | 15 | O | Lost Part Contract | `Contracts.Lost Partial` | Boolean — partial-period loss. |
 | 16 | P | Net TCV | `Contracts.Net TCV` | Formula: Gross − Lost. |
 | 17 | Q | Is Contract Live? | `Contracts.Is Live` | Boolean. Derived in v1 (start_date ≤ today ≤ end_date AND status = active), but store on migration. |
-| 18 | R | Sale Status | `Deals.Sale Status` | Single-select: `Approved` / `Pending` / `Lost`. Distinct from pipeline Stage. |
+| 18 | R | Sale Status | `Deals.Sale Status` | Single-select. v1 source values observed: `Approved` / `Lost` / `Completed` / `Meter Check` / `Declined` / `Objection`. Originally spec'd as 3 values (Approved/Pending/Lost); expanded to all 6 to preserve round-trip fidelity. Distinct from pipeline Stage. |
 | 19 | S | Obj Status | `Deals.Objection Status` | Customer objection lifecycle. |
 | 20 | T | Supplier | `Contracts.Supplier` | Single-select REP list. Already in schema. |
 | 21 | U | Lost Date | `Contracts.Lost Date` | |
 | 22 | V | Lost Reason | `Contracts.Lost Reason` | Single-select. |
 | 23 | W | Is Lost before start date? | `Contracts.Lost Before Start` | Boolean. Determines whether contract ever went live. |
 | 24 | X | Is it future start date | **derived, drop column** | Computable: `start_date > today`. No need to store. |
-| 25 | Y | AQ Loss | `Contracts.AQ Loss` | Annual quantity lost — drives commission impact. |
-| 26 | Z | AQ Gain | `Contracts.AQ Gain` | |
-| 27 | AA | Net AQ Loss/Gain | `Contracts.Net AQ` | Formula: Gain − Loss. |
+| 25 | Y | AQ Loss | `Contracts.AQ Loss` | Annual quantity lost — drives commission impact. **v1 source: `0` in every row** (likely scrubbed pre-export). Client populates via UI or supplier ingest. |
+| 26 | Z | AQ Gain | `Contracts.AQ Gain` | **v1 source: `0` in every row** (likely scrubbed pre-export). Client populates via UI or supplier ingest. |
+| 27 | AA | Net AQ Loss/Gain | `Contracts.Net AQ` | Formula: Gain − Loss. **v1 source: `0` in every row** (likely scrubbed pre-export). Auto-computes once Loss/Gain populated. |
 | 28 | AB | Normal AQ Loss | **NOT MAPPED — defer** | COVID-era reporting split. Historical only. If she ever needs it, add Phase 4. |
 | 29 | AC | Normal AQ Gain | **NOT MAPPED — defer** | Same. |
 | 30 | AD | Normal Net AQ Loss/Gain | **NOT MAPPED — defer** | Same. |
@@ -89,9 +89,9 @@ Column letter, header, target table.field. Rows derived from `Copy of NGP MASTER
 | 43 | AQ | Pri Agent | `Deals.Primary Agent` (linked → Agents) | **Schema currently has only Owner (single agent). Must split.** |
 | 44 | AR | Sec Agent | `Deals.Secondary Agent` (linked → Agents) | **New field.** |
 | 45 | AS | Sale Type | `Contracts.Sale Type` | Single-select: `Acquisition` / `Renewal`. Distinct from xlsx Acq/Ren (BO) — sometimes redundant. Migration must reconcile. |
-| 46 | AT | AQ Check | `Contracts.AQ Check` | Numeric — reconciliation flag. Store raw. |
-| 47 | AU | Billing AQ | `ESIs.Billing AQ kWh` | Annual quantity per supplier billing. The number that ACTUALLY drives commission paid (not EAC). |
-| 48 | AV | Resold Status | `Contracts.Resold Status` | Single-select. |
+| 46 | AT | AQ Check | `Contracts.AQ Check` | Numeric — reconciliation flag. Store raw. **v1 source: `-` in every row** (likely stripped pre-export). Coerce `-` → NULL; client populates via UI or supplier ingest. |
+| 47 | AU | Billing AQ | `ESIs.Billing AQ kWh` | Annual quantity per supplier billing. The number that drives commission paid (not EAC). **v1 source: `-` in every row** (likely stripped pre-export — broker may track this in a separate system, supplier portal, or accountant's books). Coerce `-` → NULL; client populates via UI, manual entry, or supplier-statement ingest. Reconciliation logic in §6 ships and operates against whichever rows have data; rows without Billing AQ skip the reconciliation step. |
+| 48 | AV | Resold Status | `Contracts.Resold Status` | Single-select. v1 source values: `-`, `Same Month`, `Future Month`. Migration coerces `-` → NULL; enum = `same_month` / `future_month`. |
 | 49 | AW | Nomination | `Contracts.Nomination` | Single-select. (UK-style nomination — kept for data fidelity.) |
 | 50 | AX | Customer Category | `Customers.Category` | Single-select. |
 | 51 | AY | Sic Code | `Customers.SIC Code` | Standard Industrial Classification. String. |
@@ -100,13 +100,13 @@ Column letter, header, target table.field. Rows derived from `Copy of NGP MASTER
 | 54 | BB | Received Amount | `CommissionStatements.Received Amount` | Per-contract row. |
 | 55 | BC | Outstanding Amount | `CommissionStatements.Outstanding Amount` | |
 | 56 | BD | Net Outstanding Amount | `CommissionStatements.Net Outstanding` | |
-| 57 | BE | Comms Paid | `CommissionStatements.Agent Comms Paid` | Commissions broker has paid out to agents. |
-| 58 | BF | Comms Outstanding | `CommissionStatements.Agent Comms Outstanding` | Commissions owed to agents but not yet paid. |
+| 57 | BE | Comms Paid | `CommissionStatements.Agent Comms Paid` | Commissions broker has paid out to agents. **v1 source: `-` in every row** (likely stripped pre-export). Coerce `-` → NULL; client populates via UI. |
+| 58 | BF | Comms Outstanding | `CommissionStatements.Agent Comms Outstanding` | Commissions owed to agents but not yet paid. **v1 source: `-` in every row** (likely stripped pre-export). Coerce `-` → NULL; client populates via UI. |
 | 59 | BG | Customer Id | `Customers.External Customer Id` | Preserve original ID. |
 | 60 | BH | Meter Id | `ESIs.Physical Meter Serial` | **Distinct from ESI ID.** Physical device serial, changes on swap. |
 | 61 | BI | Agg Name | `AggregatorPayouts.Aggregator Name` (NEW table) | Aggregator / upstream broker name. |
 | 62 | BJ | Agg Comm % | `AggregatorPayouts.Aggregator Comm %` | Percentage upstream takes. |
-| 63 | BK | Source of Lead | `Deals.Source of Lead` | Single-select. |
+| 63 | BK | Source of Lead | `Deals.Source of Lead` | Single-select. **v1 source: 1 distinct value (`Be-Spoke`).** Preserve column; no UI filter wired in v1. Populate enum from source distincts in future migrations. |
 | 64 | BL | FX Rate | `Contracts.FX Rate` | Default 1.0 USD. |
 | 65 | BM | Acq/Ren | `Contracts.Sale Type` | Same as AS. Coalesce. |
 | 66 | BN | Contract Length | derived from Start/End | Term Months already formula. Don't store separately unless xlsx values disagree with `End − Start`. |
@@ -124,11 +124,12 @@ Column letter, header, target table.field. Rows derived from `Copy of NGP MASTER
 | 78 | BZ | address_2 | `Service Addresses.Address 2` | |
 | 79 | CA | street_name | `Service Addresses.Street Name` | |
 | 80 | CB | street_no | `Service Addresses.Street No` | |
-| 81 | CC | city | `Service Addresses.City` | |
-| 82 | CD | state | `Service Addresses.State` | |
+| 81 | CC | city | `Service Addresses.City` | **v1 source: city/state swapped in many rows** (e.g. `city = MA`, `state = Canton`). Migration must detect 2-letter US state code in `city` and swap with `state`. Spot-check after import. |
+| 82 | CD | state | `Service Addresses.State` | See CC — paired swap coercion. |
 | 83 | CE | postcode | `Service Addresses.ZIP` | Coalesce with Zip Code (BP). Migration must reconcile. |
+| 84 | CF | (empty) | **NOT MAPPED — drop** | Column exists in worksheet but is fully empty across all 4792 rows. Discovered on 2026-05-23 inspect re-run. Drop alongside `A` (constant) and `AJ` (dup). |
 
-**Summary:** 75/83 columns map cleanly. 1 dropped (constant `Company`). 1 dropped as duplicate (AJ). 6 deferred (COVID + Normal AQ historical metrics). All 8 critical missing-from-schema fields (dual agent, lost reason/date, aggregator, billing vs estimated AQ, currency/FX, sale status, objection type, physical meter serial) are added via the Decision section.
+**Summary:** Source has **84 columns × 4792 data rows** (per 2026-05-23 inspect). **75/84 round-trip.** 3 dropped (constant `Company` A, duplicate `Customer Name` AJ, empty `CF`). 6 deferred (COVID + Normal AQ historical metrics). All 8 critical missing-from-schema fields (dual agent, lost reason/date, aggregator, billing vs estimated AQ, currency/FX, sale status, objection type, physical meter serial) are added via the Decision section. Several v1-blank/zero fields (Lost TCV, AQ Loss/Gain, AQ Check, Billing AQ, Comms Paid, Comms Outstanding, Meter Consumption) retain schema columns but carry no signal in this dataset — see per-row notes above and §6.
 
 ### §2 — ESI ID vs Meter Number — canonical term
 
@@ -142,7 +143,9 @@ Oncor TDU prefix: 17-digit ESI IDs starting `1044372` (or `1017699` for East TX)
 
 ### §3 — UK-origin xlsx schema, repurposed for TX
 
-The xlsx schema clearly originated from a UK energy-broker system: "EAC" (Estimated Annual Consumption, UK term — [ugp.co.uk EAC](https://www.ugp.co.uk/support/faqs/billing/#faq-what-is-an-eac), [utilityfair.ie](https://www.utilityfair.ie/business-energy-insights/gas-tariffs-spc-and-eac)), "AQ" (Annual Quantity — gas term in UK), "Govt. Area", "Nomination", "Currency" + "FX Rate" (multi-currency support), "Sic Code" (UK Companies House style). The data inside has been ported to TX usage (USD currency, ESI IDs in "Meter Number" col, "Region = TX"). The schema must not assume xlsx vocabulary is industry-standard for TX — translate where TX has a different canonical term (Meter Number → ESI ID being the biggest one).
+The xlsx schema clearly originated from a UK energy-broker system: "EAC" (Estimated Annual Consumption, UK term — [ugp.co.uk EAC](https://www.ugp.co.uk/support/faqs/billing/#faq-what-is-an-eac), [utilityfair.ie](https://www.utilityfair.ie/business-energy-insights/gas-tariffs-spc-and-eac)), "AQ" (Annual Quantity — gas term in UK), "Non-HH" (Non Half-Hourly metering classification — UK small-commercial electricity), "Govt. Area", "Nomination", "Currency" + "FX Rate" (multi-currency support), "Sic Code" (UK Companies House style). The data inside has been ported to TX usage (USD currency, ESI IDs in "Meter Number" col, "Region = TX"). The schema must not assume xlsx vocabulary is industry-standard for TX — translate **at the storage layer** only where TX has a different canonical term (Meter Number → ESI ID being the biggest one).
+
+**UI layer: display verbatim, tooltip explains.** Stored values render to the broker dashboard exactly as the xlsx encoded them — `Non-HH`, `Nomination`, `Govt Area`, `EAC`, `AQ`, `SIC Code` etc. all surface in the UI as-is. Each such label carries a hover tooltip with the definition (UK origin, TX equivalent if any, source-of-truth pointer). This preserves the round-trip principle through to the render layer and removes the agent-onboarding friction that display-coercion would introduce in DB exports / supplier invoices / CSV downloads. Convention is documented in `CLAUDE.md` § UI. Canonical glossary lives in `CLAUDE.md` § Domain glossary.
 
 ### §4 — Dual-agent reality
 
@@ -171,9 +174,11 @@ The xlsx has **seven fields** carrying commission-accounting state:
 - `Comms Paid` (BE), `Comms Outstanding` (BF) — broker → agent
 - `Agg Name` (BI), `Agg Comm %` (BJ) — broker → upstream aggregator (when broker is a sub-broker)
 
-Plus `Billing AQ` (AU) — the actual billed volume that drives `expected = billed × mils ÷ 1000`. Per [Diversegy on commissions](https://diversegy.com/energy-brokers/energy-broker-fees/) and [Methodia — Commission Management](https://www.methodia.com/blog/commission-management-for-energy-brokers-and-suppliers): commissions are paid monthly per actual billed kWh, not per the EAC estimate at signing. The variance between EAC and actual billing is the #1 source of disputes — and the current schema has zero capacity to track it.
+Plus `Billing AQ` (AU) — the actual billed volume that drives `expected = billed × mils ÷ 1000`. Per [Diversegy on commissions](https://diversegy.com/energy-brokers/energy-broker-fees/) and [Methodia — Commission Management](https://www.methodia.com/blog/commission-management-for-energy-brokers-and-suppliers): commissions are paid monthly per actual billed kWh, not per the EAC estimate at signing. The variance between EAC and actual billing is a common source of disputes — the schema must have capacity to track it.
 
-**Decision:** Expand `CommissionStatements` to per-contract line items, add expected-vs-received reconciliation formula, add new `AggregatorPayouts` table (or nullable fields on `Contracts`) for the upstream chain. The xlsx is telling us: "this business reconciles commissions, don't ship me a black box."
+**Decision:** Expand `CommissionStatements` to per-contract line items, add expected-vs-received reconciliation formula, add new `AggregatorPayouts` table (or nullable fields on `Contracts`) for the upstream chain.
+
+**v1 source data state (2026-05-23 inspect).** The Billing AQ, AQ Check, Comms Paid, Comms Outstanding, and Meter Consumption columns are literal `-` in every row of the source xlsx. Confirmed with the client (2026-05-23): data was likely stripped pre-export rather than absent from the business. Schema columns ship as designed; reconciliation logic operates per-row against whatever data is present. The CRM must work both with and without these fields populated — rows lacking Billing AQ skip the expected-vs-received computation and surface "awaiting data" in the UI rather than blocking. The client populates via three paths: (a) UI form entry, (b) bulk re-import with corrected xlsx, (c) supplier-statement ingest (Phase 4).
 
 ### §7 — LOA stays its own table
 

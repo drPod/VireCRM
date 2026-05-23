@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **⚠ Agent-authored.** Drafted by AI agents. Expect AI-pattern reasoning + unverified assumptions. Verify load-bearing claims before acting on them.
+
 Routing file for any agent (Claude Code, Cursor, Aider, Copilot, etc.) entering this repo.
 
 ## What this repo is
@@ -73,5 +75,5 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 | Postgres schema + migrations | `workers/db/` (Drizzle; `schema/` + `index.ts`) |
 | Migration scripts (one-shot xlsx → Postgres) | `scripts/` |
 | Vendor doc mirrors | `docs/<lib>/` |
-| Field mapping spec | `docs/decisions/06-domain-schema.md` §1 (canonical 83-col → table.field) |
+| Field mapping spec | `docs/decisions/06-domain-schema.md` §1 (canonical 84-col → table.field) |
 | Architectural decisions | `docs/decisions/<NN>-<topic>.md` |

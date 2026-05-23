@@ -1,5 +1,7 @@
 # genesisxsx
 
+> **⚠ Agent-authored documentation.** This file (and most of `docs/`, `CLAUDE.md`, `AGENTS.md`) was drafted by AI agents from conversation context, source-file inspection, and web research. Expect assumption-laden reasoning, AI-pattern phrasing, and occasional fabrication. Verify any load-bearing claim against source code, the live xlsx, or first-party vendor docs before acting on it. Edits welcome — replace agent prose with verified facts as you find them.
+
 CRM for the CEO of **greenergiai**, a Texas energy-brokerage business. Built for sales agents who source commercial electricity contracts and earn commission ("mils") on top of supplier rates.
 
 Deployed at **https://greenenergiai.virecrm.com/** (per-customer subdomain on the `virecrm.com` zone).
@@ -28,7 +30,7 @@ She was on Go High Level and walked away. The point of this build is to fix the 
 
 ## The master list (source of truth: `Copy of NGP MASTER LIST - Copy.xlsx`)
 
-Every field in her sheet must round-trip from spreadsheet → database → UI without loss. Each row is a deal/contract attached to a meter at a specific service address. The xlsx has 83 columns and 5,445 data rows — the canonical column-by-column mapping (every xlsx column → target table.field, including the ones the customer doesn't manually enter but the import must preserve) lives at [`docs/decisions/06-domain-schema.md`](docs/decisions/06-domain-schema.md). The summary below covers the **customer-visible** required fields; the schema also captures contract lifecycle (lost/drop reasons, live status, post-live completion), dual-agent attribution, billing-vs-estimated annual quantity variance, and aggregator/sub-broker commission chains.
+Every field in her sheet must round-trip from spreadsheet → database → UI without loss. Each row is a deal/contract attached to a meter at a specific service address. The xlsx has **84 columns and 4,792 data rows** (per 2026-05-23 `scripts/inspect-xlsx.ts` run) — the canonical column-by-column mapping (every xlsx column → target table.field, including the ones the customer doesn't manually enter but the import must preserve) lives at [`docs/decisions/06-domain-schema.md`](docs/decisions/06-domain-schema.md). The summary below covers the **customer-visible** required fields; the schema also captures contract lifecycle (lost/drop reasons, live status, post-live completion), dual-agent attribution, billing-vs-estimated annual quantity variance, and aggregator/sub-broker commission chains.
 
 ### Required import fields
 
