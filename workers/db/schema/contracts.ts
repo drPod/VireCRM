@@ -8,6 +8,7 @@ import {
   date,
   boolean,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import {
   createdAt,
@@ -26,6 +27,7 @@ export const contracts = pgTable(
     esiId: uuid("esi_id")
       .notNull()
       .references(() => esis.id, { onDelete: "restrict" }),
+    externalSaleId: text("external_sale_id"),
     supplier: text("supplier"),
     supplyType: text("supply_type"),
     startDate: date("start_date"),
@@ -76,6 +78,7 @@ export const contracts = pgTable(
     index("contracts_tenant_idx").on(t.tenantId, t.id),
     index("contracts_tenant_esi_idx").on(t.tenantId, t.esiId),
     index("contracts_tenant_status_idx").on(t.tenantId, t.pipelineStatus),
+    uniqueIndex("contracts_tenant_external_sale_idx").on(t.tenantId, t.externalSaleId),
     tenantIsolationPolicy("contracts"),
   ],
 ).enableRLS();

@@ -33,7 +33,7 @@ export const commissionStatements = pgTable(
     mils: numeric("mils", { precision: 12, scale: 3 }),
     expectedAmount: numeric("expected_amount", { precision: 20, scale: 2 })
       .generatedAlwaysAs(
-        (): SQL => sql`COALESCE(${commissionStatements.billingAqKwh}, 0) * COALESCE(${commissionStatements.mils}, 0) / 1000`,
+        (): SQL => sql`${commissionStatements.billingAqKwh} * ${commissionStatements.mils} / 1000`,
       ),
     receivedAmount: numeric("received_amount", { precision: 20, scale: 2 }),
     outstandingAmount: numeric("outstanding_amount", { precision: 20, scale: 2 }),
@@ -45,9 +45,10 @@ export const commissionStatements = pgTable(
     }),
     reconciliationStatus: text("reconciliation_status").generatedAlwaysAs(
       (): SQL => sql`CASE
+        WHEN ${commissionStatements.billingAqKwh} IS NULL OR ${commissionStatements.mils} IS NULL THEN 'unknown'
         WHEN ${commissionStatements.receivedAmount} IS NULL THEN 'pending'
-        WHEN ABS(COALESCE(${commissionStatements.receivedAmount}, 0) - (COALESCE(${commissionStatements.billingAqKwh}, 0) * COALESCE(${commissionStatements.mils}, 0) / 1000)) < 0.01 THEN 'matched'
-        WHEN COALESCE(${commissionStatements.receivedAmount}, 0) < (COALESCE(${commissionStatements.billingAqKwh}, 0) * COALESCE(${commissionStatements.mils}, 0) / 1000) THEN 'short'
+        WHEN ABS(${commissionStatements.receivedAmount} - (${commissionStatements.billingAqKwh} * ${commissionStatements.mils} / 1000)) < 0.01 THEN 'matched'
+        WHEN ${commissionStatements.receivedAmount} < (${commissionStatements.billingAqKwh} * ${commissionStatements.mils} / 1000) THEN 'short'
         ELSE 'over'
       END`,
     ),

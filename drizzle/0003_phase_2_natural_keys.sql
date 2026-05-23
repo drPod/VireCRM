@@ -1,0 +1,2 @@
+ALTER TABLE "contracts" ADD COLUMN "external_sale_id" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "contracts_tenant_external_sale_idx" ON "contracts" USING btree ("tenant_id","external_sale_id");
