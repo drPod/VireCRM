@@ -1,75 +1,86 @@
 # Agent prevention scaffold
 
-Verification gates that stop agents from shipping hallucinated imports, schema drift, or config drift. Every script under `scripts/` listed here exits non-zero on failure so agents (and CI, eventually) can treat the signal as enforced rather than advisory.
+Static contracts (types, schema/migration consistency, declared bindings, buildability) are **enforced**, not advised. Three layers, each unbypassable from the layer above. If the gates pass, you have the contracts. They do not catch runtime/behavioral hallucinations — see the bottom of this file.
 
-## Why this exists
+## Enforcement layers
 
-A recent audit caught a hallucinated subpath import — `@supabase/server/core` for type symbols that actually live at top-level `@supabase/server`. Three subagents auditing the diff in parallel all reported "imports clean" without catching it, and the original author declared the change done without running `tsc`. Three failure modes contributed:
+| Layer | Where | Triggers | Bypasses |
+|---|---|---|---|
+| 1. Claude Code Stop hook | `.claude/settings.json` → `scripts/hook-stop-typecheck.sh` → `scripts/check-all.sh` | Every time a Claude Code agent tries to stop | Only by editing the settings file |
+| 2. Git pre-commit hook | `.githooks/pre-commit` (wired by `prepare` → `git config core.hooksPath .githooks`) | Every `git commit` from any agent (Claude / Cursor / Aider / Copilot) or human | `git commit --no-verify` (visible in shell history) |
+| 3. CI workflow | `.github/workflows/checks.yml` | Every push to `main`, every PR | Branch protection rules (none today; recommend enabling) |
 
-1. **Mirror gap.** `docs/<lib>/` holds vendor product docs (guides, llms-full.txt scrapes), not the npm package's `.d.ts` files. An agent reading the mirror cannot tell which subpath exports a given symbol — that information only exists in the installed package under `node_modules/<pkg>/dist/`.
-2. **No typecheck gate.** The global rule "verify before claiming done" was advisory. Nothing in the loop forced `tsc` to run before the agent reported success, so the broken import shipped.
-3. **Vibes-only audits.** Audit subagents read the diff and reasoned about it. None actually executed `tsc` or grepped a type-definition source of truth, so all three confidently confirmed code that did not compile.
+`scripts/check-all.sh` is the universal entry point — inspects `git diff` (staged + unstaged + untracked) and dispatches only the gates whose triggers match. Run it manually anytime; Layer 1 calls it on every stop.
 
-The five scripts below close those gaps. Each is small, scriptable, and produces a one-line PASS/FAIL summary an agent can grep.
+Hookify rules in `.claude/hookify.*.local.md` still fire as soft reminders after matching file edits, but they're now redundant scaffolding — Layer 1 catches whatever you ignored.
 
-## The 5 verification scripts
+## What each layer runs
 
-- `scripts/sync-npm-types.sh` — refresh `docs/_npm-types/<pkg>/` from `node_modules/<pkg>/` so agents have a real source of truth for type symbols and subpath exports (Unit 1).
-- `scripts/agent-check.sh` — typecheck gate. Wraps `bun run typecheck` (`wrangler types && react-router typegen && tsc -b`) with the heap bump tsc needs on this repo and prints `agent-check: PASS` / `agent-check: FAIL (exit N)` (this file).
-- `scripts/check-schema-drift.sh` — diff Drizzle schema TS against the latest committed migration; fail when they disagree (Unit 3).
-- `scripts/check-worker-config.sh` — verify every `c.env.X` reference in worker code resolves to a binding declared in `wrangler.jsonc` (Unit 4).
-- `scripts/check-build.sh` — smoke test the full Vite + Tailwind + React Router build so config or component edits cannot silently break the bundle (Unit 5).
+| Gate | Layer 1 (Stop) | Layer 2 (pre-commit) | Layer 3 (CI) |
+|---|:-:|:-:|:-:|
+| `scripts/agent-check.sh` (typecheck) | ✓ | ✓ | ✓ |
+| `scripts/check-schema-drift.sh` | — | ✓ (if `workers/db/schema/` or `drizzle/` staged) | ✓ |
+| `scripts/check-worker-config.sh` | — | ✓ (if `wrangler.jsonc` or `workers/**.ts` staged) | ✓ |
+| `scripts/check-build.sh` | — | — (~30s, intolerable per commit) | ✓ |
+| `scripts/sync-npm-types.sh` | — | — (runs via `postinstall` on `bun install`) | runs via `bun install` |
 
-## When to run each
+Each script prints a final `PASS` / `FAIL` line and exits with the underlying tool's code. Layer 1 maps non-zero → exit 2 → Claude Code blocks the stop attempt.
 
-| Trigger | Script |
-|---|---|
-| Any multi-file TypeScript write, or before declaring TS work "done" | `agent-check.sh` |
-| Edit under `workers/db/schema/` or new Drizzle migration | `check-schema-drift.sh` |
-| `wrangler.jsonc` edit OR new `c.env.X` reference added in worker code | `check-worker-config.sh` |
-| Vite / Tailwind / React Router config or route component edit | `check-build.sh` |
-| `bun install` ran, or new package added to `package.json` | `sync-npm-types.sh` |
+## The Phase 1.5 incident (why this exists)
 
-Multiple triggers can fire on one change — run every script the change matches before claiming done. `agent-check.sh` is the cheapest signal and should be the default first run after any TS edit.
+An agent imported type symbols from `@supabase/server/core`, a subpath that doesn't exist. Three things failed together:
 
-## For audit subagents
+1. The author never ran `tsc`.
+2. Three audit subagents reviewing the diff in parallel all reported "imports clean." None executed `tsc`; none grepped `.d.ts` files.
+3. The vendor doc mirror at `docs/<lib>/` is product documentation, not the npm package's type definitions. No agent-accessible ground truth existed for what the package actually exports.
 
-If you are reviewing a diff and about to report "imports clean," "compiles fine," or any equivalent claim, the report is only valid when both of the following are true:
+The maintainer caught it by chance during manual review. The realistic assumption is that more of the same class slipped through unnoticed.
 
-1. You ran `bash scripts/agent-check.sh` against the current working tree and observed `agent-check: PASS` in the output.
-2. For every named import in the diff (e.g. `import { Foo } from "@some/pkg/subpath"`), you grepped `docs/_npm-types/<pkg>/` and confirmed both the subpath and the symbol exist in the package's type definitions.
+Layer 1 forecloses the first failure mode (you cannot stop with a broken tsc). Layer 2 forecloses the second (commits with broken types never enter history). Layer 3 forecloses the third on shared branches. `scripts/sync-npm-types.sh` keeps `docs/_npm-types/` as the agent-grep-able ground truth that didn't exist when Phase 1.5 happened.
 
-Reading the diff and reasoning about it is not sufficient. Vibes audits caused the original bug. Run the scripts, paste a short excerpt of the output, then report.
+## Hallucination classes — what's caught, what isn't
 
-## Hookify firing verification
+Caught by Layer 1+:
 
-**Last verified:** 2026-05-23.
+- Wrong import subpath (Phase 1.5).
+- Wrong named export.
+- Wrong type signature / arg shape.
+- Schema TS edited without `bun run db:generate`.
+- `c.env.X` reference with no binding in `wrangler.jsonc`.
+- Vite / Tailwind / React Router build-pipeline regression (Layer 3 only — pre-commit skips for speed).
+- Stale `.d.ts` mirror.
 
-Hookify rules in `.claude/hookify.*.local.md` register against the plugin event schema `event: file | bash | stop | prompt | all` with `action: warn`. Schema match was verified against the installed plugin (`hookify@claude-plugins-official`).
+**Not caught** — these need runtime evidence, not static analysis:
 
-### Why this needs manual verification
+- Wrong API behavior at runtime. Types match, function exists, returns wrong thing.
+- Wrong SQL logic. Migration valid, query semantics wrong.
+- Hallucinated CLI flag (e.g. `wrangler deploy --does-not-exist`).
+- Wrong webhook payload shape. Code parses field vendor never sends.
+- Hallucinated env var name (Layer caches CF bindings only).
+- Wrong UI behavior. Builds clean, renders wrong.
 
-Hookify `warn` actions inject a message into the **parent agent's transcript** as a system reminder after the matching tool call. Subagents running script edits cannot observe their own transcript injection. Schema-match alone does not prove the rule fires — to confirm end to end, a human-driven Claude Code session has to take the trigger action and watch for the reminder.
+For the uncaught classes, in order of cost:
 
-### Manual test (run from main Claude Code session)
+1. Run the code. Hit endpoints, query DB through `psql`, send the webhook locally.
+2. Cross-reference vendor truth in `docs/<lib>/`. Mirrors are version-pinned; they won't lie about syntax but can lag on semantics.
+3. Replay a real payload.
+4. Pin the truth in a test. Next agent will hit the same surface.
 
-For each rule:
+## Audit subagent contract
 
-| Rule | Trigger command (run in Claude Code main session) | Expected |
-|---|---|---|
-| ts-edit-reminder | Edit any file under `workers/**.ts` or `app/**.ts` (e.g. add a blank line, save, revert) | Reminder injects: "TypeScript file in `workers/` or `app/` modified. Run `bash scripts/agent-check.sh`…" |
-| schema-drift-reminder | Edit any file under `workers/db/schema/*.ts` | Reminder: "Drizzle schema file edited. Run `bash scripts/check-schema-drift.sh`…" |
-| bun-install-reminder | Run `bun add <pkg>` or `bun install` | Reminder: "Dependency change just ran. Run `bash scripts/sync-npm-types.sh`…" |
-| env-binding-reminder | Edit any file under `workers/**.ts` adding text containing `c.env.` | Reminder: "`c.env.X` reference added in Worker code. Verify the binding exists in `wrangler.jsonc`…" |
-| wrangler-config-reminder | Edit `wrangler.jsonc` | Reminder: "Wrangler config edited. Run `bash scripts/check-worker-config.sh`…" |
+If a subagent is asked to review a diff and considers reporting "imports clean," "compiles fine," or anything equivalent: the report is valid only when both are true:
 
-If a rule fails to inject, check:
+1. Ran `bash scripts/agent-check.sh` and observed `agent-check: PASS`.
+2. For every named import in the diff, grepped `docs/_npm-types/<pkg>/` and confirmed the subpath and the symbol exist.
 
-1. `claude plugin list` — confirm `hookify@claude-plugins-official` enabled.
-2. `.claude/settings.json` — `enabledPlugins.hookify@claude-plugins-official: true`.
-3. `.claude/hookify.<rule>.local.md` — `enabled: true` in frontmatter.
-4. Restart the Claude Code session (plugin rules may load only on startup).
+Reading the diff and reasoning about it is not sufficient. Three parallel vibes audits missed Phase 1.5.
 
-### Autonomous verification attempted
+## Adding a new gate
 
-Subagent-level verification attempted on 2026-05-23. The probe made a no-op edit to `workers/db/schema/_helpers.ts` (then reverted it) to trigger `schema-drift-reminder`. Result: no transcript signal visible from the subagent's tool-call return value, and no observable artifact under `.claude/state/` after the edit. This is the expected outcome — hookify `warn` actions inject into the parent agent's transcript, not into a subagent's tool output, so subagent-side observation cannot prove or disprove firing. End-to-end confirmation requires running the manual test above from a top-level Claude Code session.
+The 3-gate count is not load-bearing. When a recurring hallucination class shows up:
+
+1. Write a `scripts/check-<class>.sh` that exits non-zero on violation and prints a final PASS/FAIL line.
+2. Add it to the appropriate enforcement layer(s) in the table above (start with CI; promote to pre-commit if cheap; promote to Stop only if very cheap).
+3. Update the **Hallucination classes** table here.
+
+The gates are not finished. They're the part of the unknown surface mapped so far.

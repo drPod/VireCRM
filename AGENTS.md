@@ -59,6 +59,23 @@ CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commerc
 - **Tenant claim = `app_metadata.tenant_id` only** (server-write). RLS on every domain table.
 - **No generic OSS CRM fork.** Atomic / Twenty / NextCRM all evaluated, all rejected (Doc 01 + 10). `@dnd-kit/core` for Kanban.
 
+## Verify before claiming done (enforced)
+
+Static-contract gates are wired in three layers, not advised. You will be blocked, not warned:
+
+1. **Claude Code Stop hook** (`.claude/settings.json`) — `tsc` runs at every stop attempt. FAIL → blocked. Claude Code only.
+2. **`.githooks/pre-commit`** — runs `agent-check.sh` (and `check-schema-drift.sh` / `check-worker-config.sh` when their paths are staged) on every `git commit`. Blocks any committer (any agent harness, any human). Bypass: `git commit --no-verify` (shows in shell history). Wired via `prepare` script → `git config core.hooksPath .githooks`; runs on `bun install`. Run once manually if you cloned without installing: `git config core.hooksPath .githooks`.
+3. **`.github/workflows/checks.yml`** — all 4 gates on every PR.
+
+Scripts to run manually for tight feedback:
+
+- `bash scripts/agent-check.sh` — typecheck (`wrangler types` + `react-router typegen` + `tsc -b`).
+- `bash scripts/check-schema-drift.sh` — Drizzle schema vs committed migration.
+- `bash scripts/check-worker-config.sh` — `c.env.X` references vs `wrangler.jsonc`.
+- `bash scripts/check-build.sh` — Vite/Tailwind/RR full build smoke (~30s; CI only).
+
+Full hallucination-class table + Phase 1.5 incident: `docs/agent-prevention.md`.
+
 ## Don't touch
 
 - Customer xlsx files (`Copy of NGP MASTER LIST - Copy.xlsx`). Gitignored, contains PII.

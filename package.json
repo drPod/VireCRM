@@ -12,6 +12,7 @@
     "deploy": "react-router build && wrangler deploy",
     "dev": "bash -c 'set -a; [ -f .dev.vars ] && . .dev.vars; set +a; react-router dev'",
     "postinstall": "wrangler types && bash scripts/sync-npm-types.sh",
+    "prepare": "git config core.hooksPath .githooks || true",
     "preview": "react-router build && vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

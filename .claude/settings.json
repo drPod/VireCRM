@@ -10,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/agent-check.sh > /tmp/agent-check-stop.log 2>&1; rc=$?; if [ \"$rc\" != \"0\" ]; then cat /tmp/agent-check-stop.log >&2; echo \"STOP BLOCKED: agent-check failed — fix typecheck errors before stopping\" >&2; exit 2; fi"
+            "command": "bash $CLAUDE_PROJECT_DIR/scripts/hook-stop-typecheck.sh"
           }
         ]
       }
