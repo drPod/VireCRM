@@ -31,7 +31,7 @@ Verbatim from agent files:
 - **Performance degrades around 20,000 records per base** — slow lookups/formulas, integration failures, automation instability.
   Source: [Servalian — 50K Record Wall](https://servalian.com/blog/airtable-record-limits) ("warning signs around 20,000 records, especially with lookup fields and formulas").
 
-**Applied to this project:** master sheet = 5,446 rows × 83 columns today, which after schema normalization (Customers, Service Addresses, ESIs, Contracts, Deals, LOAs, Commission Statements, Agents) means ~15-25k records on day 1 *per base* — already inside the performance-degradation zone. With 12 months of email/activity sync, multi-meter accounts, and commission statements, customer #1 alone plausibly crosses 50k on Team within year 1. One-base-per-tenant doesn't help — each customer pays the same limits.
+**Applied to this project:** master sheet = 4,792 rows × 84 columns today (per 2026-05-23 inspect; earlier draft cited 5,446 × 83 from raw range padding), which after schema normalization (Customers, Service Addresses, ESIs, Contracts, Deals, LOAs, Commission Statements, Agents) means ~15-25k records on day 1 *per base* — already inside the performance-degradation zone. With 12 months of email/activity sync, multi-meter accounts, and commission statements, customer #1 alone plausibly crosses 50k on Team within year 1. One-base-per-tenant doesn't help — each customer pays the same limits.
 
 ### 3.2 Linked records + formulas don't migrate clean
 

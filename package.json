@@ -13,6 +13,8 @@
     "dev": "bash -c 'set -a; [ -f .dev.vars ] && . .dev.vars; set +a; react-router dev'",
     "postinstall": "wrangler types && bash scripts/sync-npm-types.sh",
     "preview": "react-router build && vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "wrangler types && react-router typegen && tsc -b"
   },
   "dependencies": {
@@ -28,16 +30,20 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.29.1",
+    "@cloudflare/vitest-pool-workers": "^0.16.9",
     "@react-router/dev": "7.15.1",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitest/runner": "^4.1.7",
     "drizzle-kit": "^0.31.10",
     "exceljs": "^4.4.0",
+    "jose": "^6.2.3",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.3",
+    "vitest": "^4.1.7",
     "wrangler": "^4.75.0"
   }
 }
