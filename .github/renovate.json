@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "schedule:earlyMondays"],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Group React Router packages",
+      "matchPackageNames": ["react-router", "/^@react-router//"],
+      "groupName": "react-router"
+    },
+    {
+      "description": "Group Cloudflare packages",
+      "matchPackageNames": ["wrangler", "/^@cloudflare//"],
+      "groupName": "cloudflare"
+    },
+    {
+      "description": "Group Drizzle packages",
+      "matchPackageNames": ["/^drizzle-/"],
+      "groupName": "drizzle"
+    },
+    {
+      "description": "Automerge devDep patches",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "automerge": true
+    }
+  ]
+}
