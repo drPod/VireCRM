@@ -8,9 +8,7 @@ import type { RawRow } from "../../scripts/migrate-xlsx/types";
 // Default fills required cols (B, BG, D, E with valid 17-digit ESI) so each
 // test only overrides what it's exercising. headers={} OK — transform only
 // reads headers for quarantine.header populating (falls back to label).
-function makeRawRow(
-  overrides: Partial<Record<string, string | null>> = {},
-): RawRow {
+function makeRawRow(overrides: Partial<Record<string, string | null>> = {}): RawRow {
   return {
     rowNumber: 2,
     cells: {
@@ -41,20 +39,14 @@ describe("transformRow — dash-null coercion", () => {
 
   it("non-dash-null cols preserve '-' verbatim", () => {
     // T (supplier) + V (lostReason) — not in DASH_NULL_COLS set.
-    const { row } = transformRow(
-      makeRawRow({ T: "-", V: "-" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ T: "-", V: "-" }), HEADERS);
     expect(row).not.toBeNull();
     expect(row!.supplier).toBe("-");
     expect(row!.lostReason).toBe("-");
   });
 
   it("empty string → null everywhere", () => {
-    const { row } = transformRow(
-      makeRawRow({ T: "", V: "", AY: "" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ T: "", V: "", AY: "" }), HEADERS);
     expect(row).not.toBeNull();
     expect(row!.supplier).toBeNull();
     expect(row!.lostReason).toBeNull();
@@ -64,30 +56,21 @@ describe("transformRow — dash-null coercion", () => {
 
 describe("transformRow — ESI precision check", () => {
   it("17 digits (Oncor East TX prefix) → passes", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ E: "10443721234567890" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ E: "10443721234567890" }), HEADERS);
     expect(row).not.toBeNull();
     expect(row!.esiId).toBe("10443721234567890");
     expect(quarantine).toHaveLength(0);
   });
 
   it("22 digits → passes", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ E: "1044372123456789012345" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ E: "1044372123456789012345" }), HEADERS);
     expect(row).not.toBeNull();
     expect(row!.esiId).toBe("1044372123456789012345");
     expect(quarantine).toHaveLength(0);
   });
 
   it("scientific notation (precision-lossed) → quarantined", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ E: "1.04437e+16" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ E: "1.04437e+16" }), HEADERS);
     expect(row).toBeNull();
     expect(quarantine).toHaveLength(1);
     expect(quarantine[0].column).toBe("E");
@@ -95,10 +78,7 @@ describe("transformRow — ESI precision check", () => {
   });
 
   it("too-short ESI → quarantined", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ E: "123" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ E: "123" }), HEADERS);
     expect(row).toBeNull();
     expect(quarantine).toHaveLength(1);
     expect(quarantine[0].column).toBe("E");
@@ -113,10 +93,7 @@ describe("transformRow — required-field skip", () => {
     ["D", "Customer Name"],
     ["E", "Meter Number / ESI ID"],
   ])("missing col %s (%s) → row null + error quarantine", (col, label) => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ [col]: null }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ [col]: null }), HEADERS);
     expect(row).toBeNull();
     // Quarantine MUST name the missing field — sibling missing-fields share row.
     const match = quarantine.find((q) => q.column === col);
@@ -127,26 +104,17 @@ describe("transformRow — required-field skip", () => {
 });
 
 describe("transformRow — Supply Type quarantine (col F)", () => {
-  it.each(["Non-HH", "Gas", "Electricity"])(
-    "%s preserved verbatim, no quarantine",
-    (val) => {
-      const { row, quarantine } = transformRow(
-        makeRawRow({ F: val }),
-        HEADERS,
-      );
-      expect(row).not.toBeNull();
-      expect(row!.supplyType).toBe(val);
-      expect(quarantine).toHaveLength(0);
-    },
-  );
+  it.each(["Non-HH", "Gas", "Electricity"])("%s preserved verbatim, no quarantine", (val) => {
+    const { row, quarantine } = transformRow(makeRawRow({ F: val }), HEADERS);
+    expect(row).not.toBeNull();
+    expect(row!.supplyType).toBe(val);
+    expect(quarantine).toHaveLength(0);
+  });
 
   it.each(["Solar", "random free text"])(
     "%s → row kept, supplyType null, warn quarantine",
     (val) => {
-      const { row, quarantine } = transformRow(
-        makeRawRow({ F: val }),
-        HEADERS,
-      );
+      const { row, quarantine } = transformRow(makeRawRow({ F: val }), HEADERS);
       expect(row).not.toBeNull();
       expect(row!.supplyType).toBeNull();
       expect(quarantine).toHaveLength(1);
@@ -158,10 +126,7 @@ describe("transformRow — Supply Type quarantine (col F)", () => {
 
 describe("transformRow — City/State swap (cols CC/CD)", () => {
   it("CC='TX' CD='Houston' → swap + warn", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ CC: "TX", CD: "Houston" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ CC: "TX", CD: "Houston" }), HEADERS);
     expect(row).not.toBeNull();
     expect(row!.city).toBe("Houston");
     expect(row!.state).toBe("TX");
@@ -173,10 +138,7 @@ describe("transformRow — City/State swap (cols CC/CD)", () => {
   });
 
   it("CC='Houston' CD='TX' → no swap, no quarantine", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ CC: "Houston", CD: "TX" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ CC: "Houston", CD: "TX" }), HEADERS);
     expect(row).not.toBeNull();
     expect(row!.city).toBe("Houston");
     expect(row!.state).toBe("TX");
@@ -186,37 +148,25 @@ describe("transformRow — City/State swap (cols CC/CD)", () => {
 
 describe("transformRow — Sale Type coalesce (AS/BM)", () => {
   it("AS='Acq', BM=null → 'Acq', no quarantine", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ AS: "Acq" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ AS: "Acq" }), HEADERS);
     expect(row!.saleType).toBe("Acq");
     expect(quarantine.find((q) => q.column === "AS/BM")).toBeUndefined();
   });
 
   it("AS=null, BM='Ren' → 'Ren', no quarantine", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ BM: "Ren" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ BM: "Ren" }), HEADERS);
     expect(row!.saleType).toBe("Ren");
     expect(quarantine.find((q) => q.column === "AS/BM")).toBeUndefined();
   });
 
   it("AS='Acq', BM='Acq' → 'Acq', no quarantine", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ AS: "Acq", BM: "Acq" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ AS: "Acq", BM: "Acq" }), HEADERS);
     expect(row!.saleType).toBe("Acq");
     expect(quarantine.find((q) => q.column === "AS/BM")).toBeUndefined();
   });
 
   it("AS='Acq', BM='Ren' (disagree) → prefer AS + warn", () => {
-    const { row, quarantine } = transformRow(
-      makeRawRow({ AS: "Acq", BM: "Ren" }),
-      HEADERS,
-    );
+    const { row, quarantine } = transformRow(makeRawRow({ AS: "Acq", BM: "Ren" }), HEADERS);
     expect(row!.saleType).toBe("Acq");
     const warn = quarantine.find((q) => q.column === "AS/BM");
     expect(warn).toBeDefined();
@@ -226,26 +176,17 @@ describe("transformRow — Sale Type coalesce (AS/BM)", () => {
 
 describe("transformRow — Resold canonicalization (col AV)", () => {
   it("'Same Month' → 'same_month'", () => {
-    const { row } = transformRow(
-      makeRawRow({ AV: "Same Month" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ AV: "Same Month" }), HEADERS);
     expect(row!.resoldStatus).toBe("same_month");
   });
 
   it("'Future Month' → 'future_month'", () => {
-    const { row } = transformRow(
-      makeRawRow({ AV: "Future Month" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ AV: "Future Month" }), HEADERS);
     expect(row!.resoldStatus).toBe("future_month");
   });
 
   it("'other text' → preserved verbatim", () => {
-    const { row } = transformRow(
-      makeRawRow({ AV: "other text" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ AV: "other text" }), HEADERS);
     expect(row!.resoldStatus).toBe("other text");
   });
 
@@ -269,32 +210,20 @@ describe("transformRow — pipeline derivation 2×2×2 matrix", () => {
     ["Approved", null, null, "pending"],
   ];
 
-  it.each(cases)(
-    "saleStatus=%s Q=%s AH=%s → %s",
-    (saleStatus, q, ah, expected) => {
-      const { row } = transformRow(
-        makeRawRow({ R: saleStatus, Q: q, AH: ah }),
-        HEADERS,
-      );
-      expect(row!.pipelineStatus).toBe(expected);
-    },
-  );
+  it.each(cases)("saleStatus=%s Q=%s AH=%s → %s", (saleStatus, q, ah, expected) => {
+    const { row } = transformRow(makeRawRow({ R: saleStatus, Q: q, AH: ah }), HEADERS);
+    expect(row!.pipelineStatus).toBe(expected);
+  });
 });
 
 describe("transformRow — isLive boolean OR (Q || AM)", () => {
   it("Q='TRUE' AM=null → true", () => {
-    const { row } = transformRow(
-      makeRawRow({ Q: "TRUE" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ Q: "TRUE" }), HEADERS);
     expect(row!.isLive).toBe(true);
   });
 
   it("Q=null AM='YES' → true", () => {
-    const { row } = transformRow(
-      makeRawRow({ AM: "YES" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ AM: "YES" }), HEADERS);
     expect(row!.isLive).toBe(true);
   });
 
@@ -304,13 +233,10 @@ describe("transformRow — isLive boolean OR (Q || AM)", () => {
   });
 
   // boolFrom is internal — probe indirectly via Q column.
-  it.each(["TRUE", "true", "YES", "yes", "Y", "1"])(
-    "boolFrom('%s') → true",
-    (val) => {
-      const { row } = transformRow(makeRawRow({ Q: val }), HEADERS);
-      expect(row!.isLive).toBe(true);
-    },
-  );
+  it.each(["TRUE", "true", "YES", "yes", "Y", "1"])("boolFrom('%s') → true", (val) => {
+    const { row } = transformRow(makeRawRow({ Q: val }), HEADERS);
+    expect(row!.isLive).toBe(true);
+  });
 
   it.each(["FALSE", "NO", "0"])("boolFrom('%s') → false", (val) => {
     const { row } = transformRow(makeRawRow({ Q: val }), HEADERS);
@@ -347,18 +273,12 @@ describe("transformRow — date coercion (dateOnly)", () => {
   });
 
   it("YYYY-MM-DD → YYYY-MM-DD", () => {
-    const { row } = transformRow(
-      makeRawRow({ J: "2025-03-15" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ J: "2025-03-15" }), HEADERS);
     expect(row!.startDate).toBe("2025-03-15");
   });
 
   it("malformed 'MM/DD/YYYY' → passed verbatim (DB rejects)", () => {
-    const { row } = transformRow(
-      makeRawRow({ J: "03/15/2025" }),
-      HEADERS,
-    );
+    const { row } = transformRow(makeRawRow({ J: "03/15/2025" }), HEADERS);
     expect(row!.startDate).toBe("03/15/2025");
   });
 
@@ -370,15 +290,11 @@ describe("transformRow — date coercion (dateOnly)", () => {
 
 describe("transformRow — round-trip principle (col R saleStatus)", () => {
   // Transform layer MUST NOT collapse to smaller enum; verbatim preserved.
-  it.each([
-    "Approved",
-    "Pending",
-    "Lost",
-    "Cancelled",
-    "Custom",
-    "Anything",
-  ])("%s preserved verbatim", (val) => {
-    const { row } = transformRow(makeRawRow({ R: val }), HEADERS);
-    expect(row!.saleStatus).toBe(val);
-  });
+  it.each(["Approved", "Pending", "Lost", "Cancelled", "Custom", "Anything"])(
+    "%s preserved verbatim",
+    (val) => {
+      const { row } = transformRow(makeRawRow({ R: val }), HEADERS);
+      expect(row!.saleStatus).toBe(val);
+    },
+  );
 });
