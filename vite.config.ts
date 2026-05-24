@@ -1,5 +1,5 @@
-import { reactRouter } from "@react-router/dev/vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { reactRouter } from "@react-router/dev/vite";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
