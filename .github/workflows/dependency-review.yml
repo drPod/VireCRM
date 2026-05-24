@@ -1,0 +1,22 @@
+name: dependency-review
+
+# Blocks PRs that introduce dependencies with known CVEs (GHSA feed) or
+# non-allowlisted licenses. Pairs with Renovate (PRs #141-147) so Renovate
+# bumps that bring in a vulnerable transitive get caught here before merge.
+# Pull-request-only — action does not run on push events.
+
+on:
+  pull_request:
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure
