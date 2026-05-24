@@ -386,4 +386,60 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     const body = (await patchRes.json()) as ErrorBody;
     expect(body.error?.code).toBe("VALIDATION");
   });
+
+  it("POST rejects unknown keys with 400 VALIDATION (strict schema)", async () => {
+    // Without `.strict()`, server-managed fields like `tenantId`/`id`/
+    // `createdAt` would be silently stripped — callers couldn't tell their
+    // payload was wrong, and a future code path that forgot to destructure
+    // could leak them into the insert.
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const customerId = await seedCustomer(ids.a, "sa-strict-cust");
+
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId,
+        city: "Austin",
+        tenantId: ids.b,
+      }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as ErrorBody;
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("PATCH rejects unknown keys with 400 VALIDATION (strict schema)", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const customerId = await seedCustomer(ids.a, "sa-strict-patch-cust");
+
+    const createRes = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ customerId, city: "Austin" }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as ServiceAddressRow;
+    insertedAddressIds.push(created.id);
+
+    const patchRes = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${created.id}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ city: "Houston", id: created.id }),
+    });
+    expect(patchRes.status).toBe(400);
+    const body = (await patchRes.json()) as ErrorBody;
+    expect(body.error?.code).toBe("VALIDATION");
+  });
 });

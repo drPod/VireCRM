@@ -29,18 +29,24 @@ const optText = z
   .nullish()
   .transform((v) => (v === "" || v == null ? null : v));
 
-const CreateBody = z.object({
-  customerId: Uuid,
-  streetNo: optText,
-  streetName: optText,
-  addressLine1: optText,
-  addressLine2: optText,
-  city: optText,
-  state: optText,
-  zip: optText,
-  county: optText,
-  govtArea: optText,
-});
+// `.strict()` rejects unknown keys with 400. Without it, clients could
+// silently send `tenantId`/`id`/`createdAt` — currently dropped by the
+// destructured insert/update but no error surfaces, so callers can't tell
+// their payload was wrong.
+const CreateBody = z
+  .object({
+    customerId: Uuid,
+    streetNo: optText,
+    streetName: optText,
+    addressLine1: optText,
+    addressLine2: optText,
+    city: optText,
+    state: optText,
+    zip: optText,
+    county: optText,
+    govtArea: optText,
+  })
+  .strict();
 
 // PATCH = partial. Strip `customerId` from updatable fields — reassigning a
 // service address to a different customer is a domain-level operation, not a
@@ -57,7 +63,8 @@ const UpdateBody = z
     county: optText,
     govtArea: optText,
   })
-  .partial();
+  .partial()
+  .strict();
 
 export const serviceAddressesRoutes = new Hono<HonoEnv>()
   .get("/", async (c) => {
