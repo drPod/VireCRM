@@ -33,10 +33,7 @@ interface Cursor {
 // through a URL query string (`+` decodes as space). Map to `-` / `_` and strip
 // padding so the cursor is safe to copy into a `?cursor=` value as-is.
 function encodeCursor(c: Cursor): string {
-  return btoa(JSON.stringify(c))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return btoa(JSON.stringify(c)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 export function decodeCursor(raw: string): Cursor | null {
