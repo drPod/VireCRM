@@ -28,6 +28,9 @@ export function getSupabaseBrowserClient(): SupabaseClient {
   const publishableKey = readRequiredEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
 
   cached = createClient(url, publishableKey, {
+    // TODO(auth-oauth): set `flowType: 'pkce'` before adding social providers
+    // (Google/MS). PKCE is required for OAuth on browsers; the current default
+    // (`implicit`) is fine while we only support email/password.
     auth: { persistSession: true, autoRefreshToken: true },
   });
   return cached;

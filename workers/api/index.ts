@@ -7,6 +7,7 @@ import { jwtVerify } from "./middleware/jwt-verify";
 import { tenantContext } from "./middleware/tenant-context";
 import { healthRoutes } from "./routes/health";
 import { customersRoutes } from "./routes/customers";
+import { authRoutes } from "./routes/auth";
 
 // Middleware order (every protected request):
 //   cors → request-id → error-boundary → jwt-verify → tenant-context → handler
@@ -25,6 +26,7 @@ api.route("/health", healthRoutes);
 const protectedApi = new Hono<HonoEnv>();
 protectedApi.use("*", jwtVerify);
 protectedApi.use("*", tenantContext);
+protectedApi.route("/auth", authRoutes);
 protectedApi.route("/customers", customersRoutes);
 
 api.route("/", protectedApi);
