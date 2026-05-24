@@ -10,8 +10,15 @@ import type { HonoEnv } from "../types";
 // the JWT's `app_metadata.tenant_id` claim. Mismatch or missing claim = 403 with
 // no leaked detail (response body never echoes claim vs expected). This is the
 // only place broker tenants are derived — handlers downstream read `tenantId`.
+//
+// Reads the host from `c.req.url` (URL of the request), NOT `c.req.header("host")`.
+// In production both match — CF Workers populate the Host header from the
+// request line. Under Miniflare's `SELF.fetch` test harness, however, the
+// constructed Request carries the URL but no Host header, so reading from the
+// header would return `undefined` and short-circuit every test request to 403
+// `TENANT_SCOPE_INVALID`. The URL is the canonical source either way.
 export const tenantContext: MiddlewareHandler<HonoEnv> = async (c, next) => {
-  const sub = extractSubdomain(c.req.header("host"));
+  const sub = extractSubdomain(new URL(c.req.url).hostname);
   if (!sub || isReservedSubdomain(sub)) {
     return jsonError(c, 403, "TENANT_SCOPE_INVALID");
   }
