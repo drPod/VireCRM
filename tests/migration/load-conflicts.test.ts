@@ -7,7 +7,7 @@ import { getSeededTenantIds, hasTestDb } from "../setup";
 
 // Unique prefix so this file's rows are easy to delete + don't collide with
 // other tests' seeded data even if they share a tenant.
-const PREFIX = "load-conflicts-test";
+const PREFIX = `load-conflicts-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const ALL_NULL_ADDRESS = {
   streetNo: null,
