@@ -16,7 +16,7 @@
   "vars": {
     "SUPABASE_URL": "https://coynbufhejaeuifpvmvw.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AfxTcWiGW7j882pfkhPhwg_hKKdSAW2",
-    "SENTRY_DSN_PUBLIC": ""
+    "SENTRY_DSN_PUBLIC": "https://dc66f0e38f769bd7b26847bda603e8d6@o4511443566788608.ingest.us.sentry.io/4511443773947904"
   },
   // Hyperdrive binding for Supabase Postgres (transaction-mode pooler, port 6543).
   // Provisioned via: bunx wrangler hyperdrive create genesisxsx-pg --connection-string=...

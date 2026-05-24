@@ -8,6 +8,23 @@ Deployed at **https://greenenergiai.virecrm.com/** (per-customer subdomain on th
 
 The repo was recently wiped and is being rebuilt.
 
+## Observability
+
+Errors and performance traces ship to Sentry. The project is `virecrm` in the `darsh-6n` org, viewable at https://darsh-6n.sentry.io.
+
+The DSN is a publishable, write-only ingest endpoint and is committed in two places:
+
+- `wrangler.jsonc` under `vars.SENTRY_DSN_PUBLIC` — read by the Cloudflare Worker at runtime.
+- `.env.development` under `VITE_SENTRY_DSN` — injected into the browser bundle by Vite for local dev. (Mirror the same value in `.env.production` for prod browser builds.) These files are gitignored; copy from `.env.example` and paste the DSN.
+
+Source-map upload (wired in a follow-up unit via `@sentry/vite-plugin`) requires `SENTRY_AUTH_TOKEN` as a GitHub Actions secret. Generate one at https://darsh-6n.sentry.io/settings/auth-tokens/ with scopes `project:releases` and `org:read`, then register it with:
+
+```
+gh secret set SENTRY_AUTH_TOKEN
+```
+
+For per-package Sentry SDK reference (`@sentry/cloudflare`, `@sentry/react-router`, `@sentry/vite-plugin`), see `docs/sentry/`.
+
 ## Why custom instead of Go High Level
 
 She was on Go High Level and walked away. The point of this build is to fix the specific things that drove her off, not to pile on features she'll never touch. Research-backed pain points that mapped to her experience:
