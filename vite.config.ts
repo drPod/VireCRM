@@ -10,7 +10,10 @@ export default defineConfig({
     cloudflare({ viteEnvironment: { name: "ssr" } }),
     tailwindcss(),
     reactRouter(),
-    // Plugin no-ops when `SENTRY_AUTH_TOKEN` absent (local dev, PR CI without secret).
+    // Source-map upload (see `.env.example` for `SENTRY_ORG`/`SENTRY_PROJECT`/
+    // `SENTRY_AUTH_TOKEN`). Plugin no-ops when token absent → local dev + PR
+    // CI without secret still build clean. Plugin also injects the release
+    // identifier as a global the SDK auto-reads.
     ...(process.env.SENTRY_AUTH_TOKEN
       ? [
           sentryVitePlugin({

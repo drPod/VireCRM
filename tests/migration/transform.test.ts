@@ -77,12 +77,26 @@ describe("transformRow — ESI precision check", () => {
     expect(quarantine[0].severity).toBe("error");
   });
 
-  it("too-short ESI → quarantined", () => {
+  it("short digit-only ESI → passes (legacy meter IDs allowed)", () => {
+    // ESI_ID_FORMAT loosened to /^\d+$/ in 2021a27b: real xlsx mixes legacy
+    // short meter IDs (10-16 digits) and 23-digit Centerpoint variants with
+    // canonical 17-22 digit Oncor IDs. Only non-digit chars indicate
+    // precision loss / pollution.
     const { row, quarantine } = transformRow(makeRawRow({ E: "123" }), HEADERS);
-    expect(row).toBeNull();
-    expect(quarantine).toHaveLength(1);
-    expect(quarantine[0].column).toBe("E");
-    expect(quarantine[0].severity).toBe("error");
+    expect(row).not.toBeNull();
+    expect(row!.esiId).toBe("123");
+    expect(quarantine).toHaveLength(0);
+  });
+
+  it("backtick-wrapped ESI → stripped + passes", () => {
+    // Source xlsx wraps ESI cells as `<digits>` to force text-format display.
+    const { row, quarantine } = transformRow(
+      makeRawRow({ E: "`10443721234567890`" }),
+      HEADERS,
+    );
+    expect(row).not.toBeNull();
+    expect(row!.esiId).toBe("10443721234567890");
+    expect(quarantine).toHaveLength(0);
   });
 });
 
@@ -277,9 +291,14 @@ describe("transformRow — date coercion (dateOnly)", () => {
     expect(row!.startDate).toBe("2025-03-15");
   });
 
-  it("malformed 'MM/DD/YYYY' → passed verbatim (DB rejects)", () => {
-    const { row } = transformRow(makeRawRow({ J: "03/15/2025" }), HEADERS);
-    expect(row!.startDate).toBe("03/15/2025");
+  it("malformed 'MM/DD/YYYY' → null + warn quarantine", () => {
+    // dateOnly hardened in 2021a27b: bulk INSERT can't tolerate one bad date
+    // aborting the whole VALUES chunk. Non-ISO inputs coerce to null + warn.
+    const { row, quarantine } = transformRow(makeRawRow({ J: "03/15/2025" }), HEADERS);
+    expect(row!.startDate).toBeNull();
+    const warn = quarantine.find((q) => q.column === "J");
+    expect(warn).toBeDefined();
+    expect(warn!.severity).toBe("warn");
   });
 
   it("null → null", () => {
