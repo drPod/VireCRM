@@ -7,6 +7,7 @@ import { tenantContext } from "./middleware/tenant-context";
 import { contractsRoutes } from "./routes/contracts";
 import { customersRoutes } from "./routes/customers";
 import { healthRoutes } from "./routes/health";
+import { loasRoutes } from "./routes/loas";
 import type { HonoEnv } from "./types";
 
 // Middleware order (every protected request):
@@ -28,5 +29,6 @@ protectedApi.use("*", jwtVerify);
 protectedApi.use("*", tenantContext);
 protectedApi.route("/contracts", contractsRoutes);
 protectedApi.route("/customers", customersRoutes);
+protectedApi.route("/loas", loasRoutes);
 
 api.route("/", protectedApi);
