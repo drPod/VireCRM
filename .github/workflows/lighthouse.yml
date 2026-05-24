@@ -1,0 +1,40 @@
+name: lighthouse
+
+# SPA perf budgets (LCP < 2.5s, CLS < 0.1, TBT < 200ms).
+# CF Workers preview URLs are disabled in this repo (wrangler.jsonc:
+# preview_urls: false), so Lighthouse CI starts a local `wrangler dev`
+# and audits http://localhost:8787.
+#
+# Warn-only (continue-on-error: true): a regression surfaces in PR checks
+# but does not block merge. Tune thresholds in lighthouserc.json once we
+# have a real baseline.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: install
+        run: bun install --frozen-lockfile
+
+      - name: build
+        run: bun run build
+
+      - name: lighthouse
+        continue-on-error: true
+        run: bunx @lhci/cli autorun
