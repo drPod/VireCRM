@@ -1,11 +1,6 @@
-import { SELF, env } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { afterAll, describe, expect, it } from "vitest";
-import {
-  HOST_TENANT_A,
-  getSeededTenantIds,
-  hasTestDb,
-  mintJwt,
-} from "./setup";
+import { getSeededTenantIds, HOST_TENANT_A, hasTestDb, mintJwt } from "./setup";
 
 const url = (host: string, path: string) => `https://${host}${path}`;
 
@@ -38,10 +33,9 @@ describe.skipIf(!hasTestDb)("GET /api/customers", () => {
   it("rejects invalid limit=999 with 400 VALIDATION", async () => {
     const ids = await getSeededTenantIds();
     const token = await mintJwt({ tenantId: ids.a });
-    const res = await SELF.fetch(
-      url(HOST_TENANT_A, "/api/customers?limit=999"),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/customers?limit=999"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error?: { code?: string } };
     expect(body.error?.code).toBe("VALIDATION");
@@ -71,10 +65,9 @@ describe.skipIf(!hasTestDb)("GET /api/customers", () => {
     // 403 would leak that the row exists; the RLS policy makes the row
     // invisible, so the handler legitimately returns "not found".
     const token = await mintJwt({ tenantId: ids.a });
-    const res = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/customers/${bRow.id}`),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const res = await SELF.fetch(url(HOST_TENANT_A, `/api/customers/${bRow.id}`), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(res.status).toBe(404);
     const body = (await res.json()) as { error?: { code?: string } };
     expect(body.error?.code).toBe("NOT_FOUND");
@@ -82,10 +75,9 @@ describe.skipIf(!hasTestDb)("GET /api/customers", () => {
     // Tenant B JWT MUST be able to read the row — proves the seed worked
     // and we're not just blocking everything by accident.
     const tokenB = await mintJwt({ tenantId: ids.b });
-    const resB = await SELF.fetch(
-      url("testbravo.virecrm.com", `/api/customers/${bRow.id}`),
-      { headers: { authorization: `Bearer ${tokenB}` } },
-    );
+    const resB = await SELF.fetch(url("testbravo.virecrm.com", `/api/customers/${bRow.id}`), {
+      headers: { authorization: `Bearer ${tokenB}` },
+    });
     expect(resB.status).toBe(200);
   });
 });

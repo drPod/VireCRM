@@ -1,7 +1,5 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { jsonError } from "../lib/errors";
-import { getDb } from "../get-db";
 import {
   createCustomer,
   decodeCursor,
@@ -10,6 +8,8 @@ import {
   listCustomers,
   updateCustomer,
 } from "../../db/queries/customers";
+import { getDb } from "../get-db";
+import { jsonError } from "../lib/errors";
 import type { HonoEnv } from "../types";
 
 const ListQuery = z.object({
