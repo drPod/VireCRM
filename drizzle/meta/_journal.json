@@ -36,6 +36,13 @@
       "when": 1779537082614,
       "tag": "0004_fix_commission_null_propagation",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779613851465,
+      "tag": "0005_service_addresses_indexes",
+      "breakpoints": true
     }
   ]
 }

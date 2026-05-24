@@ -317,4 +317,73 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     });
     expect(okRes.status).toBe(200);
   });
+
+  it("POST rejects cross-tenant customerId with 404 (no row written)", async () => {
+    // Postgres FK enforcement bypasses RLS (runs as table owner). Without an
+    // explicit in-tenant existence check, a tenant-A JWT could attach a
+    // service address to a tenant-B customer row — the FK alone wouldn't stop
+    // it. createServiceAddress now does a tenant-scoped SELECT inside the
+    // same tx; this test proves the leak is closed.
+    const ids = await getSeededTenantIds();
+    const tokenA = await mintJwt({ tenantId: ids.a });
+    const customerIdB = await seedCustomer(ids.b, "sa-fk-leak-cust-b");
+
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokenA}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ customerId: customerIdB, city: "Austin" }),
+    });
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as ErrorBody;
+    expect(body.error?.code).toBe("NOT_FOUND");
+
+    // Confirm no row was written under tenant A pointing at B's customer.
+    const { makeDb } = await import("../workers/db");
+    const { serviceAddresses } = await import("../workers/db/schema");
+    const { and: dAnd, eq: dEq } = await import("drizzle-orm");
+    const db = makeDb(env);
+    const leaked = await db
+      .select({ id: serviceAddresses.id })
+      .from(serviceAddresses)
+      .where(
+        dAnd(
+          dEq(serviceAddresses.tenantId, ids.a),
+          dEq(serviceAddresses.customerId, customerIdB),
+        ),
+      );
+    expect(leaked.length).toBe(0);
+  });
+
+  it("PATCH rejects empty body with 400 VALIDATION", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const customerId = await seedCustomer(ids.a, "sa-empty-patch-cust");
+
+    const createRes = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ customerId, city: "Austin" }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as ServiceAddressRow;
+    insertedAddressIds.push(created.id);
+
+    const patchRes = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${created.id}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+    expect(patchRes.status).toBe(400);
+    const body = (await patchRes.json()) as ErrorBody;
+    expect(body.error?.code).toBe("VALIDATION");
+  });
 });

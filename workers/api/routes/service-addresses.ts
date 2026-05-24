@@ -100,6 +100,10 @@ export const serviceAddressesRoutes = new Hono<HonoEnv>()
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
     const row = await createServiceAddress(getDb(c), c.get("tenantId"), parsed.data);
+    // Null return = customer not visible in this tenant (RLS-gated lookup
+    // inside createServiceAddress). Surface as 404 so a cross-tenant
+    // customerId isn't distinguishable from a deleted/missing one.
+    if (!row) return jsonError(c, 404, "NOT_FOUND");
     return c.json(row, 201);
   })
   .patch("/:id", async (c) => {
@@ -110,6 +114,11 @@ export const serviceAddressesRoutes = new Hono<HonoEnv>()
     const parsed = UpdateBody.safeParse(body);
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
+    }
+    if (Object.keys(parsed.data).length === 0) {
+      return jsonError(c, 400, "VALIDATION", {
+        body: "must contain at least one field",
+      });
     }
     const row = await updateServiceAddress(getDb(c), c.get("tenantId"), id, parsed.data);
     if (!row) return jsonError(c, 404, "NOT_FOUND");

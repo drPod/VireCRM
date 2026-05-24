@@ -1,6 +1,6 @@
 import { and, desc, eq, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
-import { serviceAddresses } from "../schema";
+import { customers, serviceAddresses } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
 
 export interface ServiceAddressItem {
@@ -72,7 +72,9 @@ export async function listServiceAddresses(
   // see `listCustomers` for why `id` must be in the cursor.
   //
   // Explicit `tenant_id = ?` predicate is defense in depth against RLS gaps and
-  // lets the planner pick `service_addresses_tenant_idx` / `_tenant_customer_idx`
+  // lets the planner pick the composite indexes
+  // `service_addresses_tenant_created_idx` (unscoped list) or
+  // `service_addresses_tenant_customer_created_idx` (scoped by customer)
   // against a literal value instead of the opaque `auth.jwt()->>tenant_id` call.
   return withTenantContext(db, tenantId, async (tx) => {
     const tenantPredicate = eq(serviceAddresses.tenantId, tenantId);
@@ -141,8 +143,21 @@ export async function createServiceAddress(
   db: Db,
   tenantId: string,
   input: ServiceAddressCreate,
-): Promise<ServiceAddressItem> {
+): Promise<ServiceAddressItem | null> {
   return withTenantContext(db, tenantId, async (tx) => {
+    // FK enforcement in Postgres bypasses RLS (FK checks run as table owner,
+    // and `.enableRLS()` does NOT FORCE RLS on the owner). Without this guard
+    // a tenant-A JWT could POST with a tenant-B `customerId` and the FK would
+    // accept it — the row would land with `tenant_id=A, customer_id=<B>`.
+    // The SELECT runs in this tx's `authenticated` role + tenant context, so
+    // RLS gates the lookup; a cross-tenant customerId returns no row → null.
+    const existing = await tx
+      .select({ id: customers.id })
+      .from(customers)
+      .where(and(eq(customers.tenantId, tenantId), eq(customers.id, input.customerId)))
+      .limit(1);
+    if (!existing[0]) return null;
+
     const rows = await tx
       .insert(serviceAddresses)
       .values({ ...input, tenantId })

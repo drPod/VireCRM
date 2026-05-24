@@ -30,7 +30,17 @@ export const serviceAddresses = pgTable(
   },
   (t) => [
     index("service_addresses_tenant_idx").on(t.tenantId, t.id),
-    index("service_addresses_tenant_customer_idx").on(t.tenantId, t.customerId),
+    index("service_addresses_tenant_created_idx").on(
+      t.tenantId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
+    index("service_addresses_tenant_customer_created_idx").on(
+      t.tenantId,
+      t.customerId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
     tenantIsolationPolicy("service_addresses"),
   ],
 ).enableRLS();

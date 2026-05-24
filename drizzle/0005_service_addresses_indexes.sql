@@ -1,0 +1,3 @@
+DROP INDEX "service_addresses_tenant_customer_idx";--> statement-breakpoint
+CREATE INDEX "service_addresses_tenant_created_idx" ON "service_addresses" USING btree ("tenant_id","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);--> statement-breakpoint
+CREATE INDEX "service_addresses_tenant_customer_created_idx" ON "service_addresses" USING btree ("tenant_id","customer_id","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);
