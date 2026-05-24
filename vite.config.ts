@@ -11,7 +11,9 @@ export default defineConfig({
     tailwindcss(),
     reactRouter(),
     // Plugin no-ops when any required Sentry env var is absent (local dev, PR CI without secrets).
-    ...(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+    ...(process.env.SENTRY_AUTH_TOKEN &&
+    process.env.SENTRY_ORG &&
+    process.env.SENTRY_PROJECT
       ? [
           sentryVitePlugin({
             org: process.env.SENTRY_ORG,
