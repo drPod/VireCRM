@@ -107,7 +107,16 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const client = postgres(dbUrl, { prepare: false, max: 5, fetch_types: false });
+  // max:1 — single sequential connection for this one-shot migration. Combined
+  // with the per-row `await loadRow(...)` below, no two queries are ever in
+  // flight, so postgres-js's pipeline path (default max_pipeline=100) never
+  // engages. That matters because Supavisor's transaction-mode pool can
+  // reassign the backend mid-pipeline and drop in-flight responses — see
+  // porsager/postgres#970. Symptoms surface as a `ConnectionError` with
+  // `code: 'CONNECTION_CLOSED'` or a `TypeError: Cannot read properties of
+  // null (reading 'write')` thrown from connection.js (porsager/postgres
+  // #1066, #1154). The per-row retry loop below catches both.
+  const client = postgres(dbUrl, { prepare: false, max: 1, fetch_types: false });
   const db = drizzle(client, { schema });
 
   try {
@@ -156,26 +165,50 @@ async function main(): Promise<void> {
       await agentCache.prewarm(executor, tenant.id, agentNames);
 
       for (const row of buffered) {
-        try {
-          const result = await loadRow(
-            executor,
-            { tenantId: tenant.id, agentCache, saleIdToContractId },
-            row,
-          );
-          addRowCounts(totals, result.counts);
-          // Only mutate the cross-row map AFTER the per-row tx commits, so a
-          // failed savepoint never leaves a stale UUID for pass 2.
-          saleIdToContractId.set(row.externalSaleId, result.contractId);
-          transformedRows.push(row);
-          processedRows++;
-        } catch (err) {
+        let lastErr: unknown = null;
+        // Retry per-row on transient connection drops from Supavisor (see the
+        // header comment on the `postgres(...)` client above for root cause).
+        // Match by `ConnectionError.code` (postgres-js's documented contract,
+        // types/index.d.ts:437) plus the null-`socket.write` TypeError text
+        // from porsager/postgres#1066. Pool replaces dropped backends, so a
+        // fresh `await loadRow(...)` re-issues on a new connection.
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const result = await loadRow(
+              executor,
+              { tenantId: tenant.id, agentCache, saleIdToContractId },
+              row,
+            );
+            addRowCounts(totals, result.counts);
+            // Only mutate the cross-row map AFTER the per-row tx commits, so a
+            // failed savepoint never leaves a stale UUID for pass 2.
+            saleIdToContractId.set(row.externalSaleId, result.contractId);
+            transformedRows.push(row);
+            processedRows++;
+            lastErr = null;
+            break;
+          } catch (err) {
+            lastErr = err;
+            const code = (err as { code?: string } | null)?.code;
+            const msg = err instanceof Error ? err.message : String(err);
+            const transient =
+              code === "CONNECTION_CLOSED" ||
+              code === "CONNECTION_DESTROYED" ||
+              code === "CONNECT_TIMEOUT" ||
+              /Cannot read properties of null \(reading 'write'\)/.test(msg) ||
+              /null is not an object \(evaluating 'socket\.write'\)/.test(msg);
+            if (!transient || attempt === 3) break;
+            await new Promise((r) => setTimeout(r, 500 * attempt));
+          }
+        }
+        if (lastErr) {
           failedRows++;
           sink.write({
             rowNumber: row.rowNumber,
             column: "row",
             header: "load",
             rawValue: "",
-            reason: `load failed: ${err instanceof Error ? err.message : String(err)}`,
+            reason: `load failed (3 attempts): ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
             severity: "error",
           });
         }
