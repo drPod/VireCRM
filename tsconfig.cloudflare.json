@@ -7,6 +7,9 @@
     "app/**/.client/**/*",
     "workers/**/*",
     "tests/**/*",
+    "scripts/migrate-xlsx/dedup.ts",
+    "scripts/migrate-xlsx/load.ts",
+    "scripts/migrate-xlsx/types.ts",
     "worker-configuration.d.ts"
   ],
   "compilerOptions": {
