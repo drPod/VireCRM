@@ -86,7 +86,11 @@ const CreateBody = z
   })
   .strict();
 
-const UpdateBody = CreateBody.partial().strict();
+// PATCH = partial. Strip `contractId` from updatable fields — re-parenting a
+// commission statement to a different contract is a domain operation
+// (cascade rules, period alignment, supplier mismatch), not a generic edit.
+// `.strict()` makes the boundary surface `400 VALIDATION` if a caller tries.
+const UpdateBody = CreateBody.omit({ contractId: true }).partial().strict();
 
 export const commissionStatementsRoutes = new Hono<HonoEnv>()
   .get("/", async (c) => {
@@ -132,6 +136,9 @@ export const commissionStatementsRoutes = new Hono<HonoEnv>()
       c.get("tenantId"),
       body.data,
     );
+    // Null = cross-tenant or missing contract; see FK-precheck comment in
+    // `createCommissionStatement`. 404 so the two are indistinguishable.
+    if (!row) return jsonError(c, 404, "NOT_FOUND");
     return c.json(row, 201);
   })
   .patch("/:id", async (c) => {

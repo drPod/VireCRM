@@ -1,6 +1,6 @@
 import { and, desc, eq, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
-import { commissionStatements } from "../schema";
+import { commissionStatements, contracts } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
 
 // `numeric` columns come back as strings from postgres-js (lossless decimal).
@@ -175,8 +175,21 @@ export async function createCommissionStatement(
   db: Db,
   tenantId: string,
   input: CreateInput,
-): Promise<CommissionStatementRow> {
+): Promise<CommissionStatementRow | null> {
   return withTenantContext(db, tenantId, async (tx) => {
+    // FK enforcement in Postgres bypasses RLS (FK checks run as table owner,
+    // and `.enableRLS()` does NOT FORCE RLS on the owner). Without this guard
+    // a tenant-A JWT could POST with a tenant-B `contractId` and the FK would
+    // accept it — the row would land with `tenant_id=A, contract_id=<B>`.
+    // The SELECT runs in this tx's `authenticated` role + tenant context, so
+    // RLS gates the lookup; a cross-tenant contractId returns no row → null.
+    const existing = await tx
+      .select({ id: contracts.id })
+      .from(contracts)
+      .where(and(eq(contracts.tenantId, tenantId), eq(contracts.id, input.contractId)))
+      .limit(1);
+    if (!existing[0]) return null;
+
     const rows = await tx
       .insert(commissionStatements)
       .values({ ...input, tenantId })
@@ -185,7 +198,9 @@ export async function createCommissionStatement(
   });
 }
 
-export type UpdateInput = Partial<CreateInput>;
+// `contractId` excluded — re-parenting is a domain operation, not a generic
+// edit. Route's `UpdateBody` is the canonical boundary; see comment there.
+export type UpdateInput = Partial<Omit<CreateInput, "contractId">>;
 
 export async function updateCommissionStatement(
   db: Db,

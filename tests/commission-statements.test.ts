@@ -656,4 +656,54 @@ describe.skipIf(!hasTestDb)("commission-statements CRUD", () => {
     expect(patched.updatedAt).toBe(created.updatedAt);
     expect(patched.supplier).toBe("TXU");
   });
+
+  it("POST 404 NOT_FOUND when contractId belongs to another tenant", async () => {
+    // FK-precheck inside `createCommissionStatement` must block the write so
+    // it can't land with `tenant_id=A, contract_id=<B>` (Postgres FK bypasses
+    // RLS). 404 mirrors service-addresses — no shape leak.
+    const ids = await getSeededTenantIds();
+    const seedB = await seedFkChain(ids.b);
+    trackSeed(seedB);
+
+    const tokenA = await mintJwt({ tenantId: ids.a });
+    const res = await authedPost(
+      HOST_TENANT_A,
+      "/api/commission-statements",
+      tokenA,
+      { contractId: seedB.contractId, supplier: "should-not-write" },
+    );
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("NOT_FOUND");
+  });
+
+  it("PATCH 400 VALIDATION when body tries to change contractId", async () => {
+    // `UpdateBody` strips `contractId` + is `.strict()`, so the boundary
+    // rejects re-parenting before the query layer sees it.
+    const ids = await getSeededTenantIds();
+    const seedA = await seedFkChain(ids.a);
+    const seedB = await seedFkChain(ids.b);
+    trackSeed(seedA);
+    trackSeed(seedB);
+
+    const tokenA = await mintJwt({ tenantId: ids.a });
+    const create = await authedPost(
+      HOST_TENANT_A,
+      "/api/commission-statements",
+      tokenA,
+      { contractId: seedA.contractId },
+    );
+    const created = (await create.json()) as StatementResponse;
+    insertedStatementIds.push(created.id);
+
+    const res = await authedPatch(
+      HOST_TENANT_A,
+      `/api/commission-statements/${created.id}`,
+      tokenA,
+      { contractId: seedB.contractId },
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
 });
