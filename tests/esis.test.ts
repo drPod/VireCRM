@@ -708,6 +708,7 @@ describe.skipIf(!hasTestDb)("ESIs CRUD", () => {
     const page1 = await SELF.fetch(url(HOST_TENANT_A, "/api/esis?limit=1"), {
       headers: { authorization: `Bearer ${token}` },
     });
+    expect(page1.status).toBe(200);
     const body1 = (await page1.json()) as {
       items: { id: string }[];
       nextCursor: string | null;

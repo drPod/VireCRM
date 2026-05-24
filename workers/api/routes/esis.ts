@@ -13,12 +13,15 @@ import { jsonError } from "../lib/errors";
 import type { HonoEnv } from "../types";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Up to 16 integer digits + up to 4 fractional digits — matches NUMERIC(20,4).
+const NUMERIC_20_4_RE = /^-?\d{1,16}(?:\.\d{1,4})?$/;
 
 const UuidSchema = z.string().regex(UUID_RE);
 
 // Numeric kWh fields are stored as NUMERIC(20,4) — accept a string or a finite
 // number from the client, normalize to a string for the driver. Empty string
 // would silently coerce to 0 in Postgres so we reject it at the Zod boundary.
+// After the string conversion, we validate the result fits NUMERIC(20,4).
 const NumericKwhSchema = z
   .union([
     z
@@ -27,7 +30,8 @@ const NumericKwhSchema = z
       .regex(/^-?\d+(\.\d+)?$/, "must be a decimal string"),
     z.number().finite(),
   ])
-  .transform((v) => (typeof v === "number" ? v.toString() : v));
+  .transform((v) => (typeof v === "number" ? v.toString() : v))
+  .pipe(z.string().regex(NUMERIC_20_4_RE, "must fit NUMERIC(20,4)"));
 
 const ListQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
