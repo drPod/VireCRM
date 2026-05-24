@@ -86,6 +86,20 @@ Rejected and why (don't re-propose):
 - **Two audiences, two subdomains.** `<tenant>.virecrm.com` = broker admin. `customers.virecrm.com` = end-customer portal (scope TBD).
 - **Supabase enforces global email uniqueness.** One email = one user globally; flag if user crosses tenants.
 
+#### Tenant-scoped query convention (every new query file follows this)
+
+Hyperdrive's connection string uses Supabase's `postgres` role, which is `BYPASSRLS=true`. RLS policies (scoped `TO authenticated`) never fire on raw Hyperdrive queries. `withTenantContext` fixes this by `SET LOCAL ROLE authenticated` + `set_config('request.jwt.claims', …)` per transaction; queries running inside that callback get RLS for free.
+
+Every domain-table query MUST:
+
+1. **Run inside `withTenantContext(db, tenantId, async (tx) => { … })`.** Outside it, you're connected as `postgres` (BYPASSRLS) — RLS will not gate you and policy regressions will silently leak rows.
+2. **Carry an explicit `eq(<table>.tenant_id, tenantId)` predicate** even though RLS already enforces it. Reasons:
+    - Defense in depth against role/policy/migration regressions (the entire reason RLS didn't fire before PR #148 — see `workers/db/with-tenant-context.ts` header comment).
+    - The planner uses the literal predicate against composite indexes leading with `tenant_id`; the policy's `auth.jwt() ->> 'tenant_id'` function call is opaque to the planner.
+3. **Validate UUIDs at handler input** (Zod). `withTenantContext` re-validates `tenantId`, but downstream `customerId` / `agentId` / etc. params should be checked at the boundary so a malformed input becomes a `400 VALIDATION` not a Postgres error.
+
+`tenants` is the one table without RLS — `loadTenantBySubdomain` runs OUTSIDE `withTenantContext` because the subdomain → tenant resolution must read across tenants. Don't extend this carve-out to new tables.
+
 ### UI
 
 - **Display values verbatim from the database.** No display-coercion (e.g. don't render stored `Non-HH` as `Electricity`). Round-trip principle extends to render layer.
