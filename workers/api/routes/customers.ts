@@ -24,11 +24,21 @@ const ListQuery = z.object({
 const nullableStr = z.string().max(1024).nullable().optional();
 // RFC 5321 caps the local-part + domain at 254 chars combined.
 const emailField = z.string().email().max(254).nullable().optional();
-// Drizzle's `numeric` round-trips as string; accept either form from callers,
-// coerce to string before insert. Postgres enforces precision/scale.
-const numericField = z
-  .union([z.number().finite(), z.string().regex(/^-?\d+(\.\d+)?$/)])
+// `creditScore` is `numeric(6,0)` — fits in JS's 2^53 safe-int range, so a JS
+// number input is lossless. Accept number or digit-string; coerce to string for
+// Drizzle's `numeric` driver shape.
+const creditScoreField = z
+  .union([z.number().int().safe(), z.string().regex(/^\d+$/)])
   .transform((v) => (typeof v === "number" ? String(v) : v))
+  .nullable()
+  .optional();
+
+// `annualRevenue` is `numeric(20,2)` — 20 digits exceeds JS's IEEE-754 safe
+// range, and `JSON.parse` already lost precision by the time we see a number.
+// Require a decimal string so the caller's exact value reaches Postgres.
+const annualRevenueField = z
+  .string()
+  .regex(/^-?\d+(\.\d+)?$/)
   .nullable()
   .optional();
 
@@ -44,8 +54,8 @@ const customerBodyShape = {
   category: nullableStr,
   region: nullableStr,
   county: nullableStr,
-  creditScore: numericField,
-  annualRevenue: numericField,
+  creditScore: creditScoreField,
+  annualRevenue: annualRevenueField,
 } as const;
 
 const CreateCustomerBody = z
@@ -57,6 +67,17 @@ const UpdateCustomerBody = z
   .strict();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Distinguish a malformed JSON body from one that legitimately parsed to `null`
+// or anything else Zod will reject. Without this both cases fall through to a
+// confusing `"Expected object, received null"` flatten output.
+const INVALID_JSON = Symbol("invalid-json");
+
+async function readJsonBody(c: {
+  req: { json(): Promise<unknown> };
+}): Promise<unknown | typeof INVALID_JSON> {
+  return c.req.json().catch(() => INVALID_JSON);
+}
 
 export const customersRoutes = new Hono<HonoEnv>()
   .get("/", async (c) => {
@@ -90,7 +111,8 @@ export const customersRoutes = new Hono<HonoEnv>()
     return c.json(row);
   })
   .post("/", async (c) => {
-    const body = await c.req.json().catch(() => null);
+    const body = await readJsonBody(c);
+    if (body === INVALID_JSON) return jsonError(c, 400, "VALIDATION", { body: "invalid JSON" });
     const parsed = CreateCustomerBody.safeParse(body);
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
@@ -102,7 +124,8 @@ export const customersRoutes = new Hono<HonoEnv>()
     const id = c.req.param("id");
     if (!UUID_RE.test(id)) return jsonError(c, 404, "NOT_FOUND");
 
-    const body = await c.req.json().catch(() => null);
+    const body = await readJsonBody(c);
+    if (body === INVALID_JSON) return jsonError(c, 400, "VALIDATION", { body: "invalid JSON" });
     const parsed = UpdateCustomerBody.safeParse(body);
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());

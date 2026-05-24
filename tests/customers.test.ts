@@ -99,20 +99,24 @@ describe.skipIf(!hasTestDb)("customers mutations", () => {
 
   // Local fetch helper — same Worker, same token shape, just trims the noise.
   // Returns the raw Response so the caller can branch on status + read body.
+  // `rawBody` bypasses JSON.stringify so tests can exercise the malformed-JSON
+  // branch in POST/PATCH handlers.
   async function callApi(
     token: string,
     method: string,
     path: string,
     body?: unknown,
     host: string = HOST_TENANT_A,
+    rawBody?: string,
   ): Promise<Response> {
+    const hasBody = rawBody !== undefined || body !== undefined;
     const init: RequestInit = {
       method,
       headers: {
         authorization: `Bearer ${token}`,
-        ...(body !== undefined && { "content-type": "application/json" }),
+        ...(hasBody && { "content-type": "application/json" }),
       },
-      ...(body !== undefined && { body: JSON.stringify(body) }),
+      ...(hasBody && { body: rawBody ?? JSON.stringify(body) }),
     };
     return SELF.fetch(url(host, path), init);
   }
@@ -348,7 +352,9 @@ describe.skipIf(!hasTestDb)("customers mutations", () => {
 
     const patchRes = await callApi(token, "PATCH", `/api/customers/${created.id}`, {
       creditScore: "680",
-      annualRevenue: 42000,
+      // numeric(20,2) accepts string only — JS numbers can't preserve precision
+      // past 2^53 and `JSON.parse` would lose it before we ever see the body.
+      annualRevenue: "42000.00",
       sicCode: "7372",
       notes: null,
     });
@@ -378,5 +384,36 @@ describe.skipIf(!hasTestDb)("customers mutations", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error?: { code?: string } };
     expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("POST / annualRevenue as JS number → 400 VALIDATION", async () => {
+    // numeric(20,2) exceeds JS's 2^53 safe-int range; JSON.parse would already
+    // have lost precision by the time we see the body. Schema requires string.
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const res = await callApi(token, "POST", "/api/customers", {
+      name: "bad-annual-revenue-target",
+      annualRevenue: 1234567890123.45,
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("POST / malformed JSON body → 400 VALIDATION", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const res = await callApi(
+      token,
+      "POST",
+      "/api/customers",
+      undefined,
+      HOST_TENANT_A,
+      "{not-valid-json",
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string; details?: { body?: string } } };
+    expect(body.error?.code).toBe("VALIDATION");
+    expect(body.error?.details?.body).toBe("invalid JSON");
   });
 });
