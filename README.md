@@ -19,7 +19,7 @@ The DSN is a publishable, write-only ingest endpoint and is committed in two pla
 
 Source-map upload (wired in a follow-up unit via `@sentry/vite-plugin`) requires `SENTRY_AUTH_TOKEN` as a GitHub Actions secret. Generate one at https://darsh-6n.sentry.io/settings/auth-tokens/ with scopes `project:releases` and `org:read`, then register it with:
 
-```
+```bash
 gh secret set SENTRY_AUTH_TOKEN
 ```
 
