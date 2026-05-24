@@ -193,6 +193,12 @@ export async function updateCommissionStatement(
   id: string,
   input: UpdateInput,
 ): Promise<CommissionStatementRow | null> {
+  // Empty patch = no-op. Mirrors deals.ts. Without this short-circuit we'd
+  // still bump `updatedAt` (because the SET clause always carries it), which
+  // pollutes the audit trail on what's semantically a read.
+  const hasAnyField = Object.values(input).some((v) => v !== undefined);
+  if (!hasAnyField) return getCommissionStatementById(db, tenantId, id);
+
   return withTenantContext(db, tenantId, async (tx) => {
     const rows = await tx
       .update(commissionStatements)

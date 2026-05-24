@@ -36,21 +36,26 @@ async function readJsonBody<T>(
   return { ok: true, data: parsed.data };
 }
 
-// Postgres `numeric` is lossless when transported as a string. Accept either a
-// JSON number (coerce) or string but always validate via regex so trailing
-// garbage like "12.34abc" is rejected at the boundary. Negative values OK —
-// outstandingAmount can be negative (overpayment).
+// Postgres `numeric` is lossless when transported as a string. Reject JS
+// numbers at the boundary — `String(0.1 + 0.2)` is `"0.30000000000000004"`,
+// so any number path is silently lossy on the NUMERIC(20,*) money columns.
+// Force callers to send the decimal as a string. Negative values OK —
+// outstandingAmount can legitimately be negative (overpayment).
 const numericString = z
-  .union([z.number(), z.string()])
-  .transform((v) => (typeof v === "number" ? String(v) : v))
-  .refine((v) => /^-?\d+(\.\d+)?$/.test(v), { message: "must be a decimal" });
+  .string()
+  .regex(/^-?\d+(\.\d+)?$/, "must be a decimal string");
 
-// ISO date (YYYY-MM-DD) — Postgres `date` columns. Loose `.refine` rather than
-// `z.coerce.date()` so we don't silently accept timestamps that would lose the
-// time portion on store.
+// ISO date (YYYY-MM-DD) — Postgres `date` columns. Regex alone accepts
+// impossible calendar dates like `2026-02-31`, which the driver rejects at
+// INSERT time → 500 instead of 400. Round-trip through `Date` to confirm the
+// value is a real calendar date before it leaves the boundary.
 const isoDate = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD")
+  .refine((v) => {
+    const d = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  }, "invalid calendar date");
 
 const ListQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),

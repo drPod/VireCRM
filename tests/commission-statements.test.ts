@@ -106,6 +106,8 @@ interface StatementResponse {
   expectedAmount: string | null;
   receivedAmount: string | null;
   reconciliationStatus: string | null;
+  // Used by the empty-PATCH no-op test to assert updatedAt isn't bumped.
+  updatedAt: string;
 }
 
 describe.skipIf(!hasTestDb)("commission-statements CRUD", () => {
@@ -581,5 +583,71 @@ describe.skipIf(!hasTestDb)("commission-statements CRUD", () => {
       tokenA,
     );
     expect(res.status).toBe(404);
+  });
+
+  it("POST 400 VALIDATION on impossible calendar date (2026-02-31)", async () => {
+    const ids = await getSeededTenantIds();
+    const seed = await seedFkChain(ids.a);
+    trackSeed(seed);
+
+    const token = await mintJwt({ tenantId: ids.a });
+    const res = await authedPost(
+      HOST_TENANT_A,
+      "/api/commission-statements",
+      token,
+      { contractId: seed.contractId, periodStart: "2026-02-31" },
+    );
+    // Regex alone would accept this; the calendar refine rejects it before
+    // Postgres can throw a driver-level error → would otherwise surface as 500.
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("POST 400 VALIDATION when numeric field arrives as JS number", async () => {
+    const ids = await getSeededTenantIds();
+    const seed = await seedFkChain(ids.a);
+    trackSeed(seed);
+
+    const token = await mintJwt({ tenantId: ids.a });
+    const res = await authedPost(
+      HOST_TENANT_A,
+      "/api/commission-statements",
+      token,
+      // JSON number, not string. `String(0.1 + 0.2)` would have stored
+      // "0.30000000000000004" on the NUMERIC column — boundary must reject.
+      { contractId: seed.contractId, billingAqKwh: 1.5 },
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("PATCH /:id with empty body is a no-op (no updatedAt bump)", async () => {
+    const ids = await getSeededTenantIds();
+    const seed = await seedFkChain(ids.a);
+    trackSeed(seed);
+
+    const token = await mintJwt({ tenantId: ids.a });
+    const create = await authedPost(
+      HOST_TENANT_A,
+      "/api/commission-statements",
+      token,
+      { contractId: seed.contractId, supplier: "TXU" },
+    );
+    const created = (await create.json()) as StatementResponse;
+    insertedStatementIds.push(created.id);
+
+    const patch = await authedPatch(
+      HOST_TENANT_A,
+      `/api/commission-statements/${created.id}`,
+      token,
+      {},
+    );
+    expect(patch.status).toBe(200);
+    const patched = (await patch.json()) as StatementResponse;
+    // Short-circuit fires → row returned via GET, updatedAt unchanged.
+    expect(patched.updatedAt).toBe(created.updatedAt);
+    expect(patched.supplier).toBe("TXU");
   });
 });

@@ -24,6 +24,9 @@ export const commissionStatements = pgTable(
     contractId: uuid("contract_id")
       .notNull()
       .references(() => contracts.id, { onDelete: "cascade" }),
+    // Soft REP payout-batch tag. No `statement_batches` table — Doc 06
+    // §CommissionStatements treats this as a free-form grouping label, not
+    // a relation, so no FK reference.
     statementBatchId: uuid("statement_batch_id"),
     supplier: text("supplier"),
     periodStart: date("period_start"),
