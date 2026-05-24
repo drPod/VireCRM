@@ -9,6 +9,10 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+// `sentry.client.ts` runs `Sentry.init` as a side effect and re-exports
+// `captureException`. RR v7 strips `*.client.ts` from the server bundle, so
+// `captureException` is `undefined` during SSR — hence the optional call below.
+import { captureException } from "./sentry.client";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -56,9 +60,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       error.status === 404
         ? "The requested page could not be found."
         : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message;
-    stack = error.stack;
+  } else if (error && error instanceof Error) {
+    captureException?.(error);
+    if (import.meta.env.DEV) {
+      details = error.message;
+      stack = error.stack;
+    }
   }
 
   return (

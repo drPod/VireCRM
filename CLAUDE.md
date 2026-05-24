@@ -187,8 +187,8 @@ Layer map, hallucination-class coverage, Phase 1.5 incident: `docs/agent-prevent
 - Source data: Copy of NGP MASTER LIST - Copy.xlsx (gitignored, not committed)
 -->
 
-- **Wrangler secrets:** `SUPABASE_SERVICE_ROLE`, `STRIPE_SECRET_KEY`, `MS_GRAPH_CLIENT_SECRET`. Postgres connection via Hyperdrive binding in `wrangler.jsonc`, NOT secret env var.
+- **Wrangler secrets:** `SUPABASE_SERVICE_ROLE`, `STRIPE_SECRET_KEY`, `MS_GRAPH_CLIENT_SECRET`. `SENTRY_AUTH_TOKEN` joins list once source-map upload wired (Phase 6.5-ish, like Stripe). Postgres connection via Hyperdrive binding in `wrangler.jsonc`, NOT secret env var.
 - **Supabase Vault:** per-agent OAuth refresh tokens (libsodium AEAD; Key ID in DB, raw key outside SQL).
-- **Public vars:** `wrangler.jsonc` `vars` block + `.env.development` for Vite.
+- **Public vars:** `wrangler.jsonc` `vars` block (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SENTRY_DSN_PUBLIC`) + `.env.development` for Vite (incl. `VITE_SENTRY_DSN`).
 - `.env` files git-ignored; `.env.example` tracks placeholder shape.
-- `pk_live_*` / `pk_test_*` (Stripe publishable) safe in `.env.production` / `.env.development`.
+- `pk_live_*` / `pk_test_*` (Stripe publishable) safe in `.env.production` / `.env.development`. Sentry DSN is publishable-class — write-only ingest endpoint, safe to commit.

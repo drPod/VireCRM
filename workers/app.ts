@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import { createRequestHandler } from "react-router";
 import { api } from "./api";
 
@@ -15,7 +16,7 @@ const reactRouterHandler = createRequestHandler(
   import.meta.env.MODE,
 );
 
-export default {
+const handler = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname.startsWith("/api/")) {
@@ -26,3 +27,14 @@ export default {
     });
   },
 } satisfies ExportedHandler<Env>;
+
+// `withSentry` no-ops when `dsn` is empty (Sentry SDK contract), so the Worker
+// runs unchanged in environments where SENTRY_DSN_PUBLIC has not been set.
+export default Sentry.withSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN_PUBLIC,
+    // Tracing disabled until a sampling strategy is picked. Error capture only.
+    tracesSampleRate: 0,
+  }),
+  handler,
+);
