@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { makeDb, type Db } from "../workers/db";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type Db, makeDb } from "../workers/db";
 import {
   agents,
   aggregatorPayouts,
@@ -27,9 +27,10 @@ import { getSeededTenantIds, hasTestDb } from "./setup";
 // JWT claim is actually set inside the wrapper to defend against silent
 // pass-by-default if the wrapper ever regresses.
 
-// biome-ignore lint/suspicious/noExplicitAny: heterogeneous schema-table
-// + drizzle tx types — every table-under-test has distinct row + column
-// types, and writing each branch out adds noise without catching bugs.
+// Heterogeneous schema-table + drizzle tx types — every table-under-test has
+// distinct row + column types, and writing each branch out adds noise without
+// catching bugs.
+// biome-ignore lint/suspicious/noExplicitAny: see comment above
 type AnyTable = any;
 // biome-ignore lint/suspicious/noExplicitAny: see AnyTable
 type AnyTx = any;
@@ -42,11 +43,7 @@ interface TableUnderTest {
   // cross-tenant tests. Always includes the table itself, plus any parent
   // tables seeded by `seedPrereqs`.
   seedPrereqs: (tx: AnyTx, tenantB: string) => Promise<AnyRecord>;
-  makeSeedRow: (
-    forgeTenantId: string,
-    prereqs: AnyRecord,
-    suffix: string,
-  ) => AnyRecord;
+  makeSeedRow: (forgeTenantId: string, prereqs: AnyRecord, suffix: string) => AnyRecord;
 }
 
 let tenantA: string;
@@ -244,7 +241,8 @@ async function seedRowAsTenantB(
       .returning({ id: spec.table.id });
     return r.id as string;
   });
-  insertedBucketByName[spec.name]!.push(seededId);
+  const bucket = insertedBucketByName[spec.name];
+  if (bucket) bucket.push(seededId);
   return seededId;
 }
 
@@ -306,15 +304,12 @@ describe.skipIf(!hasTestDb)("RLS write-path FOR ALL policy drift guard", () => {
       let caught: unknown;
       try {
         await withTenantContext(db, tenantA, async (tx) => {
-          await tx
-            .insert(spec.table)
-            .values(spec.makeSeedRow(tenantB, prereqs, nextSuffix()));
+          await tx.insert(spec.table).values(spec.makeSeedRow(tenantB, prereqs, nextSuffix()));
         });
       } catch (e) {
         caught = e;
       }
-      const cause = (caught as { cause?: { code?: string; message?: string } })
-        ?.cause;
+      const cause = (caught as { cause?: { code?: string; message?: string } })?.cause;
       expect(cause?.code).toBe("42501");
       expect(cause?.message).toMatch(/row-level security/i);
     });
@@ -374,9 +369,7 @@ describe.skipIf(!hasTestDb)("RLS write-path FOR ALL policy drift guard", () => {
         const rows = await tx
           .select({ id: spec.table.id })
           .from(spec.table)
-          .where(
-            and(eq(spec.table.tenantId, tenantB), eq(spec.table.id, seededId)),
-          );
+          .where(and(eq(spec.table.tenantId, tenantB), eq(spec.table.id, seededId)));
         return rows.length;
       });
 
@@ -401,10 +394,7 @@ describe.skipIf(!hasTestDb)("RLS write-path FOR ALL policy drift guard", () => {
 
       const newName = `sanity-updated-${suffix}`;
       await withTenantContext(db, tenantB, async (tx) => {
-        await tx
-          .update(customers)
-          .set({ name: newName })
-          .where(eq(customers.id, seededId));
+        await tx.update(customers).set({ name: newName }).where(eq(customers.id, seededId));
       });
 
       const after = await withTenantContext(db, tenantB, async (tx) => {
