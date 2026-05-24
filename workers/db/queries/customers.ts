@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import type { Db } from "../index";
 import { customers } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
@@ -8,10 +8,39 @@ export interface CustomerListItem {
   name: string;
   externalCustomerId: string | null;
   primaryContactName: string | null;
+  primaryTitle: string | null;
   primaryEmail: string | null;
   primaryPhone: string | null;
+  notes: string | null;
+  sicCode: string | null;
+  businessType: string | null;
+  category: string | null;
+  region: string | null;
+  county: string | null;
+  // Drizzle's `numeric` round-trips as string to preserve precision.
+  creditScore: string | null;
+  annualRevenue: string | null;
   createdAt: Date;
 }
+
+export interface CustomerCreateInput {
+  name: string;
+  externalCustomerId?: string | null;
+  primaryContactName?: string | null;
+  primaryTitle?: string | null;
+  primaryEmail?: string | null;
+  primaryPhone?: string | null;
+  notes?: string | null;
+  sicCode?: string | null;
+  businessType?: string | null;
+  category?: string | null;
+  region?: string | null;
+  county?: string | null;
+  creditScore?: string | null;
+  annualRevenue?: string | null;
+}
+
+export type CustomerUpdateInput = Partial<CustomerCreateInput>;
 
 export interface CustomerListPage {
   items: CustomerListItem[];
@@ -46,8 +75,17 @@ const COLUMNS = {
   name: customers.name,
   externalCustomerId: customers.externalCustomerId,
   primaryContactName: customers.primaryContactName,
+  primaryTitle: customers.primaryTitle,
   primaryEmail: customers.primaryEmail,
   primaryPhone: customers.primaryPhone,
+  notes: customers.notes,
+  sicCode: customers.sicCode,
+  businessType: customers.businessType,
+  category: customers.category,
+  region: customers.region,
+  county: customers.county,
+  creditScore: customers.creditScore,
+  annualRevenue: customers.annualRevenue,
   createdAt: customers.createdAt,
 } as const;
 
@@ -110,5 +148,58 @@ export async function getCustomerById(
       .where(and(eq(customers.tenantId, tenantId), eq(customers.id, customerId)))
       .limit(1);
     return rows[0] ?? null;
+  });
+}
+
+export async function createCustomer(
+  db: Db,
+  tenantId: string,
+  input: CustomerCreateInput,
+): Promise<CustomerListItem> {
+  // Force tenantId from handler arg — never trust caller-supplied tenant. Zod
+  // `.strict()` on the route already rejects the key, this is defense in depth.
+  return withTenantContext(db, tenantId, async (tx) => {
+    const rows = await tx
+      .insert(customers)
+      .values({ ...input, tenantId })
+      .returning(COLUMNS);
+    return rows[0]!;
+  });
+}
+
+export async function updateCustomer(
+  db: Db,
+  tenantId: string,
+  customerId: string,
+  input: CustomerUpdateInput,
+): Promise<CustomerListItem | null> {
+  // Drizzle's `set()` accepts undefined per-key and skips those columns — but
+  // an entirely empty patch produces `UPDATE customers SET WHERE …`, which is a
+  // syntax error. Short-circuit to a plain existence check so PATCH /:id with
+  // `{}` still returns 404-vs-200 correctly.
+  const hasAnyField = Object.values(input).some((v) => v !== undefined);
+  if (!hasAnyField) return getCustomerById(db, tenantId, customerId);
+
+  return withTenantContext(db, tenantId, async (tx) => {
+    const rows = await tx
+      .update(customers)
+      .set({ ...input, updatedAt: sql`now()` })
+      .where(and(eq(customers.tenantId, tenantId), eq(customers.id, customerId)))
+      .returning(COLUMNS);
+    return rows[0] ?? null;
+  });
+}
+
+export async function deleteCustomer(
+  db: Db,
+  tenantId: string,
+  customerId: string,
+): Promise<boolean> {
+  return withTenantContext(db, tenantId, async (tx) => {
+    const rows = await tx
+      .delete(customers)
+      .where(and(eq(customers.tenantId, tenantId), eq(customers.id, customerId)))
+      .returning({ id: customers.id });
+    return rows.length > 0;
   });
 }
