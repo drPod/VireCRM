@@ -74,13 +74,16 @@ async function readJson(c: Context<HonoEnv>): Promise<unknown> {
   }
 }
 
-// `postgres-js` throws `PostgresError` with `code` + `constraint_name` set on
-// unique violations. Narrow via duck typing instead of `instanceof` to avoid
-// pulling the postgres-js value into this file — only the driver constructs it.
+// Drizzle wraps the driver throw in `DrizzleQueryError` and exposes the real
+// `PostgresError` at `.cause`. Postgres-js fills `code` + `constraint_name`
+// for unique-violation errors (works for both unique constraints and unique
+// indexes). Duck typing instead of `instanceof` keeps the driver value out
+// of this file — only the driver constructs it.
 function isUniqueViolation(err: unknown, constraint: string): boolean {
-  if (typeof err !== "object" || err === null) return false;
-  const e = err as { name?: string; code?: string; constraint_name?: string };
-  return e.name === "PostgresError" && e.code === "23505" && e.constraint_name === constraint;
+  const candidate = (err as { cause?: unknown })?.cause ?? err;
+  if (typeof candidate !== "object" || candidate === null) return false;
+  const e = candidate as { code?: string; constraint_name?: string };
+  return e.code === "23505" && e.constraint_name === constraint;
 }
 
 export const dealsRoutes = new Hono<HonoEnv>()
