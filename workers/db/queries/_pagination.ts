@@ -1,6 +1,8 @@
 import { and, eq, lt, or, type SQL } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export interface Cursor {
   createdAt: string;
   id: string;
@@ -15,6 +17,7 @@ export function decodeCursor(raw: string): Cursor | null {
     const parsed = JSON.parse(atob(raw)) as Partial<Cursor>;
     if (typeof parsed.createdAt !== "string") return null;
     if (typeof parsed.id !== "string") return null;
+    if (!UUID_RE.test(parsed.id)) return null;
     // Validate timestamp parseability so a malformed cursor doesn't produce a
     // `NaN` comparison that silently returns the whole table.
     if (Number.isNaN(Date.parse(parsed.createdAt))) return null;

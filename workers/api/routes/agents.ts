@@ -27,6 +27,9 @@ const HouseSplitPct = z
   .union([z.string(), z.number()])
   .transform((v) => (typeof v === "number" ? v.toString() : v))
   .refine((v) => /^-?\d+(\.\d+)?$/.test(v), { message: "must be numeric" })
+  .refine((v) => /^\d{1,3}(\.\d{1,2})?$/.test(v), {
+    message: "must have at most 2 decimal places",
+  })
   .refine(
     (v) => {
       const n = Number(v);
