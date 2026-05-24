@@ -76,18 +76,21 @@ export function normalizeAgentName(name: string): string {
 /**
  * Two-stage cache for lazy agent creation.
  *
- * - `prewarm()` runs in its own committed transaction BEFORE any per-row work.
- *   It scans every TransformedRow for distinct agent names, inserts the
- *   missing ones, and populates the cache. This is critical for correctness:
- *   `getOrCreate` used to INSERT inside the per-row savepoint, and any row
- *   that failed AFTER the agent INSERT would leave a stale UUID in the cache
- *   pointing at a rolled-back row. The next row referencing that agent would
- *   then hit a foreign-key violation. Pre-warming with a separate committed
- *   tx removes that hazard.
+ * - `prewarm()` inserts missing agents BEFORE any row-loading work begins.
+ *   Real-mode (`executor = db`): runs in its own committed transaction, so
+ *   the cache is backed by durable rows by the time the bulk loader starts.
+ *   Dry-run mode (`executor = outerTx`): nests as a SAVEPOINT inside the
+ *   outer rollback-only tx — the agent INSERTs roll back with everything
+ *   else, but the cache is still consistent within the single dry-run pass.
  *
- * - `get()` is a pure cache lookup with no DB I/O — safe to call from inside
- *   per-row savepoints because it never mutates state that could outlive a
- *   failed row.
+ *   The original hazard this guards against (per-row INSERT inside a savepoint
+ *   that could roll back and leave a stale UUID in the cache) is gone in the
+ *   bulk loader: passes do not nest savepoints per row. Pre-warm is preserved
+ *   because it cleanly separates "agent name resolution" from the main pass
+ *   work and gives a deterministic point to count inserted/reused agents.
+ *
+ * - `get()` is a pure cache lookup with no DB I/O — safe to call from any
+ *   pass without mutating state that could outlive a failed chunk.
  */
 export class AgentCache {
   private byKey = new Map<string, string>(); // normalize(name) → id
