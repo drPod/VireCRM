@@ -26,10 +26,16 @@ const DateStr = z.string().regex(ISO_DATE_RE, "must be YYYY-MM-DD");
 
 const PipelineStatus = z.enum(["pending", "active", "expired", "lost"]);
 
+// `endDate` must be strictly after `startDate` (term must be positive).
+// Negative spans would make the `grossTcv` generated column go negative.
+// Skipped when either field is missing — both are individually nullable.
+const validDateOrder = (d: { startDate?: string | null; endDate?: string | null }) =>
+  !d.startDate || !d.endDate || d.startDate < d.endDate;
+
 // CRITICAL: `grossTcv`, `netTcv`, `netAq` are GENERATED ALWAYS AS STORED columns
 // — Postgres rejects writes. Zod schema OMITS them so a payload that includes
 // them fails 400 VALIDATION (`.strict()` rejects unknown keys).
-const ContractCreate = z
+const ContractShape = z
   .object({
     esiId: Uuid,
     externalSaleId: z.string().min(1).max(255).nullish(),
@@ -67,12 +73,22 @@ const ContractCreate = z
   })
   .strict();
 
-const ContractUpdate = ContractCreate.partial().strict();
+const dateOrderError = { message: "endDate must be after startDate", path: ["endDate"] };
+const ContractCreate = ContractShape.refine(validDateOrder, dateOrderError);
+const ContractUpdate = ContractShape.partial().refine(validDateOrder, dateOrderError);
 
 const ListQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   cursor: z.string().min(1).max(512).optional(),
   esiId: Uuid.optional(),
+  customerId: Uuid.optional(),
+  pipelineStatus: PipelineStatus.optional(),
+  // `?isLive=true|false` — `z.coerce.boolean()` treats any non-empty string
+  // as `true`, so use a literal-string transform instead.
+  isLive: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "true")),
 });
 
 export const contractsRoutes = new Hono<HonoEnv>()
@@ -81,22 +97,21 @@ export const contractsRoutes = new Hono<HonoEnv>()
       limit: c.req.query("limit"),
       cursor: c.req.query("cursor"),
       esiId: c.req.query("esiId"),
+      customerId: c.req.query("customerId"),
+      pipelineStatus: c.req.query("pipelineStatus"),
+      isLive: c.req.query("isLive"),
     });
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
 
-    const { limit, cursor: raw, esiId } = parsed.data;
+    const { limit, cursor: raw, ...filters } = parsed.data;
     const cursor = raw ? decodeCursor(raw) : null;
     if (raw && !cursor) {
       return jsonError(c, 400, "VALIDATION", { cursor: "malformed" });
     }
 
-    const page = await listContracts(getDb(c), c.get("tenantId"), {
-      limit,
-      cursor,
-      esiId: esiId ?? null,
-    });
+    const page = await listContracts(getDb(c), c.get("tenantId"), { limit, cursor, filters });
     return c.json(page);
   })
   .get("/:id", async (c) => {

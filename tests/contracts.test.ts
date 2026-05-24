@@ -6,23 +6,32 @@ const url = (host: string, path: string) => `https://${host}${path}`;
 
 // One ESI per tenant is enough for every test below; reusing avoids re-seeding
 // the customer → service_address → esi chain in each `it` block.
+interface SeededEsi {
+  esiId: string;
+  customerId: string;
+}
 interface SeededEsis {
-  a: string;
-  b: string;
+  a: SeededEsi;
+  b: SeededEsi;
 }
 
-async function seedEsiForTenant(tenantId: string): Promise<string> {
+async function seedEsiForTenant(tenantId: string): Promise<SeededEsi> {
   const { makeDb } = await import("../workers/db");
   const { customers, serviceAddresses, esis } = await import("../workers/db/schema");
   const { withTenantContext } = await import("../workers/db/with-tenant-context");
   const db = makeDb(env);
-  // `esiId` is `(tenant_id, esi_id)` unique — include the tenant suffix +
-  // randomness so concurrent test runs don't collide.
-  const suffix = `${tenantId.slice(0, 8)}-${Math.random().toString(36).slice(2, 10)}`;
+  // `esiId` is `(tenant_id, esi_id)` unique — generate a 17-digit string
+  // (Oncor prefix `1044372` + 10 random digits) so the fixture matches the
+  // Domain glossary shape (17-22 digits) and would catch a future numeric
+  // validator. Random tail keeps concurrent test runs from colliding.
+  const tail = Math.floor(Math.random() * 1e10)
+    .toString()
+    .padStart(10, "0");
+  const esiNumeric = `1044372${tail}`;
   return withTenantContext(db, tenantId, async (tx) => {
     const [cust] = await tx
       .insert(customers)
-      .values({ tenantId, name: `contract-test-cust-${suffix}` })
+      .values({ tenantId, name: `contract-test-cust-${esiNumeric}` })
       .returning({ id: customers.id });
     const [sa] = await tx
       .insert(serviceAddresses)
@@ -33,10 +42,10 @@ async function seedEsiForTenant(tenantId: string): Promise<string> {
       .values({
         tenantId,
         serviceAddressId: sa!.id,
-        esiId: `10443720000${suffix}`,
+        esiId: esiNumeric,
       })
       .returning({ id: esis.id });
-    return esi!.id;
+    return { esiId: esi!.id, customerId: cust!.id };
   });
 }
 
@@ -54,10 +63,15 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       a: await seedEsiForTenant(ids.a),
       b: await seedEsiForTenant(ids.b),
     };
-    fixtureEsiIds.push(seededEsis.a, seededEsis.b);
+    fixtureEsiIds.push(seededEsis.a.esiId, seededEsis.b.esiId);
   });
 
   afterAll(async () => {
+    // Cleanup runs outside `withTenantContext` on purpose — uses the raw
+    // `postgres` role (BYPASSRLS) to walk the FK chain across tenant A + B.
+    // Same carve-out pattern as `loadTenantBySubdomain` (the only other code
+    // path that legitimately reads across tenants). Production code never
+    // does this.
     const { makeDb } = await import("../workers/db");
     const { contracts, esis, serviceAddresses, customers } = await import("../workers/db/schema");
     const { inArray, eq } = await import("drizzle-orm");
@@ -122,7 +136,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
       const created = await createOne(token, {
-        esiId: seededEsis.a,
+        esiId: seededEsis.a.esiId,
         supplier: "list-populated",
       });
       expect(created.status).toBe(201);
@@ -142,8 +156,8 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
       // Two more rows in tenant A so limit=1 is guaranteed to overflow.
-      await createOne(token, { esiId: seededEsis.a, supplier: "cursor-1" });
-      await createOne(token, { esiId: seededEsis.a, supplier: "cursor-2" });
+      await createOne(token, { esiId: seededEsis.a.esiId, supplier: "cursor-1" });
+      await createOne(token, { esiId: seededEsis.a.esiId, supplier: "cursor-2" });
 
       const page1Res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?limit=1"), {
         headers: { authorization: `Bearer ${token}` },
@@ -173,23 +187,24 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
       // Second ESI in tenant A so we can prove the filter excludes the first.
-      const otherEsi = await seedEsiForTenant(ids.a);
-      fixtureEsiIds.push(otherEsi);
+      const other = await seedEsiForTenant(ids.a);
+      fixtureEsiIds.push(other.esiId);
 
       const mineRes = await createOne(token, {
-        esiId: otherEsi,
+        esiId: other.esiId,
         supplier: "esi-filtered",
       });
       const mineId = mineRes.row.id as string;
 
-      const filteredRes = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts?esiId=${otherEsi}`), {
-        headers: { authorization: `Bearer ${token}` },
-      });
+      const filteredRes = await SELF.fetch(
+        url(HOST_TENANT_A, `/api/contracts?esiId=${other.esiId}`),
+        { headers: { authorization: `Bearer ${token}` } },
+      );
       expect(filteredRes.status).toBe(200);
       const filtered = (await filteredRes.json()) as {
         items: Array<{ id: string; esiId: string }>;
       };
-      expect(filtered.items.every((r) => r.esiId === otherEsi)).toBe(true);
+      expect(filtered.items.every((r) => r.esiId === other.esiId)).toBe(true);
       expect(filtered.items.some((r) => r.id === mineId)).toBe(true);
     });
 
@@ -203,6 +218,110 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const body = (await res.json()) as { error?: { code?: string } };
       expect(body.error?.code).toBe("VALIDATION");
     });
+
+    it("filters by ?pipelineStatus=active — only active rows come back", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      const activeRes = await createOne(token, {
+        esiId: seededEsis.a.esiId,
+        supplier: "status-active",
+        pipelineStatus: "active",
+      });
+      const pendingRes = await createOne(token, {
+        esiId: seededEsis.a.esiId,
+        supplier: "status-pending",
+        pipelineStatus: "pending",
+      });
+      expect(activeRes.status).toBe(201);
+      expect(pendingRes.status).toBe(201);
+
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?pipelineStatus=active"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        items: Array<{ id: string; pipelineStatus: string }>;
+      };
+      expect(body.items.length).toBeGreaterThan(0);
+      expect(body.items.every((r) => r.pipelineStatus === "active")).toBe(true);
+    });
+
+    it("rejects unknown ?pipelineStatus with 400 VALIDATION", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?pipelineStatus=bogus"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("filters by ?isLive=true — only is_live=true rows come back", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      const liveRes = await createOne(token, {
+        esiId: seededEsis.a.esiId,
+        supplier: "islive-true",
+        isLive: true,
+      });
+      const notLiveRes = await createOne(token, {
+        esiId: seededEsis.a.esiId,
+        supplier: "islive-false",
+        isLive: false,
+      });
+      expect(liveRes.status).toBe(201);
+      expect(notLiveRes.status).toBe(201);
+
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?isLive=true"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { items: Array<{ id: string; isLive: boolean }> };
+      expect(body.items.length).toBeGreaterThan(0);
+      expect(body.items.every((r) => r.isLive === true)).toBe(true);
+    });
+
+    it("rejects non-boolean ?isLive with 400 VALIDATION", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?isLive=maybe"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("filters by ?customerId — joins through esi → service_address → customer", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      // Seed a separate customer/SA/ESI chain so we can prove the customer
+      // filter excludes contracts under `seededEsis.a` (different customer).
+      const other = await seedEsiForTenant(ids.a);
+      fixtureEsiIds.push(other.esiId);
+
+      const mineRes = await createOne(token, {
+        esiId: other.esiId,
+        supplier: "customer-filtered",
+      });
+      expect(mineRes.status).toBe(201);
+      const mineId = mineRes.row.id as string;
+
+      const res = await SELF.fetch(
+        url(HOST_TENANT_A, `/api/contracts?customerId=${other.customerId}`),
+        { headers: { authorization: `Bearer ${token}` } },
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { items: Array<{ id: string; esiId: string }> };
+      expect(body.items.some((r) => r.id === mineId)).toBe(true);
+      expect(body.items.every((r) => r.esiId === other.esiId)).toBe(true);
+    });
+
+    it("rejects malformed ?customerId with 400 VALIDATION", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?customerId=not-a-uuid"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(400);
+    });
   });
 
   describe("POST /api/contracts", () => {
@@ -214,7 +333,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const annualUsageKwh = 100_000;
       const agentMils = 5;
       const created = await createOne(token, {
-        esiId: seededEsis.a,
+        esiId: seededEsis.a.esiId,
         startDate,
         endDate,
         annualUsageKwh,
@@ -252,7 +371,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          esiId: seededEsis.a,
+          esiId: seededEsis.a.esiId,
           grossTcv: "9999.00", // Generated — Postgres would throw; Zod stops it first.
         }),
       });
@@ -270,7 +389,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
           authorization: `Bearer ${token}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ esiId: seededEsis.a, netTcv: "100.00" }),
+        body: JSON.stringify({ esiId: seededEsis.a.esiId, netTcv: "100.00" }),
       });
       expect(res.status).toBe(400);
     });
@@ -284,9 +403,29 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
           authorization: `Bearer ${token}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ esiId: seededEsis.a, netAq: "100.00" }),
+        body: JSON.stringify({ esiId: seededEsis.a.esiId, netAq: "100.00" }),
       });
       expect(res.status).toBe(400);
+    });
+
+    it("rejects endDate <= startDate with 400 VALIDATION (would produce negative TCV)", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts"), {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          esiId: seededEsis.a.esiId,
+          startDate: "2027-01-01",
+          endDate: "2025-01-01",
+        }),
+      });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error?: { code?: string } };
+      expect(body.error?.code).toBe("VALIDATION");
     });
   });
 
@@ -295,7 +434,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
       const created = await createOne(token, {
-        esiId: seededEsis.a,
+        esiId: seededEsis.a.esiId,
         startDate: "2025-01-01",
         endDate: "2026-01-01",
         annualUsageKwh: 50_000,
@@ -346,7 +485,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
       const created = await createOne(token, {
-        esiId: seededEsis.a,
+        esiId: seededEsis.a.esiId,
         supplier: "before-patch",
       });
       const id = created.row.id as string;
@@ -388,7 +527,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       // Create the row as tenant B.
       const created = await createOne(
         tokenB,
-        { esiId: seededEsis.b, supplier: "rls-target" },
+        { esiId: seededEsis.b.esiId, supplier: "rls-target" },
         HOST_TENANT_B,
       );
       const id = created.row.id as string;
@@ -409,7 +548,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
     it("rejects PATCH that includes grossTcv with 400 VALIDATION", async () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
-      const created = await createOne(token, { esiId: seededEsis.a });
+      const created = await createOne(token, { esiId: seededEsis.a.esiId });
       const id = created.row.id as string;
 
       const res = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
@@ -422,6 +561,23 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       });
       expect(res.status).toBe(400);
     });
+
+    it("rejects PATCH with endDate <= startDate with 400 VALIDATION", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      const created = await createOne(token, { esiId: seededEsis.a.esiId });
+      const id = created.row.id as string;
+
+      const res = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ startDate: "2027-06-01", endDate: "2025-01-01" }),
+      });
+      expect(res.status).toBe(400);
+    });
   });
 
   describe("DELETE /api/contracts/:id", () => {
@@ -429,7 +585,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
       const created = await createOne(token, {
-        esiId: seededEsis.a,
+        esiId: seededEsis.a.esiId,
         supplier: "to-be-deleted",
       });
       const id = created.row.id as string;
@@ -468,7 +624,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const tokenB = await mintJwt({ tenantId: ids.b });
       const created = await createOne(
         tokenB,
-        { esiId: seededEsis.b, supplier: "rls-delete-target" },
+        { esiId: seededEsis.b.esiId, supplier: "rls-delete-target" },
         HOST_TENANT_B,
       );
       const id = created.row.id as string;

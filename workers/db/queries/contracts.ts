@@ -1,6 +1,6 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
-import { contracts } from "../schema";
+import { contracts, esis, serviceAddresses } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
 
 // `contracts.gross_tcv`, `contracts.net_tcv`, `contracts.net_aq` are
@@ -163,18 +163,47 @@ export interface ContractInsert {
 
 export type ContractUpdate = Partial<ContractInsert>;
 
+export interface ContractFilters {
+  esiId?: string;
+  customerId?: string;
+  pipelineStatus?: string;
+  isLive?: boolean;
+}
+
 export async function listContracts(
   db: Db,
   tenantId: string,
-  opts: { limit: number; cursor: Cursor | null; esiId?: string | null },
+  opts: { limit: number; cursor: Cursor | null; filters?: ContractFilters },
 ): Promise<ContractListPage> {
   // Cursor pagination: (created_at desc, id desc). Composite tiebreak avoids
-  // skipping rows that share a timestamp. Optional `esiId` scopes the listing
-  // to one ESI's contracts.
+  // skipping rows that share a timestamp. Optional filters scope the listing
+  // by ESI, owning customer (joined through esis → service_addresses), pipeline
+  // status, or live state.
   //
   // Explicit `tenant_id` predicate is defense in depth (matches RLS) and gives
   // the planner a literal value for the composite index.
   return withTenantContext(db, tenantId, async (tx) => {
+    const { esiId, customerId, pipelineStatus, isLive } = opts.filters ?? {};
+
+    // `customerId` filter resolves to the set of ESI ids owned by service
+    // addresses for that customer. Done as a subquery inside the main WHERE
+    // so the outer query still hits `contracts_tenant_esi_idx`. RLS gates the
+    // subquery just like the main query — cross-tenant customer ids return [].
+    const customerEsiSubquery =
+      customerId !== undefined
+        ? tx
+            .select({ id: esis.id })
+            .from(esis)
+            .innerJoin(serviceAddresses, eq(serviceAddresses.id, esis.serviceAddressId))
+            .where(
+              and(
+                eq(esis.tenantId, tenantId),
+                eq(serviceAddresses.tenantId, tenantId),
+                eq(serviceAddresses.customerId, customerId),
+              ),
+            )
+        : undefined;
+
     const cursorPredicate = opts.cursor
       ? or(
           lt(contracts.createdAt, new Date(opts.cursor.createdAt)),
@@ -186,7 +215,10 @@ export async function listContracts(
       : undefined;
     const where = and(
       eq(contracts.tenantId, tenantId),
-      opts.esiId ? eq(contracts.esiId, opts.esiId) : undefined,
+      esiId !== undefined ? eq(contracts.esiId, esiId) : undefined,
+      customerEsiSubquery !== undefined ? inArray(contracts.esiId, customerEsiSubquery) : undefined,
+      pipelineStatus !== undefined ? eq(contracts.pipelineStatus, pipelineStatus) : undefined,
+      isLive !== undefined ? eq(contracts.isLive, isLive) : undefined,
       cursorPredicate,
     );
 
