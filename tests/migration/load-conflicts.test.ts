@@ -240,7 +240,12 @@ describe.skipIf(!hasTestDb)("loadRow — ON CONFLICT upsert behaviors (DB-gated)
 
     await load(tenantA, initial);
 
-    const changed = { ...initial, customerName: "New Name", primaryEmail: "new@example.com", sicCode: "2222" };
+    const changed = {
+      ...initial,
+      customerName: "New Name",
+      primaryEmail: "new@example.com",
+      sicCode: "2222",
+    };
     const second = await load(tenantA, changed);
     expect(second.counts.customers.updated).toBe(1);
 
@@ -333,7 +338,8 @@ describe.skipIf(!hasTestDb)("loadRow — ON CONFLICT upsert behaviors (DB-gated)
           ),
         )
         .limit(1);
-      const customerId = cust[0]!.id;
+      if (!cust[0]) throw new Error("expected customer row to exist after load");
+      const customerId = cust[0].id;
       return tx
         .select({ id: schema.serviceAddresses.id })
         .from(schema.serviceAddresses)
