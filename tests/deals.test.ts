@@ -250,27 +250,25 @@ describe.skipIf(!hasTestDb)("/api/deals CRUD", () => {
   });
 
   it("GET / honors limit=1 + cursor pagination", async () => {
+    // Preceding POST tests insert ≥2 deals for tenant A — limit=1 MUST
+    // return a non-null cursor and the second page MUST be a different row.
+    expect(dealIds.length).toBeGreaterThanOrEqual(2);
     const token = await mintJwt({ tenantId: tenantAId });
-    // Page 1.
     const r1 = await SELF.fetch(url(HOST_TENANT_A, "/api/deals?limit=1"), {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(r1.status).toBe(200);
     const p1 = (await r1.json()) as DealsPage;
-    expect(p1.items.length).toBeLessThanOrEqual(1);
-    // If there's more than one row, cursor must be set and follow-up page
-    // must not repeat the same id.
-    if (p1.nextCursor) {
-      const r2 = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/deals?limit=1&cursor=${encodeURIComponent(p1.nextCursor)}`),
-        { headers: { authorization: `Bearer ${token}` } },
-      );
-      expect(r2.status).toBe(200);
-      const p2 = (await r2.json()) as DealsPage;
-      if (p2.items[0] && p1.items[0]) {
-        expect(p2.items[0].id).not.toBe(p1.items[0].id);
-      }
-    }
+    expect(p1.items).toHaveLength(1);
+    expect(p1.nextCursor).toBeTruthy();
+    const r2 = await SELF.fetch(
+      url(HOST_TENANT_A, `/api/deals?limit=1&cursor=${encodeURIComponent(p1.nextCursor!)}`),
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(r2.status).toBe(200);
+    const p2 = (await r2.json()) as DealsPage;
+    expect(p2.items).toHaveLength(1);
+    expect(p2.items[0]!.id).not.toBe(p1.items[0]!.id);
   });
 
   it("GET / rejects malformed cursor with 400", async () => {
