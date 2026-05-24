@@ -10,8 +10,10 @@ export default defineConfig({
     cloudflare({ viteEnvironment: { name: "ssr" } }),
     tailwindcss(),
     reactRouter(),
-    // Plugin no-ops when `SENTRY_AUTH_TOKEN` absent (local dev, PR CI without secret).
-    ...(process.env.SENTRY_AUTH_TOKEN
+    // Plugin no-ops when any required Sentry env var is absent (local dev, PR CI without secrets).
+    ...(process.env.SENTRY_AUTH_TOKEN &&
+    process.env.SENTRY_ORG &&
+    process.env.SENTRY_PROJECT
       ? [
           sentryVitePlugin({
             org: process.env.SENTRY_ORG,
