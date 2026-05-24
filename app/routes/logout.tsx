@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import { captureException } from "~/sentry.client";
 import { getSupabaseBrowserClient } from "~/lib/supabase.client";
 
 export function meta() {
@@ -14,10 +15,13 @@ export default function Logout() {
     (async () => {
       try {
         await getSupabaseBrowserClient().auth.signOut();
+      } catch (err) {
+        // Remote revocation can fail (network down, token already revoked,
+        // upstream Supabase error). The SDK has already cleared the local
+        // session before throwing, so the user is effectively logged out —
+        // surface to Sentry for visibility, then proceed with the redirect.
+        captureException(err, { tags: { layer: "auth-logout" } });
       } finally {
-        // Always redirect, even if signOut errored — local session is the
-        // only state we strictly own here, and the SDK clears it before
-        // returning regardless of any remote-revocation outcome.
         if (!cancelled) navigate("/login", { replace: true });
       }
     })();
