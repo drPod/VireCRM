@@ -59,16 +59,25 @@ export async function listCustomers(
   // Composite tiebreak: (created_at desc, id desc). Without `id` in the cursor
   // simultaneous timestamps would skip rows or return duplicates across pages.
   // Index: `customers_tenant_created_idx (tenant_id, created_at desc, id desc)`.
+  //
+  // Explicit `tenant_id = ?` predicate is defense in depth against RLS gaps
+  // (wrong role connecting via Hyperdrive, policy misconfig, future schema
+  // change). It also lets the planner use the composite index with a literal
+  // rather than the `auth.jwt()->>tenant_id` function call from RLS.
   return withTenantContext(db, tenantId, async (tx) => {
+    const tenantPredicate = eq(customers.tenantId, tenantId);
     const where = opts.cursor
-      ? or(
-          lt(customers.createdAt, new Date(opts.cursor.createdAt)),
-          and(
-            eq(customers.createdAt, new Date(opts.cursor.createdAt)),
-            lt(customers.id, opts.cursor.id),
+      ? and(
+          tenantPredicate,
+          or(
+            lt(customers.createdAt, new Date(opts.cursor.createdAt)),
+            and(
+              eq(customers.createdAt, new Date(opts.cursor.createdAt)),
+              lt(customers.id, opts.cursor.id),
+            ),
           ),
         )
-      : undefined;
+      : tenantPredicate;
 
     const rows = await tx
       .select(COLUMNS)
@@ -98,7 +107,7 @@ export async function getCustomerById(
     const rows = await tx
       .select(COLUMNS)
       .from(customers)
-      .where(eq(customers.id, customerId))
+      .where(and(eq(customers.tenantId, tenantId), eq(customers.id, customerId)))
       .limit(1);
     return rows[0] ?? null;
   });
