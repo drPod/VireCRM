@@ -116,7 +116,7 @@ async function main(): Promise<void> {
     // Supabase DB default statement_timeout is 120s — fine for serving traffic,
     // tight for one-shot bulk chunks under shared-tenant contention. Raise to
     // 5min for this script; 57014 still retries via withRetry as a safety net.
-    connection: { statement_timeout: "300000" },
+    connection: { statement_timeout: 300_000 },
   });
   const db = drizzle(client, { schema });
 
