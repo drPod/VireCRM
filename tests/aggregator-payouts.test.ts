@@ -65,8 +65,11 @@ async function seedContract(
 describe.skipIf(!hasTestDb)("aggregator-payouts CRUD", () => {
   // Ordered teardown: `contracts.esi_id → esis` is ON DELETE RESTRICT, so we
   // must drop contracts before customers (whose cascade chain reaches esis).
-  const insertedCustomerIds: string[] = [];
-  const insertedContractIds: string[] = [];
+  // Track per-tenant so teardown runs inside withTenantContext for each.
+  const tenantACustomerIds: string[] = [];
+  const tenantAContractIds: string[] = [];
+  const tenantBCustomerIds: string[] = [];
+  const tenantBContractIds: string[] = [];
   let contractIdA: string;
   let contractIdA2: string;
   let contractIdB: string;
@@ -79,19 +82,43 @@ describe.skipIf(!hasTestDb)("aggregator-payouts CRUD", () => {
     contractIdA = seedA.contractId;
     contractIdA2 = seedA2.contractId;
     contractIdB = seedB.contractId;
-    insertedCustomerIds.push(seedA.customerId, seedA2.customerId, seedB.customerId);
-    insertedContractIds.push(contractIdA, contractIdA2, contractIdB);
+    tenantACustomerIds.push(seedA.customerId, seedA2.customerId);
+    tenantAContractIds.push(contractIdA, contractIdA2);
+    tenantBCustomerIds.push(seedB.customerId);
+    tenantBContractIds.push(contractIdB);
   });
 
   afterAll(async () => {
-    if (insertedCustomerIds.length === 0) return;
     const { makeDb } = await import("../workers/db");
     const { customers, contracts } = await import("../workers/db/schema");
-    const { inArray } = await import("drizzle-orm");
+    const { inArray, and, eq } = await import("drizzle-orm");
+    const { withTenantContext } = await import("../workers/db/with-tenant-context");
     const db = makeDb(env);
-    // BYPASSRLS via `postgres` role for cleanup — tenant-agnostic delete.
-    await db.delete(contracts).where(inArray(contracts.id, insertedContractIds));
-    await db.delete(customers).where(inArray(customers.id, insertedCustomerIds));
+    const ids = await getSeededTenantIds();
+
+    // Tenant A cleanup
+    if (tenantACustomerIds.length > 0) {
+      await withTenantContext(db, ids.a, async (tx) => {
+        await tx.delete(contracts).where(
+          and(eq(contracts.tenantId, ids.a), inArray(contracts.id, tenantAContractIds)),
+        );
+        await tx.delete(customers).where(
+          and(eq(customers.tenantId, ids.a), inArray(customers.id, tenantACustomerIds)),
+        );
+      });
+    }
+
+    // Tenant B cleanup
+    if (tenantBCustomerIds.length > 0) {
+      await withTenantContext(db, ids.b, async (tx) => {
+        await tx.delete(contracts).where(
+          and(eq(contracts.tenantId, ids.b), inArray(contracts.id, tenantBContractIds)),
+        );
+        await tx.delete(customers).where(
+          and(eq(customers.tenantId, ids.b), inArray(customers.id, tenantBCustomerIds)),
+        );
+      });
+    }
   });
 
   it("GET / returns array shape on empty filter", async () => {
@@ -206,8 +233,8 @@ describe.skipIf(!hasTestDb)("aggregator-payouts CRUD", () => {
 
     // Seed 3 rows on a fresh contract to control the page boundary.
     const seed = await seedContract(ids.a);
-    insertedCustomerIds.push(seed.customerId);
-    insertedContractIds.push(seed.contractId);
+    tenantACustomerIds.push(seed.customerId);
+    tenantAContractIds.push(seed.contractId);
     const cid = seed.contractId;
     for (let i = 0; i < 3; i++) {
       await SELF.fetch(url(HOST_TENANT_A, "/api/aggregator-payouts"), {
