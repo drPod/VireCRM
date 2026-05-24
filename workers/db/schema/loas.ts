@@ -1,11 +1,5 @@
-import { pgTable, text, uuid, date, index } from "drizzle-orm/pg-core";
-import {
-  createdAt,
-  id,
-  tenantId,
-  tenantIsolationPolicy,
-  updatedAt,
-} from "./_helpers";
+import { date, index, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { createdAt, id, tenantId, tenantIsolationPolicy, updatedAt } from "./_helpers";
 import { customers } from "./customers";
 
 export const loas = pgTable(
@@ -24,16 +18,8 @@ export const loas = pgTable(
   },
   (t) => [
     index("loas_tenant_idx").on(t.tenantId, t.id),
-    index("loas_tenant_customer_expiration_idx").on(
-      t.tenantId,
-      t.customerId,
-      t.expirationDate,
-    ),
-    index("loas_tenant_created_idx").on(
-      t.tenantId,
-      t.createdAt.desc(),
-      t.id.desc(),
-    ),
+    index("loas_tenant_customer_expiration_idx").on(t.tenantId, t.customerId, t.expirationDate),
+    index("loas_tenant_created_idx").on(t.tenantId, t.createdAt.desc(), t.id.desc()),
     index("loas_tenant_customer_created_idx").on(
       t.tenantId,
       t.customerId,
