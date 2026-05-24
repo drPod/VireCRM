@@ -33,8 +33,9 @@ const handler = {
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN_PUBLIC,
-    // Tracing disabled until a sampling strategy is picked. Error capture only.
-    tracesSampleRate: 0,
+    release: env.CF_VERSION_METADATA?.id ?? "unknown",
+    // 100% transaction sampling — free-tier 5K events/mo cap; revisit at scale or when Stripe billing lands.
+    tracesSampleRate: 1.0,
   }),
   handler,
 );
