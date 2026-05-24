@@ -20,7 +20,7 @@ interface ListResponse {
 }
 
 interface ErrorResponse {
-  error?: { code?: string };
+  error?: { code?: string; details?: { customerId?: string } };
 }
 
 // Single customer per tenant for the whole suite — FK target for LOA rows.
@@ -356,6 +356,73 @@ describe.skipIf(!hasTestDb)("LOAs CRUD", () => {
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(404);
+  });
+
+  it("PATCH /:id with cross-tenant customerId → 400 VALIDATION {customerId: unknown}", async () => {
+    // Reparenting an LOA to a customer that belongs to a DIFFERENT tenant must
+    // be rejected. Cross-tenant existence is hidden under the same shape used
+    // for genuinely-unknown UUIDs so the response doesn't leak whether the row
+    // exists for another tenant.
+    const ids = await getSeededTenantIds();
+    const create = await authedFetch(HOST_TENANT_A, "/api/loas", ids.a, {
+      method: "POST",
+      body: JSON.stringify({ customerId: customerA }),
+    });
+    expect(create.status).toBe(201);
+    const created = (await create.json()) as LoaRow;
+
+    const patch = await authedFetch(HOST_TENANT_A, `/api/loas/${created.id}`, ids.a, {
+      method: "PATCH",
+      body: JSON.stringify({ customerId: customerB }),
+    });
+    expect(patch.status).toBe(400);
+    const body = (await patch.json()) as ErrorResponse;
+    expect(body.error?.code).toBe("VALIDATION");
+    expect(body.error?.details?.customerId).toBe("unknown");
+  });
+
+  it("PATCH /:id with unknown customerId UUID → 400 VALIDATION {customerId: unknown}", async () => {
+    // Same response shape as the cross-tenant case — existence-leak prevention.
+    const ids = await getSeededTenantIds();
+    const create = await authedFetch(HOST_TENANT_A, "/api/loas", ids.a, {
+      method: "POST",
+      body: JSON.stringify({ customerId: customerA }),
+    });
+    expect(create.status).toBe(201);
+    const created = (await create.json()) as LoaRow;
+
+    const patch = await authedFetch(HOST_TENANT_A, `/api/loas/${created.id}`, ids.a, {
+      method: "PATCH",
+      body: JSON.stringify({ customerId: "00000000-0000-4000-8000-000000000999" }),
+    });
+    expect(patch.status).toBe(400);
+    const body = (await patch.json()) as ErrorResponse;
+    expect(body.error?.code).toBe("VALIDATION");
+    expect(body.error?.details?.customerId).toBe("unknown");
+  });
+
+  it("PATCH /:id reparenting to a same-tenant customer → 200", async () => {
+    // Happy-path counter-test: ensures the cross-tenant rejection isn't an
+    // overbroad "any customerId change fails" bug.
+    const ids = await getSeededTenantIds();
+    const customerA2 = await seedCustomer(ids.a, "loa-test-customer-a2");
+    seededCustomerIds.push(customerA2);
+
+    const create = await authedFetch(HOST_TENANT_A, "/api/loas", ids.a, {
+      method: "POST",
+      body: JSON.stringify({ customerId: customerA }),
+    });
+    expect(create.status).toBe(201);
+    const created = (await create.json()) as LoaRow;
+
+    const patch = await authedFetch(HOST_TENANT_A, `/api/loas/${created.id}`, ids.a, {
+      method: "PATCH",
+      body: JSON.stringify({ customerId: customerA2 }),
+    });
+    expect(patch.status).toBe(200);
+    const updated = (await patch.json()) as LoaRow;
+    expect(updated.id).toBe(created.id);
+    expect(updated.customerId).toBe(customerA2);
   });
 
   it("PATCH /:id RLS isolation: tenant A cannot patch tenant B's LOA → 404", async () => {
