@@ -8,8 +8,9 @@ import * as Sentry from "@sentry/react-router";
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
   environment: import.meta.env.MODE,
-  // Tracing disabled until a sampling strategy is picked. Error capture only.
-  tracesSampleRate: 0,
+  release: import.meta.env.VITE_RELEASE,
+  // 100% transaction sampling — free-tier 5K events/mo cap; revisit at scale or when Stripe billing lands.
+  tracesSampleRate: 1.0,
 });
 
 // Re-export so callers in universal modules (e.g. `root.tsx`) don't have to
