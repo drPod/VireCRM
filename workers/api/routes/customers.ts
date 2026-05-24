@@ -1,20 +1,16 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { jsonError } from "../lib/errors";
+import { decodeCursor } from "../../db/queries/_pagination";
+import { getCustomerById, listCustomers } from "../../db/queries/customers";
 import { getDb } from "../get-db";
-import {
-  decodeCursor,
-  getCustomerById,
-  listCustomers,
-} from "../../db/queries/customers";
+import { jsonError } from "../lib/errors";
+import { UUID_RE } from "../lib/request";
 import type { HonoEnv } from "../types";
 
 const ListQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   cursor: z.string().min(1).max(512).optional(),
 });
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const customersRoutes = new Hono<HonoEnv>()
   .get("/", async (c) => {
