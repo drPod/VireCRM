@@ -44,4 +44,11 @@ if git diff --cached --name-only --diff-filter=ACMR | grep -qE '\.(ts|tsx|js|jsx
   bunx --bun @biomejs/biome check --staged --no-errors-on-unmatched || true
 fi
 
+# Warn-only: gitleaks secret scan. The script self-skips when the binary
+# isn't installed (most contributors); CI (.github/workflows/gitleaks.yml)
+# is the enforced gate. Trap non-zero so a positive local detection warns
+# but doesn't block — CI will block the PR. Install: `brew install gitleaks`.
+echo "[pre-commit] gitleaks (warn-only)"
+bash scripts/check-gitleaks.sh || true
+
 echo "[pre-commit] all gates PASS"
