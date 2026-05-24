@@ -107,7 +107,19 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const client = postgres(dbUrl, { prepare: false, max: 5, fetch_types: false });
+  // max:1 — single sequential connection. Fewer dead-socket races (each row's
+  // tx hits the same backend), simpler to reason about for one-shot migration.
+  // connect_timeout:30 — fail fast on initial DNS / TCP issues rather than
+  // hanging forever.
+  // idle_timeout:0 — never kick our own backend; pooler may still drop but
+  // we react to that via the row-level retry loop below.
+  const client = postgres(dbUrl, {
+    prepare: false,
+    max: 1,
+    fetch_types: false,
+    connect_timeout: 30,
+    idle_timeout: 0,
+  });
   const db = drizzle(client, { schema });
 
   try {
@@ -156,26 +168,46 @@ async function main(): Promise<void> {
       await agentCache.prewarm(executor, tenant.id, agentNames);
 
       for (const row of buffered) {
-        try {
-          const result = await loadRow(
-            executor,
-            { tenantId: tenant.id, agentCache, saleIdToContractId },
-            row,
-          );
-          addRowCounts(totals, result.counts);
-          // Only mutate the cross-row map AFTER the per-row tx commits, so a
-          // failed savepoint never leaves a stale UUID for pass 2.
-          saleIdToContractId.set(row.externalSaleId, result.contractId);
-          transformedRows.push(row);
-          processedRows++;
-        } catch (err) {
+        let lastErr: unknown = null;
+        // Supabase Supavisor pooler intermittently kicks long-lived sessions
+        // with CONNECTION_CLOSED (or a follow-up socket.write null-ref). Pool
+        // gives us a fresh backend on the next attempt — retry up to 3 times
+        // with brief backoff before counting the row as failed.
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const result = await loadRow(
+              executor,
+              { tenantId: tenant.id, agentCache, saleIdToContractId },
+              row,
+            );
+            addRowCounts(totals, result.counts);
+            // Only mutate the cross-row map AFTER the per-row tx commits, so a
+            // failed savepoint never leaves a stale UUID for pass 2.
+            saleIdToContractId.set(row.externalSaleId, result.contractId);
+            transformedRows.push(row);
+            processedRows++;
+            lastErr = null;
+            break;
+          } catch (err) {
+            lastErr = err;
+            const msg = err instanceof Error ? err.message : String(err);
+            const transient =
+              msg.includes("CONNECTION_CLOSED") ||
+              msg.includes("socket.write") ||
+              msg.includes("Connection terminated") ||
+              msg.includes("read ECONNRESET");
+            if (!transient || attempt === 3) break;
+            await new Promise((r) => setTimeout(r, 500 * attempt));
+          }
+        }
+        if (lastErr) {
           failedRows++;
           sink.write({
             rowNumber: row.rowNumber,
             column: "row",
             header: "load",
             rawValue: "",
-            reason: `load failed: ${err instanceof Error ? err.message : String(err)}`,
+            reason: `load failed (3 attempts): ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
             severity: "error",
           });
         }
