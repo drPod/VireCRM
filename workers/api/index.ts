@@ -6,6 +6,7 @@ import { errorBoundary } from "./middleware/error-boundary";
 import { jwtVerify } from "./middleware/jwt-verify";
 import { tenantContext } from "./middleware/tenant-context";
 import { healthRoutes } from "./routes/health";
+import { contractsRoutes } from "./routes/contracts";
 import { customersRoutes } from "./routes/customers";
 
 // Middleware order (every protected request):
@@ -25,6 +26,7 @@ api.route("/health", healthRoutes);
 const protectedApi = new Hono<HonoEnv>();
 protectedApi.use("*", jwtVerify);
 protectedApi.use("*", tenantContext);
+protectedApi.route("/contracts", contractsRoutes);
 protectedApi.route("/customers", customersRoutes);
 
 api.route("/", protectedApi);
