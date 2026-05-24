@@ -110,7 +110,7 @@ Every domain-table query MUST:
 
 - **Per-isolate LRU cache TTL 10s** (~256 entries cap) + KV fallback for cold isolates (TTL 60s — CF KV minimum, shorter is rejected by the platform). NOT 30s for in-isolate.
 - **Read-through-after-write.** Request that just wrote bypasses cache.
-- **TODO (Phase 5, gated on first MS Graph call):** Token-bucket rate-limit for any external API w/ hard ceilings (e.g. MS Graph): 5 tokens/sec burst, queue→503 at >20. Not yet implemented — wire via CF `[[ratelimits]]` binding before Outlook code lands.
+- **TODO (Phase 5, gated on first MS Graph call):** Token-bucket rate-limit for any external API w/ hard ceilings (e.g. MS Graph): 5 tokens/sec burst, queue→503 at >20. Not yet implemented — wire via CF `[[ratelimits]]` binding before Outlook code lands. (Doc 07 still labels the same limiter "Phase 1.5"; that label is stale — it was scoped to the now-overturned Airtable backend per Doc 01. MS Graph is the only remaining caller that needs it, and MS Graph integration lives in Phase 5.)
 
 ### Outlook (MS Graph)
 
