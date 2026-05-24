@@ -5,6 +5,7 @@
   "scripts": {
     "build": "react-router build",
     "cf-typegen": "wrangler types",
+    "commitlint": "commitlint --edit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -38,6 +39,8 @@
     "@biomejs/biome": "2.2.4",
     "@cloudflare/vite-plugin": "^1.29.1",
     "@cloudflare/vitest-pool-workers": "^0.16.9",
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@lhci/cli": "^0.15.1",
     "@react-router/dev": "7.15.1",
     "@tailwindcss/vite": "^4.2.2",
