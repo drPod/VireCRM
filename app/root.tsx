@@ -9,6 +9,11 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { AppSidebar } from "./components/layout/app-sidebar";
+import { ThemeProvider } from "./components/layout/theme-provider";
+import { ThemeToggle } from "./components/layout/theme-toggle";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "./components/ui/sidebar";
+import { TooltipProvider } from "./components/ui/tooltip";
 // `sentry.client.ts` runs `Sentry.init` as a side effect and re-exports
 // `captureException`. RR v7 strips `*.client.ts` from the server bundle, so
 // `captureException` is `undefined` during SSR — hence the optional call below.
@@ -46,7 +51,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <ThemeProvider>
+      <TooltipProvider delayDuration={200}>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <header className="flex h-12 items-center gap-2 border-b px-3">
+              <SidebarTrigger />
+              <div className="ml-auto">
+                <ThemeToggle />
+              </div>
+            </header>
+            <div className="flex-1 p-6">
+              <Outlet />
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </TooltipProvider>
+    </ThemeProvider>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -57,9 +81,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   if (isRouteErrorResponse(error)) {
     message = error.status === 404 ? "404" : "Error";
     details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details;
+      error.status === 404 ? "The requested page could not be found." : error.statusText || details;
   } else if (error && error instanceof Error) {
     captureException?.(error);
     if (import.meta.env.DEV) {
