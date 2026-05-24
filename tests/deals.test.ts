@@ -40,8 +40,6 @@ describe.skipIf(!hasTestDb)("/api/deals CRUD", () => {
   let primaryAgentA: string;
   let secondaryAgentA: string;
   let altCustomerA: string;
-  // Tenant B fixture (RLS isolation tests).
-  let dealInBTenant: string;
   // Track everything we insert so cleanup is exhaustive.
   const dealIds: string[] = [];
   const customerIds: string[] = [];
@@ -93,6 +91,9 @@ describe.skipIf(!hasTestDb)("/api/deals CRUD", () => {
     const { inArray } = await import("drizzle-orm");
     const db = makeDb(env);
     // Run as `postgres` (BYPASSRLS) so cleanup spans both tenants in one shot.
+    // `deals.customer_id` is `ON DELETE CASCADE` so wiping customers would
+    // also drop deals — we still delete deals first to make the cleanup
+    // explicit (and to no-op safely if the cascade order ever changes).
     if (dealIds.length > 0) {
       await db.delete(deals).where(inArray(deals.id, dealIds));
     }
@@ -498,7 +499,7 @@ describe.skipIf(!hasTestDb)("/api/deals CRUD", () => {
     customerIds.push(seeded.customerId);
     agentIds.push(seeded.agentId);
     dealIds.push(seeded.dealId);
-    dealInBTenant = seeded.dealId;
+    const dealInBTenant = seeded.dealId;
 
     const tokenA = await mintJwt({ tenantId: tenantAId });
 
@@ -587,5 +588,210 @@ describe.skipIf(!hasTestDb)("/api/deals CRUD", () => {
       { method: "DELETE", headers: { authorization: `Bearer ${token}` } },
     );
     expect(res.status).toBe(404);
+  });
+
+  // ---------- VALIDATION (strict mode + iso.date + empty PATCH) ----------
+
+  it("POST 400 VALIDATION on unknown key (strict mode catches typos)", async () => {
+    const token = await mintJwt({ tenantId: tenantAId });
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/deals"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customerA,
+        primaryAgentId: primaryAgentA,
+        // Typo — should 400 not silently drop.
+        primaryAgnetId: primaryAgentA,
+      }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("PATCH 400 VALIDATION on unknown key", async () => {
+    expect(dealIds[0]).toBeDefined();
+    const token = await mintJwt({ tenantId: tenantAId });
+    const res = await SELF.fetch(
+      url(HOST_TENANT_A, `/api/deals/${dealIds[0]}`),
+      {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ stagee: "Won" }),
+      },
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("PATCH 400 VALIDATION on empty body", async () => {
+    expect(dealIds[0]).toBeDefined();
+    const token = await mintJwt({ tenantId: tenantAId });
+    const res = await SELF.fetch(
+      url(HOST_TENANT_A, `/api/deals/${dealIds[0]}`),
+      {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
+      },
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("POST 400 VALIDATION on impossible saleDate month", async () => {
+    const token = await mintJwt({ tenantId: tenantAId });
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/deals"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customerA,
+        primaryAgentId: primaryAgentA,
+        saleDate: "2026-13-99",
+      }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("POST 400 VALIDATION on impossible saleDate day (Feb 30)", async () => {
+    const token = await mintJwt({ tenantId: tenantAId });
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/deals"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customerA,
+        primaryAgentId: primaryAgentA,
+        saleDate: "2026-02-30",
+      }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  // ---------- CONFLICT (unique externalSaleId) ----------
+
+  it("POST 409 CONFLICT on duplicate externalSaleId within same tenant", async () => {
+    const token = await mintJwt({ tenantId: tenantAId });
+    const externalSaleId = `dup-${crypto.randomUUID()}`;
+
+    const r1 = await SELF.fetch(url(HOST_TENANT_A, "/api/deals"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customerA,
+        primaryAgentId: primaryAgentA,
+        externalSaleId,
+        name: "first",
+      }),
+    });
+    expect(r1.status).toBe(201);
+    const row1 = (await r1.json()) as DealRow;
+    dealIds.push(row1.id);
+
+    const r2 = await SELF.fetch(url(HOST_TENANT_A, "/api/deals"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customerA,
+        primaryAgentId: primaryAgentA,
+        externalSaleId,
+        name: "second",
+      }),
+    });
+    expect(r2.status).toBe(409);
+    const body = (await r2.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("CONFLICT");
+  });
+
+  it("POST 201 with same externalSaleId across tenants (uniqueness scoped per tenant)", async () => {
+    const externalSaleId = `cross-${crypto.randomUUID()}`;
+
+    // Tenant A insert.
+    const tokenA = await mintJwt({ tenantId: tenantAId });
+    const rA = await SELF.fetch(url(HOST_TENANT_A, "/api/deals"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokenA}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: customerA,
+        primaryAgentId: primaryAgentA,
+        externalSaleId,
+        name: "tenant-A copy",
+      }),
+    });
+    expect(rA.status).toBe(201);
+    const rowA = (await rA.json()) as DealRow;
+    dealIds.push(rowA.id);
+
+    // Seed tenant B fixtures inline (suite-scope only carries tenant A).
+    const { makeDb } = await import("../workers/db");
+    const { customers, agents } = await import("../workers/db/schema");
+    const { withTenantContext } = await import(
+      "../workers/db/with-tenant-context"
+    );
+    const db = makeDb(env);
+
+    const seeded = await withTenantContext(db, tenantBId, async (tx) => {
+      const [cust] = await tx
+        .insert(customers)
+        .values({ tenantId: tenantBId, name: "deals-cross-tenant-customer" })
+        .returning({ id: customers.id });
+      const [ag] = await tx
+        .insert(agents)
+        .values({ tenantId: tenantBId, name: "deals-cross-tenant-agent" })
+        .returning({ id: agents.id });
+      return { customerId: cust!.id, agentId: ag!.id };
+    });
+    customerIds.push(seeded.customerId);
+    agentIds.push(seeded.agentId);
+
+    // Tenant B insert with the same externalSaleId should succeed because
+    // uniqueIndex is scoped (tenant_id, external_sale_id).
+    const tokenB = await mintJwt({ tenantId: tenantBId });
+    const rB = await SELF.fetch(url(HOST_TENANT_B, "/api/deals"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokenB}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        customerId: seeded.customerId,
+        primaryAgentId: seeded.agentId,
+        externalSaleId,
+        name: "tenant-B copy",
+      }),
+    });
+    expect(rB.status).toBe(201);
+    const rowB = (await rB.json()) as DealRow;
+    dealIds.push(rowB.id);
+    expect(rowB.externalSaleId).toBe(externalSaleId);
   });
 });

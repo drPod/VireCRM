@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
 import { deals } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
@@ -25,7 +25,7 @@ export interface DealListPage {
   nextCursor: string | null;
 }
 
-interface Cursor {
+export interface Cursor {
   createdAt: string;
   id: string;
 }
@@ -39,6 +39,8 @@ export function decodeCursor(raw: string): Cursor | null {
     const parsed = JSON.parse(atob(raw)) as Partial<Cursor>;
     if (typeof parsed.createdAt !== "string") return null;
     if (typeof parsed.id !== "string") return null;
+    // Reject unparseable timestamps so a malformed cursor doesn't produce a
+    // `NaN` comparison that silently returns the whole table.
     if (Number.isNaN(Date.parse(parsed.createdAt))) return null;
     return { createdAt: parsed.createdAt, id: parsed.id };
   } catch {
@@ -76,42 +78,33 @@ export async function listDeals(
   tenantId: string,
   opts: { limit: number; cursor: Cursor | null; filters: DealFilters },
 ): Promise<DealListPage> {
-  // Composite tiebreak: (created_at desc, id desc). Same shape as customers.
+  // Composite tiebreak: (created_at desc, id desc). Backed by
+  // `deals_tenant_created_idx (tenant_id, created_at desc, id desc)`.
   // Explicit `tenant_id = ?` predicate is defense in depth against RLS gaps
-  // and lets the planner use composite indexes leading with `tenant_id`.
+  // and lets the planner use the composite index with a literal rather than
+  // the `auth.jwt()->>tenant_id` function call from RLS.
   return withTenantContext(db, tenantId, async (tx) => {
-    const conds: SQL[] = [eq(deals.tenantId, tenantId)];
-    if (opts.filters.customerId) {
-      conds.push(eq(deals.customerId, opts.filters.customerId));
-    }
-    if (opts.filters.primaryAgentId) {
-      conds.push(eq(deals.primaryAgentId, opts.filters.primaryAgentId));
-    }
-    if (opts.filters.secondaryAgentId) {
-      conds.push(eq(deals.secondaryAgentId, opts.filters.secondaryAgentId));
-    }
-    if (opts.filters.stage) {
-      conds.push(eq(deals.stage, opts.filters.stage));
-    }
-    if (opts.filters.saleStatus) {
-      conds.push(eq(deals.saleStatus, opts.filters.saleStatus));
-    }
-    if (opts.cursor) {
-      const cursorAt = new Date(opts.cursor.createdAt);
-      // `or(...)` is non-undefined whenever called with ≥1 arg; the SQL[]
-      // array shape forces us to assert non-null here.
-      conds.push(
-        or(
-          lt(deals.createdAt, cursorAt),
-          and(eq(deals.createdAt, cursorAt), lt(deals.id, opts.cursor.id)),
-        )!,
-      );
-    }
+    const { cursor, filters } = opts;
+    const cursorAt = cursor ? new Date(cursor.createdAt) : null;
+    const where = and(
+      eq(deals.tenantId, tenantId),
+      filters.customerId ? eq(deals.customerId, filters.customerId) : undefined,
+      filters.primaryAgentId ? eq(deals.primaryAgentId, filters.primaryAgentId) : undefined,
+      filters.secondaryAgentId ? eq(deals.secondaryAgentId, filters.secondaryAgentId) : undefined,
+      filters.stage ? eq(deals.stage, filters.stage) : undefined,
+      filters.saleStatus ? eq(deals.saleStatus, filters.saleStatus) : undefined,
+      cursor && cursorAt
+        ? or(
+            lt(deals.createdAt, cursorAt),
+            and(eq(deals.createdAt, cursorAt), lt(deals.id, cursor.id)),
+          )
+        : undefined,
+    );
 
     const rows = await tx
       .select(COLUMNS)
       .from(deals)
-      .where(and(...conds))
+      .where(where)
       .orderBy(desc(deals.createdAt), desc(deals.id))
       .limit(opts.limit + 1);
 
@@ -180,13 +173,8 @@ export async function updateDeal(
   dealId: string,
   patch: DealUpdate,
 ): Promise<DealListItem | null> {
-  // Drizzle's `set()` accepts undefined per-key and skips those columns — but
-  // an entirely empty patch produces `UPDATE deals SET WHERE …`, which is a
-  // syntax error. Short-circuit to a plain existence check in that case so
-  // PATCH /:id with `{}` still returns 404-vs-200 correctly.
-  const hasAnyField = Object.values(patch).some((v) => v !== undefined);
-  if (!hasAnyField) return getDealById(db, tenantId, dealId);
-
+  // Empty patches are rejected at the API boundary (route Zod refine), so
+  // `set()` always writes at least one column besides `updatedAt`.
   return withTenantContext(db, tenantId, async (tx) => {
     const rows = await tx
       .update(deals)
