@@ -1,12 +1,6 @@
-import { SELF, env } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  HOST_TENANT_A,
-  HOST_TENANT_B,
-  getSeededTenantIds,
-  hasTestDb,
-  mintJwt,
-} from "./setup";
+import { getSeededTenantIds, HOST_TENANT_A, HOST_TENANT_B, hasTestDb, mintJwt } from "./setup";
 
 const url = (host: string, path: string) => `https://${host}${path}`;
 
@@ -65,9 +59,7 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
 
   afterAll(async () => {
     const { makeDb } = await import("../workers/db");
-    const { contracts, esis, serviceAddresses, customers } = await import(
-      "../workers/db/schema"
-    );
+    const { contracts, esis, serviceAddresses, customers } = await import("../workers/db/schema");
     const { inArray, eq } = await import("drizzle-orm");
     const db = makeDb(env);
 
@@ -153,10 +145,9 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       await createOne(token, { esiId: seededEsis.a, supplier: "cursor-1" });
       await createOne(token, { esiId: seededEsis.a, supplier: "cursor-2" });
 
-      const page1Res = await SELF.fetch(
-        url(HOST_TENANT_A, "/api/contracts?limit=1"),
-        { headers: { authorization: `Bearer ${token}` } },
-      );
+      const page1Res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?limit=1"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
       expect(page1Res.status).toBe(200);
       const page1 = (await page1Res.json()) as {
         items: Array<{ id: string }>;
@@ -191,10 +182,9 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       });
       const mineId = mineRes.row.id as string;
 
-      const filteredRes = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/contracts?esiId=${otherEsi}`),
-        { headers: { authorization: `Bearer ${token}` } },
-      );
+      const filteredRes = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts?esiId=${otherEsi}`), {
+        headers: { authorization: `Bearer ${token}` },
+      });
       expect(filteredRes.status).toBe(200);
       const filtered = (await filteredRes.json()) as {
         items: Array<{ id: string; esiId: string }>;
@@ -206,10 +196,9 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
     it("rejects malformed ?esiId with 400 VALIDATION", async () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
-      const res = await SELF.fetch(
-        url(HOST_TENANT_A, "/api/contracts?esiId=not-a-uuid"),
-        { headers: { authorization: `Bearer ${token}` } },
-      );
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?esiId=not-a-uuid"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
       expect(res.status).toBe(400);
       const body = (await res.json()) as { error?: { code?: string } };
       expect(body.error?.code).toBe("VALIDATION");
@@ -240,7 +229,8 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       };
       // Term years = (end - start) / 365.25 ≈ 1.9986 for 2025→2027 (non-leap span).
       // 100_000 * 1.9986 * 5 / 1000 ≈ 999.32
-      const termYears = (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+      const termYears =
+        (new Date(endDate).getTime() - new Date(startDate).getTime()) /
         (1000 * 60 * 60 * 24 * 365.25);
       const expectedGross = (annualUsageKwh * termYears * agentMils) / 1000;
       expect(row.grossTcv).not.toBeNull();
@@ -315,10 +305,9 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       });
       const id = created.row.id as string;
 
-      const res = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/contracts/${id}`),
-        { headers: { authorization: `Bearer ${token}` } },
-      );
+      const res = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
+        headers: { authorization: `Bearer ${token}` },
+      });
       expect(res.status).toBe(200);
       const row = (await res.json()) as Record<string, unknown>;
       // The three generated columns must be present in the response shape so
@@ -333,10 +322,9 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
     it("returns 404 for a malformed UUID path", async () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });
-      const res = await SELF.fetch(
-        url(HOST_TENANT_A, "/api/contracts/not-a-uuid"),
-        { headers: { authorization: `Bearer ${token}` } },
-      );
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts/not-a-uuid"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
       expect(res.status).toBe(404);
       const body = (await res.json()) as { error?: { code?: string } };
       expect(body.error?.code).toBe("NOT_FOUND");
@@ -363,17 +351,14 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       });
       const id = created.row.id as string;
 
-      const res = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/contracts/${id}`),
-        {
-          method: "PATCH",
-          headers: {
-            authorization: `Bearer ${token}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ supplier: "after-patch", pipelineStatus: "active" }),
+      const res = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
         },
-      );
+        body: JSON.stringify({ supplier: "after-patch", pipelineStatus: "active" }),
+      });
       expect(res.status).toBe(200);
       const row = (await res.json()) as { supplier: string; pipelineStatus: string };
       expect(row.supplier).toBe("after-patch");
@@ -409,17 +394,14 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const id = created.row.id as string;
 
       const tokenA = await mintJwt({ tenantId: ids.a });
-      const res = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/contracts/${id}`),
-        {
-          method: "PATCH",
-          headers: {
-            authorization: `Bearer ${tokenA}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ supplier: "should-not-stick" }),
+      const res = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${tokenA}`,
+          "content-type": "application/json",
         },
-      );
+        body: JSON.stringify({ supplier: "should-not-stick" }),
+      });
       // 403 would leak existence — RLS makes the row invisible, so 404 is right.
       expect(res.status).toBe(404);
     });
@@ -430,17 +412,14 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const created = await createOne(token, { esiId: seededEsis.a });
       const id = created.row.id as string;
 
-      const res = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/contracts/${id}`),
-        {
-          method: "PATCH",
-          headers: {
-            authorization: `Bearer ${token}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ grossTcv: "1234.00" }),
+      const res = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
         },
-      );
+        body: JSON.stringify({ grossTcv: "1234.00" }),
+      });
       expect(res.status).toBe(400);
     });
   });
@@ -455,23 +434,19 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       });
       const id = created.row.id as string;
 
-      const delRes = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/contracts/${id}`),
-        {
-          method: "DELETE",
-          headers: { authorization: `Bearer ${token}` },
-        },
-      );
+      const delRes = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${token}` },
+      });
       expect(delRes.status).toBe(204);
 
       // Confirm it's gone — drop it from the cleanup list since it's already deleted.
       const idx = insertedContractIds.indexOf(id);
       if (idx !== -1) insertedContractIds.splice(idx, 1);
 
-      const getRes = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/contracts/${id}`),
-        { headers: { authorization: `Bearer ${token}` } },
-      );
+      const getRes = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
+        headers: { authorization: `Bearer ${token}` },
+      });
       expect(getRes.status).toBe(404);
     });
 
@@ -499,13 +474,10 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       const id = created.row.id as string;
 
       const tokenA = await mintJwt({ tenantId: ids.a });
-      const res = await SELF.fetch(
-        url(HOST_TENANT_A, `/api/contracts/${id}`),
-        {
-          method: "DELETE",
-          headers: { authorization: `Bearer ${tokenA}` },
-        },
-      );
+      const res = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts/${id}`), {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${tokenA}` },
+      });
       expect(res.status).toBe(404);
     });
   });
