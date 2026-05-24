@@ -453,58 +453,62 @@ export async function loadAllBulk(
 
   // -------- Pass 4: contracts ------------------------------------------------
   // UPSERT keyed on (tenant_id, external_sale_id). Dedup TS-side by
-  // external_sale_id (same last-write-wins). resold_from_contract_id is left
-  // NULL here; pass 8 fills it.
+  // external_sale_id (last-write-wins among VALID rows). resold_from_contract_id
+  // is left NULL here; pass 8 fills it.
+  //
+  // ESI validation MUST run before the Map.set step: previous order let a
+  // valid earlier dup get overwritten by a later dup missing ESI, then the
+  // later dup failed the check, dropping the entire externalSaleId.
   const contractByKey = new Map<string, TransformedRow>();
-  for (const r of rows) contractByKey.set(r.externalSaleId, r);
-  const contractValues = [...contractByKey.values()]
-    .map((r) => {
-      const esiPk = esiMap.get(r.esiId);
-      if (!esiPk) {
-        reportFailure({
-          rowNumber: r.rowNumber,
-          column: "row",
-          header: "load",
-          rawValue: "",
-          reason: "contract pass: no esi resolved (esi pass missed)",
-          severity: "error",
-        });
-        return null;
-      }
-      return {
-        tenantId,
-        esiId: esiPk,
-        externalSaleId: r.externalSaleId,
-        supplier: r.supplier,
-        supplyType: r.supplyType,
-        startDate: r.startDate,
-        endDate: r.endDate,
-        agentMils: r.agentMils,
-        currency: r.currency,
-        fxRate: r.fxRate,
-        pipelineStatus: r.pipelineStatus,
-        isLive: r.isLive,
-        saleType: r.saleType,
-        lostDate: r.lostDate,
-        lostReason: r.lostReason,
-        lostBeforeStart: r.lostBeforeStart,
-        lostAfterLive: r.lostAfterLive,
-        completedPostLive: r.completedPostLive,
-        nomination: r.nomination,
-        paymentTerm: r.paymentTerm,
-        resoldStatus: r.resoldStatus,
-        isResold: r.isResold,
-        annualUsageKwh: r.annualUsageKwh,
-        grossTcvXlsx: r.grossTcvXlsx,
-        netTcvXlsx: r.netTcvXlsx,
-        lostTcv: r.lostTcv,
-        aqLoss: r.aqLoss,
-        aqGain: r.aqGain,
-        aqCheck: r.aqCheck,
-        lostPartial: r.lostPartial,
-      };
-    })
-    .filter((v): v is NonNullable<typeof v> => v !== null);
+  for (const r of rows) {
+    if (!esiMap.has(r.esiId)) {
+      reportFailure({
+        rowNumber: r.rowNumber,
+        column: "row",
+        header: "load",
+        rawValue: "",
+        reason: "contract pass: no esi resolved (esi pass missed)",
+        severity: "error",
+      });
+      continue;
+    }
+    contractByKey.set(r.externalSaleId, r);
+  }
+  const contractValues = [...contractByKey.values()].map((r) => {
+    const esiPk = esiMap.get(r.esiId)!;
+    return {
+      tenantId,
+      esiId: esiPk,
+      externalSaleId: r.externalSaleId,
+      supplier: r.supplier,
+      supplyType: r.supplyType,
+      startDate: r.startDate,
+      endDate: r.endDate,
+      agentMils: r.agentMils,
+      currency: r.currency,
+      fxRate: r.fxRate,
+      pipelineStatus: r.pipelineStatus,
+      isLive: r.isLive,
+      saleType: r.saleType,
+      lostDate: r.lostDate,
+      lostReason: r.lostReason,
+      lostBeforeStart: r.lostBeforeStart,
+      lostAfterLive: r.lostAfterLive,
+      completedPostLive: r.completedPostLive,
+      nomination: r.nomination,
+      paymentTerm: r.paymentTerm,
+      resoldStatus: r.resoldStatus,
+      isResold: r.isResold,
+      annualUsageKwh: r.annualUsageKwh,
+      grossTcvXlsx: r.grossTcvXlsx,
+      netTcvXlsx: r.netTcvXlsx,
+      lostTcv: r.lostTcv,
+      aqLoss: r.aqLoss,
+      aqGain: r.aqGain,
+      aqCheck: r.aqCheck,
+      lostPartial: r.lostPartial,
+    };
+  });
   const contractInsertedKeys = new Set<string>();
   for (const chunk of chunked(contractValues, CHUNK_SIZE)) {
     const result = await withRetry("contracts chunk", () =>
