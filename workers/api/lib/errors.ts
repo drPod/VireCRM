@@ -10,6 +10,7 @@ export type ErrorCode =
   | "CUSTOMER_PORTAL_NOT_ALLOWED"
   | "VALIDATION"
   | "NOT_FOUND"
+  | "CONFLICT"
   | "INTERNAL";
 
 const DEFAULT_MESSAGES: Record<ErrorCode, string> = {
@@ -21,6 +22,7 @@ const DEFAULT_MESSAGES: Record<ErrorCode, string> = {
   CUSTOMER_PORTAL_NOT_ALLOWED: "Customer-portal tokens cannot access broker routes.",
   VALIDATION: "Request validation failed.",
   NOT_FOUND: "Resource not found.",
+  CONFLICT: "Resource conflict.",
   INTERNAL: "Internal error.",
 };
 

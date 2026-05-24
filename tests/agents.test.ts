@@ -1,12 +1,6 @@
-import { SELF, env } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { afterAll, describe, expect, it } from "vitest";
-import {
-  HOST_TENANT_A,
-  HOST_TENANT_B,
-  getSeededTenantIds,
-  hasTestDb,
-  mintJwt,
-} from "./setup";
+import { getSeededTenantIds, HOST_TENANT_A, HOST_TENANT_B, hasTestDb, mintJwt } from "./setup";
 
 const url = (host: string, path: string) => `https://${host}${path}`;
 
@@ -44,9 +38,7 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as AgentListResponse;
     expect(Array.isArray(body.items)).toBe(true);
-    expect(body.nextCursor === null || typeof body.nextCursor === "string").toBe(
-      true,
-    );
+    expect(body.nextCursor === null || typeof body.nextCursor === "string").toBe(true);
   });
 
   it("POST / creates an agent and GET /:id returns it", async () => {
@@ -73,10 +65,9 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
     expect(created.houseSplitPct).toBe("75.00");
     insertedIds.push(created.id);
 
-    const getRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/agents/${created.id}`),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const getRes = await SELF.fetch(url(HOST_TENANT_A, `/api/agents/${created.id}`), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(getRes.status).toBe(200);
     const fetched = (await getRes.json()) as AgentRow;
     expect(fetched.id).toBe(created.id);
@@ -134,17 +125,14 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
     const created = (await postRes.json()) as AgentRow;
     insertedIds.push(created.id);
 
-    const patchRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/agents/${created.id}`),
-      {
-        method: "PATCH",
-        headers: {
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ name: "Carol Renamed", houseSplitPct: "50.00" }),
+    const patchRes = await SELF.fetch(url(HOST_TENANT_A, `/api/agents/${created.id}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({ name: "Carol Renamed", houseSplitPct: "50.00" }),
+    });
     expect(patchRes.status).toBe(200);
     const updated = (await patchRes.json()) as AgentRow;
     expect(updated.name).toBe("Carol Renamed");
@@ -184,19 +172,15 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
     const created = (await postRes.json()) as AgentRow;
     // Don't push to insertedIds — the DELETE step removes it.
 
-    const delRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/agents/${created.id}`),
-      {
-        method: "DELETE",
-        headers: { authorization: `Bearer ${token}` },
-      },
-    );
+    const delRes = await SELF.fetch(url(HOST_TENANT_A, `/api/agents/${created.id}`), {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(delRes.status).toBe(204);
 
-    const getRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/agents/${created.id}`),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const getRes = await SELF.fetch(url(HOST_TENANT_A, `/api/agents/${created.id}`), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(getRes.status).toBe(404);
   });
 
@@ -226,9 +210,7 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
     const ids = await getSeededTenantIds();
     const { makeDb } = await import("../workers/db");
     const { agents } = await import("../workers/db/schema");
-    const { withTenantContext } = await import(
-      "../workers/db/with-tenant-context"
-    );
+    const { withTenantContext } = await import("../workers/db/with-tenant-context");
 
     const db = makeDb(env);
     const bRow = await withTenantContext(db, ids.b, async (tx) => {
@@ -257,9 +239,7 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
     const ids = await getSeededTenantIds();
     const { makeDb } = await import("../workers/db");
     const { agents } = await import("../workers/db/schema");
-    const { withTenantContext } = await import(
-      "../workers/db/with-tenant-context"
-    );
+    const { withTenantContext } = await import("../workers/db/with-tenant-context");
 
     const db = makeDb(env);
     const bRow = await withTenantContext(db, ids.b, async (tx) => {
@@ -287,9 +267,7 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
     const ids = await getSeededTenantIds();
     const { makeDb } = await import("../workers/db");
     const { agents } = await import("../workers/db/schema");
-    const { withTenantContext } = await import(
-      "../workers/db/with-tenant-context"
-    );
+    const { withTenantContext } = await import("../workers/db/with-tenant-context");
 
     const db = makeDb(env);
     const bRow = await withTenantContext(db, ids.b, async (tx) => {
@@ -329,20 +307,16 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
       insertedIds.push(row.id);
     }
 
-    const firstRes = await SELF.fetch(
-      url(HOST_TENANT_A, "/api/agents?limit=2"),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const firstRes = await SELF.fetch(url(HOST_TENANT_A, "/api/agents?limit=2"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(firstRes.status).toBe(200);
     const firstPage = (await firstRes.json()) as AgentListResponse;
     expect(firstPage.items.length).toBe(2);
     expect(firstPage.nextCursor).toBeTruthy();
 
     const secondRes = await SELF.fetch(
-      url(
-        HOST_TENANT_A,
-        `/api/agents?limit=2&cursor=${encodeURIComponent(firstPage.nextCursor!)}`,
-      ),
+      url(HOST_TENANT_A, `/api/agents?limit=2&cursor=${encodeURIComponent(firstPage.nextCursor!)}`),
       { headers: { authorization: `Bearer ${token}` } },
     );
     expect(secondRes.status).toBe(200);
@@ -357,12 +331,82 @@ describe.skipIf(!hasTestDb)("agents CRUD", () => {
   it("GET / rejects malformed cursor with 400 VALIDATION", async () => {
     const ids = await getSeededTenantIds();
     const token = await mintJwt({ tenantId: ids.a });
-    const res = await SELF.fetch(
-      url(HOST_TENANT_A, "/api/agents?cursor=not-base64"),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/agents?cursor=not-base64"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error?: { code?: string } };
     expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("POST / rejects duplicate email within tenant with 409 CONFLICT", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const email = `dup-${crypto.randomUUID()}@example.com`;
+
+    const firstRes = await SELF.fetch(url(HOST_TENANT_A, "/api/agents"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ name: "First", email }),
+    });
+    expect(firstRes.status).toBe(201);
+    insertedIds.push(((await firstRes.json()) as AgentRow).id);
+
+    const dupRes = await SELF.fetch(url(HOST_TENANT_A, "/api/agents"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ name: "Second", email }),
+    });
+    expect(dupRes.status).toBe(409);
+    const body = (await dupRes.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("CONFLICT");
+  });
+
+  it("PATCH /:id rejects email collision with 409 CONFLICT", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const emailA = `patch-a-${crypto.randomUUID()}@example.com`;
+    const emailB = `patch-b-${crypto.randomUUID()}@example.com`;
+
+    const resA = await SELF.fetch(url(HOST_TENANT_A, "/api/agents"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ name: "PatchA", email: emailA }),
+    });
+    expect(resA.status).toBe(201);
+    insertedIds.push(((await resA.json()) as AgentRow).id);
+
+    const resB = await SELF.fetch(url(HOST_TENANT_A, "/api/agents"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ name: "PatchB", email: emailB }),
+    });
+    expect(resB.status).toBe(201);
+    const bRow = (await resB.json()) as AgentRow;
+    insertedIds.push(bRow.id);
+
+    const collideRes = await SELF.fetch(url(HOST_TENANT_A, `/api/agents/${bRow.id}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ email: emailA }),
+    });
+    expect(collideRes.status).toBe(409);
+    const body = (await collideRes.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("CONFLICT");
   });
 });

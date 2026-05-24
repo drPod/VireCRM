@@ -1,7 +1,8 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "../index";
 import { agents } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
+import { buildNextCursor, type Cursor, keysetWhere } from "./_pagination";
 
 export interface AgentListItem {
   id: string;
@@ -14,27 +15,6 @@ export interface AgentListItem {
 export interface AgentListPage {
   items: AgentListItem[];
   nextCursor: string | null;
-}
-
-interface Cursor {
-  createdAt: string;
-  id: string;
-}
-
-function encodeCursor(c: Cursor): string {
-  return btoa(JSON.stringify(c));
-}
-
-export function decodeCursor(raw: string): Cursor | null {
-  try {
-    const parsed = JSON.parse(atob(raw)) as Partial<Cursor>;
-    if (typeof parsed.createdAt !== "string") return null;
-    if (typeof parsed.id !== "string") return null;
-    if (Number.isNaN(Date.parse(parsed.createdAt))) return null;
-    return { createdAt: parsed.createdAt, id: parsed.id };
-  } catch {
-    return null;
-  }
 }
 
 const COLUMNS = {
@@ -50,25 +30,15 @@ export async function listAgents(
   tenantId: string,
   opts: { limit: number; cursor: Cursor | null },
 ): Promise<AgentListPage> {
-  // Composite tiebreak: (created_at desc, id desc). Without `id` in the cursor
-  // simultaneous timestamps would skip rows or return duplicates across pages.
-  //
   // Explicit `tenant_id = ?` predicate is defense in depth against RLS gaps
   // (wrong role connecting via Hyperdrive, policy misconfig, future schema
-  // change).
+  // change). It also lets the planner use the composite index
+  // `agents_tenant_created_idx (tenant_id, created_at desc, id desc)` with a
+  // literal rather than the `auth.jwt()->>tenant_id` function call from RLS.
   return withTenantContext(db, tenantId, async (tx) => {
     const tenantPredicate = eq(agents.tenantId, tenantId);
     const where = opts.cursor
-      ? and(
-          tenantPredicate,
-          or(
-            lt(agents.createdAt, new Date(opts.cursor.createdAt)),
-            and(
-              eq(agents.createdAt, new Date(opts.cursor.createdAt)),
-              lt(agents.id, opts.cursor.id),
-            ),
-          ),
-        )
+      ? and(tenantPredicate, keysetWhere(COLUMNS, opts.cursor))
       : tenantPredicate;
 
     const rows = await tx
@@ -78,15 +48,7 @@ export async function listAgents(
       .orderBy(desc(agents.createdAt), desc(agents.id))
       .limit(opts.limit + 1);
 
-    const hasMore = rows.length > opts.limit;
-    const items = hasMore ? rows.slice(0, opts.limit) : rows;
-    const last = items[items.length - 1];
-    const nextCursor =
-      hasMore && last
-        ? encodeCursor({ createdAt: last.createdAt.toISOString(), id: last.id })
-        : null;
-
-    return { items, nextCursor };
+    return buildNextCursor(rows, opts.limit);
   });
 }
 
@@ -160,11 +122,7 @@ export async function updateAgent(
   });
 }
 
-export async function deleteAgent(
-  db: Db,
-  tenantId: string,
-  agentId: string,
-): Promise<boolean> {
+export async function deleteAgent(db: Db, tenantId: string, agentId: string): Promise<boolean> {
   return withTenantContext(db, tenantId, async (tx) => {
     const rows = await tx
       .delete(agents)

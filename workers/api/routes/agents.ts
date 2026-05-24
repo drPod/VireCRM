@@ -1,15 +1,17 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { jsonError } from "../lib/errors";
-import { getDb } from "../get-db";
+import { decodeCursor } from "../../db/queries/_pagination";
+import { isUniqueViolation } from "../../db/queries/_pg-errors";
 import {
   createAgent,
-  decodeCursor,
   deleteAgent,
   getAgentById,
   listAgents,
   updateAgent,
 } from "../../db/queries/agents";
+import { getDb } from "../get-db";
+import { jsonError } from "../lib/errors";
+import { readJson, UUID_RE } from "../lib/request";
 import type { HonoEnv } from "../types";
 
 const ListQuery = z.object({
@@ -49,7 +51,10 @@ const UpdateBody = z
     message: "at least one field required",
   });
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL_CONFLICT_DETAILS = {
+  field: "email",
+  message: "email already exists for this tenant",
+};
 
 export const agentsRoutes = new Hono<HonoEnv>()
   .get("/", async (c) => {
@@ -83,27 +88,30 @@ export const agentsRoutes = new Hono<HonoEnv>()
     return c.json(row);
   })
   .post("/", async (c) => {
-    let raw: unknown;
-    try {
-      raw = await c.req.json();
-    } catch {
+    const raw = await readJson(c);
+    if (raw === null) {
       return jsonError(c, 400, "VALIDATION", { body: "invalid JSON" });
     }
     const parsed = CreateBody.safeParse(raw);
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
-    const row = await createAgent(getDb(c), c.get("tenantId"), parsed.data);
-    return c.json(row, 201);
+    try {
+      const row = await createAgent(getDb(c), c.get("tenantId"), parsed.data);
+      return c.json(row, 201);
+    } catch (err) {
+      if (isUniqueViolation(err, "agents_tenant_email_idx")) {
+        return jsonError(c, 409, "CONFLICT", EMAIL_CONFLICT_DETAILS);
+      }
+      throw err;
+    }
   })
   .patch("/:id", async (c) => {
     const id = c.req.param("id");
     if (!UUID_RE.test(id)) return jsonError(c, 404, "NOT_FOUND");
 
-    let raw: unknown;
-    try {
-      raw = await c.req.json();
-    } catch {
+    const raw = await readJson(c);
+    if (raw === null) {
       return jsonError(c, 400, "VALIDATION", { body: "invalid JSON" });
     }
     const parsed = UpdateBody.safeParse(raw);
@@ -111,9 +119,16 @@ export const agentsRoutes = new Hono<HonoEnv>()
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
 
-    const row = await updateAgent(getDb(c), c.get("tenantId"), id, parsed.data);
-    if (!row) return jsonError(c, 404, "NOT_FOUND");
-    return c.json(row);
+    try {
+      const row = await updateAgent(getDb(c), c.get("tenantId"), id, parsed.data);
+      if (!row) return jsonError(c, 404, "NOT_FOUND");
+      return c.json(row);
+    } catch (err) {
+      if (isUniqueViolation(err, "agents_tenant_email_idx")) {
+        return jsonError(c, 409, "CONFLICT", EMAIL_CONFLICT_DETAILS);
+      }
+      throw err;
+    }
   })
   .delete("/:id", async (c) => {
     const id = c.req.param("id");

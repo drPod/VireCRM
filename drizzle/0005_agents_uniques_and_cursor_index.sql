@@ -1,0 +1,2 @@
+CREATE INDEX "agents_tenant_created_idx" ON "agents" USING btree ("tenant_id","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);--> statement-breakpoint
+CREATE UNIQUE INDEX "agents_tenant_email_idx" ON "agents" USING btree ("tenant_id","email");

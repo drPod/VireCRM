@@ -1,11 +1,5 @@
-import { pgTable, text, numeric, index } from "drizzle-orm/pg-core";
-import {
-  createdAt,
-  id,
-  tenantId,
-  tenantIsolationPolicy,
-  updatedAt,
-} from "./_helpers";
+import { index, numeric, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { createdAt, id, tenantId, tenantIsolationPolicy, updatedAt } from "./_helpers";
 
 export const agents = pgTable(
   "agents",
@@ -20,6 +14,8 @@ export const agents = pgTable(
   },
   (t) => [
     index("agents_tenant_idx").on(t.tenantId, t.id),
+    index("agents_tenant_created_idx").on(t.tenantId, t.createdAt.desc(), t.id.desc()),
+    uniqueIndex("agents_tenant_email_idx").on(t.tenantId, t.email),
     tenantIsolationPolicy("agents"),
   ],
 ).enableRLS();
