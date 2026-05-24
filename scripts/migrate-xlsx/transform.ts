@@ -13,7 +13,12 @@ import type { QuarantineRecord, RawRow, TransformedRow } from "./types";
 const US_STATE_2 = /^[A-Z]{2}$/;
 const ALLOWED_SUPPLY_TYPES = new Set(["Non-HH", "Gas", "Electricity"]);
 const DASH_NULL_COLS = new Set(["I", "AT", "AU", "AV", "BE", "BF"]);
-const ESI_ID_FORMAT = /^\d{17,22}$/;
+// xlsx col E ("Meter Number") is colloquial — true 17-22 digit Oncor ESI IDs
+// mix with legacy short meter IDs (10-16 digits) and longer Centerpoint-style
+// variants (23 digits). Per round-trip principle accept any digit-only value;
+// only quarantine if non-digit chars appear (real precision loss surfaces as
+// scientific notation or a decimal point).
+const ESI_ID_FORMAT = /^\d+$/;
 
 export interface TransformResult {
   row: TransformedRow | null; // null → row should be skipped
@@ -57,10 +62,15 @@ export function transformRow(
   const externalSaleId = requireField("B", "Sale Id");
   const externalCustomerId = requireField("BG", "Customer Id");
   const customerName = requireField("D", "Customer Name");
-  const esiId = requireField("E", "Meter Number / ESI ID");
-  if (!externalSaleId || !externalCustomerId || !customerName || !esiId) {
+  const esiIdRaw = requireField("E", "Meter Number / ESI ID");
+  if (!externalSaleId || !externalCustomerId || !customerName || !esiIdRaw) {
     return { row: null, quarantine };
   }
+
+  // Source xlsx wraps every ESI cell as `` `<digits>` `` — backticks force
+  // text-format display in Excel. Strip them before validation; backticks are
+  // never valid ESI chars, only presentation cruft from the export.
+  const esiId = esiIdRaw.replace(/^`+|`+$/g, "");
 
   // ESI ID precision check. xlsx cells formatted as Number lose precision at
   // 16+ digits in JS (`9.007e15` ceiling) — silent corruption. If col E is
@@ -74,7 +84,7 @@ export function transformRow(
       column: "E",
       header: headers["E"] ?? "Meter Number / ESI ID",
       rawValue: esiId,
-      reason: `ESI ID "${esiId}" does not match /^\\d{17,22}$/ — likely numeric-format precision loss in xlsx (col must be text-formatted) — row skipped`,
+      reason: `ESI ID "${esiId}" contains non-digit chars — likely xlsx numeric-format precision loss or polluted cell — row skipped`,
       severity: "error",
     });
     return { row: null, quarantine };
