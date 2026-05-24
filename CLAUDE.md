@@ -82,7 +82,7 @@ Rejected and why (don't re-propose):
 - **Tenant claim lives in `app_metadata.tenant_id` ONLY** (server-write-only). NEVER trust `user_metadata` for authz.
 - **Request URL hostname = expected tenant; JWT claim = actual. Mismatch = 403.** Subdomain extracted via `new URL(c.req.url).hostname`, NOT `c.req.header("host")` — Miniflare's `SELF.fetch` test harness builds Requests with the URL but no Host header, so reading the header would short-circuit every test to 403 `TENANT_SCOPE_INVALID`. In production both fields match.
 - **Customer-portal JWTs** (`customers.virecrm.com`) carry `role: customer` + `customer_id`. NOT `tenant_id`.
-- **RLS on every domain table.** Wrap `(SELECT auth.uid())` in policies to memoize.
+- **RLS on every domain table.** Wrap `(SELECT auth.jwt() ->> 'tenant_id')` in policies to memoize (SELECT-wrapping caches the function call across USING + WITH CHECK clauses).
 - **Two audiences, two subdomains.** `<tenant>.virecrm.com` = broker admin. `customers.virecrm.com` = end-customer portal (scope TBD).
 - **Supabase enforces global email uniqueness.** One email = one user globally; flag if user crosses tenants.
 
@@ -108,9 +108,9 @@ Every domain-table query MUST:
 
 ### Cache + rate
 
-- **Per-isolate LRU cache TTL 10s** (~256 entries cap) + KV fallback for cold isolates (TTL 10s). NOT 30-60s.
+- **Per-isolate LRU cache TTL 10s** (~256 entries cap) + KV fallback for cold isolates (TTL 60s — CF KV minimum, shorter is rejected by the platform). NOT 30s for in-isolate.
 - **Read-through-after-write.** Request that just wrote bypasses cache.
-- **Token bucket rate-limit** for any external API w/ hard ceilings (e.g. MS Graph): 5 tokens/sec burst, queue→503 at >20.
+- **TODO (Phase 5, gated on first MS Graph call):** Token-bucket rate-limit for any external API w/ hard ceilings (e.g. MS Graph): 5 tokens/sec burst, queue→503 at >20. Not yet implemented — wire via CF `[[ratelimits]]` binding before Outlook code lands. (Doc 07 still labels the same limiter "Phase 1.5"; that label is stale — it was scoped to the now-overturned Airtable backend per Doc 01. MS Graph is the only remaining caller that needs it, and MS Graph integration lives in Phase 5.)
 
 ### Outlook (MS Graph)
 

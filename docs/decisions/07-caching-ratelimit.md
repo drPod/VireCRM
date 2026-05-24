@@ -2,6 +2,8 @@
 
 > **⚠ Agent-authored.** Drafted by AI agents from research + conversation context. Expect AI-pattern reasoning, **and expect baked-in assumptions** — agents make assumptions constantly (about scale, intent, prior art, constraints) and confidence does not equal correctness. Do not blindly follow this doc; verify load-bearing claims, assumptions included, before relying on them.
 
+> **⚠ Partially obsolete since Doc 01.** Backend pivoted from Airtable to Postgres day 1. Anything in this doc framed around "Airtable 5 req/sec per base" / "30s base-wide lockout" / "Phase 1.5 Airtable token bucket" no longer applies. The surviving idea is the token-bucket pattern itself — MS Graph is now the only caller that needs it, and that work lives in Phase 5 (Outlook integration), not Phase 1.5. Cache TTL guidance (per-isolate LRU 10s + KV 60s platform-min) also survives. Treat the Airtable-specific math as historical context only.
+
 Vetting decisions in `CLAUDE.md` §Conventions and `TASKS.md` Phase 1.5:
 
 1. KV read cache, TTL 30–60s, invalidate on writes.

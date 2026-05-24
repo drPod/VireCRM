@@ -11,10 +11,7 @@ import type { TransformedRow } from "./types";
 
 function normalize(s: string | null | undefined): string {
   if (!s) return "";
-  return s
-    .toUpperCase()
-    .replace(/[^A-Z0-9|]/g, "")
-    .replace(/\s+/g, "");
+  return s.toUpperCase().replace(/[^A-Z0-9|]/g, "");
 }
 
 export function addressKey(row: TransformedRow): string {
