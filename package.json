@@ -14,6 +14,7 @@
     "format": "biome format --write .",
     "knip": "knip",
     "lint": "biome check .",
+    "lint:secrets": "bash scripts/check-gitleaks.sh",
     "postinstall": "wrangler types && bash scripts/sync-npm-types.sh",
     "prepare": "git config core.hooksPath .githooks || true",
     "preview": "react-router build && vite preview",

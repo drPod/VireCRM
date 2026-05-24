@@ -1,0 +1,35 @@
+name: gitleaks
+
+# Secret-scan workflow. Runs the gitleaks/gitleaks-action which auto-installs
+# the Go binary and invokes `gitleaks detect --redact` across the checked-out
+# tree (full history via fetch-depth: 0).
+#
+# License note: gitleaks-action is free for public repos. The repo `drPod/VireCRM`
+# is public — no GITLEAKS_LICENSE secret required. If the repo flips to private,
+# either purchase a license or replace with a manual binary install step.
+#
+# Blocking by default: the repo handles Supabase service role, Stripe sk_live,
+# and MS Graph client secret (see CLAUDE.md "Secrets locations"). Any positive
+# detection should fail the PR.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: gitleaks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
