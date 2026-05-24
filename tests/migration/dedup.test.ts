@@ -1,8 +1,9 @@
 import { env } from "cloudflare:test";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  addressKey,
   AgentCache,
+  addressKey,
+  findServiceAddressByKey,
   normalizeAgentName,
 } from "../../scripts/migrate-xlsx/dedup";
 import type { TransformedRow } from "../../scripts/migrate-xlsx/types";
@@ -107,9 +108,7 @@ describe("addressKey — variants collapse", () => {
   };
 
   it("case differences collapse", () => {
-    expect(addressKey(makeRow(base))).toBe(
-      addressKey(makeRow({ ...base, city: "HOUSTON" })),
-    );
+    expect(addressKey(makeRow(base))).toBe(addressKey(makeRow({ ...base, city: "HOUSTON" })));
   });
 
   it("internal double-space collapses", () => {
@@ -125,9 +124,7 @@ describe("addressKey — variants collapse", () => {
   });
 
   it("leading/trailing whitespace collapses", () => {
-    expect(addressKey(makeRow(base))).toBe(
-      addressKey(makeRow({ ...base, city: "  Houston  " })),
-    );
+    expect(addressKey(makeRow(base))).toBe(addressKey(makeRow({ ...base, city: "  Houston  " })));
   });
 
   it("null vs empty string in a segment produce same key", () => {
@@ -136,14 +133,27 @@ describe("addressKey — variants collapse", () => {
     );
   });
 
-  it("two all-null rows produce the same key", () => {
-    // normalize() preserves `|` separators, so the all-null key is "||||||"
-    // (six pipes), not "". load.ts only short-circuits on exact "", so callers
-    // must be aware that two all-null rows will dedup against each other via
-    // findServiceAddressByKey.
-    expect(addressKey(makeRow(ALL_NULL_ADDRESS))).toBe(
-      addressKey(makeRow(ALL_NULL_ADDRESS)),
-    );
+  it("all-null address returns empty string (treated as 'no address')", () => {
+    // Empty string triggers load.ts short-circuit → INSERT a fresh row instead
+    // of dedup-collapsing every null-address row together via the SQL match.
+    expect(addressKey(makeRow(ALL_NULL_ADDRESS))).toBe("");
+  });
+
+  it("all-empty-string address returns empty string", () => {
+    const allEmpty = {
+      streetNo: "",
+      streetName: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      state: "",
+      zip: "",
+    };
+    expect(addressKey(makeRow(allEmpty))).toBe("");
+  });
+
+  it("single non-null component → non-empty key", () => {
+    expect(addressKey(makeRow({ ...ALL_NULL_ADDRESS, zip: "77001" }))).not.toBe("");
   });
 });
 
@@ -159,27 +169,19 @@ describe("addressKey — distinct addresses produce distinct keys", () => {
   };
 
   it("different streetNo → different keys", () => {
-    expect(addressKey(makeRow(base))).not.toBe(
-      addressKey(makeRow({ ...base, streetNo: "456" })),
-    );
+    expect(addressKey(makeRow(base))).not.toBe(addressKey(makeRow({ ...base, streetNo: "456" })));
   });
 
   it("different city → different keys", () => {
-    expect(addressKey(makeRow(base))).not.toBe(
-      addressKey(makeRow({ ...base, city: "Dallas" })),
-    );
+    expect(addressKey(makeRow(base))).not.toBe(addressKey(makeRow({ ...base, city: "Dallas" })));
   });
 
   it("different zip → different keys", () => {
-    expect(addressKey(makeRow(base))).not.toBe(
-      addressKey(makeRow({ ...base, zip: "77002" })),
-    );
+    expect(addressKey(makeRow(base))).not.toBe(addressKey(makeRow({ ...base, zip: "77002" })));
   });
 
   it("different state → different keys", () => {
-    expect(addressKey(makeRow(base))).not.toBe(
-      addressKey(makeRow({ ...base, state: "OK" })),
-    );
+    expect(addressKey(makeRow(base))).not.toBe(addressKey(makeRow({ ...base, state: "OK" })));
   });
 });
 
@@ -238,13 +240,11 @@ describe("AgentCache.get — pure lookup, no DB", () => {
 });
 
 // DB-gated. prewarm needs real Postgres; skipped when TEST_DB_URL unset.
-// Wraps each prewarm call in withTenantContext because the test connection
-// has RLS enabled (unlike the migration script, which runs as service_role
-// with BYPASSRLS). withTenantContext sets the request.jwt.claims GUC so the
-// agents tenant-isolation policy lets inserts/selects through.
+// Test connection has RLS engaged (unlike the script's service_role path);
+// withTenantContext sets request.jwt.claims so the agents policy admits the
+// insert/select.
 describe.skipIf(!hasTestDb)("AgentCache.prewarm — DB-gated", () => {
-  // Lazy module handles populated in beforeAll. Avoids eagerly loading drizzle
-  // when the whole block is skipped.
+  // Lazy-import inside beforeAll — skip path shouldn't pay the drizzle load.
   let mods: {
     makeDb: typeof import("../../workers/db")["makeDb"];
     agents: typeof import("../../workers/db/schema")["agents"];
@@ -279,18 +279,11 @@ describe.skipIf(!hasTestDb)("AgentCache.prewarm — DB-gated", () => {
     if (names.length === 0) return;
     const { makeDb, agents, withTenantContext, eq, and, inArray } = mods;
     await withTenantContext(makeDb(env), tenantA, async (tx) => {
-      await tx
-        .delete(agents)
-        .where(and(eq(agents.tenantId, tenantA), inArray(agents.name, names)));
+      await tx.delete(agents).where(and(eq(agents.tenantId, tenantA), inArray(agents.name, names)));
     });
   }
 
-  // Run prewarm under a tenant-scoped tx so the agents RLS policy admits the
-  // insert/select (test connection isn't BYPASSRLS).
-  async function prewarmInTenantCtx(
-    cache: AgentCache,
-    names: Iterable<string>,
-  ): Promise<void> {
+  async function prewarmInTenantCtx(cache: AgentCache, names: Iterable<string>): Promise<void> {
     await mods.withTenantContext(mods.makeDb(env), tenantA, async (tx) => {
       await cache.prewarm(tx, tenantA, new Set(names));
     });
@@ -386,5 +379,190 @@ describe.skipIf(!hasTestDb)("AgentCache.prewarm — DB-gated", () => {
     expect(second.insertedCount).toBe(0);
     expect(second.reusedCount).toBe(1);
     expect(second.get(eveName)).toBe(firstId);
+  });
+});
+
+// DB-gated. Pins SQL normalize ↔ TS normalize parity. load.ts computes the
+// key TS-side then queries SQL-side rows — any drift = silent dedup misses.
+describe.skipIf(!hasTestDb)("findServiceAddressByKey — DB-gated", () => {
+  let mods: {
+    makeDb: typeof import("../../workers/db")["makeDb"];
+    serviceAddresses: typeof import("../../workers/db/schema")["serviceAddresses"];
+    customers: typeof import("../../workers/db/schema")["customers"];
+    withTenantContext: typeof import("../../workers/db/with-tenant-context")["withTenantContext"];
+    eq: typeof import("drizzle-orm")["eq"];
+    and: typeof import("drizzle-orm")["and"];
+  };
+  let tenantA: string;
+  let customerId: string;
+  const TEST_CUSTOMER_EXT = "dedup-test-findAddr-customer";
+
+  // Insert a service_address from the 7 address fields of a TransformedRow,
+  // return its id. Used 3× below — extracted to keep the test bodies focused
+  // on the query-side assertion.
+  async function insertServiceAddress(row: TransformedRow): Promise<string> {
+    return mods.withTenantContext(mods.makeDb(env), tenantA, async (tx) => {
+      const rows = await tx
+        .insert(mods.serviceAddresses)
+        .values({
+          tenantId: tenantA,
+          customerId,
+          streetNo: row.streetNo,
+          streetName: row.streetName,
+          city: row.city,
+          state: row.state,
+          zip: row.zip,
+        })
+        .returning({ id: mods.serviceAddresses.id });
+      return rows[0]!.id;
+    });
+  }
+
+  async function findByKey(cId: string, key: string): Promise<string | null> {
+    return mods.withTenantContext(mods.makeDb(env), tenantA, async (tx) =>
+      findServiceAddressByKey(tx, tenantA, cId, key),
+    );
+  }
+
+  beforeAll(async () => {
+    const [dbMod, schemaMod, ctxMod, orm, ids] = await Promise.all([
+      import("../../workers/db"),
+      import("../../workers/db/schema"),
+      import("../../workers/db/with-tenant-context"),
+      import("drizzle-orm"),
+      getSeededTenantIds(),
+    ]);
+    mods = {
+      makeDb: dbMod.makeDb,
+      serviceAddresses: schemaMod.serviceAddresses,
+      customers: schemaMod.customers,
+      withTenantContext: ctxMod.withTenantContext,
+      eq: orm.eq,
+      and: orm.and,
+    };
+    tenantA = ids.a;
+
+    // Dedicated test customer = isolated FK target, won't collide with seeds.
+    customerId = await mods.withTenantContext(mods.makeDb(env), tenantA, async (tx) => {
+      const existing = await tx
+        .select({ id: mods.customers.id })
+        .from(mods.customers)
+        .where(
+          mods.and(
+            mods.eq(mods.customers.tenantId, tenantA),
+            mods.eq(mods.customers.externalCustomerId, TEST_CUSTOMER_EXT),
+          ),
+        )
+        .limit(1);
+      if (existing[0]) return existing[0].id;
+      const inserted = await tx
+        .insert(mods.customers)
+        .values({
+          tenantId: tenantA,
+          name: "dedup-test-findAddr",
+          externalCustomerId: TEST_CUSTOMER_EXT,
+        })
+        .returning({ id: mods.customers.id });
+      return inserted[0]!.id;
+    });
+  });
+
+  afterAll(async () => {
+    // service_addresses cascades from customer; one delete drops both.
+    await mods.withTenantContext(mods.makeDb(env), tenantA, async (tx) => {
+      await tx
+        .delete(mods.customers)
+        .where(
+          mods.and(
+            mods.eq(mods.customers.tenantId, tenantA),
+            mods.eq(mods.customers.externalCustomerId, TEST_CUSTOMER_EXT),
+          ),
+        );
+    });
+  });
+
+  it("finds a matching address by key (canonical form)", async () => {
+    const row = makeRow({
+      streetNo: "100",
+      streetName: "Test Lane",
+      city: "Austin",
+      state: "TX",
+      zip: "78701",
+    });
+    const insertedId = await insertServiceAddress(row);
+    expect(await findByKey(customerId, addressKey(row))).toBe(insertedId);
+  });
+
+  it("SQL normalize matches TS normalize on whitespace + case variants", async () => {
+    const canonical = makeRow({
+      streetNo: "200",
+      streetName: "Main St",
+      city: "Houston",
+      state: "TX",
+      zip: "77002",
+    });
+    const insertedId = await insertServiceAddress(canonical);
+
+    const variants = [
+      canonical,
+      makeRow({ ...canonical, streetName: "main st" }),
+      makeRow({ ...canonical, streetName: "Main  St" }),
+      makeRow({ ...canonical, streetName: "Main St." }),
+      makeRow({ ...canonical, city: "  Houston  " }),
+    ];
+
+    for (const v of variants) {
+      expect(await findByKey(customerId, addressKey(v))).toBe(insertedId);
+    }
+  });
+
+  it("returns null when no row matches the key", async () => {
+    const row = makeRow({
+      streetNo: "999",
+      streetName: "Nonexistent Way",
+      city: "Nowhere",
+      state: "ZZ",
+      zip: "00000",
+    });
+    expect(await findByKey(customerId, addressKey(row))).toBe(null);
+  });
+
+  it("scopes to (tenant, customer): does not return matches from another customer", async () => {
+    const row = makeRow({
+      streetNo: "300",
+      streetName: "Shared Dr",
+      city: "Plano",
+      state: "TX",
+      zip: "75024",
+    });
+    await insertServiceAddress(row);
+
+    const otherCustomerExt = "dedup-test-findAddr-other";
+    const otherCustomerId = await mods.withTenantContext(mods.makeDb(env), tenantA, async (tx) => {
+      const inserted = await tx
+        .insert(mods.customers)
+        .values({
+          tenantId: tenantA,
+          name: "dedup-test-findAddr-other",
+          externalCustomerId: otherCustomerExt,
+        })
+        .returning({ id: mods.customers.id });
+      return inserted[0]!.id;
+    });
+
+    try {
+      expect(await findByKey(otherCustomerId, addressKey(row))).toBe(null);
+    } finally {
+      await mods.withTenantContext(mods.makeDb(env), tenantA, async (tx) => {
+        await tx
+          .delete(mods.customers)
+          .where(
+            mods.and(
+              mods.eq(mods.customers.tenantId, tenantA),
+              mods.eq(mods.customers.externalCustomerId, otherCustomerExt),
+            ),
+          );
+      });
+    }
   });
 });
