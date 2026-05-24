@@ -18,6 +18,38 @@ jobs:
   static-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # Postgres service backing the integration tests that need a real DB
+    # (currently the RLS isolation test in `tests/customers.test.ts`). Without
+    # `TEST_DB_URL` those tests are skipped via `describe.skipIf(!hasTestDb)`;
+    # exposing the service URL below unlocks them so RLS regressions surface
+    # in CI instead of in production.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Single connection string, two consumers:
+      #   - `DATABASE_URL` — `drizzle.config.ts` reads this for `db:migrate`
+      #     and `psql` in the bootstrap step picks it up.
+      #   - `TEST_DB_URL` — vitest.config.ts reads this to (a) feed Miniflare's
+      #     Hyperdrive local connection string and (b) set `HAS_TEST_DB=1`,
+      #     which unblocks the `describe.skipIf(!hasTestDb)` integration tests
+      #     (currently the RLS isolation test in `tests/customers.test.ts`).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      TEST_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
     steps:
       - uses: actions/checkout@v4
 
@@ -42,6 +74,16 @@ jobs:
 
       - name: bundle size gate (check-bundle-size.sh)
         run: bash scripts/check-bundle-size.sh
+
+      # Bootstrap Supabase-shaped roles + `auth.jwt()` stub BEFORE migrations
+      # run, so the `CREATE POLICY ... TO authenticated` statements have a
+      # role to bind against and `withTenantContext`'s `SET LOCAL ROLE
+      # authenticated` succeeds at query time.
+      - name: test DB bootstrap (Supabase roles + auth.jwt stub)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/test-db-bootstrap.sql
+
+      - name: drizzle migrate (apply schema to test DB)
+        run: bun run db:migrate
 
       - name: vitest
         run: bun run test
