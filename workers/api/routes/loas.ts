@@ -1,16 +1,16 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { jsonError } from "../lib/errors";
-import { getDb } from "../get-db";
 import {
-  UnknownCustomerError,
   createLoa,
   decodeCursor,
   deleteLoa,
   getLoaById,
   listLoas,
+  UnknownCustomerError,
   updateLoa,
 } from "../../db/queries/loas";
+import { getDb } from "../get-db";
+import { jsonError } from "../lib/errors";
 import type { HonoEnv } from "../types";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

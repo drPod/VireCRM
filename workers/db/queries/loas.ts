@@ -82,16 +82,11 @@ export async function listLoas(
   // change). Same rationale for `customer_id` predicate when filtering.
   return withTenantContext(db, tenantId, async (tx) => {
     const tenantPredicate = eq(loas.tenantId, tenantId);
-    const customerPredicate = opts.customerId
-      ? eq(loas.customerId, opts.customerId)
-      : undefined;
+    const customerPredicate = opts.customerId ? eq(loas.customerId, opts.customerId) : undefined;
     const cursorPredicate = opts.cursor
       ? or(
           lt(loas.createdAt, new Date(opts.cursor.createdAt)),
-          and(
-            eq(loas.createdAt, new Date(opts.cursor.createdAt)),
-            lt(loas.id, opts.cursor.id),
-          ),
+          and(eq(loas.createdAt, new Date(opts.cursor.createdAt)), lt(loas.id, opts.cursor.id)),
         )
       : undefined;
 
@@ -138,11 +133,7 @@ export interface CreateLoaInput {
   expirationDate?: string | null;
 }
 
-async function assertCustomerInTenant(
-  tx: Db,
-  tenantId: string,
-  customerId: string,
-): Promise<void> {
+async function assertCustomerInTenant(tx: Db, tenantId: string, customerId: string): Promise<void> {
   // RLS-scoped SELECT — if the customer belongs to another tenant the row
   // is invisible and we throw the same `UnknownCustomerError` we'd throw for
   // a missing UUID.
@@ -222,11 +213,7 @@ export async function updateLoa(
   });
 }
 
-export async function deleteLoa(
-  db: Db,
-  tenantId: string,
-  loaId: string,
-): Promise<boolean> {
+export async function deleteLoa(db: Db, tenantId: string, loaId: string): Promise<boolean> {
   return withTenantContext(db, tenantId, async (tx) => {
     const rows = await tx
       .delete(loas)

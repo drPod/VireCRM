@@ -1,12 +1,6 @@
-import { SELF, env } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  HOST_TENANT_A,
-  HOST_TENANT_B,
-  getSeededTenantIds,
-  hasTestDb,
-  mintJwt,
-} from "./setup";
+import { getSeededTenantIds, HOST_TENANT_A, HOST_TENANT_B, hasTestDb, mintJwt } from "./setup";
 
 const url = (host: string, path: string) => `https://${host}${path}`;
 
@@ -107,11 +101,7 @@ describe.skipIf(!hasTestDb)("LOAs CRUD", () => {
 
   it("GET / rejects malformed cursor with 400 VALIDATION", async () => {
     const ids = await getSeededTenantIds();
-    const res = await authedFetch(
-      HOST_TENANT_A,
-      "/api/loas?cursor=not-base64-json",
-      ids.a,
-    );
+    const res = await authedFetch(HOST_TENANT_A, "/api/loas?cursor=not-base64-json", ids.a);
     expect(res.status).toBe(400);
     const body = (await res.json()) as ErrorResponse;
     expect(body.error?.code).toBe("VALIDATION");
@@ -119,11 +109,7 @@ describe.skipIf(!hasTestDb)("LOAs CRUD", () => {
 
   it("GET / rejects malformed customerId with 400 VALIDATION", async () => {
     const ids = await getSeededTenantIds();
-    const res = await authedFetch(
-      HOST_TENANT_A,
-      "/api/loas?customerId=not-a-uuid",
-      ids.a,
-    );
+    const res = await authedFetch(HOST_TENANT_A, "/api/loas?customerId=not-a-uuid", ids.a);
     expect(res.status).toBe(400);
     const body = (await res.json()) as ErrorResponse;
     expect(body.error?.code).toBe("VALIDATION");
@@ -228,11 +214,7 @@ describe.skipIf(!hasTestDb)("LOAs CRUD", () => {
     });
     expect(create.status).toBe(201);
 
-    const res = await authedFetch(
-      HOST_TENANT_A,
-      `/api/loas?customerId=${customerA}`,
-      ids.a,
-    );
+    const res = await authedFetch(HOST_TENANT_A, `/api/loas?customerId=${customerA}`, ids.a);
     expect(res.status).toBe(200);
     const body = (await res.json()) as ListResponse;
     expect(body.items.length).toBeGreaterThanOrEqual(1);
@@ -319,18 +301,13 @@ describe.skipIf(!hasTestDb)("LOAs CRUD", () => {
     expect(create.status).toBe(201);
     const created = (await create.json()) as LoaRow;
 
-    const patch = await authedFetch(
-      HOST_TENANT_A,
-      `/api/loas/${created.id}`,
-      ids.a,
-      {
-        method: "PATCH",
-        body: JSON.stringify({
-          pdfStoragePath: "loas/after.pdf",
-          expirationDate: "2026-03-01",
-        }),
-      },
-    );
+    const patch = await authedFetch(HOST_TENANT_A, `/api/loas/${created.id}`, ids.a, {
+      method: "PATCH",
+      body: JSON.stringify({
+        pdfStoragePath: "loas/after.pdf",
+        expirationDate: "2026-03-01",
+      }),
+    });
     expect(patch.status).toBe(200);
     const updated = (await patch.json()) as LoaRow;
     expect(updated.id).toBe(created.id);
@@ -350,15 +327,10 @@ describe.skipIf(!hasTestDb)("LOAs CRUD", () => {
     });
     const created = (await create.json()) as LoaRow;
 
-    const patch = await authedFetch(
-      HOST_TENANT_A,
-      `/api/loas/${created.id}`,
-      ids.a,
-      {
-        method: "PATCH",
-        body: JSON.stringify({ pdfStoragePath: null }),
-      },
-    );
+    const patch = await authedFetch(HOST_TENANT_A, `/api/loas/${created.id}`, ids.a, {
+      method: "PATCH",
+      body: JSON.stringify({ pdfStoragePath: null }),
+    });
     expect(patch.status).toBe(200);
     const updated = (await patch.json()) as LoaRow;
     expect(updated.pdfStoragePath).toBeNull();
@@ -426,19 +398,12 @@ describe.skipIf(!hasTestDb)("LOAs CRUD", () => {
     });
     const created = (await create.json()) as LoaRow;
 
-    const del = await authedFetch(
-      HOST_TENANT_A,
-      `/api/loas/${created.id}`,
-      ids.a,
-      { method: "DELETE" },
-    );
+    const del = await authedFetch(HOST_TENANT_A, `/api/loas/${created.id}`, ids.a, {
+      method: "DELETE",
+    });
     expect(del.status).toBe(204);
 
-    const after = await authedFetch(
-      HOST_TENANT_A,
-      `/api/loas/${created.id}`,
-      ids.a,
-    );
+    const after = await authedFetch(HOST_TENANT_A, `/api/loas/${created.id}`, ids.a);
     expect(after.status).toBe(404);
   });
 
