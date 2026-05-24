@@ -230,21 +230,46 @@ describe("QuarantineSink — close()", () => {
     await expect(result).resolves.toBeUndefined();
   });
 
-  test("write after close — counters advance, stream write silently discarded", async () => {
-    // QuarantineSink has no guard for post-close writes. Bun's WriteStream
-    // (and Node's, with `autoDestroy` defaults) accept .write() after .end()
-    // without throwing — the data is dropped. _count++ runs unconditionally
-    // before stream.write(), so the counter still moves. Document current
-    // behaviour; if a guard is added later, update this test.
+  test("write after close — throws and counters do not mutate", async () => {
     const path = join(tmpDir, "post-close.jsonl");
     const sink = new QuarantineSink(path);
     await sink.close();
-    const before = sink.count;
-    expect(() => sink.write(makeRecord({ severity: "error" }))).not.toThrow();
-    expect(sink.count).toBe(before + 1);
-    expect(sink.errorCount).toBe(1);
-    // FS contents unchanged: post-close write is dropped.
+    const countBefore = sink.count;
+    const errorCountBefore = sink.errorCount;
+    const stderrCallsBefore = stderrSpy.mock.calls.length;
+
+    expect(() => sink.write(makeRecord({ severity: "error" }))).toThrow(
+      /closed/i,
+    );
+    // Counters must not drift from actual persisted output.
+    expect(sink.count).toBe(countBefore);
+    expect(sink.errorCount).toBe(errorCountBefore);
+    // stderr must not emit — entire write path short-circuited before I/O.
+    expect(stderrSpy.mock.calls.length).toBe(stderrCallsBefore);
+    // FS contents unchanged: no data written.
     expect(readFileSync(path, "utf-8")).toBe("");
+  });
+
+  test("writeMany after close — throws on first record, no counters or I/O", async () => {
+    const path = join(tmpDir, "post-close-many.jsonl");
+    const sink = new QuarantineSink(path);
+    sink.write(makeRecord({ severity: "warn" }));
+    await sink.close();
+
+    const countBefore = sink.count;
+    const errorCountBefore = sink.errorCount;
+    const stderrCallsBefore = stderrSpy.mock.calls.length;
+
+    expect(() =>
+      sink.writeMany([
+        makeRecord({ severity: "error" }),
+        makeRecord({ severity: "warn" }),
+      ]),
+    ).toThrow(/closed/i);
+    // Neither record should have been counted — first throws, second never reached.
+    expect(sink.count).toBe(countBefore);
+    expect(sink.errorCount).toBe(errorCountBefore);
+    expect(stderrSpy.mock.calls.length).toBe(stderrCallsBefore);
   });
 });
 
