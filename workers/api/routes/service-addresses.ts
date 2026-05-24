@@ -1,7 +1,5 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { jsonError } from "../lib/errors";
-import { getDb } from "../get-db";
 import {
   createServiceAddress,
   decodeCursor,
@@ -10,6 +8,8 @@ import {
   listServiceAddresses,
   updateServiceAddress,
 } from "../../db/queries/service-addresses";
+import { getDb } from "../get-db";
+import { jsonError } from "../lib/errors";
 import type { HonoEnv } from "../types";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -99,11 +99,7 @@ export const serviceAddressesRoutes = new Hono<HonoEnv>()
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
-    const row = await createServiceAddress(
-      getDb(c),
-      c.get("tenantId"),
-      parsed.data,
-    );
+    const row = await createServiceAddress(getDb(c), c.get("tenantId"), parsed.data);
     return c.json(row, 201);
   })
   .patch("/:id", async (c) => {
@@ -115,12 +111,7 @@ export const serviceAddressesRoutes = new Hono<HonoEnv>()
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
-    const row = await updateServiceAddress(
-      getDb(c),
-      c.get("tenantId"),
-      id,
-      parsed.data,
-    );
+    const row = await updateServiceAddress(getDb(c), c.get("tenantId"), id, parsed.data);
     if (!row) return jsonError(c, 404, "NOT_FOUND");
     return c.json(row);
   })

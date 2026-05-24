@@ -118,9 +118,7 @@ export async function getServiceAddressById(
     const rows = await tx
       .select(COLUMNS)
       .from(serviceAddresses)
-      .where(
-        and(eq(serviceAddresses.tenantId, tenantId), eq(serviceAddresses.id, id)),
-      )
+      .where(and(eq(serviceAddresses.tenantId, tenantId), eq(serviceAddresses.id, id)))
       .limit(1);
     return rows[0] ?? null;
   });
@@ -167,25 +165,17 @@ export async function updateServiceAddress(
     const rows = await tx
       .update(serviceAddresses)
       .set({ ...input, updatedAt: new Date() })
-      .where(
-        and(eq(serviceAddresses.tenantId, tenantId), eq(serviceAddresses.id, id)),
-      )
+      .where(and(eq(serviceAddresses.tenantId, tenantId), eq(serviceAddresses.id, id)))
       .returning(COLUMNS);
     return rows[0] ?? null;
   });
 }
 
-export async function deleteServiceAddress(
-  db: Db,
-  tenantId: string,
-  id: string,
-): Promise<boolean> {
+export async function deleteServiceAddress(db: Db, tenantId: string, id: string): Promise<boolean> {
   return withTenantContext(db, tenantId, async (tx) => {
     const rows = await tx
       .delete(serviceAddresses)
-      .where(
-        and(eq(serviceAddresses.tenantId, tenantId), eq(serviceAddresses.id, id)),
-      )
+      .where(and(eq(serviceAddresses.tenantId, tenantId), eq(serviceAddresses.id, id)))
       .returning({ id: serviceAddresses.id });
     return rows.length > 0;
   });

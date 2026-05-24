@@ -1,12 +1,6 @@
-import { SELF, env } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { afterAll, describe, expect, it } from "vitest";
-import {
-  HOST_TENANT_A,
-  HOST_TENANT_B,
-  getSeededTenantIds,
-  hasTestDb,
-  mintJwt,
-} from "./setup";
+import { getSeededTenantIds, HOST_TENANT_A, HOST_TENANT_B, hasTestDb, mintJwt } from "./setup";
 
 const url = (host: string, path: string) => `https://${host}${path}`;
 
@@ -39,29 +33,21 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
 
   afterAll(async () => {
     const { makeDb } = await import("../workers/db");
-    const { customers, serviceAddresses } = await import(
-      "../workers/db/schema"
-    );
+    const { customers, serviceAddresses } = await import("../workers/db/schema");
     const { inArray } = await import("drizzle-orm");
     const db = makeDb(env);
     if (insertedAddressIds.length > 0) {
-      await db
-        .delete(serviceAddresses)
-        .where(inArray(serviceAddresses.id, insertedAddressIds));
+      await db.delete(serviceAddresses).where(inArray(serviceAddresses.id, insertedAddressIds));
     }
     if (insertedCustomerIds.length > 0) {
-      await db
-        .delete(customers)
-        .where(inArray(customers.id, insertedCustomerIds));
+      await db.delete(customers).where(inArray(customers.id, insertedCustomerIds));
     }
   });
 
   async function seedCustomer(tenantId: string, name = "sa-test-cust") {
     const { makeDb } = await import("../workers/db");
     const { customers } = await import("../workers/db/schema");
-    const { withTenantContext } = await import(
-      "../workers/db/with-tenant-context"
-    );
+    const { withTenantContext } = await import("../workers/db/with-tenant-context");
     const db = makeDb(env);
     const row = await withTenantContext(db, tenantId, async (tx) => {
       const out = await tx
@@ -77,16 +63,13 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
   it("GET / returns shaped page for tenant with no addresses (or some)", async () => {
     const ids = await getSeededTenantIds();
     const token = await mintJwt({ tenantId: ids.a });
-    const res = await SELF.fetch(
-      url(HOST_TENANT_A, "/api/service-addresses"),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(res.status).toBe(200);
     const body = (await res.json()) as ListBody;
     expect(Array.isArray(body.items)).toBe(true);
-    expect(body.nextCursor === null || typeof body.nextCursor === "string").toBe(
-      true,
-    );
+    expect(body.nextCursor === null || typeof body.nextCursor === "string").toBe(true);
   });
 
   it("POST creates, GET returns it, GET ?customerId scopes, PATCH updates, DELETE removes", async () => {
@@ -95,23 +78,20 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     const customerId = await seedCustomer(ids.a, "sa-crud-cust");
 
     // POST → 201
-    const createRes = await SELF.fetch(
-      url(HOST_TENANT_A, "/api/service-addresses"),
-      {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          customerId,
-          streetName: "Congress Ave",
-          city: "Austin",
-          state: "TX",
-          zip: "78701",
-        }),
+    const createRes = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        customerId,
+        streetName: "Congress Ave",
+        city: "Austin",
+        state: "TX",
+        zip: "78701",
+      }),
+    });
     expect(createRes.status).toBe(201);
     const created = (await createRes.json()) as ServiceAddressRow;
     expect(created.customerId).toBe(customerId);
@@ -120,10 +100,9 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     insertedAddressIds.push(created.id);
 
     // GET /:id
-    const getRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/service-addresses/${created.id}`),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const getRes = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${created.id}`), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(getRes.status).toBe(200);
     const fetched = (await getRes.json()) as ServiceAddressRow;
     expect(fetched.id).toBe(created.id);
@@ -143,30 +122,24 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     }
 
     // PATCH
-    const patchRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/service-addresses/${created.id}`),
-      {
-        method: "PATCH",
-        headers: {
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ city: "Houston" }),
+    const patchRes = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${created.id}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({ city: "Houston" }),
+    });
     expect(patchRes.status).toBe(200);
     const patched = (await patchRes.json()) as ServiceAddressRow;
     expect(patched.city).toBe("Houston");
     expect(patched.streetName).toBe("Congress Ave");
 
     // DELETE
-    const delRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/service-addresses/${created.id}`),
-      {
-        method: "DELETE",
-        headers: { authorization: `Bearer ${token}` },
-      },
-    );
+    const delRes = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${created.id}`), {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(delRes.status).toBe(204);
 
     // Re-fetch after delete → 404
@@ -185,17 +158,14 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     // Seed 3 addresses, then list with limit=2.
     const made: string[] = [];
     for (let i = 0; i < 3; i++) {
-      const res = await SELF.fetch(
-        url(HOST_TENANT_A, "/api/service-addresses"),
-        {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${token}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ customerId, streetName: `Row ${i}` }),
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses"), {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
         },
-      );
+        body: JSON.stringify({ customerId, streetName: `Row ${i}` }),
+      });
       expect(res.status).toBe(201);
       const row = (await res.json()) as ServiceAddressRow;
       made.push(row.id);
@@ -203,10 +173,7 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     }
 
     const firstPage = await SELF.fetch(
-      url(
-        HOST_TENANT_A,
-        `/api/service-addresses?limit=2&customerId=${customerId}`,
-      ),
+      url(HOST_TENANT_A, `/api/service-addresses?limit=2&customerId=${customerId}`),
       { headers: { authorization: `Bearer ${token}` } },
     );
     expect(firstPage.status).toBe(200);
@@ -234,17 +201,14 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
   it("POST rejects body without customerId with 400 VALIDATION", async () => {
     const ids = await getSeededTenantIds();
     const token = await mintJwt({ tenantId: ids.a });
-    const res = await SELF.fetch(
-      url(HOST_TENANT_A, "/api/service-addresses"),
-      {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ city: "Austin" }),
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({ city: "Austin" }),
+    });
     expect(res.status).toBe(400);
     const body = (await res.json()) as ErrorBody;
     expect(body.error?.code).toBe("VALIDATION");
@@ -265,10 +229,9 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
   it("GET /:id returns 404 NOT_FOUND on malformed UUID", async () => {
     const ids = await getSeededTenantIds();
     const token = await mintJwt({ tenantId: ids.a });
-    const res = await SELF.fetch(
-      url(HOST_TENANT_A, "/api/service-addresses/not-a-uuid"),
-      { headers: { authorization: `Bearer ${token}` } },
-    );
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/service-addresses/not-a-uuid"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(res.status).toBe(404);
     const body = (await res.json()) as ErrorBody;
     expect(body.error?.code).toBe("NOT_FOUND");
@@ -278,17 +241,14 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     const ids = await getSeededTenantIds();
     const token = await mintJwt({ tenantId: ids.a });
     const missingId = "00000000-0000-4000-8000-000000000999";
-    const res = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/service-addresses/${missingId}`),
-      {
-        method: "PATCH",
-        headers: {
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ city: "Dallas" }),
+    const res = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${missingId}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({ city: "Dallas" }),
+    });
     expect(res.status).toBe(404);
     const body = (await res.json()) as ErrorBody;
     expect(body.error?.code).toBe("NOT_FOUND");
@@ -298,13 +258,10 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     const ids = await getSeededTenantIds();
     const token = await mintJwt({ tenantId: ids.a });
     const missingId = "00000000-0000-4000-8000-000000000998";
-    const res = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/service-addresses/${missingId}`),
-      {
-        method: "DELETE",
-        headers: { authorization: `Bearer ${token}` },
-      },
-    );
+    const res = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${missingId}`), {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    });
     expect(res.status).toBe(404);
   });
 
@@ -315,17 +272,14 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     const tokenB = await mintJwt({ tenantId: ids.b });
     const customerIdB = await seedCustomer(ids.b, "sa-rls-cust-b");
 
-    const createB = await SELF.fetch(
-      url(HOST_TENANT_B, "/api/service-addresses"),
-      {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${tokenB}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ customerId: customerIdB, city: "Houston" }),
+    const createB = await SELF.fetch(url(HOST_TENANT_B, "/api/service-addresses"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokenB}`,
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({ customerId: customerIdB, city: "Houston" }),
+    });
     expect(createB.status).toBe(201);
     const bRow = (await createB.json()) as ServiceAddressRow;
     insertedAddressIds.push(bRow.id);
@@ -333,42 +287,34 @@ describe.skipIf(!hasTestDb)("/api/service-addresses (CRUD)", () => {
     const tokenA = await mintJwt({ tenantId: ids.a });
     // Cross-tenant GET — must 404, not 403, so the row's existence isn't
     // leaked via status-code distinction.
-    const getRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/service-addresses/${bRow.id}`),
-      { headers: { authorization: `Bearer ${tokenA}` } },
-    );
+    const getRes = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${bRow.id}`), {
+      headers: { authorization: `Bearer ${tokenA}` },
+    });
     expect(getRes.status).toBe(404);
 
     // Cross-tenant PATCH — must also 404.
-    const patchRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/service-addresses/${bRow.id}`),
-      {
-        method: "PATCH",
-        headers: {
-          authorization: `Bearer ${tokenA}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ city: "Austin" }),
+    const patchRes = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${bRow.id}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${tokenA}`,
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({ city: "Austin" }),
+    });
     expect(patchRes.status).toBe(404);
 
     // Cross-tenant DELETE — must also 404.
-    const delRes = await SELF.fetch(
-      url(HOST_TENANT_A, `/api/service-addresses/${bRow.id}`),
-      {
-        method: "DELETE",
-        headers: { authorization: `Bearer ${tokenA}` },
-      },
-    );
+    const delRes = await SELF.fetch(url(HOST_TENANT_A, `/api/service-addresses/${bRow.id}`), {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${tokenA}` },
+    });
     expect(delRes.status).toBe(404);
 
     // Tenant B can still see + delete its own row → proves RLS isn't
     // blocking everything by accident.
-    const okRes = await SELF.fetch(
-      url(HOST_TENANT_B, `/api/service-addresses/${bRow.id}`),
-      { headers: { authorization: `Bearer ${tokenB}` } },
-    );
+    const okRes = await SELF.fetch(url(HOST_TENANT_B, `/api/service-addresses/${bRow.id}`), {
+      headers: { authorization: `Bearer ${tokenB}` },
+    });
     expect(okRes.status).toBe(200);
   });
 });
