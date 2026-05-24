@@ -40,8 +40,15 @@
     {
       "idx": 5,
       "version": "7",
-      "when": 1779612073361,
-      "tag": "0005_deals_cursor_index",
+      "when": 1779613657912,
+      "tag": "0005_friendly_shockwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779619363832,
+      "tag": "0006_deals_cursor_index",
       "breakpoints": true
     }
   ]

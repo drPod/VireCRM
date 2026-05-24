@@ -1,6 +1,6 @@
 {
-  "id": "5849c891-7470-4e46-8bd1-b4849a278030",
-  "prevId": "fb9a7873-4dcb-44f5-93a9-647cb0e8e12b",
+  "id": "230d3619-22ac-4718-883b-5cbd06337086",
+  "prevId": "5849c891-7470-4e46-8bd1-b4849a278030",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1299,6 +1299,33 @@
               "expression": "stage",
               "isExpression": false,
               "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "deals_tenant_created_idx": {
+          "name": "deals_tenant_created_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": false,
               "nulls": "last"
             }
           ],
