@@ -647,6 +647,12 @@ describe.skipIf(!hasTestDb)("commission-statements CRUD", () => {
     expect(patch.status).toBe(200);
     const patched = (await patch.json()) as StatementResponse;
     // Short-circuit fires → row returned via GET, updatedAt unchanged.
+    // Guard against both timestamps being undefined (JSON cast, not runtime
+    // validated) silently passing the equality check.
+    expect(created.updatedAt).toBeTruthy();
+    expect(patched.updatedAt).toBeTruthy();
+    expect(Number.isNaN(Date.parse(created.updatedAt))).toBe(false);
+    expect(Number.isNaN(Date.parse(patched.updatedAt))).toBe(false);
     expect(patched.updatedAt).toBe(created.updatedAt);
     expect(patched.supplier).toBe("TXU");
   });
