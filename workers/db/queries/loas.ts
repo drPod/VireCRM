@@ -2,6 +2,11 @@ import { and, desc, eq, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
 import { customers, loas } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
+import { type Cursor, decodeCursor, encodeCursor } from "./_cursor";
+
+// Re-exported so the route layer (`workers/api/routes/loas.ts`) keeps its
+// single import surface for the query module.
+export { decodeCursor };
 
 // Sentinel error thrown by create/update when the supplied `customerId` is
 // either missing OR belongs to a different tenant. Postgres FK checks bypass
@@ -30,33 +35,6 @@ export interface LoaListItem {
 export interface LoaListPage {
   items: LoaListItem[];
   nextCursor: string | null;
-}
-
-interface Cursor {
-  createdAt: string;
-  id: string;
-}
-
-// TODO: consolidate `Cursor` + encode/decode with the identical pair in
-// `customers.ts` once the rest of the domain-table query files land. Each
-// resource currently duplicates this block — fine for an initial parallel
-// rollout, worth a shared `_cursor.ts` once 3+ tables follow the same shape.
-function encodeCursor(c: Cursor): string {
-  return btoa(JSON.stringify(c));
-}
-
-export function decodeCursor(raw: string): Cursor | null {
-  try {
-    const parsed = JSON.parse(atob(raw)) as Partial<Cursor>;
-    if (typeof parsed.createdAt !== "string") return null;
-    if (typeof parsed.id !== "string") return null;
-    // Validate the timestamp is parseable so a malformed cursor doesn't
-    // produce a `NaN` comparison that silently returns the whole table.
-    if (Number.isNaN(Date.parse(parsed.createdAt))) return null;
-    return { createdAt: parsed.createdAt, id: parsed.id };
-  } catch {
-    return null;
-  }
 }
 
 const COLUMNS = {
@@ -198,7 +176,10 @@ export async function updateLoa(
     // Build a partial set so callers can clear nullable columns by passing
     // null explicitly. Empty patch (no defined keys) returns the current row
     // unchanged — the UPDATE with only updated_at bump is safe and idempotent.
-    const set: Record<string, unknown> = { updatedAt: new Date() };
+    //
+    // Typed against `loas.$inferInsert` so column-name typos fail at compile
+    // time instead of being accepted as `unknown` against `Record<string, …>`.
+    const set: Partial<typeof loas.$inferInsert> = { updatedAt: new Date() };
     if (patch.customerId !== undefined) set.customerId = patch.customerId;
     if (patch.pdfStoragePath !== undefined) set.pdfStoragePath = patch.pdfStoragePath;
     if (patch.signedDate !== undefined) set.signedDate = patch.signedDate;
