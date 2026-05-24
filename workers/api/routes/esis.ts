@@ -46,11 +46,12 @@ const CreateBody = z.object({
 
 // PATCH body — every field optional. `tenantId` deliberately absent: it's
 // forced from the resolved request context inside the query layer and must
-// never be writeable from the body.
+// never be writeable from the body. `esiId` is also absent: the ESI ID is the
+// canonical universal key (per CLAUDE.md domain glossary) and treated as
+// immutable post-creation; re-keying requires delete + insert.
 const UpdateBody = z
   .object({
     serviceAddressId: UuidSchema,
-    esiId: z.string().min(1).max(64),
     physicalMeterSerial: z.string().min(1).max(64).nullable(),
     eacKwh: NumericKwhSchema.nullable(),
     billingAqKwh: NumericKwhSchema.nullable(),
@@ -99,6 +100,9 @@ export const esisRoutes = new Hono<HonoEnv>()
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
     const row = await createEsi(getDb(c), c.get("tenantId"), parsed.data);
+    // `null` = supplied serviceAddressId doesn't belong to the caller's tenant.
+    // Return 404 (not 403) to avoid leaking cross-tenant address existence.
+    if (!row) return jsonError(c, 404, "NOT_FOUND");
     return c.json(row, 201);
   })
   .patch("/:id", async (c) => {

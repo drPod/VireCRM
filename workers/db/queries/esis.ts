@@ -1,6 +1,6 @@
 import { and, desc, eq, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
-import { esis } from "../schema";
+import { esis, serviceAddresses } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
 
 // ESI ID = Electric Service Identifier (xlsx "Meter Number") — the canonical
@@ -29,13 +29,21 @@ interface Cursor {
   id: string;
 }
 
+// base64url: plain base64 emits `+` and `/`, which corrupt when round-tripped
+// through a URL query string (`+` decodes as space). Map to `-` / `_` and strip
+// padding so the cursor is safe to copy into a `?cursor=` value as-is.
 function encodeCursor(c: Cursor): string {
-  return btoa(JSON.stringify(c));
+  return btoa(JSON.stringify(c))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 export function decodeCursor(raw: string): Cursor | null {
   try {
-    const parsed = JSON.parse(atob(raw)) as Partial<Cursor>;
+    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "===".slice((b64.length + 3) % 4);
+    const parsed = JSON.parse(atob(padded)) as Partial<Cursor>;
     if (typeof parsed.createdAt !== "string") return null;
     if (typeof parsed.id !== "string") return null;
     if (Number.isNaN(Date.parse(parsed.createdAt))) return null;
@@ -130,10 +138,28 @@ export async function createEsi(
   db: Db,
   tenantId: string,
   input: CreateEsiInput,
-): Promise<EsiListItem> {
+): Promise<EsiListItem | null> {
   // `tenantId` always forced from the resolved request context, never from the
   // request body — defense in depth on top of RLS WITH CHECK.
+  //
+  // The serviceAddressId FK only blocks dangling references; it does NOT
+  // enforce tenant isolation. A tenant-A caller could otherwise create an ESI
+  // pointing at a tenant-B service_address row. Resolve ownership inside the
+  // same tx (so RLS gates the SELECT) and return null on miss; the handler
+  // maps that to 404 to avoid leaking cross-tenant address existence.
   return withTenantContext(db, tenantId, async (tx) => {
+    const owner = await tx
+      .select({ id: serviceAddresses.id })
+      .from(serviceAddresses)
+      .where(
+        and(
+          eq(serviceAddresses.tenantId, tenantId),
+          eq(serviceAddresses.id, input.serviceAddressId),
+        ),
+      )
+      .limit(1);
+    if (owner.length === 0) return null;
+
     const rows = await tx
       .insert(esis)
       .values({
@@ -150,9 +176,12 @@ export async function createEsi(
   });
 }
 
+// PATCH input — `esiId` deliberately absent: the ESI ID is the canonical
+// universal key in TX energy (per CLAUDE.md domain glossary). Treat it as
+// immutable post-creation, same invariant as `tenantId`. A re-key needs a
+// delete + insert, not an UPDATE.
 export interface UpdateEsiInput {
   serviceAddressId?: string;
-  esiId?: string;
   physicalMeterSerial?: string | null;
   eacKwh?: string | null;
   billingAqKwh?: string | null;
@@ -168,13 +197,30 @@ export async function updateEsi(
   return withTenantContext(db, tenantId, async (tx) => {
     // Empty patch (no fields supplied) — short-circuit to a plain read so we
     // don't issue an `UPDATE … SET WHERE` with nothing to set.
-    if (Object.keys(patch).length === 0) {
+    if (Object.values(patch).every((v) => v === undefined)) {
       const rows = await tx
         .select(COLUMNS)
         .from(esis)
         .where(and(eq(esis.tenantId, tenantId), eq(esis.id, esiPkId)))
         .limit(1);
       return rows[0] ?? null;
+    }
+
+    // Re-parenting to a different service_address — verify it belongs to the
+    // same tenant before applying the patch. See createEsi for the same
+    // reasoning.
+    if (patch.serviceAddressId !== undefined) {
+      const owner = await tx
+        .select({ id: serviceAddresses.id })
+        .from(serviceAddresses)
+        .where(
+          and(
+            eq(serviceAddresses.tenantId, tenantId),
+            eq(serviceAddresses.id, patch.serviceAddressId),
+          ),
+        )
+        .limit(1);
+      if (owner.length === 0) return null;
     }
 
     const rows = await tx

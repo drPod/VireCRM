@@ -560,4 +560,209 @@ describe.skipIf(!hasTestDb)("ESIs CRUD", () => {
     });
     expect(resB.status).toBe(200);
   });
+
+  // ---- CROSS-TENANT FK OWNERSHIP ----
+
+  it("POST /api/esis — 404 when serviceAddressId belongs to a different tenant", async () => {
+    const fx = await seed();
+    const token = await mintJwt({ tenantId: fx.tenantA });
+    // Tenant A caller supplies tenant B's service_address.id. FK alone doesn't
+    // enforce tenant isolation; the query layer must verify ownership.
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/esis"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        serviceAddressId: fx.serviceAddressIdB,
+        esiId: "10443720XTENANT001",
+      }),
+    });
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("NOT_FOUND");
+
+    // Tenant B's address should still hold zero ESIs from the leak attempt.
+    const tokenB = await mintJwt({ tenantId: fx.tenantB });
+    const listB = await SELF.fetch(
+      url(HOST_TENANT_B, `/api/esis?serviceAddressId=${fx.serviceAddressIdB}`),
+      { headers: { authorization: `Bearer ${tokenB}` } },
+    );
+    expect(listB.status).toBe(200);
+    const bBody = (await listB.json()) as {
+      items: { esiId: string }[];
+    };
+    expect(bBody.items.find((i) => i.esiId === "10443720XTENANT001")).toBeUndefined();
+  });
+
+  it("PATCH /api/esis/:id — 404 when re-parenting to a cross-tenant serviceAddressId", async () => {
+    const fx = await seed();
+    const tokenA = await mintJwt({ tenantId: fx.tenantA });
+
+    // Seed a legit tenant-A ESI.
+    const create = await SELF.fetch(url(HOST_TENANT_A, "/api/esis"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokenA}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        serviceAddressId: fx.serviceAddressIdA,
+        esiId: "10443720REPARENT001",
+      }),
+    });
+    expect(create.status).toBe(201);
+    const created = (await create.json()) as { id: string; serviceAddressId: string };
+    createdEsiIds.push(created.id);
+
+    // Re-parent attempt at tenant B's address. Defense in depth must reject.
+    const patch = await SELF.fetch(url(HOST_TENANT_A, `/api/esis/${created.id}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${tokenA}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ serviceAddressId: fx.serviceAddressIdB }),
+    });
+    expect(patch.status).toBe(404);
+
+    // Verify the row stayed parented to the original tenant-A address.
+    const get = await SELF.fetch(url(HOST_TENANT_A, `/api/esis/${created.id}`), {
+      headers: { authorization: `Bearer ${tokenA}` },
+    });
+    expect(get.status).toBe(200);
+    const after = (await get.json()) as { serviceAddressId: string };
+    expect(after.serviceAddressId).toBe(fx.serviceAddressIdA);
+  });
+
+  // ---- IMMUTABILITY ----
+
+  it("PATCH /api/esis/:id — esiId in body is silently stripped (immutable canonical key)", async () => {
+    const fx = await seed();
+    const token = await mintJwt({ tenantId: fx.tenantA });
+
+    const ORIGINAL_ESI = "10443720IMMUTABLE001";
+    const create = await SELF.fetch(url(HOST_TENANT_A, "/api/esis"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        serviceAddressId: fx.serviceAddressIdA,
+        esiId: ORIGINAL_ESI,
+      }),
+    });
+    expect(create.status).toBe(201);
+    const created = (await create.json()) as { id: string };
+    createdEsiIds.push(created.id);
+
+    // Caller tries to rewrite the canonical ESI ID via PATCH. `UpdateBody`
+    // omits `esiId`, so Zod's default `strip` mode silently drops the field
+    // and the underlying value is left untouched.
+    const patch = await SELF.fetch(url(HOST_TENANT_A, `/api/esis/${created.id}`), {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        esiId: "10443720HIJACKED999",
+        physicalMeterSerial: "MTR-NEW",
+      }),
+    });
+    expect(patch.status).toBe(200);
+    const updated = (await patch.json()) as {
+      esiId: string;
+      physicalMeterSerial: string | null;
+    };
+    expect(updated.esiId).toBe(ORIGINAL_ESI);
+    expect(updated.physicalMeterSerial).toBe("MTR-NEW");
+  });
+
+  // ---- CURSOR URL-SAFETY ----
+
+  it("GET /api/esis — cursor round-trips through a URL query string without corruption", async () => {
+    const fx = await seed();
+    const token = await mintJwt({ tenantId: fx.tenantA });
+
+    // Seed ≥2 rows so a limit-1 page emits a cursor.
+    for (let i = 0; i < 2; i++) {
+      const res = await SELF.fetch(url(HOST_TENANT_A, "/api/esis"), {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          serviceAddressId: fx.serviceAddressIdA,
+          esiId: `10443720URLCURSOR${i}`,
+        }),
+      });
+      expect(res.status).toBe(201);
+      const body = (await res.json()) as { id: string };
+      createdEsiIds.push(body.id);
+    }
+
+    const page1 = await SELF.fetch(url(HOST_TENANT_A, "/api/esis?limit=1"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const body1 = (await page1.json()) as {
+      items: { id: string }[];
+      nextCursor: string | null;
+    };
+    expect(body1.nextCursor).not.toBeNull();
+    const cursor = body1.nextCursor!;
+
+    // base64url alphabet only: A-Z a-z 0-9 - _. Plain `+` / `/` would corrupt
+    // when the cursor lands inside a URL query string.
+    expect(cursor).toMatch(/^[A-Za-z0-9_-]+$/);
+
+    // Round-trip the cursor through URLSearchParams (which percent-decodes `+`
+    // back to a space) — the page must still load and return a different row.
+    const params = new URLSearchParams({ limit: "1", cursor }).toString();
+    const page2 = await SELF.fetch(url(HOST_TENANT_A, `/api/esis?${params}`), {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(page2.status).toBe(200);
+    const body2 = (await page2.json()) as { items: { id: string }[] };
+    expect(body2.items.length).toBeGreaterThanOrEqual(1);
+    expect(body2.items[0]!.id).not.toBe(body1.items[0]!.id);
+  });
+
+  // ---- RLS ISOLATION (GET /:id) ----
+
+  it("GET /api/esis/:id — RLS isolation, tenant A cannot read tenant B row", async () => {
+    const fx = await seed();
+    const { makeDb } = await import("../workers/db");
+    const { esis } = await import("../workers/db/schema");
+    const { withTenantContext } = await import("../workers/db/with-tenant-context");
+
+    const db = makeDb(env);
+    const bRow = await withTenantContext(db, fx.tenantB, async (tx) => {
+      const out = await tx
+        .insert(esis)
+        .values({
+          tenantId: fx.tenantB,
+          serviceAddressId: fx.serviceAddressIdB,
+          esiId: "RLS-LEAK-TARGET-GET",
+        })
+        .returning({ id: esis.id });
+      return out[0]!;
+    });
+    createdEsiIds.push(bRow.id);
+
+    const tokenA = await mintJwt({ tenantId: fx.tenantA });
+    const res = await SELF.fetch(url(HOST_TENANT_A, `/api/esis/${bRow.id}`), {
+      headers: { authorization: `Bearer ${tokenA}` },
+    });
+    expect(res.status).toBe(404);
+
+    const tokenB = await mintJwt({ tenantId: fx.tenantB });
+    const resB = await SELF.fetch(url(HOST_TENANT_B, `/api/esis/${bRow.id}`), {
+      headers: { authorization: `Bearer ${tokenB}` },
+    });
+    expect(resB.status).toBe(200);
+  });
 });
