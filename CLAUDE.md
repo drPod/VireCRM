@@ -187,7 +187,8 @@ Layer map, hallucination-class coverage, Phase 1.5 incident: `docs/agent-prevent
 - Source data: Copy of NGP MASTER LIST - Copy.xlsx (gitignored, not committed)
 -->
 
-- **Wrangler secrets:** `SUPABASE_SERVICE_ROLE`, `STRIPE_SECRET_KEY`, `MS_GRAPH_CLIENT_SECRET`. `SENTRY_AUTH_TOKEN` joins list once source-map upload wired (Phase 6.5-ish, like Stripe). Postgres connection via Hyperdrive binding in `wrangler.jsonc`, NOT secret env var.
+- **Wrangler secrets (runtime):** `SUPABASE_SERVICE_ROLE`, `STRIPE_SECRET_KEY`, `MS_GRAPH_CLIENT_SECRET`. Postgres connection via Hyperdrive binding in `wrangler.jsonc`, NOT secret env var.
+- **CI/CD build-time secrets** (Cloudflare Workers Builds → Settings → Build → Variables and Secrets): `SENTRY_AUTH_TOKEN` once source-map upload wired (Phase 6.5-ish, like Stripe). Consumed by `@sentry/vite-plugin` during `vite build`, not at Worker runtime — `wrangler secret put` is the wrong store.
 - **Supabase Vault:** per-agent OAuth refresh tokens (libsodium AEAD; Key ID in DB, raw key outside SQL).
 - **Public vars:** `wrangler.jsonc` `vars` block (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SENTRY_DSN_PUBLIC`) + `.env.development` for Vite (incl. `VITE_SENTRY_DSN`).
 - `.env` files git-ignored; `.env.example` tracks placeholder shape.
