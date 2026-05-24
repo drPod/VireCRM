@@ -332,12 +332,13 @@ describe.skipIf(!hasTestDb)("RLS write-path FOR ALL policy drift guard", () => {
 
       // UPDATE under tenant A: SQL succeeds (no error) but RLS USING hides
       // the row so 0 rows match.
+      const sentinelUpdatedAt = new Date("2099-01-01T00:00:00.000Z");
       await withTenantContext(db, tenantA, async (tx) => {
         await tx
           .update(spec.table)
           // Set every table's `updated_at` instead of a column-specific
           // value — keeps this loop generic across all 9 tables.
-          .set({ updatedAt: new Date() })
+          .set({ updatedAt: sentinelUpdatedAt })
           .where(eq(spec.table.id, seededId));
       });
 
@@ -351,6 +352,7 @@ describe.skipIf(!hasTestDb)("RLS write-path FOR ALL policy drift guard", () => {
 
       expect(after?.id).toBe(seededId);
       expect(after?.updatedAt?.getTime()).toBe(beforeUpdatedAt?.getTime());
+      expect(after?.updatedAt?.getTime()).not.toBe(sentinelUpdatedAt.getTime());
     });
 
     it("DELETE cross-tenant hidden (row still present)", async () => {
