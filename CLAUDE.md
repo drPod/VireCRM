@@ -80,7 +80,7 @@ Rejected and why (don't re-propose):
 ### Auth + tenancy
 
 - **Tenant claim lives in `app_metadata.tenant_id` ONLY** (server-write-only). NEVER trust `user_metadata` for authz.
-- **Host header = expected tenant; JWT claim = actual. Mismatch = 403.**
+- **Request URL hostname = expected tenant; JWT claim = actual. Mismatch = 403.** Subdomain extracted via `new URL(c.req.url).hostname`, NOT `c.req.header("host")` — Miniflare's `SELF.fetch` test harness builds Requests with the URL but no Host header, so reading the header would short-circuit every test to 403 `TENANT_SCOPE_INVALID`. In production both fields match.
 - **Customer-portal JWTs** (`customers.virecrm.com`) carry `role: customer` + `customer_id`. NOT `tenant_id`.
 - **RLS on every domain table.** Wrap `(SELECT auth.uid())` in policies to memoize.
 - **Two audiences, two subdomains.** `<tenant>.virecrm.com` = broker admin. `customers.virecrm.com` = end-customer portal (scope TBD).
