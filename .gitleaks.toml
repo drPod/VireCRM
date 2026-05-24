@@ -1,0 +1,25 @@
+[extend]
+useDefault = true
+
+# Allowlist publishable / write-only ingest keys that are SAFE to commit per
+# vendor guidance. See CLAUDE.md "Secrets locations" — these are the
+# publishable-class credentials, distinct from server-only secrets which
+# remain blocked by the default gitleaks ruleset.
+#
+# - SUPABASE_PUBLISHABLE_KEY / sb_publishable_* — Supabase publishable key
+#   (replaces legacy anon JWT). RLS-gated, intended for browser bundles.
+# - SENTRY_DSN_PUBLIC — Sentry DSN is a write-only ingest endpoint.
+# - pk_live_* / pk_test_* — Stripe publishable keys.
+[allowlist]
+description = "Publishable / write-only ingest keys (safe to commit per vendor docs)"
+regexes = [
+  '''sb_publishable_[A-Za-z0-9_-]+''',
+  '''pk_(live|test)_[A-Za-z0-9]+''',
+  '''https://[A-Za-z0-9]+@o[0-9]+\.ingest(\.[a-z0-9]+)?\.sentry\.io/[0-9]+''',
+]
+paths = [
+  '''wrangler\.jsonc''',
+  '''\.env\.example''',
+  '''\.env\.development''',
+  '''\.env\.production''',
+]

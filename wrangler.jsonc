@@ -11,9 +11,12 @@
     "head_sampling_rate": 1
   },
   // Non-secret public values. Real secrets set via `wrangler secret put`.
+  // SENTRY_DSN_PUBLIC is a write-only Sentry ingest endpoint — safe to commit.
+  // Empty string = Sentry disabled (SDK no-ops when DSN unset).
   "vars": {
     "SUPABASE_URL": "https://coynbufhejaeuifpvmvw.supabase.co",
-    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AfxTcWiGW7j882pfkhPhwg_hKKdSAW2"
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_AfxTcWiGW7j882pfkhPhwg_hKKdSAW2",
+    "SENTRY_DSN_PUBLIC": ""
   },
   // Hyperdrive binding for Supabase Postgres (transaction-mode pooler, port 6543).
   // Provisioned via: bunx wrangler hyperdrive create genesisxsx-pg --connection-string=...
