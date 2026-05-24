@@ -46,6 +46,13 @@ jobs:
       - name: vitest
         run: bun run test
 
+      # Warn-only: Biome lint/format. Visible in PR checks, not blocking.
+      # Promote to blocking after the autofix sweep lands (drop continue-on-error
+      # + the `|| true` inside check-lint.sh).
+      - name: lint gate (check-lint.sh) — warn-only
+        continue-on-error: true
+        run: bash scripts/check-lint.sh
+
       - name: knip dead-code report (check-knip.sh, warn-only)
         run: bash scripts/check-knip.sh
         continue-on-error: true

@@ -36,4 +36,12 @@ if git diff --cached --name-only | grep -qE '^wrangler\.jsonc$|^workers/.+\.ts$'
   bash scripts/check-worker-config.sh || fail "worker config / binding drift"
 fi
 
+# Warn-only: Biome lint/format on staged TS/TSX/JS/JSX. Trap non-zero so the
+# commit isn't blocked while we're still in the rollout phase. Drop the `|| true`
+# (and flip continue-on-error in checks.yml) to promote to blocking.
+if git diff --cached --name-only --diff-filter=ACMR | grep -qE '\.(ts|tsx|js|jsx|cjs|mjs|cts|mts)$'; then
+  echo "[pre-commit] biome (warn-only) on staged files"
+  bunx --bun @biomejs/biome check --staged --no-errors-on-unmatched || true
+fi
+
 echo "[pre-commit] all gates PASS"

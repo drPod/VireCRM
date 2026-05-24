@@ -11,7 +11,9 @@
     "db:studio": "drizzle-kit studio",
     "deploy": "react-router build && wrangler deploy",
     "dev": "bash -c 'set -a; [ -f .dev.vars ] && . .dev.vars; set +a; react-router dev'",
+    "format": "biome format --write .",
     "knip": "knip",
+    "lint": "biome check .",
     "postinstall": "wrangler types && bash scripts/sync-npm-types.sh",
     "prepare": "git config core.hooksPath .githooks || true",
     "preview": "react-router build && vite preview",
@@ -31,6 +33,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.2.4",
     "@cloudflare/vite-plugin": "^1.29.1",
     "@cloudflare/vitest-pool-workers": "^0.16.9",
     "@react-router/dev": "7.15.1",
