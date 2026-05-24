@@ -27,6 +27,9 @@ PKGS=(
   "@dnd-kit/sortable"
   "zod"
   "postgres"
+  "@sentry/cloudflare"
+  "@sentry/react-router"
+  "@sentry/vite-plugin"
 )
 
 mkdir -p "$OUT"

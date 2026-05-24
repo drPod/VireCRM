@@ -70,6 +70,11 @@ jobs:
         run: bash scripts/check-worker-config.sh
 
       - name: build smoke gate (check-build.sh)
+        # Source-map upload via @sentry/vite-plugin in vite.config.ts; no-ops if AUTH_TOKEN secret unset.
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: darsh-6n
+          SENTRY_PROJECT: virecrm
         run: bash scripts/check-build.sh
 
       - name: bundle size gate (check-bundle-size.sh)
