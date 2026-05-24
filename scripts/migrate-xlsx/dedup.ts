@@ -6,26 +6,34 @@
 
 import { and, eq, sql } from "drizzle-orm";
 import { agents, serviceAddresses } from "../../workers/db/schema";
-import type { TransformedRow } from "./types";
 import type { TxLike } from "./load";
+import type { TransformedRow } from "./types";
 
 function normalize(s: string | null | undefined): string {
   if (!s) return "";
-  return s.toUpperCase().replace(/[^A-Z0-9|]/g, "").replace(/\s+/g, "");
+  return s
+    .toUpperCase()
+    .replace(/[^A-Z0-9|]/g, "")
+    .replace(/\s+/g, "");
 }
 
 export function addressKey(row: TransformedRow): string {
-  return normalize(
-    [
-      row.streetNo,
-      row.streetName,
-      row.addressLine1,
-      row.addressLine2,
-      row.city,
-      row.state,
-      row.zip,
-    ].join("|"),
-  );
+  const parts = [
+    row.streetNo,
+    row.streetName,
+    row.addressLine1,
+    row.addressLine2,
+    row.city,
+    row.state,
+    row.zip,
+  ];
+  // All-null/empty → "" so load.ts short-circuit treats it as "no address" and
+  // INSERTs a fresh row instead of dedup-collapsing every null-address row
+  // into one. normalize() preserves `|` (kept by char class), so without this
+  // guard the key would be "||||||" and two unrelated null-address rows would
+  // match via findServiceAddressByKey.
+  if (!parts.some(Boolean)) return "";
+  return normalize(parts.join("|"));
 }
 
 export async function findServiceAddressByKey(
@@ -34,9 +42,8 @@ export async function findServiceAddressByKey(
   customerId: string,
   key: string,
 ): Promise<string | null> {
-  // We don't store the normalized key on the table (would require a schema
-  // change to a Phase-2-only concern). Postgres applies the same normalize in
-  // the WHERE clause — replicates the TS regex via translate + upper.
+  // SQL normalize MUST mirror normalize() above: same char class, same upper.
+  // Drift here = silent dedup misses (TS computes key X, SQL row stored as Y).
   const rows = await tx
     .select({ id: serviceAddresses.id })
     .from(serviceAddresses)
@@ -95,11 +102,7 @@ export class AgentCache {
   }
 
   /** Insert any names not yet in DB inside one committed transaction. */
-  async prewarm(
-    executor: TxLike,
-    tenantId: string,
-    names: ReadonlySet<string>,
-  ): Promise<void> {
+  async prewarm(executor: TxLike, tenantId: string, names: ReadonlySet<string>): Promise<void> {
     const keyToDisplay = new Map<string, string>();
     for (const raw of names) {
       const key = normalizeAgentName(raw);
