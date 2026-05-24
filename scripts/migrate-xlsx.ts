@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 // Phase 2 — one-shot xlsx → Postgres migration runner.
-// Idempotent (ON CONFLICT DO UPDATE on natural keys); per-row transactions in
-// real mode, savepoints inside one outer rollback-only TX in --dry-run mode.
-// All quarantine events stream to stderr + `tmp/quarantine-<ISO>.jsonl` so they
-// survive any rollback. Final summary printed to stdout.
+// Bulk loader (see scripts/migrate-xlsx/load.ts): chunked upserts on natural
+// keys, idempotent. Dry-run wraps all passes in an outer rollback-only TX; real
+// mode runs passes autocommit (chunk-level retry can't unwind a tx). Quarantine
+// events stream to stderr + `tmp/quarantine-<ISO>.jsonl` outside any tx so they
+// survive rollback. Final summary printed to stdout.
 //
 // Plan: /Users/darshpoddar/.claude/plans/do-phase-2-calm-hamming.md
 // Decision sources: docs/decisions/06-domain-schema.md §1, docs/migration/field-map.md
@@ -20,14 +21,7 @@ import * as schema from "../workers/db/schema";
 import { loadTenantBySubdomain } from "../workers/db/queries/tenants";
 import { DEFAULT_XLSX_PATH, extractXlsx } from "./migrate-xlsx/extract";
 import { transformRow } from "./migrate-xlsx/transform";
-import {
-  addRowCounts,
-  emptyRowCounts,
-  loadRow,
-  resolveResoldLinks,
-  type RowCounts,
-  type TxLike,
-} from "./migrate-xlsx/load";
+import { loadAllBulk, type TxLike } from "./migrate-xlsx/load";
 import { AgentCache } from "./migrate-xlsx/dedup";
 import { QuarantineSink, quarantinePath } from "./migrate-xlsx/quarantine";
 import type { Summary, TransformedRow } from "./migrate-xlsx/types";
@@ -107,15 +101,14 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // max:1 — single sequential connection for this one-shot migration. Combined
-  // with the per-row `await loadRow(...)` below, no two queries are ever in
-  // flight, so postgres-js's pipeline path (default max_pipeline=100) never
-  // engages. That matters because Supavisor's transaction-mode pool can
+  // max:1 — single sequential connection for this one-shot migration. The
+  // bulk loader awaits each chunk before issuing the next, so no two queries
+  // are in flight; postgres-js's pipeline path (default max_pipeline=100)
+  // never engages. That matters because Supavisor's transaction-mode pool can
   // reassign the backend mid-pipeline and drop in-flight responses — see
-  // porsager/postgres#970. Symptoms surface as a `ConnectionError` with
-  // `code: 'CONNECTION_CLOSED'` or a `TypeError: Cannot read properties of
-  // null (reading 'write')` thrown from connection.js (porsager/postgres
-  // #1066, #1154). The per-row retry loop below catches both.
+  // porsager/postgres#970. Transient `CONNECTION_CLOSED` / `null is not an
+  // object (socket.write)` (porsager/postgres #1066, #1154) still surface
+  // occasionally and are retried inside loadAllBulk's `withRetry`.
   const client = postgres(dbUrl, { prepare: false, max: 1, fetch_types: false });
   const db = drizzle(client, { schema });
 
@@ -132,17 +125,23 @@ async function main(): Promise<void> {
     const sink = new QuarantineSink(quarantinePath());
     const agentCache = new AgentCache();
     const saleIdToContractId = new Map<string, string>();
-    const totals = emptyRowCounts();
-    const transformedRows: TransformedRow[] = [];
-    let processedRows = 0;
     let skippedRows = 0;
+    let processedRows = 0;
     let failedRows = 0;
     let resoldLinks = { linked: 0, missing: 0 };
+    let totals = {
+      customers: { inserted: 0, updated: 0 },
+      service_addresses: { inserted: 0, reused: 0 },
+      esis: { inserted: 0, updated: 0 },
+      contracts: { inserted: 0, updated: 0 },
+      deals: { inserted: 0, updated: 0 },
+      commission_statements: { inserted: 0, reused: 0 },
+      aggregator_payouts: { inserted: 0, reused: 0 },
+    };
 
-    // Two-pass design: transform ALL rows up front so we can pre-warm the
-    // agent cache (avoids per-row INSERTs that would leak across savepoint
-    // rollbacks — see AgentCache docstring). Cost is buffering 4,792 rows in
-    // memory, which is fine at this size.
+    // Transform ALL rows up front so we can pre-warm the agent cache and feed
+    // the bulk loader a complete row list per pass. Buffering 4,792 rows is
+    // negligible vs. the cost of the prior per-row round-trips.
     const buffered: TransformedRow[] = [];
     for await (const raw of extract.rows) {
       const { row, quarantine } = transformRow(raw, extract.headers);
@@ -158,66 +157,20 @@ async function main(): Promise<void> {
     }
 
     const runPasses = async (executor: TxLike): Promise<void> => {
-      // Pre-warm agents in their own tx (committed BEFORE row work starts).
-      // In dry-run mode the executor is the outer rollback-only tx, so
-      // prewarm inherits that rollback — agents created here disappear on
-      // dry-run rollback, but the cache stays populated for the run.
+      // Pre-warm agents in their own committed tx BEFORE row work — see the
+      // AgentCache docstring for why this is correctness-critical.
       await agentCache.prewarm(executor, tenant.id, agentNames);
 
-      for (const row of buffered) {
-        let lastErr: unknown = null;
-        // Retry per-row on transient connection drops from Supavisor (see the
-        // header comment on the `postgres(...)` client above for root cause).
-        // Match by `ConnectionError.code` (postgres-js's documented contract,
-        // types/index.d.ts:437) plus the null-`socket.write` TypeError text
-        // from porsager/postgres#1066. Pool replaces dropped backends, so a
-        // fresh `await loadRow(...)` re-issues on a new connection.
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            const result = await loadRow(
-              executor,
-              { tenantId: tenant.id, agentCache, saleIdToContractId },
-              row,
-            );
-            addRowCounts(totals, result.counts);
-            // Only mutate the cross-row map AFTER the per-row tx commits, so a
-            // failed savepoint never leaves a stale UUID for pass 2.
-            saleIdToContractId.set(row.externalSaleId, result.contractId);
-            transformedRows.push(row);
-            processedRows++;
-            lastErr = null;
-            break;
-          } catch (err) {
-            lastErr = err;
-            const code = (err as { code?: string } | null)?.code;
-            const msg = err instanceof Error ? err.message : String(err);
-            const transient =
-              code === "CONNECTION_CLOSED" ||
-              code === "CONNECTION_DESTROYED" ||
-              code === "CONNECT_TIMEOUT" ||
-              /Cannot read properties of null \(reading 'write'\)/.test(msg) ||
-              /null is not an object \(evaluating 'socket\.write'\)/.test(msg);
-            if (!transient || attempt === 3) break;
-            await new Promise((r) => setTimeout(r, 500 * attempt));
-          }
-        }
-        if (lastErr) {
-          failedRows++;
-          sink.write({
-            rowNumber: row.rowNumber,
-            column: "row",
-            header: "load",
-            rawValue: "",
-            reason: `load failed (3 attempts): ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
-            severity: "error",
-          });
-        }
-      }
-      resoldLinks = await resolveResoldLinks(
+      const result = await loadAllBulk(
         executor,
         { tenantId: tenant.id, agentCache, saleIdToContractId },
-        transformedRows,
+        buffered,
+        (rec) => sink.write(rec),
       );
+      totals = result.counts;
+      processedRows = result.processedRows;
+      failedRows = result.failedRows;
+      resoldLinks = result.resoldLinks;
     };
 
     try {

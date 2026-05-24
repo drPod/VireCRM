@@ -1,10 +1,30 @@
-// Per-row transactional loader. Runs inside an outer dry-run TX (savepoints)
-// or as its own TX (commits per row). Insert order is fixed to honor FKs:
-// agents → customers → service_addresses → esis → contracts → deals →
-// commission_statements → aggregator_payouts. Resold self-link is left NULL
-// here and filled by pass 2.
+// Bulk loader: chunked upsert per table with FK maps built in-memory.
+//
+// Replaces an earlier per-row transactional loader that did ~10 sequential
+// queries per row over the Supavisor pooler (~1-2s/row, ~87h projected for
+// 4,792 rows). This version groups rows into chunks of CHUNK_SIZE, issues one
+// upsert per table per chunk, and threads FK ids through TS maps populated
+// from each pass's RETURNING clause. Cost is ~8 round trips per chunk
+// (≈80 total) instead of ~47,000.
+//
+// Passes (FK order):
+//   1. customers          UPSERT (tenant_id, external_customer_id)
+//   2. service_addresses  SELECT-then-bulk-INSERT (no natural key)
+//   3. esis               UPSERT (tenant_id, esi_id)
+//   4. contracts          UPSERT (tenant_id, external_sale_id) — resold link NULL
+//   5. deals              UPSERT (tenant_id, external_sale_id)
+//   6. commission_stmts   SELECT-existing + bulk INSERT new (no natural key)
+//   7. aggregator_payouts SELECT-existing + bulk INSERT new (no natural key)
+//   8. resold links       bulk UPDATE FROM VALUES
+//
+// Idempotent: ON CONFLICT DO UPDATE on natural keys (passes 1, 3, 4, 5);
+// SELECT-then-INSERT on (passes 2, 6, 7). Re-runs converge to the same state.
+//
+// Chunk-level retry on transient Supavisor connection drops (3 attempts with
+// backoff). If a chunk still fails, the whole migration aborts — partial state
+// is safe to leave (next run resumes via the same idempotent upserts).
 
-import { and, eq, sql, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "../../workers/db/schema";
 import {
@@ -16,12 +36,8 @@ import {
   commissionStatements,
   aggregatorPayouts,
 } from "../../workers/db/schema";
-import {
-  addressKey,
-  AgentCache,
-  findServiceAddressByKey,
-} from "./dedup";
-import type { TransformedRow } from "./types";
+import { addressKey, AgentCache } from "./dedup";
+import type { QuarantineRecord, TransformedRow } from "./types";
 
 type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
 export type TxLike =
@@ -44,6 +60,13 @@ export interface LoadOpts {
   saleIdToContractId: Map<string, string>;
 }
 
+export interface LoadAllResult {
+  counts: RowCounts;
+  processedRows: number;
+  failedRows: number;
+  resoldLinks: { linked: number; missing: number };
+}
+
 export function emptyRowCounts(): RowCounts {
   return {
     customers: { inserted: 0, updated: 0 },
@@ -56,374 +79,805 @@ export function emptyRowCounts(): RowCounts {
   };
 }
 
-export function addRowCounts(a: RowCounts, b: RowCounts): void {
-  for (const k of Object.keys(a) as (keyof RowCounts)[]) {
-    const av = a[k] as Record<string, number>;
-    const bv = b[k] as Record<string, number>;
-    for (const f of Object.keys(av)) av[f] += bv[f];
-  }
-}
+// 300 rows × ≤30 cols ≈ 9,000 bind params per stmt, well under the 65,535 PG
+// per-statement bind-param ceiling and inside Supavisor's payload comfort zone.
+const CHUNK_SIZE = 300;
+const MAX_ATTEMPTS = 3;
 
 /** `xmax = 0` distinguishes a fresh insert from an ON CONFLICT update. */
 const wasInsertedSql = sql<boolean>`(xmax = 0)`;
 
-export interface LoadResult {
-  counts: RowCounts;
-  contractId: string;
+function isTransientError(err: unknown): boolean {
+  // Drizzle's DrizzleQueryError wraps the postgres-js error in `.cause`. The
+  // structured fields (code, etc.) live on the inner object, so check both.
+  const outer = err as { code?: string; cause?: unknown } | null;
+  const inner = outer?.cause as { code?: string } | undefined;
+  const code = inner?.code ?? outer?.code;
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    code === "CONNECTION_CLOSED" ||
+    code === "CONNECTION_DESTROYED" ||
+    code === "CONNECTION_ENDED" ||
+    code === "CONNECT_TIMEOUT" ||
+    /Cannot read properties of null \(reading 'write'\)/.test(msg) ||
+    /null is not an object \(evaluating 'socket\.write'\)/.test(msg)
+  );
 }
 
-export async function loadRow(
+async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (!isTransientError(err) || attempt === MAX_ATTEMPTS) break;
+      await new Promise((r) => setTimeout(r, 500 * attempt));
+    }
+  }
+  // Drizzle wraps the postgres-js PostgresError in `.cause`; the outer object
+  // is a `DrizzleQueryError` whose `.message` is just "Failed query: <sql>".
+  // The PG diagnostic (code/constraint/detail/etc.) lives on the cause.
+  const outer = lastErr as Record<string, unknown> | null;
+  const inner = (outer?.cause ?? outer) as Record<string, unknown> | null;
+  const pickStr = (...keys: string[]): string | undefined => {
+    if (!inner) return undefined;
+    for (const k of keys) {
+      const v = inner[k];
+      if (typeof v === "string" && v.length > 0) return v;
+    }
+    return undefined;
+  };
+  const detail = {
+    code: pickStr("code"),
+    severity: pickStr("severity_local", "severity"),
+    message: pickStr("message_local", "message") ??
+      (lastErr instanceof Error ? lastErr.message.split("\n")[0] : null),
+    detail: pickStr("detail"),
+    hint: pickStr("hint"),
+    constraint: pickStr("constraint_name", "constraint"),
+    table: pickStr("table_name", "table"),
+    column: pickStr("column_name", "column"),
+    where: pickStr("where"),
+    routine: pickStr("routine"),
+    schema: pickStr("schema_name", "schema"),
+    causeKeys: inner
+      ? Object.getOwnPropertyNames(inner).slice(0, 20).join(",")
+      : null,
+  };
+  process.stderr.write(
+    `[withRetry] ${label} fatal — ${JSON.stringify(detail)}\n`,
+  );
+  throw new Error(
+    `${label} failed after ${MAX_ATTEMPTS} attempts: ${detail.code ?? ""} ${detail.message ?? ""}`,
+  );
+}
+
+function chunked<T>(arr: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+export async function loadAllBulk(
   executor: TxLike,
   opts: LoadOpts,
-  row: TransformedRow,
-): Promise<LoadResult> {
-  return executor.transaction(async (tx) => {
-    const counts = emptyRowCounts();
-    const { tenantId } = opts;
+  rows: readonly TransformedRow[],
+  quarantine: (rec: QuarantineRecord) => void,
+): Promise<LoadAllResult> {
+  const counts = emptyRowCounts();
+  const { tenantId, saleIdToContractId } = opts;
 
-    // 1. Agents — pre-warmed via AgentCache.prewarm before any per-row work.
-    // Pure in-memory lookup here; no DB writes inside the per-row savepoint,
-    // so failures elsewhere in this tx can't leave stale UUIDs in the cache.
-    const primaryAgentId = opts.agentCache.get(row.primaryAgentName);
-    const secondaryAgentId = opts.agentCache.get(row.secondaryAgentName);
+  // Suppress cascading quarantines: a row that fails in pass 1/2 would also
+  // fail downstream FK lookups in passes 3-5, producing 3-4 quarantine events
+  // per dropped row and inflating the error ratio. Track failures once per row.
+  const failedRowNumbers = new Set<number>();
+  const reportFailure = (rec: QuarantineRecord): void => {
+    if (rec.severity === "error" && failedRowNumbers.has(rec.rowNumber)) return;
+    if (rec.severity === "error") failedRowNumbers.add(rec.rowNumber);
+    quarantine(rec);
+  };
 
-    // 2. Customer (UPSERT on tenant_id, external_customer_id).
-    const customerRows = await tx
-      .insert(customers)
-      .values({
-        tenantId,
-        name: row.customerName,
-        externalCustomerId: row.externalCustomerId,
-        primaryContactName: row.primaryContactName,
-        primaryTitle: row.primaryTitle,
-        primaryEmail: row.primaryEmail,
-        primaryPhone: row.primaryPhone,
-        sicCode: row.sicCode,
-        businessType: row.businessType,
-        category: row.category,
-        region: row.region,
-        county: row.customerCounty,
-        creditScore: row.creditScore,
-        annualRevenue: row.annualRevenue,
-      })
-      .onConflictDoUpdate({
-        target: [customers.tenantId, customers.externalCustomerId],
-        set: {
-          name: row.customerName,
-          primaryContactName: row.primaryContactName,
-          primaryTitle: row.primaryTitle,
-          primaryEmail: row.primaryEmail,
-          primaryPhone: row.primaryPhone,
-          sicCode: row.sicCode,
-          businessType: row.businessType,
-          category: row.category,
-          region: row.region,
-          county: row.customerCounty,
-          creditScore: row.creditScore,
-          annualRevenue: row.annualRevenue,
-          updatedAt: sql`now()`,
-        },
-      })
-      .returning({ id: customers.id, inserted: wasInsertedSql });
-    const customerId = customerRows[0]!.id;
-    if (customerRows[0]!.inserted) counts.customers.inserted++;
-    else counts.customers.updated++;
+  if (rows.length === 0) {
+    return {
+      counts,
+      processedRows: 0,
+      failedRows: 0,
+      resoldLinks: { linked: 0, missing: 0 },
+    };
+  }
 
-    // 3. Service address (SELECT-then-INSERT on normalized key).
-    const addrKey = addressKey(row);
-    let serviceAddressId =
-      addrKey === ""
-        ? null
-        : await findServiceAddressByKey(tx, tenantId, customerId, addrKey);
-    if (!serviceAddressId) {
-      const addrRows = await tx
-        .insert(serviceAddresses)
-        .values({
-          tenantId,
-          customerId,
-          streetNo: row.streetNo,
-          streetName: row.streetName,
-          addressLine1: row.addressLine1,
-          addressLine2: row.addressLine2,
-          city: row.city,
-          state: row.state,
-          zip: row.zip,
-          county: row.addressCounty,
-          govtArea: row.govtArea,
+  // -------- Pass 1: customers ------------------------------------------------
+  // Dedup by externalCustomerId — many xlsx rows share the same customer.
+  // Last row wins on UPDATE fields (matches per-row loader's last-write-wins
+  // behavior since each row would call ON CONFLICT DO UPDATE).
+  const customerMap = new Map<string, string>(); // externalCustomerId → customerId
+  const customerByExtId = new Map<string, TransformedRow>();
+  for (const r of rows) customerByExtId.set(r.externalCustomerId, r);
+  const customerValues = [...customerByExtId.values()].map((r) => ({
+    tenantId,
+    name: r.customerName,
+    externalCustomerId: r.externalCustomerId,
+    primaryContactName: r.primaryContactName,
+    primaryTitle: r.primaryTitle,
+    primaryEmail: r.primaryEmail,
+    primaryPhone: r.primaryPhone,
+    sicCode: r.sicCode,
+    businessType: r.businessType,
+    category: r.category,
+    region: r.region,
+    county: r.customerCounty,
+    creditScore: r.creditScore,
+    annualRevenue: r.annualRevenue,
+  }));
+  for (const chunk of chunked(customerValues, CHUNK_SIZE)) {
+    const result = await withRetry("customers chunk", () =>
+      executor
+        .insert(customers)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: [customers.tenantId, customers.externalCustomerId],
+          set: {
+            name: sql`excluded.name`,
+            primaryContactName: sql`excluded.primary_contact_name`,
+            primaryTitle: sql`excluded.primary_title`,
+            primaryEmail: sql`excluded.primary_email`,
+            primaryPhone: sql`excluded.primary_phone`,
+            sicCode: sql`excluded.sic_code`,
+            businessType: sql`excluded.business_type`,
+            category: sql`excluded.category`,
+            region: sql`excluded.region`,
+            county: sql`excluded.county`,
+            creditScore: sql`excluded.credit_score`,
+            annualRevenue: sql`excluded.annual_revenue`,
+            updatedAt: sql`now()`,
+          },
         })
-        .returning({ id: serviceAddresses.id });
-      serviceAddressId = addrRows[0]!.id;
+        .returning({
+          id: customers.id,
+          externalCustomerId: customers.externalCustomerId,
+          inserted: wasInsertedSql,
+        }),
+    );
+    for (const r of result) {
+      customerMap.set(r.externalCustomerId!, r.id);
+      if (r.inserted) counts.customers.inserted++;
+      else counts.customers.updated++;
+    }
+  }
+
+  // -------- Pass 2: service_addresses ---------------------------------------
+  // No natural key. Dedup per (customerId, addressKey). Empty addressKey =>
+  // never reuse, always insert a fresh row. Per-customer SELECT to find
+  // matching existing rows, then bulk INSERT the new pairs.
+  const addressMap = new Map<string, string>(); // rowNumber → serviceAddressId
+  const emptyKeyRows: TransformedRow[] = [];
+  const keyedPairs: { row: TransformedRow; customerId: string; key: string }[] = [];
+  for (const r of rows) {
+    const customerId = customerMap.get(r.externalCustomerId);
+    if (!customerId) continue; // shouldn't happen; pass 1 covered all
+    const k = addressKey(r);
+    if (k === "") emptyKeyRows.push(r);
+    else keyedPairs.push({ row: r, customerId, key: k });
+  }
+  // Lookup existing matches grouped by customer. customer_ids per chunk to
+  // bound payload; one SELECT per chunk. Composite key matched in TS.
+  const existingByPair = new Map<string, string>(); // `${customerId}|${key}` → id
+  const sqlAddrKey = sql<string>`regexp_replace(upper(concat_ws('|',
+    coalesce(${serviceAddresses.streetNo}, ''),
+    coalesce(${serviceAddresses.streetName}, ''),
+    coalesce(${serviceAddresses.addressLine1}, ''),
+    coalesce(${serviceAddresses.addressLine2}, ''),
+    coalesce(${serviceAddresses.city}, ''),
+    coalesce(${serviceAddresses.state}, ''),
+    coalesce(${serviceAddresses.zip}, '')
+  )), '[^A-Z0-9|]', '', 'g')`;
+  const customerIdsToProbe = [...new Set(keyedPairs.map((p) => p.customerId))];
+  for (const chunk of chunked(customerIdsToProbe, CHUNK_SIZE)) {
+    const existing = await withRetry("service_addresses probe", () =>
+      executor
+        .select({
+          id: serviceAddresses.id,
+          customerId: serviceAddresses.customerId,
+          k: sqlAddrKey,
+        })
+        .from(serviceAddresses)
+        .where(
+          and(
+            eq(serviceAddresses.tenantId, tenantId),
+            inArray(serviceAddresses.customerId, chunk),
+          ),
+        ),
+    );
+    for (const e of existing) existingByPair.set(`${e.customerId}|${e.k}`, e.id);
+  }
+  // Resolve reuses + collect unique new pairs in one walk.
+  // `firstByDupKey` keeps the first row per (customerId, key) — that row gets
+  // inserted; siblings sharing the same key reuse its id via `insertedByPair`
+  // after the chunk lands.
+  type AddrPair = { row: TransformedRow; customerId: string; key: string };
+  const firstByDupKey = new Map<string, AddrPair>();
+  for (const p of keyedPairs) {
+    const dupKey = `${p.customerId}|${p.key}`;
+    const found = existingByPair.get(dupKey);
+    if (found) {
+      addressMap.set(String(p.row.rowNumber), found);
+      counts.service_addresses.reused++;
+      continue;
+    }
+    if (!firstByDupKey.has(dupKey)) firstByDupKey.set(dupKey, p);
+  }
+  const insertedByPair = new Map<string, string>();
+  const buildAddrValue = (r: TransformedRow, customerId: string) => ({
+    tenantId,
+    customerId,
+    streetNo: r.streetNo,
+    streetName: r.streetName,
+    addressLine1: r.addressLine1,
+    addressLine2: r.addressLine2,
+    city: r.city,
+    state: r.state,
+    zip: r.zip,
+    county: r.addressCounty,
+    govtArea: r.govtArea,
+  });
+  // No retry: service_addresses has no UNIQUE constraint on the address key,
+  // so a transient-error retry after the server committed would duplicate rows.
+  // Failing loud is preferable; the next run pre-probes existing rows and
+  // dedup-collapses anyway.
+  const uniquePairs = [...firstByDupKey.values()];
+  for (const chunk of chunked(uniquePairs, CHUNK_SIZE)) {
+    const result = await executor
+      .insert(serviceAddresses)
+      .values(chunk.map((p) => buildAddrValue(p.row, p.customerId)))
+      .returning({
+        id: serviceAddresses.id,
+        customerId: serviceAddresses.customerId,
+        k: sqlAddrKey,
+      });
+    for (const r of result) {
+      insertedByPair.set(`${r.customerId}|${r.k}`, r.id);
       counts.service_addresses.inserted++;
-    } else {
+    }
+  }
+  // Map sibling pairs (same key, multiple rowNumbers) to inserted ids and
+  // count them as reused to match the per-row loader's semantics: row 1
+  // inserted (counted by the chunk loop above), rows 2..N saw row 1's commit
+  // and counted as reused.
+  for (const p of keyedPairs) {
+    if (addressMap.has(String(p.row.rowNumber))) continue;
+    const id = insertedByPair.get(`${p.customerId}|${p.key}`);
+    if (id) {
+      addressMap.set(String(p.row.rowNumber), id);
       counts.service_addresses.reused++;
     }
+  }
+  // Empty-key rows: one INSERT per row, no dedup. Chunked for stmt size.
+  const emptyKeyEntries = emptyKeyRows
+    .map((r) => {
+      const customerId = customerMap.get(r.externalCustomerId);
+      return customerId ? { row: r, customerId } : null;
+    })
+    .filter((x): x is { row: TransformedRow; customerId: string } => x !== null);
+  // INSERT ... RETURNING preserves VALUES order in PG (current implementation),
+  // so we can zip the chunk to result by index.
+  // No retry: same reason as above — duplicate insertion risk on transient
+  // disconnect after server-side commit.
+  for (const chunk of chunked(emptyKeyEntries, CHUNK_SIZE)) {
+    const result = await executor
+      .insert(serviceAddresses)
+      .values(chunk.map((e) => buildAddrValue(e.row, e.customerId)))
+      .returning({ id: serviceAddresses.id });
+    for (let i = 0; i < chunk.length; i++) {
+      addressMap.set(String(chunk[i]!.row.rowNumber), result[i]!.id);
+      counts.service_addresses.inserted++;
+    }
+  }
 
-    // 4. ESI (UPSERT on tenant_id, esi_id).
-    const esiRows = await tx
-      .insert(esis)
-      .values({
+  // -------- Pass 3: esis -----------------------------------------------------
+  // UPSERT keyed on (tenant_id, esi_id). Dedup TS-side by esi_id — last-seen
+  // row owns the service_address_id + meter/usage fields, matching last-write
+  // semantics of the prior per-row loader.
+  const esiMap = new Map<string, string>(); // esiId → esisPK
+  const esiByKey = new Map<string, { row: TransformedRow; serviceAddressId: string }>();
+  for (const r of rows) {
+    const serviceAddressId = addressMap.get(String(r.rowNumber));
+    if (!serviceAddressId) {
+      reportFailure({
+        rowNumber: r.rowNumber,
+        column: "row",
+        header: "load",
+        rawValue: "",
+        reason: "esi pass: no service_address resolved (customer pass missed)",
+        severity: "error",
+      });
+      continue;
+    }
+    esiByKey.set(r.esiId, { row: r, serviceAddressId });
+  }
+  const esiValues = [...esiByKey.values()].map((e) => ({
+    tenantId,
+    serviceAddressId: e.serviceAddressId,
+    esiId: e.row.esiId,
+    physicalMeterSerial: e.row.physicalMeterSerial,
+    eacKwh: e.row.eacKwh,
+    billingAqKwh: e.row.billingAqKwh,
+    annualUsageKwh: e.row.annualUsageKwh,
+  }));
+  const esiInsertedKeys = new Set<string>();
+  for (const chunk of chunked(esiValues, CHUNK_SIZE)) {
+    const result = await withRetry("esis chunk", () =>
+      executor
+        .insert(esis)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: [esis.tenantId, esis.esiId],
+          set: {
+            serviceAddressId: sql`excluded.service_address_id`,
+            physicalMeterSerial: sql`excluded.physical_meter_serial`,
+            eacKwh: sql`excluded.eac_kwh`,
+            billingAqKwh: sql`excluded.billing_aq_kwh`,
+            annualUsageKwh: sql`excluded.annual_usage_kwh`,
+            updatedAt: sql`now()`,
+          },
+        })
+        .returning({
+          id: esis.id,
+          esiId: esis.esiId,
+          inserted: wasInsertedSql,
+        }),
+    );
+    for (const r of result) {
+      esiMap.set(r.esiId, r.id);
+      if (r.inserted) esiInsertedKeys.add(r.esiId);
+    }
+  }
+  // Per-row tally matching the prior per-row loader: first xlsx row to touch
+  // an esiId counts as inserted (if the upsert inserted) or updated (if it
+  // hit an existing row); sibling rows sharing the same esiId all count as
+  // updated. Without this walk, the bulk RETURNING gives counts in terms of
+  // unique keys, not rows.
+  {
+    const firstSeen = new Set<string>();
+    for (const r of rows) {
+      if (!esiMap.has(r.esiId)) continue;
+      if (firstSeen.has(r.esiId)) {
+        counts.esis.updated++;
+        continue;
+      }
+      firstSeen.add(r.esiId);
+      if (esiInsertedKeys.has(r.esiId)) counts.esis.inserted++;
+      else counts.esis.updated++;
+    }
+  }
+
+  // -------- Pass 4: contracts ------------------------------------------------
+  // UPSERT keyed on (tenant_id, external_sale_id). Dedup TS-side by
+  // external_sale_id (same last-write-wins). resold_from_contract_id is left
+  // NULL here; pass 8 fills it.
+  const contractByKey = new Map<string, TransformedRow>();
+  for (const r of rows) contractByKey.set(r.externalSaleId, r);
+  const contractValues = [...contractByKey.values()]
+    .map((r) => {
+      const esiPk = esiMap.get(r.esiId);
+      if (!esiPk) {
+        reportFailure({
+          rowNumber: r.rowNumber,
+          column: "row",
+          header: "load",
+          rawValue: "",
+          reason: "contract pass: no esi resolved (esi pass missed)",
+          severity: "error",
+        });
+        return null;
+      }
+      return {
         tenantId,
-        serviceAddressId,
-        esiId: row.esiId,
-        physicalMeterSerial: row.physicalMeterSerial,
-        eacKwh: row.eacKwh,
-        billingAqKwh: row.billingAqKwh,
-        annualUsageKwh: row.annualUsageKwh,
-      })
-      .onConflictDoUpdate({
-        target: [esis.tenantId, esis.esiId],
-        set: {
-          serviceAddressId,
-          physicalMeterSerial: row.physicalMeterSerial,
-          eacKwh: row.eacKwh,
-          billingAqKwh: row.billingAqKwh,
-          annualUsageKwh: row.annualUsageKwh,
-          updatedAt: sql`now()`,
-        },
-      })
-      .returning({ id: esis.id, inserted: wasInsertedSql });
-    const esiPkId = esiRows[0]!.id;
-    if (esiRows[0]!.inserted) counts.esis.inserted++;
-    else counts.esis.updated++;
+        esiId: esiPk,
+        externalSaleId: r.externalSaleId,
+        supplier: r.supplier,
+        supplyType: r.supplyType,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        agentMils: r.agentMils,
+        currency: r.currency,
+        fxRate: r.fxRate,
+        pipelineStatus: r.pipelineStatus,
+        isLive: r.isLive,
+        saleType: r.saleType,
+        lostDate: r.lostDate,
+        lostReason: r.lostReason,
+        lostBeforeStart: r.lostBeforeStart,
+        lostAfterLive: r.lostAfterLive,
+        completedPostLive: r.completedPostLive,
+        nomination: r.nomination,
+        paymentTerm: r.paymentTerm,
+        resoldStatus: r.resoldStatus,
+        isResold: r.isResold,
+        annualUsageKwh: r.annualUsageKwh,
+        grossTcvXlsx: r.grossTcvXlsx,
+        netTcvXlsx: r.netTcvXlsx,
+        lostTcv: r.lostTcv,
+        aqLoss: r.aqLoss,
+        aqGain: r.aqGain,
+        aqCheck: r.aqCheck,
+        lostPartial: r.lostPartial,
+      };
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
+  const contractInsertedKeys = new Set<string>();
+  for (const chunk of chunked(contractValues, CHUNK_SIZE)) {
+    const result = await withRetry("contracts chunk", () =>
+      executor
+        .insert(contracts)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: [contracts.tenantId, contracts.externalSaleId],
+          set: {
+            esiId: sql`excluded.esi_id`,
+            supplier: sql`excluded.supplier`,
+            supplyType: sql`excluded.supply_type`,
+            startDate: sql`excluded.start_date`,
+            endDate: sql`excluded.end_date`,
+            agentMils: sql`excluded.agent_mils`,
+            currency: sql`excluded.currency`,
+            fxRate: sql`excluded.fx_rate`,
+            pipelineStatus: sql`excluded.pipeline_status`,
+            isLive: sql`excluded.is_live`,
+            saleType: sql`excluded.sale_type`,
+            lostDate: sql`excluded.lost_date`,
+            lostReason: sql`excluded.lost_reason`,
+            lostBeforeStart: sql`excluded.lost_before_start`,
+            lostAfterLive: sql`excluded.lost_after_live`,
+            completedPostLive: sql`excluded.completed_post_live`,
+            nomination: sql`excluded.nomination`,
+            paymentTerm: sql`excluded.payment_term`,
+            resoldStatus: sql`excluded.resold_status`,
+            isResold: sql`excluded.is_resold`,
+            annualUsageKwh: sql`excluded.annual_usage_kwh`,
+            grossTcvXlsx: sql`excluded.gross_tcv_xlsx`,
+            netTcvXlsx: sql`excluded.net_tcv_xlsx`,
+            lostTcv: sql`excluded.lost_tcv`,
+            aqLoss: sql`excluded.aq_loss`,
+            aqGain: sql`excluded.aq_gain`,
+            aqCheck: sql`excluded.aq_check`,
+            lostPartial: sql`excluded.lost_partial`,
+            updatedAt: sql`now()`,
+          },
+        })
+        .returning({
+          id: contracts.id,
+          externalSaleId: contracts.externalSaleId,
+          inserted: wasInsertedSql,
+        }),
+    );
+    for (const r of result) {
+      saleIdToContractId.set(r.externalSaleId!, r.id);
+      if (r.inserted) contractInsertedKeys.add(r.externalSaleId!);
+    }
+  }
+  // Per-row tally — see esis pass above for rationale.
+  {
+    const firstSeen = new Set<string>();
+    for (const r of rows) {
+      if (!saleIdToContractId.has(r.externalSaleId)) continue;
+      if (firstSeen.has(r.externalSaleId)) {
+        counts.contracts.updated++;
+        continue;
+      }
+      firstSeen.add(r.externalSaleId);
+      if (contractInsertedKeys.has(r.externalSaleId)) counts.contracts.inserted++;
+      else counts.contracts.updated++;
+    }
+  }
 
-    // 5. Contract (UPSERT on tenant_id, external_sale_id). Leave
-    // resold_from_contract_id NULL — pass 2 fills it.
-    const contractRows = await tx
-      .insert(contracts)
-      .values({
-        tenantId,
-        esiId: esiPkId,
-        externalSaleId: row.externalSaleId,
-        supplier: row.supplier,
-        supplyType: row.supplyType,
-        startDate: row.startDate,
-        endDate: row.endDate,
-        agentMils: row.agentMils,
-        currency: row.currency,
-        fxRate: row.fxRate,
-        pipelineStatus: row.pipelineStatus,
-        isLive: row.isLive,
-        saleType: row.saleType,
-        lostDate: row.lostDate,
-        lostReason: row.lostReason,
-        lostBeforeStart: row.lostBeforeStart,
-        lostAfterLive: row.lostAfterLive,
-        completedPostLive: row.completedPostLive,
-        nomination: row.nomination,
-        paymentTerm: row.paymentTerm,
-        resoldStatus: row.resoldStatus,
-        isResold: row.isResold,
-        annualUsageKwh: row.annualUsageKwh,
-        grossTcvXlsx: row.grossTcvXlsx,
-        netTcvXlsx: row.netTcvXlsx,
-        lostTcv: row.lostTcv,
-        aqLoss: row.aqLoss,
-        aqGain: row.aqGain,
-        aqCheck: row.aqCheck,
-        lostPartial: row.lostPartial,
-      })
-      .onConflictDoUpdate({
-        target: [contracts.tenantId, contracts.externalSaleId],
-        set: {
-          esiId: esiPkId,
-          supplier: row.supplier,
-          supplyType: row.supplyType,
-          startDate: row.startDate,
-          endDate: row.endDate,
-          agentMils: row.agentMils,
-          currency: row.currency,
-          fxRate: row.fxRate,
-          pipelineStatus: row.pipelineStatus,
-          isLive: row.isLive,
-          saleType: row.saleType,
-          lostDate: row.lostDate,
-          lostReason: row.lostReason,
-          lostBeforeStart: row.lostBeforeStart,
-          lostAfterLive: row.lostAfterLive,
-          completedPostLive: row.completedPostLive,
-          nomination: row.nomination,
-          paymentTerm: row.paymentTerm,
-          resoldStatus: row.resoldStatus,
-          isResold: row.isResold,
-          annualUsageKwh: row.annualUsageKwh,
-          grossTcvXlsx: row.grossTcvXlsx,
-          netTcvXlsx: row.netTcvXlsx,
-          lostTcv: row.lostTcv,
-          aqLoss: row.aqLoss,
-          aqGain: row.aqGain,
-          aqCheck: row.aqCheck,
-          lostPartial: row.lostPartial,
-          updatedAt: sql`now()`,
-        },
-      })
-      .returning({ id: contracts.id, inserted: wasInsertedSql });
-    const contractId = contractRows[0]!.id;
-    if (contractRows[0]!.inserted) counts.contracts.inserted++;
-    else counts.contracts.updated++;
-    // NOTE: `saleIdToContractId.set(...)` deliberately moved to the entry
-    // script, which only updates the map AFTER this tx commits. Mutating the
-    // map here would leave a stale UUID behind if a later statement throws and
-    // the savepoint rolls back — pass 2 would then link to a dead row silently.
-
-    // 6. Deal (UPSERT on tenant_id, external_sale_id).
-    const dealRows = await tx
-      .insert(deals)
-      .values({
+  // -------- Pass 5: deals ----------------------------------------------------
+  const dealValues = rows
+    .map((r) => {
+      const customerId = customerMap.get(r.externalCustomerId);
+      const contractId = saleIdToContractId.get(r.externalSaleId);
+      if (!customerId || !contractId) {
+        reportFailure({
+          rowNumber: r.rowNumber,
+          column: "row",
+          header: "load",
+          rawValue: "",
+          reason: "deal pass: missing customer or contract fk",
+          severity: "error",
+        });
+        return null;
+      }
+      return {
         tenantId,
         customerId,
-        primaryAgentId,
-        secondaryAgentId,
+        primaryAgentId: opts.agentCache.get(r.primaryAgentName),
+        secondaryAgentId: opts.agentCache.get(r.secondaryAgentName),
         contractId,
-        externalSaleId: row.externalSaleId,
-        saleDate: row.saleDate,
-        saleStatus: row.saleStatus,
-        objectionStatus: row.objectionStatus,
-        objectionType: row.objectionType,
-        sourceOfLead: row.sourceOfLead,
-      })
-      .onConflictDoUpdate({
-        target: [deals.tenantId, deals.externalSaleId],
-        set: {
-          customerId,
-          primaryAgentId,
-          secondaryAgentId,
-          contractId,
-          saleDate: row.saleDate,
-          saleStatus: row.saleStatus,
-          objectionStatus: row.objectionStatus,
-          objectionType: row.objectionType,
-          sourceOfLead: row.sourceOfLead,
-          updatedAt: sql`now()`,
-        },
-      })
-      .returning({ inserted: wasInsertedSql });
-    if (dealRows[0]!.inserted) counts.deals.inserted++;
-    else counts.deals.updated++;
+        externalSaleId: r.externalSaleId,
+        saleDate: r.saleDate,
+        saleStatus: r.saleStatus,
+        objectionStatus: r.objectionStatus,
+        objectionType: r.objectionType,
+        sourceOfLead: r.sourceOfLead,
+      };
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
+  // Dedup by externalSaleId — multiple xlsx rows sharing a sale id collapse to
+  // one deal (last wins). Skip dedup if every externalSaleId already unique.
+  const dealByKey = new Map<string, (typeof dealValues)[number]>();
+  for (const d of dealValues) dealByKey.set(d.externalSaleId, d);
+  const dealUnique = [...dealByKey.values()];
+  const dealInsertedKeys = new Set<string>();
+  const dealResolvedKeys = new Set<string>();
+  for (const chunk of chunked(dealUnique, CHUNK_SIZE)) {
+    const result = await withRetry("deals chunk", () =>
+      executor
+        .insert(deals)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: [deals.tenantId, deals.externalSaleId],
+          set: {
+            customerId: sql`excluded.customer_id`,
+            primaryAgentId: sql`excluded.primary_agent_id`,
+            secondaryAgentId: sql`excluded.secondary_agent_id`,
+            contractId: sql`excluded.contract_id`,
+            saleDate: sql`excluded.sale_date`,
+            saleStatus: sql`excluded.sale_status`,
+            objectionStatus: sql`excluded.objection_status`,
+            objectionType: sql`excluded.objection_type`,
+            sourceOfLead: sql`excluded.source_of_lead`,
+            updatedAt: sql`now()`,
+          },
+        })
+        .returning({
+          externalSaleId: deals.externalSaleId,
+          inserted: wasInsertedSql,
+        }),
+    );
+    for (const r of result) {
+      dealResolvedKeys.add(r.externalSaleId!);
+      if (r.inserted) dealInsertedKeys.add(r.externalSaleId!);
+    }
+  }
+  // Per-row tally — see esis pass above for rationale.
+  {
+    const firstSeen = new Set<string>();
+    for (const r of rows) {
+      if (!dealResolvedKeys.has(r.externalSaleId)) continue;
+      if (firstSeen.has(r.externalSaleId)) {
+        counts.deals.updated++;
+        continue;
+      }
+      firstSeen.add(r.externalSaleId);
+      if (dealInsertedKeys.has(r.externalSaleId)) counts.deals.inserted++;
+      else counts.deals.updated++;
+    }
+  }
 
-    // 7. Commission statement — only if any field non-null, dedup by
-    // (contract_id, period_start NULL, period_end NULL).
-    const hasCommissionData =
-      row.receivedAmount !== null ||
-      row.outstandingAmount !== null ||
-      row.netOutstanding !== null ||
-      row.agentCommsPaid !== null ||
-      row.agentCommsOutstanding !== null ||
-      row.billingAqKwh !== null ||
-      row.supplier !== null;
-    if (hasCommissionData) {
-      const existing = await tx
-        .select({ id: commissionStatements.id })
+  // -------- Pass 6: commission_statements -----------------------------------
+  // Dedup by (contract_id, period_start NULL, period_end NULL). Pre-query the
+  // contract_ids that already have a null-period statement to know which rows
+  // to skip.
+  const csCandidates = rows
+    .filter((r) =>
+      r.receivedAmount !== null ||
+      r.outstandingAmount !== null ||
+      r.netOutstanding !== null ||
+      r.agentCommsPaid !== null ||
+      r.agentCommsOutstanding !== null ||
+      r.billingAqKwh !== null ||
+      r.supplier !== null,
+    )
+    .map((r) => {
+      const contractId = saleIdToContractId.get(r.externalSaleId);
+      return contractId ? { row: r, contractId } : null;
+    })
+    .filter((x): x is { row: TransformedRow; contractId: string } => x !== null);
+  const csContractIds = [...new Set(csCandidates.map((x) => x.contractId))];
+  const csExisting = new Set<string>();
+  for (const chunk of chunked(csContractIds, CHUNK_SIZE)) {
+    const found = await withRetry("commission_statements probe", () =>
+      executor
+        .select({ contractId: commissionStatements.contractId })
         .from(commissionStatements)
         .where(
           and(
             eq(commissionStatements.tenantId, tenantId),
-            eq(commissionStatements.contractId, contractId),
+            inArray(commissionStatements.contractId, chunk),
             isNull(commissionStatements.periodStart),
             isNull(commissionStatements.periodEnd),
           ),
-        )
-        .limit(1);
-      if (existing[0]) {
-        counts.commission_statements.reused++;
-      } else {
-        await tx.insert(commissionStatements).values({
-          tenantId,
-          contractId,
-          supplier: row.supplier,
-          billingAqKwh: row.billingAqKwh,
-          mils: row.agentMils,
-          receivedAmount: row.receivedAmount,
-          outstandingAmount: row.outstandingAmount,
-          netOutstanding: row.netOutstanding,
-          agentCommsPaid: row.agentCommsPaid,
-          agentCommsOutstanding: row.agentCommsOutstanding,
-        });
-        counts.commission_statements.inserted++;
-      }
+        ),
+    );
+    for (const f of found) csExisting.add(f.contractId);
+  }
+  const csSeenThisRun = new Set<string>(); // contract_ids inserted in this run
+  const csInsertValues: {
+    tenantId: string;
+    contractId: string;
+    supplier: string | null;
+    billingAqKwh: string | null;
+    mils: string | null;
+    receivedAmount: string | null;
+    outstandingAmount: string | null;
+    netOutstanding: string | null;
+    agentCommsPaid: string | null;
+    agentCommsOutstanding: string | null;
+  }[] = [];
+  for (const c of csCandidates) {
+    if (csExisting.has(c.contractId) || csSeenThisRun.has(c.contractId)) {
+      counts.commission_statements.reused++;
+      continue;
     }
+    csSeenThisRun.add(c.contractId);
+    csInsertValues.push({
+      tenantId,
+      contractId: c.contractId,
+      supplier: c.row.supplier,
+      billingAqKwh: c.row.billingAqKwh,
+      mils: c.row.agentMils,
+      receivedAmount: c.row.receivedAmount,
+      outstandingAmount: c.row.outstandingAmount,
+      netOutstanding: c.row.netOutstanding,
+      agentCommsPaid: c.row.agentCommsPaid,
+      agentCommsOutstanding: c.row.agentCommsOutstanding,
+    });
+  }
+  // No retry: commission_statements has no UNIQUE constraint on
+  // (contract_id, NULL period_start, NULL period_end), so retry after a
+  // transient post-commit disconnect would duplicate rows.
+  for (const chunk of chunked(csInsertValues, CHUNK_SIZE)) {
+    await executor.insert(commissionStatements).values(chunk);
+    counts.commission_statements.inserted += chunk.length;
+  }
 
-    // 8. Aggregator payout — only if aggregator name non-null.
-    if (row.aggregatorName) {
-      const existing = await tx
-        .select({ id: aggregatorPayouts.id })
+  // -------- Pass 7: aggregator_payouts --------------------------------------
+  // Dedup by (contract_id, aggregator_name, period_start NULL, period_end NULL).
+  const apCandidates = rows
+    .filter((r) => r.aggregatorName !== null)
+    .map((r) => {
+      const contractId = saleIdToContractId.get(r.externalSaleId);
+      return contractId ? { row: r, contractId } : null;
+    })
+    .filter((x): x is { row: TransformedRow; contractId: string } => x !== null);
+  const apContractIds = [...new Set(apCandidates.map((x) => x.contractId))];
+  const apExisting = new Set<string>(); // `${contractId}|${aggregatorName}`
+  for (const chunk of chunked(apContractIds, CHUNK_SIZE)) {
+    const found = await withRetry("aggregator_payouts probe", () =>
+      executor
+        .select({
+          contractId: aggregatorPayouts.contractId,
+          aggregatorName: aggregatorPayouts.aggregatorName,
+        })
         .from(aggregatorPayouts)
         .where(
           and(
             eq(aggregatorPayouts.tenantId, tenantId),
-            eq(aggregatorPayouts.contractId, contractId),
-            eq(aggregatorPayouts.aggregatorName, row.aggregatorName),
+            inArray(aggregatorPayouts.contractId, chunk),
             isNull(aggregatorPayouts.periodStart),
             isNull(aggregatorPayouts.periodEnd),
           ),
-        )
-        .limit(1);
-      if (existing[0]) {
-        counts.aggregator_payouts.reused++;
-      } else {
-        await tx.insert(aggregatorPayouts).values({
-          tenantId,
-          contractId,
-          aggregatorName: row.aggregatorName,
-          aggregatorCommPct: row.aggregatorCommPct,
-        });
-        counts.aggregator_payouts.inserted++;
-      }
+        ),
+    );
+    for (const f of found) apExisting.add(`${f.contractId}|${f.aggregatorName}`);
+  }
+  const apSeenThisRun = new Set<string>();
+  const apInsertValues: {
+    tenantId: string;
+    contractId: string;
+    aggregatorName: string;
+    aggregatorCommPct: string | null;
+  }[] = [];
+  for (const c of apCandidates) {
+    const key = `${c.contractId}|${c.row.aggregatorName!}`;
+    if (apExisting.has(key) || apSeenThisRun.has(key)) {
+      counts.aggregator_payouts.reused++;
+      continue;
     }
+    apSeenThisRun.add(key);
+    apInsertValues.push({
+      tenantId,
+      contractId: c.contractId,
+      aggregatorName: c.row.aggregatorName!,
+      aggregatorCommPct: c.row.aggregatorCommPct,
+    });
+  }
+  // No retry: same reason as commission_statements — no UNIQUE on
+  // (contract_id, aggregator_name, NULL periods) means retry would dupe.
+  for (const chunk of chunked(apInsertValues, CHUNK_SIZE)) {
+    await executor.insert(aggregatorPayouts).values(chunk);
+    counts.aggregator_payouts.inserted += chunk.length;
+  }
 
-    return { counts, contractId };
-  });
+  // -------- Pass 8: resold links --------------------------------------------
+  const resoldLinks = await resolveResoldLinksBulk(executor, opts, rows);
+
+  return {
+    counts,
+    processedRows: rows.length - failedRowNumbers.size,
+    failedRows: failedRowNumbers.size,
+    resoldLinks,
+  };
 }
 
-/**
- * Pass 2: resolve `contracts.resold_from_contract_id` from xlsx `Resold Sale Id`.
- * Uses the in-memory sale_id → contract_id map populated during pass 1 first;
- * falls back to a DB SELECT for any sale_id missing from the map (robust to
- * partial re-runs).
- */
-export async function resolveResoldLinks(
+async function resolveResoldLinksBulk(
   executor: TxLike,
   opts: LoadOpts,
   rows: readonly TransformedRow[],
 ): Promise<{ linked: number; missing: number }> {
-  let linked = 0;
-  let missing = 0;
   const { tenantId, saleIdToContractId } = opts;
+  // Build child/source pairs; resolve any missing source ids via one bulk
+  // SELECT, then one bulk UPDATE per chunk via FROM (VALUES) join.
+  type Pair = { childId: string; sourceId: string };
+  const pairs: Pair[] = [];
+  let missing = 0;
 
-  for (const row of rows) {
-    if (!row.resoldSaleId) continue;
-    const childId = saleIdToContractId.get(row.externalSaleId);
-    if (!childId) {
-      missing++;
-      continue;
-    }
-    let sourceId = saleIdToContractId.get(row.resoldSaleId);
-    if (!sourceId) {
-      const found = await executor
-        .select({ id: contracts.id })
-        .from(contracts)
-        .where(
-          and(
-            eq(contracts.tenantId, tenantId),
-            eq(contracts.externalSaleId, row.resoldSaleId),
+  // First, collect rows with a resoldSaleId and find ones whose source isn't
+  // already in the saleIdToContractId map. Probe the DB for those in one pass.
+  const unresolved = new Set<string>(); // resoldSaleIds missing from map
+  for (const r of rows) {
+    if (!r.resoldSaleId) continue;
+    if (!saleIdToContractId.has(r.resoldSaleId)) unresolved.add(r.resoldSaleId);
+  }
+  if (unresolved.size > 0) {
+    for (const chunk of chunked([...unresolved], CHUNK_SIZE)) {
+      const found = await withRetry("resold probe", () =>
+        executor
+          .select({ id: contracts.id, externalSaleId: contracts.externalSaleId })
+          .from(contracts)
+          .where(
+            and(
+              eq(contracts.tenantId, tenantId),
+              inArray(contracts.externalSaleId, chunk),
+            ),
           ),
-        )
-        .limit(1);
-      sourceId = found[0]?.id;
-      if (sourceId) saleIdToContractId.set(row.resoldSaleId, sourceId);
+      );
+      for (const f of found) {
+        if (f.externalSaleId) saleIdToContractId.set(f.externalSaleId, f.id);
+      }
     }
-    if (!sourceId) {
+  }
+  // Dedup by childId — if the same external_sale_id row references different
+  // resoldSaleIds across xlsx rows (corrupt data, but possible), the SQL
+  // standard says UPDATE ... FROM (VALUES) with duplicate join keys is
+  // implementation-defined. Last write wins explicitly here.
+  const pairByChild = new Map<string, string>(); // childId → sourceId
+  for (const r of rows) {
+    if (!r.resoldSaleId) continue;
+    const childId = saleIdToContractId.get(r.externalSaleId);
+    const sourceId = saleIdToContractId.get(r.resoldSaleId);
+    if (!childId || !sourceId) {
       missing++;
       continue;
     }
-    await executor
-      .update(contracts)
-      .set({
-        resoldFromContractId: sourceId,
-        isResold: true,
-        updatedAt: sql`now()`,
-      })
-      .where(eq(contracts.id, childId));
-    linked++;
+    pairByChild.set(childId, sourceId);
+  }
+  for (const [childId, sourceId] of pairByChild) {
+    pairs.push({ childId, sourceId });
+  }
+
+  let linked = 0;
+  // One UPDATE...FROM (VALUES (...)) per chunk. Casts the VALUES to uuid so PG
+  // can compare against contracts.id without per-row coercion. UPDATE is
+  // idempotent (same SET each retry), so withRetry is safe here.
+  for (const chunk of chunked(pairs, CHUNK_SIZE)) {
+    const tuples = sql.join(
+      chunk.map((p) => sql`(${p.childId}::uuid, ${p.sourceId}::uuid)`),
+      sql`, `,
+    );
+    const result = await withRetry("resold link chunk", () =>
+      executor.execute(sql`
+        UPDATE contracts
+           SET resold_from_contract_id = src.source_id,
+               is_resold = true,
+               updated_at = now()
+          FROM (VALUES ${tuples}) AS src(child_id, source_id)
+         WHERE contracts.id = src.child_id
+        RETURNING contracts.id
+      `),
+    );
+    // postgres-js returns rows directly on .execute(); .length = rowCount.
+    linked += (result as unknown as { length: number }).length;
   }
 
   return { linked, missing };

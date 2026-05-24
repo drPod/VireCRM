@@ -13,7 +13,12 @@ import type { QuarantineRecord, RawRow, TransformedRow } from "./types";
 const US_STATE_2 = /^[A-Z]{2}$/;
 const ALLOWED_SUPPLY_TYPES = new Set(["Non-HH", "Gas", "Electricity"]);
 const DASH_NULL_COLS = new Set(["I", "AT", "AU", "AV", "BE", "BF"]);
-const ESI_ID_FORMAT = /^\d{17,22}$/;
+// xlsx col E ("Meter Number") is colloquial — true 17-22 digit Oncor ESI IDs
+// mix with legacy short meter IDs (10-16 digits) and longer Centerpoint-style
+// variants (23 digits). Per round-trip principle accept any digit-only value;
+// only quarantine if non-digit chars appear (real precision loss surfaces as
+// scientific notation or a decimal point).
+const ESI_ID_FORMAT = /^\d+$/;
 
 export interface TransformResult {
   row: TransformedRow | null; // null → row should be skipped
@@ -37,6 +42,36 @@ export function transformRow(
     return v;
   };
 
+  // Numeric coercion for PG `numeric` columns. xlsx mixes freeform text ("No
+  // credit info", "TBD", "—") into ostensibly numeric cells; per-row loader
+  // surfaced these as individual row failures, but bulk INSERT aborts the
+  // whole VALUES statement on the first cast failure. Strip presentation
+  // chars ($, %, ,), accept plain decimals + scientific notation, quarantine
+  // anything else as a warn (row survives, column nulled).
+  const NUMERIC_RX = /^-?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/;
+  const numericFrom = (
+    col: string,
+    label: string,
+    opts?: { stripPct?: boolean },
+  ): string | null => {
+    const raw = get(col);
+    if (raw == null) return null;
+    let v = raw.replace(/[,\s$]/g, "");
+    if (opts?.stripPct) v = v.replace(/%$/, "");
+    if (!NUMERIC_RX.test(v)) {
+      quarantine.push({
+        rowNumber: r,
+        column: col,
+        header: headers[col] ?? label,
+        rawValue: raw,
+        reason: `${label} "${raw}" not numeric — coerced to NULL`,
+        severity: "warn",
+      });
+      return null;
+    }
+    return v;
+  };
+
   const requireField = (col: string, label: string): string | null => {
     const v = get(col);
     if (!v) {
@@ -57,10 +92,15 @@ export function transformRow(
   const externalSaleId = requireField("B", "Sale Id");
   const externalCustomerId = requireField("BG", "Customer Id");
   const customerName = requireField("D", "Customer Name");
-  const esiId = requireField("E", "Meter Number / ESI ID");
-  if (!externalSaleId || !externalCustomerId || !customerName || !esiId) {
+  const esiIdRaw = requireField("E", "Meter Number / ESI ID");
+  if (!externalSaleId || !externalCustomerId || !customerName || !esiIdRaw) {
     return { row: null, quarantine };
   }
+
+  // Source xlsx wraps every ESI cell as `` `<digits>` `` — backticks force
+  // text-format display in Excel. Strip them before validation; backticks are
+  // never valid ESI chars, only presentation cruft from the export.
+  const esiId = esiIdRaw.replace(/^`+|`+$/g, "");
 
   // ESI ID precision check. xlsx cells formatted as Number lose precision at
   // 16+ digits in JS (`9.007e15` ceiling) — silent corruption. If col E is
@@ -74,7 +114,7 @@ export function transformRow(
       column: "E",
       header: headers["E"] ?? "Meter Number / ESI ID",
       rawValue: esiId,
-      reason: `ESI ID "${esiId}" does not match /^\\d{17,22}$/ — likely numeric-format precision loss in xlsx (col must be text-formatted) — row skipped`,
+      reason: `ESI ID "${esiId}" contains non-digit chars — likely xlsx numeric-format precision loss or polluted cell — row skipped`,
       severity: "error",
     });
     return { row: null, quarantine };
@@ -148,11 +188,28 @@ export function transformRow(
   else if (isLive) pipelineStatus = "active";
   else pipelineStatus = "pending";
 
-  // Dates → YYYY-MM-DD.
-  const dateOnly = (v: string | null): string | null => {
+  // Dates → YYYY-MM-DD. Reject anything that doesn't look like an ISO date
+  // prefix; bulk INSERT can't tolerate one bad cell aborting the whole chunk
+  // (xlsx has freeform notes like "Bryan signed renewal direct" in date cols).
+  const ISO_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}/;
+  const dateOnly = (
+    v: string | null,
+    col?: string,
+    label?: string,
+  ): string | null => {
     if (!v) return null;
-    if (v.length >= 10 && v[4] === "-" && v[7] === "-") return v.slice(0, 10);
-    return v; // best-effort: leave malformed strings for DB to reject
+    if (ISO_DATE_PREFIX.test(v)) return v.slice(0, 10);
+    if (col) {
+      quarantine.push({
+        rowNumber: r,
+        column: col,
+        header: headers[col] ?? label ?? col,
+        rawValue: v,
+        reason: `${label ?? col} "${v}" not an ISO date — coerced to NULL`,
+        severity: "warn",
+      });
+    }
+    return null;
   };
 
   const row: TransformedRow = {
@@ -171,8 +228,8 @@ export function transformRow(
     category: get("AX"),
     region: get("BO"),
     customerCounty: get("BQ"),
-    creditScore: get("AL"),
-    annualRevenue: get("AK"),
+    creditScore: numericFrom("AL", "credit score"),
+    annualRevenue: numericFrom("AK", "annual revenue"),
 
     streetNo: get("CB"),
     streetName: get("CA"),
@@ -185,31 +242,31 @@ export function transformRow(
     govtArea: get("BR"),
 
     physicalMeterSerial: get("BH"),
-    eacKwh: get("H"),
-    billingAqKwh: get("AU"),
-    annualUsageKwh: get("I"),
+    eacKwh: numericFrom("H", "EAC (kWh)"),
+    billingAqKwh: numericFrom("AU", "Billing AQ (kWh)"),
+    annualUsageKwh: numericFrom("I", "annual usage (kWh)"),
 
     supplyType,
-    agentMils: get("G"),
-    startDate: dateOnly(get("J")),
-    endDate: dateOnly(get("K")),
+    agentMils: numericFrom("G", "agent mils"),
+    startDate: dateOnly(get("J"), "J", "start date"),
+    endDate: dateOnly(get("K"), "K", "end date"),
     currency: get("L") ?? "USD",
-    fxRate: get("BL") ?? "1.0",
-    grossTcvXlsx: get("M"),
-    netTcvXlsx: get("P"),
-    lostTcv: get("N"),
+    fxRate: numericFrom("BL", "FX rate") ?? "1.0",
+    grossTcvXlsx: numericFrom("M", "gross TCV"),
+    netTcvXlsx: numericFrom("P", "net TCV"),
+    lostTcv: numericFrom("N", "lost TCV"),
     lostPartial: boolFrom(get("O")),
     isLive,
     supplier: get("T"),
-    lostDate: dateOnly(get("U")),
+    lostDate: dateOnly(get("U"), "U", "lost date"),
     lostReason: get("V"),
     lostBeforeStart: boolFrom(get("W")),
-    aqLoss: get("Y"),
-    aqGain: get("Z"),
+    aqLoss: numericFrom("Y", "AQ loss"),
+    aqGain: numericFrom("Z", "AQ gain"),
     lostAfterLive: boolFrom(get("AN")),
     completedPostLive: boolFrom(get("AO")),
     saleType,
-    aqCheck: get("AT"),
+    aqCheck: numericFrom("AT", "AQ check"),
     resoldStatus,
     nomination: get("AW"),
     paymentTerm: get("BA"),
@@ -218,7 +275,7 @@ export function transformRow(
     contractEnded,
     pipelineStatus,
 
-    saleDate: dateOnly(get("C")),
+    saleDate: dateOnly(get("C"), "C", "sale date"),
     saleStatus, // verbatim — round-trip principle
     objectionStatus: get("S"),
     objectionType: get("AI"),
@@ -227,14 +284,14 @@ export function transformRow(
     primaryAgentName: get("AQ"),
     secondaryAgentName: get("AR"),
 
-    receivedAmount: get("BB"),
-    outstandingAmount: get("BC"),
-    netOutstanding: get("BD"),
-    agentCommsPaid: get("BE"),
-    agentCommsOutstanding: get("BF"),
+    receivedAmount: numericFrom("BB", "received amount"),
+    outstandingAmount: numericFrom("BC", "outstanding amount"),
+    netOutstanding: numericFrom("BD", "net outstanding"),
+    agentCommsPaid: numericFrom("BE", "agent comms paid"),
+    agentCommsOutstanding: numericFrom("BF", "agent comms outstanding"),
 
     aggregatorName: get("BI"),
-    aggregatorCommPct: get("BJ"),
+    aggregatorCommPct: numericFrom("BJ", "aggregator comm %", { stripPct: true }),
   };
 
   return { row, quarantine };
