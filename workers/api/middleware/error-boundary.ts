@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import type { MiddlewareHandler } from "hono";
 import { jsonError } from "../lib/errors";
 import type { HonoEnv } from "../types";
@@ -9,6 +10,8 @@ export const errorBoundary: MiddlewareHandler<HonoEnv> = async (c, next) => {
   try {
     await next();
   } catch (err) {
+    // withSentry only catches unhandled; this captures what middleware swallows.
+    Sentry.captureException(err);
     console.error("[api] unhandled error", {
       requestId: c.get("requestId"),
       path: c.req.path,
