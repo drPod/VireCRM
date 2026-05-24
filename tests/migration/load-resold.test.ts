@@ -369,10 +369,10 @@ describe.skipIf(!hasTestDb)("resolveResoldLinks — DB-gated", () => {
     });
     const childInA = makeRow({
       rowNumber: 41,
-      // Same external_sale_id literal as the tenant-B source — uniqueIndex on
-      // contracts is (tenant_id, external_sale_id), so this is allowed and is
-      // the exact shape that would trick a cross-tenant SELECT into matching.
-      externalSaleId: "RES-XT-source-1",
+      // Distinct external_sale_id from the tenant-B source.  resoldSaleId
+      // points at "RES-XT-source-1" which only exists in tenant B — so
+      // resolveResoldLinks scoped to tenant A must find nothing.
+      externalSaleId: "RES-XT-child-1",
       externalCustomerId: "RES-XT-cust-A",
       esiId: "10443720000000402",
       resoldSaleId: "RES-XT-source-1",
