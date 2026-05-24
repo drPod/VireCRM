@@ -1,6 +1,11 @@
 import { SELF, env } from "cloudflare:test";
 import { afterAll, describe, expect, it } from "vitest";
-import { HOST_TENANT_A, getSeededTenantIds, hasTestDb, mintJwt } from "./setup";
+import {
+  HOST_TENANT_A,
+  getSeededTenantIds,
+  hasTestDb,
+  mintJwt,
+} from "./setup";
 
 const url = (host: string, path: string) => `https://${host}${path}`;
 
@@ -33,9 +38,10 @@ describe.skipIf(!hasTestDb)("GET /api/customers", () => {
   it("rejects invalid limit=999 with 400 VALIDATION", async () => {
     const ids = await getSeededTenantIds();
     const token = await mintJwt({ tenantId: ids.a });
-    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/customers?limit=999"), {
-      headers: { authorization: `Bearer ${token}` },
-    });
+    const res = await SELF.fetch(
+      url(HOST_TENANT_A, "/api/customers?limit=999"),
+      { headers: { authorization: `Bearer ${token}` } },
+    );
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error?: { code?: string } };
     expect(body.error?.code).toBe("VALIDATION");
@@ -65,9 +71,10 @@ describe.skipIf(!hasTestDb)("GET /api/customers", () => {
     // 403 would leak that the row exists; the RLS policy makes the row
     // invisible, so the handler legitimately returns "not found".
     const token = await mintJwt({ tenantId: ids.a });
-    const res = await SELF.fetch(url(HOST_TENANT_A, `/api/customers/${bRow.id}`), {
-      headers: { authorization: `Bearer ${token}` },
-    });
+    const res = await SELF.fetch(
+      url(HOST_TENANT_A, `/api/customers/${bRow.id}`),
+      { headers: { authorization: `Bearer ${token}` } },
+    );
     expect(res.status).toBe(404);
     const body = (await res.json()) as { error?: { code?: string } };
     expect(body.error?.code).toBe("NOT_FOUND");
@@ -75,9 +82,10 @@ describe.skipIf(!hasTestDb)("GET /api/customers", () => {
     // Tenant B JWT MUST be able to read the row — proves the seed worked
     // and we're not just blocking everything by accident.
     const tokenB = await mintJwt({ tenantId: ids.b });
-    const resB = await SELF.fetch(url("testbravo.virecrm.com", `/api/customers/${bRow.id}`), {
-      headers: { authorization: `Bearer ${tokenB}` },
-    });
+    const resB = await SELF.fetch(
+      url("testbravo.virecrm.com", `/api/customers/${bRow.id}`),
+      { headers: { authorization: `Bearer ${tokenB}` } },
+    );
     expect(resB.status).toBe(200);
   });
 });
@@ -85,6 +93,9 @@ describe.skipIf(!hasTestDb)("GET /api/customers", () => {
 describe.skipIf(!hasTestDb)("customers mutations", () => {
   const insertedIds: string[] = [];
 
+  // Cleanup runs OUTSIDE `withTenantContext` deliberately: raw Hyperdrive
+  // connects as the `postgres` role (BYPASSRLS), so a single DELETE spans
+  // both tenant A and tenant B rows seeded by cross-tenant tests below.
   afterAll(async () => {
     if (insertedIds.length === 0) return;
     const { makeDb } = await import("../workers/db");
@@ -261,5 +272,119 @@ describe.skipIf(!hasTestDb)("customers mutations", () => {
       "testbravo.virecrm.com",
     );
     expect(getB.status).toBe(200);
+  });
+
+  it("POST / round-trips all settable columns (incl. numerics)", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+
+    const payload = {
+      name: "POST-full-roundtrip",
+      externalCustomerId: "EXT-001",
+      primaryContactName: "Jane Operator",
+      primaryTitle: "Director of Procurement",
+      primaryEmail: "jane@example.com",
+      primaryPhone: "+15555550199",
+      notes: "Top-priority account",
+      sicCode: "5411",
+      businessType: "Grocer",
+      category: "Non-HH",
+      region: "ERCOT",
+      county: "Dallas",
+      // numeric round-trips as string — caller may send number, server stores string.
+      creditScore: 750,
+      annualRevenue: "1234567.89",
+    };
+
+    const res = await callApi(token, "POST", "/api/customers", payload);
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    insertedIds.push(body.id as string);
+
+    expect(body.name).toBe(payload.name);
+    expect(body.externalCustomerId).toBe(payload.externalCustomerId);
+    expect(body.primaryContactName).toBe(payload.primaryContactName);
+    expect(body.primaryTitle).toBe(payload.primaryTitle);
+    expect(body.primaryEmail).toBe(payload.primaryEmail);
+    expect(body.primaryPhone).toBe(payload.primaryPhone);
+    expect(body.notes).toBe(payload.notes);
+    expect(body.sicCode).toBe(payload.sicCode);
+    expect(body.businessType).toBe(payload.businessType);
+    expect(body.category).toBe(payload.category);
+    expect(body.region).toBe(payload.region);
+    expect(body.county).toBe(payload.county);
+    // Numerics come back as strings; Postgres normalizes `1234567.89` as-is.
+    expect(body.creditScore).toBe("750");
+    expect(body.annualRevenue).toBe("1234567.89");
+    expect("tenantId" in body).toBe(false);
+  });
+
+  it("POST / invalid primaryEmail → 400 VALIDATION", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const res = await callApi(token, "POST", "/api/customers", {
+      name: "bad-email-target",
+      primaryEmail: "not-an-email",
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("POST / non-numeric creditScore → 400 VALIDATION", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+    const res = await callApi(token, "POST", "/api/customers", {
+      name: "bad-numeric-target",
+      creditScore: "high",
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
+  });
+
+  it("PATCH /:id updates numerics + nullables → 200", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+
+    const createRes = await callApi(token, "POST", "/api/customers", {
+      name: "PATCH-numerics-target",
+    });
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as { id: string };
+    insertedIds.push(created.id);
+
+    const patchRes = await callApi(token, "PATCH", `/api/customers/${created.id}`, {
+      creditScore: "680",
+      annualRevenue: 42000,
+      sicCode: "7372",
+      notes: null,
+    });
+    expect(patchRes.status).toBe(200);
+    const patched = (await patchRes.json()) as Record<string, unknown>;
+    // numeric(6,0) → integer-form string; numeric(20,2) → 2-decimal string.
+    expect(patched.creditScore).toBe("680");
+    expect(patched.annualRevenue).toBe("42000.00");
+    expect(patched.sicCode).toBe("7372");
+    expect(patched.notes).toBeNull();
+  });
+
+  it("PATCH /:id invalid primaryEmail → 400 VALIDATION", async () => {
+    const ids = await getSeededTenantIds();
+    const token = await mintJwt({ tenantId: ids.a });
+
+    const createRes = await callApi(token, "POST", "/api/customers", {
+      name: "PATCH-bad-email-target",
+    });
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as { id: string };
+    insertedIds.push(created.id);
+
+    const res = await callApi(token, "PATCH", `/api/customers/${created.id}`, {
+      primaryEmail: "still-not-an-email",
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("VALIDATION");
   });
 });

@@ -22,25 +22,38 @@ const ListQuery = z.object({
 // accepted on PATCH to clear nullable columns; on POST the DB default takes
 // over when the key is absent.
 const nullableStr = z.string().max(1024).nullable().optional();
+// RFC 5321 caps the local-part + domain at 254 chars combined.
+const emailField = z.string().email().max(254).nullable().optional();
+// Drizzle's `numeric` round-trips as string; accept either form from callers,
+// coerce to string before insert. Postgres enforces precision/scale.
+const numericField = z
+  .union([z.number().finite(), z.string().regex(/^-?\d+(\.\d+)?$/)])
+  .transform((v) => (typeof v === "number" ? String(v) : v))
+  .nullable()
+  .optional();
+
+const customerBodyShape = {
+  externalCustomerId: nullableStr,
+  primaryContactName: nullableStr,
+  primaryTitle: nullableStr,
+  primaryEmail: emailField,
+  primaryPhone: nullableStr,
+  notes: nullableStr,
+  sicCode: nullableStr,
+  businessType: nullableStr,
+  category: nullableStr,
+  region: nullableStr,
+  county: nullableStr,
+  creditScore: numericField,
+  annualRevenue: numericField,
+} as const;
 
 const CreateCustomerBody = z
-  .object({
-    name: z.string().min(1).max(512),
-    externalCustomerId: nullableStr,
-    primaryContactName: nullableStr,
-    primaryEmail: nullableStr,
-    primaryPhone: nullableStr,
-  })
+  .object({ name: z.string().min(1).max(512), ...customerBodyShape })
   .strict();
 
 const UpdateCustomerBody = z
-  .object({
-    name: z.string().min(1).max(512).optional(),
-    externalCustomerId: nullableStr,
-    primaryContactName: nullableStr,
-    primaryEmail: nullableStr,
-    primaryPhone: nullableStr,
-  })
+  .object({ name: z.string().min(1).max(512).optional(), ...customerBodyShape })
   .strict();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

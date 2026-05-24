@@ -8,8 +8,18 @@ export interface CustomerListItem {
   name: string;
   externalCustomerId: string | null;
   primaryContactName: string | null;
+  primaryTitle: string | null;
   primaryEmail: string | null;
   primaryPhone: string | null;
+  notes: string | null;
+  sicCode: string | null;
+  businessType: string | null;
+  category: string | null;
+  region: string | null;
+  county: string | null;
+  // Drizzle's `numeric` round-trips as string to preserve precision.
+  creditScore: string | null;
+  annualRevenue: string | null;
   createdAt: Date;
 }
 
@@ -17,8 +27,17 @@ export interface CustomerCreateInput {
   name: string;
   externalCustomerId?: string | null;
   primaryContactName?: string | null;
+  primaryTitle?: string | null;
   primaryEmail?: string | null;
   primaryPhone?: string | null;
+  notes?: string | null;
+  sicCode?: string | null;
+  businessType?: string | null;
+  category?: string | null;
+  region?: string | null;
+  county?: string | null;
+  creditScore?: string | null;
+  annualRevenue?: string | null;
 }
 
 export type CustomerUpdateInput = Partial<CustomerCreateInput>;
@@ -56,8 +75,17 @@ const COLUMNS = {
   name: customers.name,
   externalCustomerId: customers.externalCustomerId,
   primaryContactName: customers.primaryContactName,
+  primaryTitle: customers.primaryTitle,
   primaryEmail: customers.primaryEmail,
   primaryPhone: customers.primaryPhone,
+  notes: customers.notes,
+  sicCode: customers.sicCode,
+  businessType: customers.businessType,
+  category: customers.category,
+  region: customers.region,
+  county: customers.county,
+  creditScore: customers.creditScore,
+  annualRevenue: customers.annualRevenue,
   createdAt: customers.createdAt,
 } as const;
 
@@ -128,19 +156,12 @@ export async function createCustomer(
   tenantId: string,
   input: CustomerCreateInput,
 ): Promise<CustomerListItem> {
+  // Force tenantId from handler arg — never trust caller-supplied tenant. Zod
+  // `.strict()` on the route already rejects the key, this is defense in depth.
   return withTenantContext(db, tenantId, async (tx) => {
     const rows = await tx
       .insert(customers)
-      .values({
-        // tenantId from arg, never from caller input — defense in depth atop
-        // the Zod schema which already omits the key.
-        tenantId,
-        name: input.name,
-        externalCustomerId: input.externalCustomerId ?? null,
-        primaryContactName: input.primaryContactName ?? null,
-        primaryEmail: input.primaryEmail ?? null,
-        primaryPhone: input.primaryPhone ?? null,
-      })
+      .values({ ...input, tenantId })
       .returning(COLUMNS);
     return rows[0]!;
   });
@@ -152,30 +173,17 @@ export async function updateCustomer(
   customerId: string,
   input: CustomerUpdateInput,
 ): Promise<CustomerListItem | null> {
+  // Drizzle's `set()` accepts undefined per-key and skips those columns — but
+  // an entirely empty patch produces `UPDATE customers SET WHERE …`, which is a
+  // syntax error. Short-circuit to a plain existence check so PATCH /:id with
+  // `{}` still returns 404-vs-200 correctly.
+  const hasAnyField = Object.values(input).some((v) => v !== undefined);
+  if (!hasAnyField) return getCustomerById(db, tenantId, customerId);
+
   return withTenantContext(db, tenantId, async (tx) => {
-    const patch: Record<string, unknown> = {};
-    if (input.name !== undefined) patch.name = input.name;
-    if (input.externalCustomerId !== undefined) patch.externalCustomerId = input.externalCustomerId;
-    if (input.primaryContactName !== undefined) patch.primaryContactName = input.primaryContactName;
-    if (input.primaryEmail !== undefined) patch.primaryEmail = input.primaryEmail;
-    if (input.primaryPhone !== undefined) patch.primaryPhone = input.primaryPhone;
-
-    // No patchable fields → just return the current row so a no-op PATCH still
-    // surfaces 404 vs 200 correctly.
-    if (Object.keys(patch).length === 0) {
-      const rows = await tx
-        .select(COLUMNS)
-        .from(customers)
-        .where(and(eq(customers.tenantId, tenantId), eq(customers.id, customerId)))
-        .limit(1);
-      return rows[0] ?? null;
-    }
-
-    patch.updatedAt = sql`now()`;
-
     const rows = await tx
       .update(customers)
-      .set(patch)
+      .set({ ...input, updatedAt: sql`now()` })
       .where(and(eq(customers.tenantId, tenantId), eq(customers.id, customerId)))
       .returning(COLUMNS);
     return rows[0] ?? null;
