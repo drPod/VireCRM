@@ -49,7 +49,13 @@ export default function Login() {
           | { error?: { code?: string } }
           | null;
         const code = body?.error?.code;
-        await supabase.auth.signOut();
+        // Supabase v2 reports sign-out failures via `{ error }` rather than
+        // throwing in the normal path; some edge cases still throw, so we
+        // also keep the try/catch wrapping the outer block.
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) {
+          captureException(signOutError, { tags: { layer: "auth-login" } });
+        }
         setError(messageForTenantError(code));
         return;
       }
