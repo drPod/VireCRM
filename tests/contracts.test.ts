@@ -183,6 +183,38 @@ describe.skipIf(!hasTestDb)("/api/contracts CRUD", () => {
       expect(page2.items[0]!.id).not.toBe(page1.items[0]!.id);
     });
 
+    it("cursor round-trips through URL query encoding without corruption", async () => {
+      const ids = await getSeededTenantIds();
+      const token = await mintJwt({ tenantId: ids.a });
+      // Two more rows in tenant A so limit=1 emits a cursor.
+      await createOne(token, { esiId: seededEsis.a.esiId, supplier: "url-cursor-1" });
+      await createOne(token, { esiId: seededEsis.a.esiId, supplier: "url-cursor-2" });
+
+      const page1Res = await SELF.fetch(url(HOST_TENANT_A, "/api/contracts?limit=1"), {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const page1 = (await page1Res.json()) as {
+        items: Array<{ id: string }>;
+        nextCursor: string | null;
+      };
+      expect(page1.nextCursor).not.toBeNull();
+      const cursor = page1.nextCursor!;
+
+      // base64url alphabet only: A-Z a-z 0-9 - _. Plain `+` / `/` would corrupt
+      // when the cursor lands inside a URL query string.
+      expect(cursor).toMatch(/^[A-Za-z0-9_-]+$/);
+
+      // URLSearchParams decodes `+` back to a space — base64url avoids this.
+      const params = new URLSearchParams({ limit: "1", cursor }).toString();
+      const page2Res = await SELF.fetch(url(HOST_TENANT_A, `/api/contracts?${params}`), {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(page2Res.status).toBe(200);
+      const page2 = (await page2Res.json()) as { items: Array<{ id: string }> };
+      expect(page2.items.length).toBeGreaterThanOrEqual(1);
+      expect(page2.items[0]!.id).not.toBe(page1.items[0]!.id);
+    });
+
     it("filters by ?esiId=<uuid> — only that ESI's contracts come back", async () => {
       const ids = await getSeededTenantIds();
       const token = await mintJwt({ tenantId: ids.a });

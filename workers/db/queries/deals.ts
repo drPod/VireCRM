@@ -2,6 +2,10 @@ import { and, desc, eq, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
 import { deals } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
+import { type Cursor, decodeCursor, encodeCursor } from "./_cursor";
+
+// Re-exported so the route layer keeps its single import surface.
+export { decodeCursor };
 
 export interface DealListItem {
   id: string;
@@ -23,29 +27,6 @@ export interface DealListItem {
 export interface DealListPage {
   items: DealListItem[];
   nextCursor: string | null;
-}
-
-export interface Cursor {
-  createdAt: string;
-  id: string;
-}
-
-function encodeCursor(c: Cursor): string {
-  return btoa(JSON.stringify(c));
-}
-
-export function decodeCursor(raw: string): Cursor | null {
-  try {
-    const parsed = JSON.parse(atob(raw)) as Partial<Cursor>;
-    if (typeof parsed.createdAt !== "string") return null;
-    if (typeof parsed.id !== "string") return null;
-    // Reject unparseable timestamps so a malformed cursor doesn't produce a
-    // `NaN` comparison that silently returns the whole table.
-    if (Number.isNaN(Date.parse(parsed.createdAt))) return null;
-    return { createdAt: parsed.createdAt, id: parsed.id };
-  } catch {
-    return null;
-  }
 }
 
 const COLUMNS = {

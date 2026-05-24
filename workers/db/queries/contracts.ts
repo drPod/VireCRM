@@ -2,6 +2,10 @@ import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
 import { contracts, esis, serviceAddresses } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
+import { type Cursor, decodeCursor, encodeCursor } from "./_cursor";
+
+// Re-exported so the route layer keeps its single import surface.
+export { decodeCursor };
 
 // `contracts.gross_tcv`, `contracts.net_tcv`, `contracts.net_aq` are
 // `GENERATED ALWAYS AS (...) STORED` Postgres columns — they must NOT appear in
@@ -53,27 +57,6 @@ export interface ContractRow {
 export interface ContractListPage {
   items: ContractRow[];
   nextCursor: string | null;
-}
-
-interface Cursor {
-  createdAt: string;
-  id: string;
-}
-
-function encodeCursor(c: Cursor): string {
-  return btoa(JSON.stringify(c));
-}
-
-export function decodeCursor(raw: string): Cursor | null {
-  try {
-    const parsed = JSON.parse(atob(raw)) as Partial<Cursor>;
-    if (typeof parsed.createdAt !== "string") return null;
-    if (typeof parsed.id !== "string") return null;
-    if (Number.isNaN(Date.parse(parsed.createdAt))) return null;
-    return { createdAt: parsed.createdAt, id: parsed.id };
-  } catch {
-    return null;
-  }
 }
 
 // SELECT all columns including the GENERATED ones so callers see Gross/Net TCV
