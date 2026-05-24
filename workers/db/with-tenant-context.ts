@@ -24,9 +24,7 @@ export async function withTenantContext<T>(
   }
   const claims = JSON.stringify({ tenant_id: tenantId });
   return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`SELECT set_config('request.jwt.claims', ${claims}, true)`,
-    );
+    await tx.execute(sql`SELECT set_config('request.jwt.claims', ${claims}, true)`);
     return fn(tx as unknown as Db);
   });
 }
