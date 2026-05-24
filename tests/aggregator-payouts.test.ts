@@ -63,10 +63,10 @@ async function seedContract(
 }
 
 describe.skipIf(!hasTestDb)("aggregator-payouts CRUD", () => {
-  // Tracks every customer the suite inserts so an `ON DELETE CASCADE` chain
-  // (customer → service_address → esi → contract → aggregator_payout) cleans
-  // up at the end. Avoids leaking seed data across test runs.
+  // Ordered teardown: `contracts.esi_id → esis` is ON DELETE RESTRICT, so we
+  // must drop contracts before customers (whose cascade chain reaches esis).
   const insertedCustomerIds: string[] = [];
+  const insertedContractIds: string[] = [];
   let contractIdA: string;
   let contractIdA2: string;
   let contractIdB: string;
@@ -80,15 +80,17 @@ describe.skipIf(!hasTestDb)("aggregator-payouts CRUD", () => {
     contractIdA2 = seedA2.contractId;
     contractIdB = seedB.contractId;
     insertedCustomerIds.push(seedA.customerId, seedA2.customerId, seedB.customerId);
+    insertedContractIds.push(contractIdA, contractIdA2, contractIdB);
   });
 
   afterAll(async () => {
     if (insertedCustomerIds.length === 0) return;
     const { makeDb } = await import("../workers/db");
-    const { customers } = await import("../workers/db/schema");
+    const { customers, contracts } = await import("../workers/db/schema");
     const { inArray } = await import("drizzle-orm");
     const db = makeDb(env);
     // BYPASSRLS via `postgres` role for cleanup — tenant-agnostic delete.
+    await db.delete(contracts).where(inArray(contracts.id, insertedContractIds));
     await db.delete(customers).where(inArray(customers.id, insertedCustomerIds));
   });
 
@@ -192,6 +194,9 @@ describe.skipIf(!hasTestDb)("aggregator-payouts CRUD", () => {
     );
     expect(byName.status).toBe(200);
     const byNameBody = (await byName.json()) as Page;
+    // Length check before `.every` — a broken filter returning [] would pass
+    // vacuously otherwise. `r2` above guarantees ≥1 FilterAggB row.
+    expect(byNameBody.items.length).toBeGreaterThanOrEqual(1);
     expect(byNameBody.items.every((p) => p.aggregatorName === "FilterAggB")).toBe(true);
   });
 
@@ -202,6 +207,7 @@ describe.skipIf(!hasTestDb)("aggregator-payouts CRUD", () => {
     // Seed 3 rows on a fresh contract to control the page boundary.
     const seed = await seedContract(ids.a);
     insertedCustomerIds.push(seed.customerId);
+    insertedContractIds.push(seed.contractId);
     const cid = seed.contractId;
     for (let i = 0; i < 3; i++) {
       await SELF.fetch(url(HOST_TENANT_A, "/api/aggregator-payouts"), {
@@ -444,6 +450,88 @@ describe.skipIf(!hasTestDb)("aggregator-payouts CRUD", () => {
     const res = await SELF.fetch(
       url(HOST_TENANT_A, "/api/aggregator-payouts/00000000-0000-4000-8000-00000000beef"),
       { method: "DELETE", headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /:id RLS isolation: tenant A cannot read tenant B row (404)", async () => {
+    const ids = await getSeededTenantIds();
+    const tokenB = await mintJwt({ tenantId: ids.b });
+    const createRes = await SELF.fetch(
+      url(HOST_TENANT_B, "/api/aggregator-payouts"),
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${tokenB}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          contractId: contractIdB,
+          aggregatorName: "TenantB-read-target",
+        }),
+      },
+    );
+    expect(createRes.status).toBe(201);
+    const bRow = (await createRes.json()) as { id: string };
+
+    const tokenA = await mintJwt({ tenantId: ids.a });
+    const res = await SELF.fetch(
+      url(HOST_TENANT_A, `/api/aggregator-payouts/${bRow.id}`),
+      { headers: { authorization: `Bearer ${tokenA}` } },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("POST / rejects cross-tenant contractId with 404 NOT_FOUND", async () => {
+    // Postgres FK checks bypass RLS, so the API must verify
+    // `contracts.tenant_id` matches the JWT tenant explicitly.
+    const ids = await getSeededTenantIds();
+    const tokenA = await mintJwt({ tenantId: ids.a });
+    const res = await SELF.fetch(url(HOST_TENANT_A, "/api/aggregator-payouts"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokenA}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        contractId: contractIdB,
+        aggregatorName: "cross-tenant-attempt",
+      }),
+    });
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("NOT_FOUND");
+  });
+
+  it("PATCH /:id rejects cross-tenant contractId re-point with 404 NOT_FOUND", async () => {
+    const ids = await getSeededTenantIds();
+    const tokenA = await mintJwt({ tenantId: ids.a });
+    // Tenant A creates a payout against its own contract.
+    const createRes = await SELF.fetch(url(HOST_TENANT_A, "/api/aggregator-payouts"), {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokenA}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        contractId: contractIdA,
+        aggregatorName: "cross-tenant-repoint-target",
+      }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as { id: string };
+
+    // Tenant A attempts to re-point contractId at tenant B's contract.
+    const res = await SELF.fetch(
+      url(HOST_TENANT_A, `/api/aggregator-payouts/${created.id}`),
+      {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${tokenA}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ contractId: contractIdB }),
+      },
     );
     expect(res.status).toBe(404);
   });

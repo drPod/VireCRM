@@ -1,7 +1,16 @@
-import { and, desc, eq, lt, or, type SQLWrapper } from "drizzle-orm";
+import { and, desc, eq, lt, or, sql, type SQLWrapper } from "drizzle-orm";
 import type { Db } from "../index";
-import { aggregatorPayouts } from "../schema";
+import { aggregatorPayouts, contracts } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
+
+// Thrown when a write's `contractId` doesn't resolve under the current tenant
+// (wrong tenant or no such row). Routes map to 404 to avoid leaking which.
+export class ContractNotInTenantError extends Error {
+  constructor() {
+    super("contract not in tenant");
+    this.name = "ContractNotInTenantError";
+  }
+}
 
 export interface AggregatorPayoutRow {
   id: string;
@@ -25,17 +34,25 @@ interface Cursor {
   id: string;
 }
 
+// base64url (RFC 4648 §5): plain base64's `+` decodes back to space when
+// round-tripped through `?cursor=...` without percent-encoding. URL-safe
+// alphabet avoids that footgun.
 function encodeCursor(c: Cursor): string {
-  return btoa(JSON.stringify(c));
+  return btoa(JSON.stringify(c))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 export function decodeCursor(raw: string): Cursor | null {
   try {
-    const parsed = JSON.parse(atob(raw)) as Partial<Cursor>;
+    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "===".slice((b64.length + 3) % 4);
+    const parsed = JSON.parse(atob(padded)) as Partial<Cursor>;
     if (typeof parsed.createdAt !== "string") return null;
     if (typeof parsed.id !== "string") return null;
-    // Validate the timestamp is parseable so a malformed cursor doesn't
-    // produce a `NaN` comparison that silently returns the whole table.
+    // Reject unparseable timestamps — a NaN comparison would silently return
+    // the whole table.
     if (Number.isNaN(Date.parse(parsed.createdAt))) return null;
     return { createdAt: parsed.createdAt, id: parsed.id };
   } catch {
@@ -67,13 +84,10 @@ export async function listAggregatorPayouts(
   tenantId: string,
   opts: ListAggregatorPayoutsOpts,
 ): Promise<AggregatorPayoutListPage> {
-  // Composite tiebreak: (created_at desc, id desc). Without `id` in the cursor
-  // simultaneous timestamps would skip rows or return duplicates across pages.
-  //
-  // Explicit `tenant_id = ?` predicate is defense in depth against RLS gaps
-  // (wrong role connecting via Hyperdrive, policy misconfig, future schema
-  // change). It also lets the planner use the composite index with a literal
-  // rather than the `auth.jwt()->>tenant_id` function call from RLS.
+  // Composite tiebreak (created_at desc, id desc) — without `id` in the cursor,
+  // simultaneous timestamps would skip rows or duplicate across pages.
+  // Explicit `tenant_id = ?` is defense-in-depth + lets the planner hit the
+  // composite index with a literal (vs RLS's opaque `auth.jwt()` call).
   return withTenantContext(db, tenantId, async (tx) => {
     const predicates: SQLWrapper[] = [eq(aggregatorPayouts.tenantId, tenantId)];
     if (opts.contractId) {
@@ -143,12 +157,30 @@ export interface CreateAggregatorPayoutInput {
   amount?: string | null;
 }
 
+// Postgres FK checks bypass RLS by design, so `references(contracts.id)` alone
+// would accept a contract UUID from any tenant. Walk `contracts` explicitly
+// inside the same `withTenantContext` tx so RLS (+ the explicit `tenant_id`
+// predicate, per CLAUDE.md) gates the lookup.
+async function assertContractInTenant(
+  tx: Parameters<Parameters<typeof withTenantContext>[2]>[0],
+  tenantId: string,
+  contractId: string,
+): Promise<void> {
+  const rows = await tx
+    .select({ one: sql<number>`1` })
+    .from(contracts)
+    .where(and(eq(contracts.tenantId, tenantId), eq(contracts.id, contractId)))
+    .limit(1);
+  if (rows.length === 0) throw new ContractNotInTenantError();
+}
+
 export async function createAggregatorPayout(
   db: Db,
   tenantId: string,
   input: CreateAggregatorPayoutInput,
 ): Promise<AggregatorPayoutRow> {
   return withTenantContext(db, tenantId, async (tx) => {
+    await assertContractInTenant(tx, tenantId, input.contractId);
     const rows = await tx
       .insert(aggregatorPayouts)
       .values({
@@ -183,6 +215,9 @@ export async function updateAggregatorPayout(
   input: UpdateAggregatorPayoutInput,
 ): Promise<AggregatorPayoutRow | null> {
   return withTenantContext(db, tenantId, async (tx) => {
+    if (input.contractId !== undefined) {
+      await assertContractInTenant(tx, tenantId, input.contractId);
+    }
     const patch: Record<string, unknown> = { updatedAt: new Date() };
     if (input.contractId !== undefined) patch.contractId = input.contractId;
     if (input.aggregatorName !== undefined) patch.aggregatorName = input.aggregatorName;
