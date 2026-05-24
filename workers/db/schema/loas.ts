@@ -29,6 +29,17 @@ export const loas = pgTable(
       t.customerId,
       t.expirationDate,
     ),
+    index("loas_tenant_created_idx").on(
+      t.tenantId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
+    index("loas_tenant_customer_created_idx").on(
+      t.tenantId,
+      t.customerId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
     tenantIsolationPolicy("loas"),
   ],
 ).enableRLS();

@@ -1,0 +1,2 @@
+CREATE INDEX "loas_tenant_created_idx" ON "loas" USING btree ("tenant_id","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);--> statement-breakpoint
+CREATE INDEX "loas_tenant_customer_created_idx" ON "loas" USING btree ("tenant_id","customer_id","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);
