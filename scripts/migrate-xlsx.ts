@@ -109,7 +109,15 @@ async function main(): Promise<void> {
   // porsager/postgres#970. Transient `CONNECTION_CLOSED` / `null is not an
   // object (socket.write)` (porsager/postgres #1066, #1154) still surface
   // occasionally and are retried inside loadAllBulk's `withRetry`.
-  const client = postgres(dbUrl, { prepare: false, max: 1, fetch_types: false });
+  const client = postgres(dbUrl, {
+    prepare: false,
+    max: 1,
+    fetch_types: false,
+    // Supabase DB default statement_timeout is 120s — fine for serving traffic,
+    // tight for one-shot bulk chunks under shared-tenant contention. Raise to
+    // 5min for this script; 57014 still retries via withRetry as a safety net.
+    connection: { statement_timeout: "300000" },
+  });
   const db = drizzle(client, { schema });
 
   try {
