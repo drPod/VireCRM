@@ -11,10 +11,10 @@ DEST="${REPO_ROOT}/docs/drizzle"
 mkdir -p "${DEST}"
 
 echo "Fetching Drizzle ORM llms.txt..."
-curl -fsSL -o "${DEST}/llms.txt" https://orm.drizzle.team/llms.txt
+curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors -o "${DEST}/llms.txt" https://orm.drizzle.team/llms.txt
 
 echo "Fetching Drizzle ORM llms-full.txt..."
-curl -fsSL -o "${DEST}/llms-full.txt" https://orm.drizzle.team/llms-full.txt
+curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors -o "${DEST}/llms-full.txt" https://orm.drizzle.team/llms-full.txt
 
 echo "Done. Files in ${DEST}:"
 ls -lh "${DEST}/llms.txt" "${DEST}/llms-full.txt"

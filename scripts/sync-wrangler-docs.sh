@@ -77,7 +77,7 @@ with open(out_path, "w", encoding="utf-8") as out:
 '
 
 echo "[sync-wrangler-docs] slicing $LLMS_FULL_URL -> $SLICE_OUT"
-curl -fsSL "$LLMS_FULL_URL" | python3 -c "$SLICER_PY" "$SLICE_OUT"
+curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors "$LLMS_FULL_URL" | python3 -c "$SLICER_PY" "$SLICE_OUT"
 
 slice_bytes=$(wc -c <"$SLICE_OUT" | tr -d ' ')
 if [ "$slice_bytes" -lt 100000 ]; then
@@ -100,7 +100,7 @@ for entry in "${SUBPAGES[@]}"; do
   url="https://developers.cloudflare.com/${path}index.md"
   page_url="https://developers.cloudflare.com/${path}"
   echo "[sync-wrangler-docs] fetching $url"
-  curl -fsSL "$url" -o "$OUT_DIR/$fname"
+  curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors "$url" -o "$OUT_DIR/$fname"
   echo "$page_url -> $fname" >> "$OUT_DIR/_urls.txt"
 done
 

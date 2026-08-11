@@ -33,7 +33,7 @@ for entry in "${PAGES[@]}"; do
   name="${entry%%|*}"
   url="${entry##*|}"
   echo "Fetching $name <- $url"
-  curl -fsSL -o "$OUT/$name.md" "$url"
+  curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors -o "$OUT/$name.md" "$url"
 done
 
 echo "Done. Files in $OUT:"

@@ -29,7 +29,7 @@ fetch() {
   local url="$1"
   local out="${MIRROR_DIR}/$2"
   echo "GET ${url} -> ${out}"
-  curl -fsSL -o "${out}" "${url}"
+  curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors -o "${out}" "${url}"
 }
 
 # Stripe docs index (used as a fat grep target for capability discovery).

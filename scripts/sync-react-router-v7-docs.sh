@@ -108,7 +108,7 @@ for f in "${files[@]}"; do
   raw_url="$RAW_BASE/$f"
   slug="${f//\//__}"
   out_file="$OUT/$slug"
-  if curl -fsSL "$raw_url" -o "$out_file"; then
+  if curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors "$raw_url" -o "$out_file"; then
     echo "$raw_url" >> "$OUT/_urls.txt"
   else
     echo "# 404 — dropped: $raw_url" >> "$OUT/_urls.txt"

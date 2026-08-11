@@ -51,7 +51,7 @@ for entry in "${PAGES[@]}"; do
   url="${entry#*|}"
   out_file="${OUT_DIR}/${slug}.md"
   echo "Fetching ${url}..."
-  if curl -fsSL \
+  if curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors \
        -A "Mozilla/5.0 (compatible; genesisxsx-docs-sync/1.0)" \
        -o "${out_file}" \
        "${url}"; then

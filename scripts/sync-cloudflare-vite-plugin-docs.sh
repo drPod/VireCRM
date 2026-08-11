@@ -48,7 +48,7 @@ echo "==> slicing ${llms_full_url} → ${slice_out}"
 # breadcrumb mentions /workers/vite-plugin/. The full file is never written to disk.
 # Upstream delimits each "page" with `\n---\n\n---\n`; we split on that as RS,
 # match the embedded BreadcrumbList JSON, and re-emit the original delimiters.
-curl -fsSL "$llms_full_url" \
+curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors "$llms_full_url" \
   | awk 'BEGIN { RS="\n---\n\n---\n"; ORS="" }
          /BreadcrumbList[^|]*\/workers\/vite-plugin\//{
            print "---\n" $0 "\n---\n\n"
@@ -79,7 +79,7 @@ page_filename() {
 fetch_page() {
   local url="$1" dest="$2"
   echo "    ${url} → $(basename "$dest")"
-  curl -fsSL "$url" -o "$dest"
+  curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors "$url" -o "$dest"
   echo "$url" >> "$urls_out"
 }
 

@@ -37,7 +37,7 @@ need python3
 fetch_raw() {
   local src="$1" dst="$2"
   echo "  raw  ${src}"
-  curl -fsSL "${RAW}/${src}" -o "${DEST}/${dst}"
+  curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors "${RAW}/${src}" -o "${DEST}/${dst}"
 }
 
 fetch_raw "README.md"                        "package-readme.md"
@@ -54,7 +54,7 @@ fetch_html() {
   local path="$1" dst="$2"
   local url="${SITE}/${path}/"
   echo "  html ${url}"
-  curl -fsSL "${url}" \
+  curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors "${url}" \
     | python3 -c '
 import sys, re
 html = sys.stdin.read()

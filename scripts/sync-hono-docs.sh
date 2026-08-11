@@ -10,8 +10,8 @@ DOCS_DIR="${REPO_ROOT}/docs/hono"
 
 mkdir -p "${DOCS_DIR}"
 
-curl -fsSL https://hono.dev/llms.txt      -o "${DOCS_DIR}/llms.txt"      & pid_a=$!
-curl -fsSL https://hono.dev/llms-full.txt -o "${DOCS_DIR}/llms-full.txt" & pid_b=$!
+curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors https://hono.dev/llms.txt      -o "${DOCS_DIR}/llms.txt"      & pid_a=$!
+curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors https://hono.dev/llms-full.txt -o "${DOCS_DIR}/llms-full.txt" & pid_b=$!
 wait "${pid_a}"
 wait "${pid_b}"
 

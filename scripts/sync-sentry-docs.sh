@@ -41,7 +41,7 @@ for entry in "${PAGES[@]}"; do
   md_url="${html_url%/}.md"
   out_file="$OUT/$name.md"
   echo "Fetching $name <- $md_url"
-  if curl -fsSL "$md_url" -o "$out_file"; then
+  if curl -fsSL --connect-timeout 10 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors "$md_url" -o "$out_file"; then
     echo "$md_url" >> "$OUT/_urls.txt"
   else
     echo "# 404 — dropped: $md_url" >> "$OUT/_urls.txt"
