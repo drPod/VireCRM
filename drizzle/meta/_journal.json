@@ -71,6 +71,13 @@
       "when": 1786486526921,
       "tag": "0009_contracts_end_date_index",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786487111171,
+      "tag": "0010_timestamp_ms_precision",
+      "breakpoints": true
     }
   ]
 }

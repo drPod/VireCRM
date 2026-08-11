@@ -9,11 +9,14 @@ export const tenantId = () =>
     .notNull()
     .references(() => tenants.id, { onDelete: "restrict" });
 
+// precision 3 (ms) so values survive the JS Date round-trip in keyset cursors —
+// at microsecond precision, same-transaction rows made `created_at = <cursor>`
+// never match and later pages silently dropped rows.
 export const createdAt = () =>
-  timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
+  timestamp("created_at", { withTimezone: true, precision: 3 }).notNull().defaultNow();
 
 export const updatedAt = () =>
-  timestamp("updated_at", { withTimezone: true }).notNull().defaultNow();
+  timestamp("updated_at", { withTimezone: true, precision: 3 }).notNull().defaultNow();
 
 export const tenantIsolationPolicy = (tableName: string) =>
   pgPolicy(`${tableName}_tenant_isolation`, {
