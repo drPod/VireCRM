@@ -176,7 +176,6 @@ Layer map, hallucination-class coverage, Phase 1.5 incident: `docs/agent-prevent
 - **Cross-repo search** → delphi.
 - **Browser verification** → see `~/.claude/rules/browser.md`.
 - **Live state** (Node LTS, Supabase API changes, Stripe API versions) → curl endoflife / WebSearch per `~/.claude/rules/lookups.md`.
-- No `.mcp.json` — removed 2026-08-11 (MCP server not needed). If a new MCP is added, commit its config and document it here.
 
 ## Secrets locations
 
