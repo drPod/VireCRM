@@ -89,6 +89,44 @@ describe.skipIf(!hasTestDb)("GET /api/customers", () => {
     expect(resB.status).toBe(200);
   });
 
+  it("?q= filters by name, case-insensitive, with LIKE metachars escaped", async () => {
+    const ids = await getSeededTenantIds();
+    const { makeDb } = await import("../workers/db");
+    const { customers } = await import("../workers/db/schema");
+    const { withTenantContext } = await import("../workers/db/with-tenant-context");
+    const db = makeDb(env);
+    const row = await withTenantContext(db, ids.a, async (tx) => {
+      const [r] = await tx
+        .insert(customers)
+        .values({ tenantId: ids.a, name: "Zebra 100% Search Target" })
+        .returning({ id: customers.id });
+      return r!;
+    });
+    insertedIds.push(row.id);
+
+    const token = await mintJwt({ tenantId: ids.a });
+    const hit = await SELF.fetch(url(HOST_TENANT_A, "/api/customers?q=zebra"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(hit.status).toBe(200);
+    const hitBody = (await hit.json()) as { items: Array<{ id: string }> };
+    expect(hitBody.items.map((c) => c.id)).toContain(row.id);
+
+    // "%" must be treated literally — "0%" matches, but "0x" must not.
+    const literal = await SELF.fetch(
+      url(HOST_TENANT_A, `/api/customers?${new URLSearchParams({ q: "100%" })}`),
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    const literalBody = (await literal.json()) as { items: Array<{ id: string }> };
+    expect(literalBody.items.map((c) => c.id)).toContain(row.id);
+
+    const miss = await SELF.fetch(url(HOST_TENANT_A, "/api/customers?q=no-such-customer-xyz"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const missBody = (await miss.json()) as { items: Array<{ id: string }> };
+    expect(missBody.items.map((c) => c.id)).not.toContain(row.id);
+  });
+
   it("cursor round-trips through URL query encoding without corruption", async () => {
     const ids = await getSeededTenantIds();
     const { makeDb } = await import("../workers/db");

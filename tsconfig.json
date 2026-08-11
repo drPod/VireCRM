@@ -5,6 +5,13 @@
     { "path": "./tsconfig.cloudflare.json" }
   ],
   "compilerOptions": {
+    // Alias also declared in tsconfig.cloudflare.json (the project that
+    // actually compiles app/). Mirrored here for tooling (e.g. shadcn CLI)
+    // that only reads the root tsconfig.
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./app/*"]
+    },
     "checkJs": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,

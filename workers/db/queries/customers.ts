@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, desc, eq, ilike, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
 import { customers } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
@@ -33,10 +33,16 @@ const COLUMNS = {
   createdAt: customers.createdAt,
 } as const;
 
+// Escape LIKE metacharacters so a literal "%"/"_" in the search text can't
+// widen the match.
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, "\\$&");
+}
+
 export async function listCustomers(
   db: Db,
   tenantId: string,
-  opts: { limit: number; cursor: Cursor | null },
+  opts: { limit: number; cursor: Cursor | null; q?: string },
 ): Promise<CustomerListPage> {
   // Composite tiebreak: (created_at desc, id desc). Without `id` in the cursor
   // simultaneous timestamps would skip rows or return duplicates across pages.
@@ -47,19 +53,22 @@ export async function listCustomers(
   // change). It also lets the planner use the composite index with a literal
   // rather than the `auth.jwt()->>tenant_id` function call from RLS.
   return withTenantContext(db, tenantId, async (tx) => {
-    const tenantPredicate = eq(customers.tenantId, tenantId);
-    const where = opts.cursor
-      ? and(
-          tenantPredicate,
-          or(
-            lt(customers.createdAt, new Date(opts.cursor.createdAt)),
-            and(
-              eq(customers.createdAt, new Date(opts.cursor.createdAt)),
-              lt(customers.id, opts.cursor.id),
-            ),
+    const cursorPredicate = opts.cursor
+      ? or(
+          lt(customers.createdAt, new Date(opts.cursor.createdAt)),
+          and(
+            eq(customers.createdAt, new Date(opts.cursor.createdAt)),
+            lt(customers.id, opts.cursor.id),
           ),
         )
-      : tenantPredicate;
+      : undefined;
+    const where = and(
+      eq(customers.tenantId, tenantId),
+      opts.q !== undefined
+        ? ilike(customers.name, `%${escapeLike(opts.q)}%`)
+        : undefined,
+      cursorPredicate,
+    );
 
     const rows = await tx
       .select(COLUMNS)

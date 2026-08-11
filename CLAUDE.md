@@ -4,6 +4,8 @@
 
 CRM-as-a-service product on `virecrm.com`. Customer #1 = greenergiai (TX commercial electricity broker) at `greenenergiai.virecrm.com`.
 
+- **Replies in ASD-STE100 Simplified Technical English. Always.**
+
 **Read these first, in order:**
 1. `README.md` — what we're building + why
 2. `docs/decisions/` — 10 load-bearing picks + rationale (read the one you're touching)

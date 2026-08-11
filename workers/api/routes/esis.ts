@@ -2,50 +2,49 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { jsonError } from "../lib/errors";
 import { getDb } from "../get-db";
-import {
-  decodeCursor,
-  getCustomerById,
-  listCustomers,
-} from "../../db/queries/customers";
+import { decodeCursor, getEsiById, listEsis } from "../../db/queries/esis";
 import type { HonoEnv } from "../types";
 
 const ListQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   cursor: z.string().min(1).max(512).optional(),
-  q: z.string().min(1).max(255).optional(),
+  customerId: z.uuid().optional(),
+  serviceAddressId: z.uuid().optional(),
 });
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export const customersRoutes = new Hono<HonoEnv>()
+export const esisRoutes = new Hono<HonoEnv>()
   .get("/", async (c) => {
     const parsed = ListQuery.safeParse({
       limit: c.req.query("limit"),
       cursor: c.req.query("cursor"),
-      q: c.req.query("q"),
+      customerId: c.req.query("customerId"),
+      serviceAddressId: c.req.query("serviceAddressId"),
     });
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
 
-    const { limit, cursor: raw, q } = parsed.data;
+    const { limit, cursor: raw, customerId, serviceAddressId } = parsed.data;
     const cursor = raw ? decodeCursor(raw) : null;
     if (raw && !cursor) {
       return jsonError(c, 400, "VALIDATION", { cursor: "malformed" });
     }
 
-    const page = await listCustomers(getDb(c), c.get("tenantId"), { limit, cursor, q });
+    const page = await listEsis(getDb(c), c.get("tenantId"), {
+      limit,
+      cursor,
+      filters: { customerId, serviceAddressId },
+    });
     return c.json(page);
   })
   .get("/:id", async (c) => {
     const id = c.req.param("id");
-    // Validate the path param before hitting Postgres — an `id` that doesn't
-    // match the UUID shape would throw at the driver. We answer 404 (not 400)
-    // because malformed IDs and missing rows are indistinguishable to the
-    // caller, and 400 would leak that the format was wrong.
+    // Malformed UUIDs answer 404 (not 400) — same rationale as customers.ts.
     if (!UUID_RE.test(id)) return jsonError(c, 404, "NOT_FOUND");
 
-    const row = await getCustomerById(getDb(c), c.get("tenantId"), id);
+    const row = await getEsiById(getDb(c), c.get("tenantId"), id);
     if (!row) return jsonError(c, 404, "NOT_FOUND");
     return c.json(row);
   });

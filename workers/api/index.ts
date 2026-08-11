@@ -4,11 +4,15 @@ import { corsMiddleware } from "./middleware/cors";
 import { errorBoundary } from "./middleware/error-boundary";
 import { jwtVerify } from "./middleware/jwt-verify";
 import { tenantContext } from "./middleware/tenant-context";
+import { agentsRoutes } from "./routes/agents";
 import { contractsRoutes } from "./routes/contracts";
+import { currentClientsRoutes } from "./routes/current-clients";
 import { customersRoutes } from "./routes/customers";
 import { dealsRoutes } from "./routes/deals";
+import { esisRoutes } from "./routes/esis";
 import { healthRoutes } from "./routes/health";
 import { loasRoutes } from "./routes/loas";
+import { serviceAddressesRoutes } from "./routes/service-addresses";
 import type { HonoEnv } from "./types";
 
 // Middleware order (every protected request):
@@ -28,9 +32,13 @@ api.route("/health", healthRoutes);
 const protectedApi = new Hono<HonoEnv>();
 protectedApi.use("*", jwtVerify);
 protectedApi.use("*", tenantContext);
+protectedApi.route("/agents", agentsRoutes);
 protectedApi.route("/contracts", contractsRoutes);
+protectedApi.route("/current-clients", currentClientsRoutes);
 protectedApi.route("/customers", customersRoutes);
 protectedApi.route("/deals", dealsRoutes);
+protectedApi.route("/esis", esisRoutes);
 protectedApi.route("/loas", loasRoutes);
+protectedApi.route("/service-addresses", serviceAddressesRoutes);
 
 api.route("/", protectedApi);
