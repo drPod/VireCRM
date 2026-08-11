@@ -99,6 +99,10 @@ function isTransientError(err: unknown): boolean {
     code === "CONNECTION_DESTROYED" ||
     code === "CONNECTION_ENDED" ||
     code === "CONNECT_TIMEOUT" ||
+    // 57014 = query_canceled (statement_timeout). On Supabase Micro the 120s
+    // default fires under contention (autovacuum, checkpoint, neighbor load).
+    // Bulk passes are idempotent (ON CONFLICT), retry is safe.
+    code === "57014" ||
     /Cannot read properties of null \(reading 'write'\)/.test(msg) ||
     /null is not an object \(evaluating 'socket\.write'\)/.test(msg)
   );
