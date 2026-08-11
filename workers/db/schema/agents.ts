@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, index } from "drizzle-orm/pg-core";
+import { pgTable, text, numeric, index, uniqueIndex } from "drizzle-orm/pg-core";
 import {
   createdAt,
   id,
@@ -20,6 +20,8 @@ export const agents = pgTable(
   },
   (t) => [
     index("agents_tenant_idx").on(t.tenantId, t.id),
+    index("agents_tenant_created_idx").on(t.tenantId, t.createdAt.desc(), t.id.desc()),
+    uniqueIndex("agents_tenant_email_idx").on(t.tenantId, t.email),
     tenantIsolationPolicy("agents"),
   ],
 ).enableRLS();
