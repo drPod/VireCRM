@@ -1,15 +1,12 @@
 import { and, desc, eq, lt, or } from "drizzle-orm";
 import type { Db } from "../index";
-import { serviceAddresses } from "../schema";
+import { customers, serviceAddresses } from "../schema";
 import { withTenantContext } from "../with-tenant-context";
 import { type Cursor, decodeCursor, encodeCursor } from "./_cursor";
 
 // Re-exported so the route layer keeps its single import surface.
 export { decodeCursor };
 
-// Read-only projection. Service addresses are created out-of-band (xlsx
-// migration); exposed so customer detail views can show addresses and so the
-// frontend can walk customer → addresses → ESIs when creating contracts.
 export interface ServiceAddressListItem {
   id: string;
   customerId: string;
@@ -111,5 +108,69 @@ export async function getServiceAddressById(
       )
       .limit(1);
     return rows[0] ?? null;
+  });
+}
+
+export interface ServiceAddressCreate {
+  customerId: string;
+  streetNo?: string | null;
+  streetName?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  county?: string | null;
+  govtArea?: string | null;
+}
+
+export async function createServiceAddress(
+  db: Db,
+  tenantId: string,
+  input: ServiceAddressCreate,
+): Promise<ServiceAddressListItem | null> {
+  // FK checks bypass RLS, so verify customer ownership in-tx; null on miss.
+  return withTenantContext(db, tenantId, async (tx) => {
+    const existing = await tx
+      .select({ id: customers.id })
+      .from(customers)
+      .where(and(eq(customers.tenantId, tenantId), eq(customers.id, input.customerId)))
+      .limit(1);
+    if (!existing[0]) return null;
+
+    const rows = await tx
+      .insert(serviceAddresses)
+      .values({ ...input, tenantId })
+      .returning(COLUMNS);
+    return rows[0]!;
+  });
+}
+
+// customerId omitted: no re-parenting an address to another customer.
+export type ServiceAddressUpdate = Partial<Omit<ServiceAddressCreate, "customerId">>;
+
+export async function updateServiceAddress(
+  db: Db,
+  tenantId: string,
+  id: string,
+  input: ServiceAddressUpdate,
+): Promise<ServiceAddressListItem | null> {
+  return withTenantContext(db, tenantId, async (tx) => {
+    const rows = await tx
+      .update(serviceAddresses)
+      .set({ ...input, updatedAt: new Date() })
+      .where(and(eq(serviceAddresses.tenantId, tenantId), eq(serviceAddresses.id, id)))
+      .returning(COLUMNS);
+    return rows[0] ?? null;
+  });
+}
+
+export async function deleteServiceAddress(db: Db, tenantId: string, id: string): Promise<boolean> {
+  return withTenantContext(db, tenantId, async (tx) => {
+    const rows = await tx
+      .delete(serviceAddresses)
+      .where(and(eq(serviceAddresses.tenantId, tenantId), eq(serviceAddresses.id, id)))
+      .returning({ id: serviceAddresses.id });
+    return rows.length > 0;
   });
 }

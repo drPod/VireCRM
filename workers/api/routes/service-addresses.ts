@@ -3,9 +3,12 @@ import { z } from "zod";
 import { jsonError } from "../lib/errors";
 import { getDb } from "../get-db";
 import {
+  createServiceAddress,
   decodeCursor,
+  deleteServiceAddress,
   getServiceAddressById,
   listServiceAddresses,
+  updateServiceAddress,
 } from "../../db/queries/service-addresses";
 import type { HonoEnv } from "../types";
 
@@ -16,6 +19,30 @@ const ListQuery = z.object({
 });
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// "" and undefined both collapse to null so clearing a field never stores "".
+const optText = z
+  .string()
+  .max(500)
+  .nullish()
+  .transform((v) => (v === "" || v == null ? null : v));
+
+const addressFields = {
+  streetNo: optText,
+  streetName: optText,
+  addressLine1: optText,
+  addressLine2: optText,
+  city: optText,
+  state: optText,
+  zip: optText,
+  county: optText,
+  govtArea: optText,
+} as const;
+
+const CreateBody = z.object({ customerId: z.uuid(), ...addressFields }).strict();
+
+// customerId omitted: re-parenting an address is not a generic field edit.
+const UpdateBody = z.object(addressFields).partial().strict();
 
 export const serviceAddressesRoutes = new Hono<HonoEnv>()
   .get("/", async (c) => {
@@ -49,4 +76,43 @@ export const serviceAddressesRoutes = new Hono<HonoEnv>()
     const row = await getServiceAddressById(getDb(c), c.get("tenantId"), id);
     if (!row) return jsonError(c, 404, "NOT_FOUND");
     return c.json(row);
+  })
+  .post("/", async (c) => {
+    const body = await c.req.json().catch(() => null);
+    if (body === null) return jsonError(c, 400, "VALIDATION", { body: "invalid JSON" });
+    const parsed = CreateBody.safeParse(body);
+    if (!parsed.success) {
+      return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
+    }
+
+    const row = await createServiceAddress(getDb(c), c.get("tenantId"), parsed.data);
+    // null = customerId missing or cross-tenant; same answer for both.
+    if (!row) return jsonError(c, 400, "VALIDATION", { customerId: "unknown" });
+    return c.json(row, 201);
+  })
+  .patch("/:id", async (c) => {
+    const id = c.req.param("id");
+    if (!UUID_RE.test(id)) return jsonError(c, 404, "NOT_FOUND");
+
+    const body = await c.req.json().catch(() => null);
+    if (body === null) return jsonError(c, 400, "VALIDATION", { body: "invalid JSON" });
+    const parsed = UpdateBody.safeParse(body);
+    if (!parsed.success) {
+      return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
+    }
+    if (Object.keys(parsed.data).length === 0) {
+      return jsonError(c, 400, "VALIDATION", { body: "must contain at least one field" });
+    }
+
+    const row = await updateServiceAddress(getDb(c), c.get("tenantId"), id, parsed.data);
+    if (!row) return jsonError(c, 404, "NOT_FOUND");
+    return c.json(row);
+  })
+  .delete("/:id", async (c) => {
+    const id = c.req.param("id");
+    if (!UUID_RE.test(id)) return jsonError(c, 404, "NOT_FOUND");
+
+    const ok = await deleteServiceAddress(getDb(c), c.get("tenantId"), id);
+    if (!ok) return jsonError(c, 404, "NOT_FOUND");
+    return c.body(null, 204);
   });

@@ -50,6 +50,13 @@
       "when": 1779619363832,
       "tag": "0006_deals_cursor_index",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786485231166,
+      "tag": "0007_service_addresses_pagination_indexes",
+      "breakpoints": true
     }
   ]
 }
