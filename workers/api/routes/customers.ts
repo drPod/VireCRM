@@ -80,6 +80,15 @@ async function readJsonBody(c: {
   return c.req.json().catch(() => INVALID_JSON);
 }
 
+// Drizzle wraps the driver throw in `DrizzleQueryError` and exposes the real
+// `PostgresError` at `.cause`. Same duck-typing rationale as deals.ts.
+function isUniqueViolation(err: unknown, constraint: string): boolean {
+  const candidate = (err as { cause?: unknown })?.cause ?? err;
+  if (typeof candidate !== "object" || candidate === null) return false;
+  const e = candidate as { code?: string; constraint_name?: string };
+  return e.code === "23505" && e.constraint_name === constraint;
+}
+
 export const customersRoutes = new Hono<HonoEnv>()
   .get("/", async (c) => {
     const parsed = ListQuery.safeParse({
@@ -119,8 +128,19 @@ export const customersRoutes = new Hono<HonoEnv>()
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
-    const row = await createCustomer(getDb(c), c.get("tenantId"), parsed.data);
-    return c.json(row, 201);
+    try {
+      const row = await createCustomer(getDb(c), c.get("tenantId"), parsed.data);
+      return c.json(row, 201);
+    } catch (err) {
+      // `customers_tenant_external_idx` unique on (tenant_id,
+      // external_customer_id) — duplicate POST would 500 without this.
+      if (isUniqueViolation(err, "customers_tenant_external_idx")) {
+        return jsonError(c, 409, "CONFLICT", {
+          externalCustomerId: "already exists for this tenant",
+        });
+      }
+      throw err;
+    }
   })
   .patch("/:id", async (c) => {
     const id = c.req.param("id");
@@ -132,9 +152,18 @@ export const customersRoutes = new Hono<HonoEnv>()
     if (!parsed.success) {
       return jsonError(c, 400, "VALIDATION", parsed.error.flatten());
     }
-    const row = await updateCustomer(getDb(c), c.get("tenantId"), id, parsed.data);
-    if (!row) return jsonError(c, 404, "NOT_FOUND");
-    return c.json(row);
+    try {
+      const row = await updateCustomer(getDb(c), c.get("tenantId"), id, parsed.data);
+      if (!row) return jsonError(c, 404, "NOT_FOUND");
+      return c.json(row);
+    } catch (err) {
+      if (isUniqueViolation(err, "customers_tenant_external_idx")) {
+        return jsonError(c, 409, "CONFLICT", {
+          externalCustomerId: "already exists for this tenant",
+        });
+      }
+      throw err;
+    }
   })
   .delete("/:id", async (c) => {
     const id = c.req.param("id");
