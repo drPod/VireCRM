@@ -152,6 +152,29 @@ export interface CurrentClientRow {
   createdAt: string;
 }
 
+// Row from /api/commission-reconciliation — per-contract statement rollup.
+export interface ReconciliationRow {
+  contractId: string;
+  customerId: string;
+  customerName: string;
+  esiId: string;
+  supplier: string | null;
+  agentMils: string | null;
+  currency: string;
+  eacKwh: string | null;
+  statementCount: number;
+  billedAqKwh: string | null;
+  expectedTotal: string | null;
+  receivedTotal: string | null;
+  outstandingTotal: string | null;
+  matchedCount: number;
+  shortCount: number;
+  overCount: number;
+  pendingCount: number;
+  unknownCount: number;
+  createdAt: string;
+}
+
 // Row from /api/renewals — active contracts ending within the window.
 export interface RenewalRow {
   contractId: string;

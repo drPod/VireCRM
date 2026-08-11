@@ -7,6 +7,7 @@ export default [
     route("in-pricing", "routes/in-pricing.tsx"),
     route("current-clients", "routes/current-clients.tsx"),
     route("renewals", "routes/renewals.tsx"),
+    route("reconciliation", "routes/reconciliation.tsx"),
     route("customers", "routes/customers.tsx"),
     route("customers/:id", "routes/customer-detail.tsx"),
     route("deals", "routes/deals.tsx"),
