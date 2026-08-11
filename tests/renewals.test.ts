@@ -1,12 +1,6 @@
-import { SELF, env } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  HOST_TENANT_A,
-  HOST_TENANT_B,
-  getSeededTenantIds,
-  hasTestDb,
-  mintJwt,
-} from "./setup";
+import { getSeededTenantIds, HOST_TENANT_A, HOST_TENANT_B, hasTestDb, mintJwt } from "./setup";
 
 const url = (host: string, path: string) => `https://${host}${path}`;
 const auth = (token: string) => ({ headers: { authorization: `Bearer ${token}` } });
@@ -43,9 +37,7 @@ describe.skipIf(!hasTestDb)("/api/renewals", () => {
 
   async function seedChain(tenantId: string, tag: string, contractRows: object[]) {
     const { makeDb } = await import("../workers/db");
-    const { contracts, customers, esis, serviceAddresses } = await import(
-      "../workers/db/schema"
-    );
+    const { contracts, customers, esis, serviceAddresses } = await import("../workers/db/schema");
     const { withTenantContext } = await import("../workers/db/with-tenant-context");
     const db = makeDb(env);
     return withTenantContext(db, tenantId, async (tx) => {

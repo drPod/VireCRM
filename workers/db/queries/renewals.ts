@@ -93,9 +93,7 @@ export async function listRenewals(
       isNotNull(contracts.endDate),
       gte(contracts.endDate, opts.windowStart),
       lte(contracts.endDate, opts.windowEnd),
-      opts.customerId !== undefined
-        ? eq(serviceAddresses.customerId, opts.customerId)
-        : undefined,
+      opts.customerId !== undefined ? eq(serviceAddresses.customerId, opts.customerId) : undefined,
       cursorPredicate,
     );
 
