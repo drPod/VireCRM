@@ -80,8 +80,7 @@ async function readJsonBody(c: {
   return c.req.json().catch(() => INVALID_JSON);
 }
 
-// Drizzle wraps the driver throw in `DrizzleQueryError` and exposes the real
-// `PostgresError` at `.cause`. Same duck-typing rationale as deals.ts.
+// Same duck-typing as deals.ts: real PostgresError sits at `.cause`.
 function isUniqueViolation(err: unknown, constraint: string): boolean {
   const candidate = (err as { cause?: unknown })?.cause ?? err;
   if (typeof candidate !== "object" || candidate === null) return false;
@@ -132,8 +131,6 @@ export const customersRoutes = new Hono<HonoEnv>()
       const row = await createCustomer(getDb(c), c.get("tenantId"), parsed.data);
       return c.json(row, 201);
     } catch (err) {
-      // `customers_tenant_external_idx` unique on (tenant_id,
-      // external_customer_id) — duplicate POST would 500 without this.
       if (isUniqueViolation(err, "customers_tenant_external_idx")) {
         return jsonError(c, 409, "CONFLICT", {
           externalCustomerId: "already exists for this tenant",
