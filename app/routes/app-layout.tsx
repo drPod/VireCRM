@@ -12,8 +12,9 @@ import { NavLink, Outlet, redirect, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
-import { cn } from "~/lib/utils";
 import { supabase } from "~/lib/supabase";
+import { cn } from "~/lib/utils";
+import { captureException } from "~/sentry.client";
 import type { Route } from "./+types/app-layout";
 
 // Session gate for every app page. Auth lives in the browser (supabase-js),
@@ -60,7 +61,18 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
 
   async function signOut() {
-    await supabase().auth.signOut();
+    try {
+      // Supabase v2 reports sign-out failures via `{ error }` on the resolved
+      // value; some edge cases (network down, session missing) still throw.
+      // Either way the SDK clears the local session first, so always proceed
+      // to /login — but don't swallow the failure silently.
+      const { error } = await supabase().auth.signOut();
+      if (error) {
+        captureException(error, { tags: { layer: "auth-logout" } });
+      }
+    } catch (err) {
+      captureException(err, { tags: { layer: "auth-logout" } });
+    }
     navigate("/login", { replace: true });
   }
 
