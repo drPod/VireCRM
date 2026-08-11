@@ -1,0 +1,9 @@
+/**
+ * Resolves a navigate argument to a pathname string.
+ *
+ * React Router's navigate() accepts a string, number, or a To object ({ pathname, search, hash }).
+ * All fields in the To object are optional (Partial<Path>), so we need to detect object args
+ * to avoid "[object Object]" transaction names.
+ */
+export declare function resolveNavigateArg(target: unknown): string;
+//# sourceMappingURL=utils.d.ts.map

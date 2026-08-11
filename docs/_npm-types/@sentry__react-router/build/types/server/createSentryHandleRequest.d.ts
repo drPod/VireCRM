@@ -1,0 +1,51 @@
+import type { createReadableStreamFromReadable } from '@react-router/node';
+import type { ReactNode } from 'react';
+import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
+type RenderToPipeableStreamOptions = {
+    [key: string]: unknown;
+    onShellReady?: () => void;
+    onAllReady?: () => void;
+    onShellError?: (error: unknown) => void;
+    onError?: (error: unknown) => void;
+};
+type RenderToPipeableStreamResult = {
+    pipe: (destination: NodeJS.WritableStream) => void;
+    abort: () => void;
+};
+type RenderToPipeableStreamFunction = (node: ReactNode, options: RenderToPipeableStreamOptions) => RenderToPipeableStreamResult;
+export interface SentryHandleRequestOptions {
+    /**
+     * Timeout in milliseconds after which the rendering stream will be aborted
+     * @default 10000
+     */
+    streamTimeout?: number;
+    /**
+     * React's renderToPipeableStream function from 'react-dom/server'
+     */
+    renderToPipeableStream: RenderToPipeableStreamFunction;
+    /**
+     * The <ServerRouter /> component from '@react-router/server'
+     */
+    ServerRouter: typeof ServerRouter;
+    /**
+     * createReadableStreamFromReadable from '@react-router/node'
+     */
+    createReadableStreamFromReadable: typeof createReadableStreamFromReadable;
+    /**
+     * Regular expression to identify bot user agents
+     * @default /bot|crawler|spider|googlebot|chrome-lighthouse|baidu|bing|google|yahoo|lighthouse/i
+     */
+    botRegex?: RegExp;
+}
+type HandleRequestWithoutMiddleware = (request: Request, responseStatusCode: number, responseHeaders: Headers, routerContext: EntryContext, loadContext: AppLoadContext) => Promise<unknown>;
+type HandleRequestWithMiddleware = (request: Request, responseStatusCode: number, responseHeaders: Headers, routerContext: EntryContext, loadContext: RouterContextProvider) => Promise<unknown>;
+/**
+ * A complete Sentry-instrumented handleRequest implementation that handles both
+ * route parametrization and trace meta tag injection.
+ *
+ * @param options Configuration options
+ * @returns A Sentry-instrumented handleRequest function
+ */
+export declare function createSentryHandleRequest(options: SentryHandleRequestOptions): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware;
+export {};
+//# sourceMappingURL=createSentryHandleRequest.d.ts.map

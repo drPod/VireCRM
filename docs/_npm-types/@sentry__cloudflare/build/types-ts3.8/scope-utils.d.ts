@@ -1,0 +1,15 @@
+import { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import { Scope } from '@sentry/core';
+/**
+ * Set cloud resource context on scope.
+ */
+export declare function addCloudResourceContext(scope: Scope): void;
+/**
+ * Set culture context on scope
+ */
+export declare function addCultureContext(scope: Scope, cf: IncomingRequestCfProperties | CfProperties): void;
+/**
+ * Set request data on scope
+ */
+export declare function addRequest(scope: Scope, request: Request): void;
+//# sourceMappingURL=scope-utils.d.ts.map
