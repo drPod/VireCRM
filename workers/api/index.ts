@@ -15,6 +15,7 @@ import { dealsRoutes } from "./routes/deals";
 import { esisRoutes } from "./routes/esis";
 import { healthRoutes } from "./routes/health";
 import { loasRoutes } from "./routes/loas";
+import { renewalsRoutes } from "./routes/renewals";
 import { serviceAddressesRoutes } from "./routes/service-addresses";
 import type { HonoEnv } from "./types";
 
@@ -45,6 +46,7 @@ protectedApi.route("/customers", customersRoutes);
 protectedApi.route("/deals", dealsRoutes);
 protectedApi.route("/esis", esisRoutes);
 protectedApi.route("/loas", loasRoutes);
+protectedApi.route("/renewals", renewalsRoutes);
 protectedApi.route("/service-addresses", serviceAddressesRoutes);
 
 api.route("/", protectedApi);

@@ -1,0 +1,1 @@
+CREATE INDEX "contracts_tenant_end_date_idx" ON "contracts" USING btree ("tenant_id","end_date","id");

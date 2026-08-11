@@ -1,5 +1,6 @@
 import {
   Building2,
+  CalendarClock,
   FileSignature,
   FileText,
   Handshake,
@@ -34,7 +35,7 @@ export function HydrateFallback() {
       <div className="hidden w-56 shrink-0 border-r bg-sidebar p-4 md:block">
         <Skeleton className="h-6 w-32" />
         <div className="mt-6 space-y-2">
-          {Array.from({ length: 7 }, (_, i) => (
+          {Array.from({ length: 8 }, (_, i) => (
             <Skeleton key={i} className="h-8 w-full" />
           ))}
         </div>
@@ -51,6 +52,7 @@ const NAV = [
   { to: "/", label: "Pipeline", icon: SquareKanban, end: true },
   { to: "/in-pricing", label: "In Pricing", icon: Tags, end: false },
   { to: "/current-clients", label: "Current Clients", icon: Building2, end: false },
+  { to: "/renewals", label: "Renewals", icon: CalendarClock, end: false },
   { to: "/customers", label: "Customers", icon: Users, end: false },
   { to: "/deals", label: "Deals", icon: Handshake, end: false },
   { to: "/contracts", label: "Contracts", icon: FileText, end: false },

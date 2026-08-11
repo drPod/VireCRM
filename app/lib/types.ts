@@ -152,6 +152,33 @@ export interface CurrentClientRow {
   createdAt: string;
 }
 
+// Row from /api/renewals — active contracts ending within the window.
+export interface RenewalRow {
+  contractId: string;
+  supplier: string | null;
+  supplyType: string | null;
+  startDate: string | null;
+  endDate: string;
+  costPerKwh: string | null;
+  agentMils: string | null;
+  currency: string;
+  annualUsageKwh: string | null;
+  grossTcv: string | null;
+  netTcv: string | null;
+  isLive: boolean;
+  esiRowId: string;
+  esiId: string;
+  serviceAddressId: string;
+  streetNo: string | null;
+  streetName: string | null;
+  addressLine1: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  customerId: string;
+  customerName: string;
+}
+
 // Deal pipeline stage vocabulary — enforced in the UI only (the API accepts
 // free text by design; docs/decisions/06-domain-schema.md §stage).
 export const STAGES = ["Lead", "Qualified", "In Pricing", "Sent", "Won", "Lost"] as const;

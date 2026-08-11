@@ -78,6 +78,7 @@ export const contracts = pgTable(
     index("contracts_tenant_idx").on(t.tenantId, t.id),
     index("contracts_tenant_esi_idx").on(t.tenantId, t.esiId),
     index("contracts_tenant_status_idx").on(t.tenantId, t.pipelineStatus),
+    index("contracts_tenant_end_date_idx").on(t.tenantId, t.endDate, t.id),
     uniqueIndex("contracts_tenant_external_sale_idx").on(t.tenantId, t.externalSaleId),
     tenantIsolationPolicy("contracts"),
   ],

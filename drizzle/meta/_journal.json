@@ -64,6 +64,13 @@
       "when": 1786485392261,
       "tag": "0008_agents_uniques_and_cursor_index",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786486526921,
+      "tag": "0009_contracts_end_date_index",
+      "breakpoints": true
     }
   ]
 }
