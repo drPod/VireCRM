@@ -12,6 +12,7 @@ export class QuarantineSink {
   private stream: WriteStream;
   private _count = 0;
   private _errorCount = 0;
+  private _closed = false;
 
   constructor(public readonly path: string) {
     mkdirSync(dirname(path), { recursive: true });
@@ -19,6 +20,9 @@ export class QuarantineSink {
   }
 
   write(record: QuarantineRecord): void {
+    if (this._closed) {
+      throw new Error("QuarantineSink is closed — cannot write after close()");
+    }
     this._count++;
     if (record.severity === "error") this._errorCount++;
     this.stream.write(JSON.stringify(record) + "\n");
@@ -42,6 +46,7 @@ export class QuarantineSink {
   }
 
   async close(): Promise<void> {
+    this._closed = true;
     await new Promise<void>((resolve, reject) => {
       this.stream.end((err?: Error | null) => (err ? reject(err) : resolve()));
     });
