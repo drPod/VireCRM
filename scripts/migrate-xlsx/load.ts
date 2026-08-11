@@ -26,7 +26,7 @@
 
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../../workers/db/schema";
+import type * as schema from "../../workers/db/schema";
 import {
   customers,
   serviceAddresses,

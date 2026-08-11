@@ -22,7 +22,7 @@ import {
 } from "~/components/ui/table";
 import { apiFetch } from "~/lib/api";
 import { resolveEsis } from "~/lib/entities";
-import { fmtDate, fmtMoney, fmtText } from "~/lib/format";
+import { fmtDate, fmtMoney } from "~/lib/format";
 import { DomainTerm } from "~/components/domain-term";
 import { ContractFormDialog } from "~/components/contract-form-dialog";
 import { PIPELINE_STATUSES, type ContractRow, type ListPage } from "~/lib/types";
